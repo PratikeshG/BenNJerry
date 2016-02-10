@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="triggerPaymentsFromLocation">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/" doc:name="HTTP"/>
+        <set-payload value="{&quot;accessToken&quot;:&quot;pYZxdGn4pjIfwk_BU08h-g&quot;,&quot;squareId&quot;:&quot;me&quot;}" doc:name="Set Payload"/>
+        <json:json-to-object-transformer returnClass="transaction.SquareAccount" doc:name="JSON to Object"/>
+        <set-session-variable variableName="destinationQueue" value="results" doc:name="Copy_of_Session Variable"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocation" connector-ref="VM" doc:name="VM"/>
+        <set-payload value="Message sent successfully." doc:name="Set Payload"/>
+    </flow>
+    <flow name="results">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="results" connector-ref="VM" doc:name="VM"/>
+        <logger message="#[&quot;Did destinationQueue survive? Looks that way! &quot; + payload.size()]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="triggerPaymentsFromLocations">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/many" doc:name="Copy_of_HTTP"/>
+        <set-payload value="[{&quot;accessToken&quot;:&quot;pYZxdGn4pjIfwk_BU08h-g&quot;,&quot;squareId&quot;:&quot;me&quot;},{&quot;accessToken&quot;:&quot;pYZxdGn4pjIfwk_BU08h-g&quot;,&quot;squareId&quot;:&quot;me&quot;}]" doc:name="Copy_of_Set Payload"/>
+        <json:json-to-object-transformer returnClass="transaction.SquareAccount[]" doc:name="Copy_of_JSON to Object"/>
+        <set-session-variable variableName="destinationQueue" value="results" doc:name="Session Variable"/>
+        <set-session-variable variableName="order" value="DESC" doc:name="Session Variable"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsInput" connector-ref="VM" doc:name="Copy_of_VM"/>
+        <set-payload value="Message sent successfully." doc:name="Copy_of_Set Payload"/>
+    </flow>
+</mule>
