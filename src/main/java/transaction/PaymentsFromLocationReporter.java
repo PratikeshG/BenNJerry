@@ -16,28 +16,28 @@ public class PaymentsFromLocationReporter implements Callable {
 		SquareAccount sa = (SquareAccount) eventContext.getMessage().getPayload();
 		
 		// TODO(colinlam): make this configurable
-		SquareClient client = new SquareClient(sa.getAccessToken(), "https://connect.squareupstaging.com/v1", sa.getSquareId());
+		SquareClient client = new SquareClient(sa.getAccessToken(), "https://connect.squareupstaging.com/v1", sa.getLocationId());
 		
 		String beginTime = eventContext.getMessage().getProperty("begin_time", PropertyScope.SESSION, "");
 		String endTime = eventContext.getMessage().getProperty("end_time", PropertyScope.SESSION, "");
 		String order = eventContext.getMessage().getProperty("order", PropertyScope.SESSION, "");
 		String limit = eventContext.getMessage().getProperty("limit", PropertyScope.SESSION, "");
 		
-		HashMap<String,String> map = new HashMap<String,String>();
+		HashMap<String,String> params = new HashMap<String,String>();
 		if (!beginTime.equals("")) {
-			map.put("begin_time", beginTime);			
+			params.put("begin_time", beginTime);			
 		}
 		if (!endTime.equals("")) {
-			map.put("end_time", endTime);			
+			params.put("end_time", endTime);			
 		}
 		if (!order.equals("")) {
-			map.put("order", order);			
+			params.put("order", order);			
 		}
 		if (!limit.equals("")) {
-			map.put("limit", limit);			
+			params.put("limit", limit);			
 		}
 		
-        Payment[] payments = client.payments().list(map);
+        Payment[] payments = client.payments().list(params);
         
         return payments;
 	}
