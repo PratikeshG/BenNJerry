@@ -1,5 +1,8 @@
 package util.payment;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
@@ -153,6 +156,30 @@ public class AggregateReporter {
 		return total;
 	}
 	
+	public static Map<String, Integer> totalSalesPerCategory(Payment[] payments) {
+		HashMap<String,Integer> categorySales = new HashMap<String,Integer>();
+		
+		for (Payment payment : payments) {
+			for (PaymentItemization paymentItemization : payment.getItemizations()) {
+				if (categorySales.containsKey(paymentItemization.getItemDetail().getCategoryName())) {
+					int oldValue = categorySales.get(paymentItemization.getItemDetail().getCategoryName());
+					categorySales.put(paymentItemization.getItemDetail().getCategoryName(),
+							oldValue + paymentItemization.getTotalMoney().getAmount());
+				} else {
+					categorySales.put(paymentItemization.getItemDetail().getCategoryName(),
+							paymentItemization.getTotalMoney().getAmount());
+				}
+			}
+		}
+		
+		if (categorySales.containsKey("")) {
+			categorySales.put("No category", categorySales.get(""));
+			categorySales.remove("");
+		}
+		
+		return categorySales;
+	}
+	
 	public static int totalMoneyCollectedForDiscount(Payment[] payments, String discount) {
 		int total = 0;
 		for (Payment payment : payments) {
@@ -179,6 +206,27 @@ public class AggregateReporter {
 			}
 		}
 		return total;
+	}
+	
+	public static Map<String, Integer> totalSalesPerDiscount(Payment[] payments) {
+		HashMap<String,Integer> discountSales = new HashMap<String,Integer>();
+		
+		for (Payment payment : payments) {
+			for (PaymentItemization paymentItemization : payment.getItemizations()) {
+				for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
+					if (discountSales.containsKey(paymentDiscount.getName())) {
+						int oldValue = discountSales.get(paymentDiscount.getName());
+						discountSales.put(paymentDiscount.getName(),
+								oldValue - paymentDiscount.getAppliedMoney().getAmount());
+					} else {
+						discountSales.put(paymentDiscount.getName(),
+								-paymentDiscount.getAppliedMoney().getAmount());
+					}
+				}
+			}
+		}
+		
+		return discountSales;
 	}
 	
 	public static int totalMoneyCollectedForCardEntryMethod(Payment[] payments, String method) {

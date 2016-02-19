@@ -18,12 +18,14 @@ public class PaymentsFromLocationReporter implements Callable {
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		SquarePayload sa = (SquarePayload) eventContext.getMessage().getPayload();
+		SquarePayload sp = (SquarePayload) eventContext.getMessage().getPayload();
 		
-		SquareClient client = new SquareClient(sa.getAccessToken(), apiUrl, sa.getLocationId());
+		SquareClient client = new SquareClient(sp.getAccessToken(), apiUrl, sp.getLocationId());
 		
-        Payment[] payments = client.payments().list(sa.getParams());
+        Payment[] payments = client.payments().list(sp.getParams());
         
-        return payments;
+        sp.getResults().put(eventContext.getFlowConstruct().getName(), payments);
+        
+        return sp;
 	}
 }

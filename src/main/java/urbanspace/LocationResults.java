@@ -1,5 +1,7 @@
 package urbanspace;
 
+import java.util.Map;
+
 public class LocationResults {
 	private String merchantId;
 	private int grossSales;
@@ -15,8 +17,8 @@ public class LocationResults {
 	private int totalOtherMoney;
 	private int totalFeesMoney;
 	private int netTotalMoney;
-	private CategorySales[] categorySales;
-	private Discount[] totalsPerDiscount;
+	private Map<String,Integer> categorySales;
+	private Map<String,Integer> totalsPerDiscount;
     private int totalCardSwipedMoney;
     private int totalCardTappedMoney;
     private int totalCardDippedMoney;
@@ -111,16 +113,16 @@ public class LocationResults {
 	public void setNetTotalMoney(int netTotalMoney) {
 		this.netTotalMoney = netTotalMoney;
 	}
-	public CategorySales[] getCategorySales() {
+	public Map<String,Integer> getCategorySales() {
 		return categorySales;
 	}
-	public void setCategorySales(CategorySales[] categorySales) {
+	public void setCategorySales(Map<String,Integer> categorySales) {
 		this.categorySales = categorySales;
 	}
-	public Discount[] getTotalsPerDiscount() {
+	public Map<String,Integer> getTotalsPerDiscount() {
 		return totalsPerDiscount;
 	}
-	public void setTotalsPerDiscount(Discount[] totalsPerDiscount) {
+	public void setTotalsPerDiscount(Map<String,Integer> totalsPerDiscount) {
 		this.totalsPerDiscount = totalsPerDiscount;
 	}
 	public int getTotalCardSwipedMoney() {

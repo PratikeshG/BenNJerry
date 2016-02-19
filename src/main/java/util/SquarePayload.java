@@ -1,5 +1,6 @@
 package util;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SquarePayload {
@@ -8,6 +9,7 @@ public class SquarePayload {
 	private String locationId;
 	private String accessToken;
 	private Map<String,String> params;
+	private Map<String,Object> results = new HashMap<String,Object>();
 	
 	public String getMerchantId() {
 		return merchantId;
@@ -32,5 +34,11 @@ public class SquarePayload {
 	}
 	public void setParams(Map<String,String> params) {
 		this.params = params;
+	}
+	public Map<String,Object> getResults() {
+		return results;
+	}
+	public void setResults(Map<String,Object> results) {
+		this.results = results;
 	}
 }

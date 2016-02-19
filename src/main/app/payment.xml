@@ -29,6 +29,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
     <flow name="paymentsFromLocationsOutput">
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsOutput" connector-ref="VM" doc:name="Get from &quot;paymentsFromLocation&quot; queue"/>
         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+        <combine-collections-transformer doc:name="Combine Collections" doc:description="This is necessary because of an underlying Mule mechanic. This operation does not flatten arrays of arrays, but it does turn Mule collections of objects - like those created after a split-collect operation - into a single Mule message. The payload remains unaffected, but it allows operations on the payload to continue."/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.incomingDestinationQueue]" connector-ref="VM" doc:name="Send to &quot;incomingDestinationQueue&quot; sessionVar"/>
     </flow>
 </mule>

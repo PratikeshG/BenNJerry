@@ -6,6 +6,7 @@ import java.util.List;
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 
+import util.SquarePayload;
 import util.payment.AggregateReporter;
 
 import com.squareup.connect.Payment;
@@ -15,13 +16,15 @@ public class AggregateCalculator implements Callable {
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		@SuppressWarnings("unchecked")
-		List<Payment[]> paymentsArray = (List<Payment[]>) eventContext.getMessage().getPayload();
+		List<SquarePayload> squarePayloads = (List<SquarePayload>) eventContext.getMessage().getPayload();
 		
 		ArrayList<LocationResults> lrs = new ArrayList<LocationResults>();
 		
-		for (Payment[] payments : paymentsArray) {
+		for (SquarePayload payload : squarePayloads) {
+			Payment[] payments = (Payment[]) payload.getResults().get("paymentsFromLocation");
+			
 			LocationResults lr = new LocationResults();
-			lr.setMerchantId(payments[0].getMerchantId());
+			lr.setMerchantId(payload.getLocationId());
 
 			lr.setGiftCardSales(AggregateReporter.totalMoneyCollectedForGiftCards(payments));
 
@@ -51,7 +54,8 @@ public class AggregateCalculator implements Callable {
 			lr.setTotalFeesMoney(AggregateReporter.totalProcessingFeeMoney(payments));
 			lr.setNetTotalMoney(lr.getTotalCollectedMoney() - lr.getTotalFeesMoney());
 			
-			// TODO(colinlam): categories and discounts; where do these come from???
+			lr.setCategorySales(AggregateReporter.totalSalesPerCategory(payments));
+			lr.setTotalsPerDiscount(AggregateReporter.totalSalesPerDiscount(payments));
 			
 			lr.setTotalCardSwipedMoney(AggregateReporter.totalMoneyCollectedForCardEntryMethod(payments, "SWIPED"));
 			// No can do on dips or taps
