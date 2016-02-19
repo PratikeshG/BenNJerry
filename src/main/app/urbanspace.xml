@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <flow name="generatePaymentReportForLocations">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace" doc:name="HTTP"/>
+        <set-payload value="[{&quot;merchantId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;locationId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;accessToken&quot;: &quot;daT6X7kSZj38L70iMELIsw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-01-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-01-20T00:00:00Z&quot;}}, {&quot;merchantId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;locationId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;accessToken&quot;: &quot;daT6X7kSZj38L70iMELIsw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-01-20T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-01-30T00:00:00Z&quot;}}]" doc:name="Set Square Accounts to Query"/>
+        <json:json-to-object-transformer returnClass="util.SquarePayload[]" doc:name="Convert JSON payload to Java SquarePayload objects"/>
+        <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsInput" connector-ref="VM" doc:name="VM"/>
+        <set-payload value="UrbanSpace report generation initiated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="urbanspaceFlow">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="urbanspaceResults" connector-ref="VM" doc:name="VM"/>
+        <component class="urbanspace.AggregateCalculator" doc:name="Calculate UrbanSpace Aggregate Totals"/>
+        <logger message="Look at me!" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>

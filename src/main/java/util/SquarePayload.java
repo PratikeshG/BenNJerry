@@ -1,8 +1,8 @@
-package transaction;
+package util;
 
 import java.util.Map;
 
-public class SquareAccount {
+public class SquarePayload {
 
 	private String merchantId;
 	private String locationId;

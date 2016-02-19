@@ -10,5 +10,6 @@
 	<classpathentry kind="src" path="src/test/munit"/>
 	<classpathentry kind="src" path="src/main/api"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/connect-v1-java-sdk"/>
+	<classpathentry kind="con" path="MULE_LIB/Amazon S3/org.mule.tooling.ui.contribution.s3.3.5.0"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

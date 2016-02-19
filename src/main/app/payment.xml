@@ -12,7 +12,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
     <flow name="paymentsFromLocation">
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocation" connector-ref="VM" doc:name="VM"/>
-        <component class="transaction.PaymentsFromLocationReporter" doc:name="Get payment for given Square account"/>
+        <component doc:name="Get payment for given Square account">
+            <singleton-object class="util.payment.PaymentsFromLocationReporter">
+                <property key="apiUrl" value="${apiUrl}"/>
+            </singleton-object>
+        </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.destinationQueue]" connector-ref="VM" doc:name="Send to &quot;destinationQueue&quot; sessionVar"/>
     </flow>
     <flow name="paymentsFromLocationsInput">
