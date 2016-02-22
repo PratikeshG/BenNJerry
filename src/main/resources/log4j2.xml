@@ -26,6 +26,9 @@
         <AsyncLogger name="org.jetel" level="WARN"/>
         <AsyncLogger name="Tracking" level="WARN"/>
         
+        <!-- Connect SDK classes -->
+        <AsyncLogger name="com.squareup.connect" level="DEBUG"/>
+        
         <AsyncRoot level="INFO">
             <AppenderRef ref="file" />
         </AsyncRoot>

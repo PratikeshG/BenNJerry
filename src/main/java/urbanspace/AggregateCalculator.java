@@ -1,6 +1,7 @@
 package urbanspace;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.mule.api.MuleEventContext;
@@ -25,8 +26,14 @@ public class AggregateCalculator implements Callable {
 			
 			LocationResults lr = new LocationResults();
 			lr.setMerchantId(payload.getLocationId());
+			
+			int totalMoneyCollectedForGiftCards = Arrays.stream(payments)
+				.flatMap(e -> Arrays.stream(e.getItemizations()))
+				.filter(AggregateReporter::isGiftCardTender)
+				.mapToInt(e -> e.getTotalMoney().getAmount())
+				.sum();
 
-			lr.setGiftCardSales(AggregateReporter.totalMoneyCollectedForGiftCards(payments));
+			lr.setGiftCardSales(totalMoneyCollectedForGiftCards);
 
 			lr.setTotalTaxMoney(AggregateReporter.totalTaxMoney(payments));
 			lr.setTotalTipMoney(AggregateReporter.totalTipMoney(payments));
