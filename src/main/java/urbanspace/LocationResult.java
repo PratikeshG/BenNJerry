@@ -2,7 +2,7 @@ package urbanspace;
 
 import java.util.Map;
 
-public class LocationResults {
+public class LocationResult {
 	private String merchantId;
 	private Map<String,Integer> grossSales;
 	private Map<String,Integer> totalDiscountsMoney;

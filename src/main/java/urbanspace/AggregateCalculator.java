@@ -22,12 +22,12 @@ public class AggregateCalculator implements Callable {
         @SuppressWarnings("unchecked")
         List<SquarePayload> squarePayloads = (List<SquarePayload>) eventContext.getMessage().getPayload();
         
-        ArrayList<LocationResults> lrs = new ArrayList<LocationResults>();
+        ArrayList<LocationResult> lrs = new ArrayList<LocationResult>();
         
         for (SquarePayload payload : squarePayloads) {
             Payment[] payments = (Payment[]) payload.getResults().get("paymentsFromLocation");
             
-            LocationResults lr = new LocationResults();
+            LocationResult lr = new LocationResult();
             lr.setMerchantId(payload.getLocationId());
 
             lr.setGiftCardSales(totalMoneyCollectedForGiftCards(payments));
@@ -300,7 +300,7 @@ public class AggregateCalculator implements Callable {
 		Map<String,Integer> results = new HashMap<String,Integer>();
 		
 		for (String key : grossSales.keySet()) {
-			results.put(key, grossSales.get(key) + discounts.get(key));
+			results.put(key, grossSales.get(key) - discounts.get(key));
 		}
 		
 		return results;

@@ -31,19 +31,19 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 ---
 payload map {
 	"Merchant": $.merchantId,
-	"Gross Sales": $.grossSales,
-	"Discounts": $.totalDiscountsMoney,
-	"Net Sales": $.netSales,
-	"Gift Card Sales": $.giftCardSales,
-	"Tax": $.totalTaxMoney,
-	"Tips": $.totalTipMoney,
-	"Total Collected": $.totalCollectedMoney,
-	"Cash": $.totalCashMoney,
-	"Card": $.totalCardMoney,
-	"Gift Card": $.totalGiftCardMoney,
-	"Other": $.totalOtherMoney,
-	"Fees": $.totalFeesMoney,
-	"Net Total": $.netTotalMoney
+	"Gross Sales": $.grossSales["Total"],
+	"Discounts": $.totalDiscountsMoney["Total"],
+	"Net Sales": $.netSales["Total"],
+	"Gift Card Sales": $.giftCardSales["Total"],
+	"Tax": $.totalTaxMoney["Total"],
+	"Tips": $.totalTipMoney["Total"],
+	"Total Collected": $.totalCollectedMoney["Total"],
+	"Cash": $.totalCashMoney["Total"],
+	"Card": $.totalCardMoney["Total"],
+	"Gift Card": $.totalGiftCardMoney["Total"],
+	"Other": $.totalOtherMoney["Total"],
+	"Fees": $.totalFeesMoney["Total"],
+	"Net Total": $.netTotalMoney["Total"]
 }]]></dw:set-payload>
         </dw:transform-message>
         <object-to-string-transformer doc:name="Convert CSV object into String"/>
