@@ -4,30 +4,30 @@ import java.util.Map;
 
 public class LocationResults {
 	private String merchantId;
-	private int grossSales;
-	private int totalDiscountsMoney;
-	private int netSales;
-	private int giftCardSales;
-	private int totalTaxMoney;
-	private int totalTipMoney;
-	private int totalCollectedMoney;
-	private int totalCashMoney;
-	private int totalCardMoney;
-	private int totalGiftCardMoney;
-	private int totalOtherMoney;
-	private int totalFeesMoney;
-	private int netTotalMoney;
-	private Map<String,Integer> categorySales;
-	private Map<String,Integer> totalsPerDiscount;
-    private int totalCardSwipedMoney;
-    private int totalCardTappedMoney;
-    private int totalCardDippedMoney;
-    private int totalCardKeyedMoney;
-    private int totalVisaMoney;
-    private int totalMasterCardMoney;
-    private int totalDiscoverMoney;
-    private int totalAmexMoney;
-    private int totalOtherCardMoney;
+	private Map<String,Integer> grossSales;
+	private Map<String,Integer> totalDiscountsMoney;
+	private Map<String,Integer> netSales;
+	private Map<String,Integer> giftCardSales;
+	private Map<String,Integer> totalTaxMoney;
+	private Map<String,Integer> totalTipMoney;
+	private Map<String,Integer> totalCollectedMoney;
+	private Map<String,Integer> totalCashMoney;
+	private Map<String,Integer> totalCardMoney;
+	private Map<String,Integer> totalGiftCardMoney;
+	private Map<String,Integer> totalOtherMoney;
+	private Map<String,Integer> totalFeesMoney;
+	private Map<String,Integer> netTotalMoney;
+	private Map<String,Map<String,Integer>> categorySales;
+	private Map<String,Map<String,Integer>> totalsPerDiscount;
+    private Map<String,Integer> totalCardSwipedMoney;
+    private Map<String,Integer> totalCardTappedMoney;
+    private Map<String,Integer> totalCardDippedMoney;
+    private Map<String,Integer> totalCardKeyedMoney;
+    private Map<String,Integer> totalVisaMoney;
+    private Map<String,Integer> totalMasterCardMoney;
+    private Map<String,Integer> totalDiscoverMoney;
+    private Map<String,Integer> totalAmexMoney;
+    private Map<String,Integer> totalOtherCardMoney;
 
 	public String getMerchantId() {
 		return merchantId;
@@ -35,148 +35,149 @@ public class LocationResults {
 	public void setMerchantId(String merchantId) {
 		this.merchantId = merchantId;
 	}
-	public int getGrossSales() {
+	public Map<String, Integer> getGrossSales() {
 		return grossSales;
 	}
-	public void setGrossSales(int grossSales) {
+	public void setGrossSales(Map<String, Integer> grossSales) {
 		this.grossSales = grossSales;
 	}
-	public int getTotalDiscountsMoney() {
+	public Map<String, Integer> getTotalDiscountsMoney() {
 		return totalDiscountsMoney;
 	}
-	public void setTotalDiscountsMoney(int totalDiscounts) {
-		this.totalDiscountsMoney = totalDiscounts;
+	public void setTotalDiscountsMoney(Map<String, Integer> totalDiscountsMoney) {
+		this.totalDiscountsMoney = totalDiscountsMoney;
 	}
-	public int getNetSales() {
+	public Map<String, Integer> getNetSales() {
 		return netSales;
 	}
-	public void setNetSales(int netSales) {
+	public void setNetSales(Map<String, Integer> netSales) {
 		this.netSales = netSales;
 	}
-	public int getGiftCardSales() {
+	public Map<String, Integer> getGiftCardSales() {
 		return giftCardSales;
 	}
-	public void setGiftCardSales(int giftCardSales) {
+	public void setGiftCardSales(Map<String, Integer> giftCardSales) {
 		this.giftCardSales = giftCardSales;
 	}
-	public int getTotalTaxMoney() {
+	public Map<String, Integer> getTotalTaxMoney() {
 		return totalTaxMoney;
 	}
-	public void setTotalTaxMoney(int totalTaxMoney) {
+	public void setTotalTaxMoney(Map<String, Integer> totalTaxMoney) {
 		this.totalTaxMoney = totalTaxMoney;
 	}
-	public int getTotalTipMoney() {
+	public Map<String, Integer> getTotalTipMoney() {
 		return totalTipMoney;
 	}
-	public void setTotalTipMoney(int totalTipMoney) {
+	public void setTotalTipMoney(Map<String, Integer> totalTipMoney) {
 		this.totalTipMoney = totalTipMoney;
 	}
-	public int getTotalCollectedMoney() {
+	public Map<String, Integer> getTotalCollectedMoney() {
 		return totalCollectedMoney;
 	}
-	public void setTotalCollectedMoney(int totalCollectedMoney) {
+	public void setTotalCollectedMoney(Map<String, Integer> totalCollectedMoney) {
 		this.totalCollectedMoney = totalCollectedMoney;
 	}
-	public int getTotalCashMoney() {
+	public Map<String, Integer> getTotalCashMoney() {
 		return totalCashMoney;
 	}
-	public void setTotalCashMoney(int totalCashMoney) {
+	public void setTotalCashMoney(Map<String, Integer> totalCashMoney) {
 		this.totalCashMoney = totalCashMoney;
 	}
-	public int getTotalCardMoney() {
+	public Map<String, Integer> getTotalCardMoney() {
 		return totalCardMoney;
 	}
-	public void setTotalCardMoney(int totalCardMoney) {
+	public void setTotalCardMoney(Map<String, Integer> totalCardMoney) {
 		this.totalCardMoney = totalCardMoney;
 	}
-	public int getTotalGiftCardMoney() {
+	public Map<String, Integer> getTotalGiftCardMoney() {
 		return totalGiftCardMoney;
 	}
-	public void setTotalGiftCardMoney(int totalGiftCardMoney) {
+	public void setTotalGiftCardMoney(Map<String, Integer> totalGiftCardMoney) {
 		this.totalGiftCardMoney = totalGiftCardMoney;
 	}
-	public int getTotalOtherMoney() {
+	public Map<String, Integer> getTotalOtherMoney() {
 		return totalOtherMoney;
 	}
-	public void setTotalOtherMoney(int totalOtherMoney) {
+	public void setTotalOtherMoney(Map<String, Integer> totalOtherMoney) {
 		this.totalOtherMoney = totalOtherMoney;
 	}
-	public int getTotalFeesMoney() {
+	public Map<String, Integer> getTotalFeesMoney() {
 		return totalFeesMoney;
 	}
-	public void setTotalFeesMoney(int totalFeesMoney) {
+	public void setTotalFeesMoney(Map<String, Integer> totalFeesMoney) {
 		this.totalFeesMoney = totalFeesMoney;
 	}
-	public int getNetTotalMoney() {
+	public Map<String, Integer> getNetTotalMoney() {
 		return netTotalMoney;
 	}
-	public void setNetTotalMoney(int netTotalMoney) {
+	public void setNetTotalMoney(Map<String, Integer> netTotalMoney) {
 		this.netTotalMoney = netTotalMoney;
 	}
-	public Map<String,Integer> getCategorySales() {
+	public Map<String, Map<String, Integer>> getCategorySales() {
 		return categorySales;
 	}
-	public void setCategorySales(Map<String,Integer> categorySales) {
+	public void setCategorySales(Map<String, Map<String, Integer>> categorySales) {
 		this.categorySales = categorySales;
 	}
-	public Map<String,Integer> getTotalsPerDiscount() {
+	public Map<String, Map<String, Integer>> getTotalsPerDiscount() {
 		return totalsPerDiscount;
 	}
-	public void setTotalsPerDiscount(Map<String,Integer> totalsPerDiscount) {
+	public void setTotalsPerDiscount(
+			Map<String, Map<String, Integer>> totalsPerDiscount) {
 		this.totalsPerDiscount = totalsPerDiscount;
 	}
-	public int getTotalCardSwipedMoney() {
+	public Map<String, Integer> getTotalCardSwipedMoney() {
 		return totalCardSwipedMoney;
 	}
-	public void setTotalCardSwipedMoney(int totalCardSwipedMoney) {
+	public void setTotalCardSwipedMoney(Map<String, Integer> totalCardSwipedMoney) {
 		this.totalCardSwipedMoney = totalCardSwipedMoney;
 	}
-	public int getTotalCardTappedMoney() {
+	public Map<String, Integer> getTotalCardTappedMoney() {
 		return totalCardTappedMoney;
 	}
-	public void setTotalCardTappedMoney(int totalCardTappedMoney) {
+	public void setTotalCardTappedMoney(Map<String, Integer> totalCardTappedMoney) {
 		this.totalCardTappedMoney = totalCardTappedMoney;
 	}
-	public int getTotalCardDippedMoney() {
+	public Map<String, Integer> getTotalCardDippedMoney() {
 		return totalCardDippedMoney;
 	}
-	public void setTotalCardDippedMoney(int totalCardDippedMoney) {
+	public void setTotalCardDippedMoney(Map<String, Integer> totalCardDippedMoney) {
 		this.totalCardDippedMoney = totalCardDippedMoney;
 	}
-	public int getTotalCardKeyedMoney() {
+	public Map<String, Integer> getTotalCardKeyedMoney() {
 		return totalCardKeyedMoney;
 	}
-	public void setTotalCardKeyedMoney(int totalCardKeyedMoney) {
+	public void setTotalCardKeyedMoney(Map<String, Integer> totalCardKeyedMoney) {
 		this.totalCardKeyedMoney = totalCardKeyedMoney;
 	}
-	public int getTotalVisaMoney() {
+	public Map<String, Integer> getTotalVisaMoney() {
 		return totalVisaMoney;
 	}
-	public void setTotalVisaMoney(int totalVisaMoney) {
+	public void setTotalVisaMoney(Map<String, Integer> totalVisaMoney) {
 		this.totalVisaMoney = totalVisaMoney;
 	}
-	public int getTotalMasterCardMoney() {
+	public Map<String, Integer> getTotalMasterCardMoney() {
 		return totalMasterCardMoney;
 	}
-	public void setTotalMasterCardMoney(int totalMasterCardMoney) {
+	public void setTotalMasterCardMoney(Map<String, Integer> totalMasterCardMoney) {
 		this.totalMasterCardMoney = totalMasterCardMoney;
 	}
-	public int getTotalDiscoverMoney() {
+	public Map<String, Integer> getTotalDiscoverMoney() {
 		return totalDiscoverMoney;
 	}
-	public void setTotalDiscoverMoney(int totalDiscoverMoney) {
+	public void setTotalDiscoverMoney(Map<String, Integer> totalDiscoverMoney) {
 		this.totalDiscoverMoney = totalDiscoverMoney;
 	}
-	public int getTotalAmexMoney() {
+	public Map<String, Integer> getTotalAmexMoney() {
 		return totalAmexMoney;
 	}
-	public void setTotalAmexMoney(int totalAmexMoney) {
+	public void setTotalAmexMoney(Map<String, Integer> totalAmexMoney) {
 		this.totalAmexMoney = totalAmexMoney;
 	}
-	public int getTotalOtherCardMoney() {
+	public Map<String, Integer> getTotalOtherCardMoney() {
 		return totalOtherCardMoney;
 	}
-	public void setTotalOtherCardMoney(int totalOtherCardMoney) {
+	public void setTotalOtherCardMoney(Map<String, Integer> totalOtherCardMoney) {
 		this.totalOtherCardMoney = totalOtherCardMoney;
 	}
 }

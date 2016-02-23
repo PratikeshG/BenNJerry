@@ -8,7 +8,7 @@ import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.Tender;
 
-public class AggregateReporter {
+public class PaymentReporter {
 	
 	/* Non-predicate testing classes */
 	
@@ -98,32 +98,6 @@ public class AggregateReporter {
 			total += payment.getRefundedMoney().getAmount();
 		}
 		return total;
-	}
-	
-	// Below methods are not reflective of the Payment object
-	
-	public static boolean isGivenTender(Tender tender, String tenderType) {
-		return tenderType.equals(tender.getType());
-	}
-	
-	public static boolean isGivenCategory(PaymentItemization paymentItemization, String category) {
-		return category.equals(paymentItemization.getItemDetail().getCategoryName());
-	}
-	
-	public static boolean isGivenCategory(PaymentDiscount paymentDiscount, String discount) {
-		return discount.equals(paymentDiscount.getName());
-	}
-	
-	public static boolean isGivenEntryMethod(Tender tender, String entryMethod) {
-		return entryMethod.equals(tender.getEntryMethod());
-	}
-	
-	public static boolean isGivenCardBrand(Tender tender, String cardBrand) {
-		return cardBrand.equals(tender.getCardBrand());
-	}
-	
-	public static boolean isGiftCardTender(PaymentItemization paymentItemization) {
-		return paymentItemization.getItemizationType().contains("GIFT_CARD");
 	}
 	
 	public static int totalMoneyCollectedForTender(Payment[] payments, String tenderType) {
