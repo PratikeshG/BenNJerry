@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="generatePaymentReportForLocations">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace" doc:name="HTTP"/>
+        <set-payload value="[{&quot;merchantId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;locationId&quot;: &quot;7PZ8TKDZB8B54&quot;,&quot;accessToken&quot;: &quot;daT6X7kSZj38L70iMELIsw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-01-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-01-10T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;3ABWWE16MAK89&quot;,&quot;locationId&quot;: &quot;3ABWWE16MAK89&quot;,&quot;accessToken&quot;: &quot;lXZLAyxqKCNXy3UoYTVQ2w&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;BTMHQ5RW1A6EA&quot;,&quot;locationId&quot;: &quot;BTMHQ5RW1A6EA&quot;,&quot;accessToken&quot;: &quot;z4l1RRiOMCRoICv01pFuNg&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;18GR2F36EMYD8&quot;,&quot;locationId&quot;: &quot;18GR2F36EMYD8&quot;,&quot;accessToken&quot;: &quot;soT5jaY1N9N6U7pgUm453w&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;9QDH19BXE9Z01&quot;,&quot;locationId&quot;: &quot;9QDH19BXE9Z01&quot;,&quot;accessToken&quot;: &quot;nUqr4azHfCovJDA75o8qwA&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;CC0N9JDX61A36&quot;,&quot;locationId&quot;: &quot;CC0N9JDX61A36&quot;,&quot;accessToken&quot;: &quot;PFnIAgdo5FrCbT2We2GepA&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;9HYSEDAAXQ9PV&quot;,&quot;locationId&quot;: &quot;9HYSEDAAXQ9PV&quot;,&quot;accessToken&quot;: &quot;qPgmBGcTkcMZO90sd7M2PQ&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;8K60EPMGFMKZB&quot;,&quot;locationId&quot;: &quot;8K60EPMGFMKZB&quot;,&quot;accessToken&quot;: &quot;XIxpIuewTpp_gKcOYT1vhA&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;91XZTETWF711B&quot;,&quot;locationId&quot;: &quot;91XZTETWF711B&quot;,&quot;accessToken&quot;: &quot;VsGiuW4mNbSKuR-jFqIvYw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;8V5YG1HDAZM2J&quot;,&quot;locationId&quot;: &quot;8V5YG1HDAZM2J&quot;,&quot;accessToken&quot;: &quot;YOPt6ojSp9nyARH-vsSp5Q&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;4PNQB5ZAMZF4T&quot;,&quot;locationId&quot;: &quot;4PNQB5ZAMZF4T&quot;,&quot;accessToken&quot;: &quot;wKYmCvLzMCG8kjfyvbU2lA&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;FCT3DFQQ8KDYR&quot;,&quot;locationId&quot;: &quot;FCT3DFQQ8KDYR&quot;,&quot;accessToken&quot;: &quot;aCOF4H8FiOiNvE5il5J-Bw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;41CVC9090763V&quot;,&quot;locationId&quot;: &quot;41CVC9090763V&quot;,&quot;accessToken&quot;: &quot;pyES0SVOldnK5B8HQrjl0g&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;4C7FG2M23WBHN&quot;,&quot;locationId&quot;: &quot;4C7FG2M23WBHN&quot;,&quot;accessToken&quot;: &quot;qOqBKSDgCD_p3GxKVGa6jQ&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;5YWNY4VR5Y5D8&quot;,&quot;locationId&quot;: &quot;5YWNY4VR5Y5D8&quot;,&quot;accessToken&quot;: &quot;60g3ZQ3On64ro8HOdkyUjg&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;4GNFYTSGVNPP1&quot;,&quot;locationId&quot;: &quot;4GNFYTSGVNPP1&quot;,&quot;accessToken&quot;: &quot;G4aybkAyVfUZFdZpSSHYtw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;52HGGGHK7927P&quot;,&quot;locationId&quot;: &quot;52HGGGHK7927P&quot;,&quot;accessToken&quot;: &quot;g9ouYcVTY6ObGX2ObSG2fA&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;EDM5VTWTRFBVB&quot;,&quot;locationId&quot;: &quot;EDM5VTWTRFBVB&quot;,&quot;accessToken&quot;: &quot;YQh18zVAFNucYlTqTQwd1w&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;A8GZYM0QH59MY&quot;,&quot;locationId&quot;: &quot;A8GZYM0QH59MY&quot;,&quot;accessToken&quot;: &quot;3Ka6C1dw3Y-CYewL5qcUZQ&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}},{&quot;merchantId&quot;: &quot;9MKYKA34DK3PQ&quot;,&quot;locationId&quot;: &quot;9MKYKA34DK3PQ&quot;,&quot;accessToken&quot;: &quot;lN3uPb0b70E-7Q4LY8Kytw&quot;,&quot;params&quot;: {&quot;begin_time&quot;: &quot;2014-02-01T00:00:00Z&quot;,&quot;end_time&quot;: &quot;2014-02-02T00:00:00Z&quot;}}]" doc:name="Set Square Accounts to Query"/>
+        <json:json-to-object-transformer returnClass="util.SquarePayload[]" doc:name="Convert JSON payload to Java SquarePayload objects"/>
+        <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsInput" connector-ref="VM" doc:name="VM"/>
+        <set-payload value="UrbanSpace report generation initiated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="convertResultsToCSV">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="urbanspaceResults" connector-ref="VM" doc:name="VM"/>
+        <component class="urbanspace.AggregateCalculator" doc:name="Calculate UrbanSpace Aggregate Totals"/>
+        <dw:transform-message metadata:id="f4449560-d176-4e04-8781-82f97f51039b" doc:name="Turn Java object into CSV">
+            <dw:input-payload doc:sample="list_LocationResults.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/java
+%output application/csv
+---
+payload map {
+	"Merchant": $.merchantId,
+	"Gross Sales": $.grossSales["Total"],
+	"Discounts": $.totalDiscountsMoney["Total"],
+	"Net Sales": $.netSales["Total"],
+	"Gift Card Sales": $.giftCardSales["Total"],
+	"Tax": $.totalTaxMoney["Total"],
+	"Tips": $.totalTipMoney["Total"],
+	"Total Collected": $.totalCollectedMoney["Total"],
+	"Cash": $.totalCashMoney["Total"],
+	"Card": $.totalCardMoney["Total"],
+	"Gift Card": $.totalGiftCardMoney["Total"],
+	"Other": $.totalOtherMoney["Total"],
+	"Fees": $.totalFeesMoney["Total"],
+	"Net Total": $.netTotalMoney["Total"]
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <object-to-string-transformer doc:name="Convert CSV object into String"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="prospectenhancer2%40gmail.com" password="LittleHorseshoe351" connector-ref="Gmail" to="colinlam+muletest@squareup.com" from="Square Mule" subject="Square Report Test" responseTimeout="10000" doc:name="SMTP"/>
+    </flow>
+</mule>

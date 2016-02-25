@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <flow name="createToken">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP" doc:description="When this flow is initiated, it will direct the initiator to the Square OAuth dialogue. URI parameters can denote the deployment name, app ID, app secret (?), scopes and location ID."/>
+        <choice doc:name="Prompt user to add deployment URI parameter">
+            <when expression="#[message.inboundProperties.'http.query.params'.deployment != null]">
+                <set-property propertyName="http.status" value="307" doc:name="Set HTTP status to 307 (Temporarily Moved)"/>
+                <set-property propertyName="Location" value="${api.url}oauth2/authorize?client_id=${connect.app.bridge.id}&amp;response_type=code&amp;state=#[message.inboundProperties.'http.query.params'.deployment]" doc:name="Set relocation address"/>
+            </when>
+            <otherwise>
+                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="callback">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/callback" doc:name="HTTP"/>
+        <set-variable variableName="deployment" value="#[message.inboundProperties.'http.query.params'.state]" doc:name="Record deployment name"/>
+        <flow-ref name="convertOAuthCodeToToken" doc:name="Convert OAuth code to token"/>
+        <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
+            <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
+VALUES (#[flowVars.deployment], "${connect.app.bridge.id}", #[json:access_token], #[json:merchant_id], #[json:expires_at]);]]></db:parameterized-query>
+        </db:insert>
+        <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
+    </flow>
+    <sub-flow name="convertOAuthCodeToToken">
+        <set-payload value="#['{&quot;client_id&quot;: &quot;${connect.app.bridge.id}&quot;, &quot;client_secret&quot;: &quot;${connect.app.bridge.secret}&quot;, &quot;code&quot;: &quot;' + message.inboundProperties.'http.query.params'.code + '&quot;}']" doc:name="Create payload to Square API"/>
+        <http:request config-ref="SquareAPIRequestConfiguration" path="/oauth2/token" method="POST" doc:name="Convert OAuth code to token">
+            <http:request-builder>
+                <http:header headerName="Content-Type" value="application/json"/>
+            </http:request-builder>
+        </http:request>
+        <object-to-string-transformer doc:name="Read buffered input into memory"/>
+        <json:json-to-object-transformer doc:name="Convert JSON string to object"/>
+    </sub-flow>
+    <flow name="retrieveToken">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/retrieveToken" doc:name="HTTP"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[message.inboundProperties.'http.query.params'.deployment];]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <!-- <flow name="renewExpiredTokens">
+    </flow> -->
+</mule>
