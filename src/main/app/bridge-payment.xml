@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocation" connector-ref="VM" doc:name="VM"/>
         <component doc:name="Get payment for given Square account">
             <singleton-object class="util.payment.PaymentsFromLocationReporter">
-                <property key="apiUrl" value="${api.url}${api.version}"/>
+                <property key="apiUrl" value="${api.url}/${api.version}"/>
             </singleton-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.destinationQueue]" connector-ref="VM" doc:name="Send to &quot;destinationQueue&quot; sessionVar"/>

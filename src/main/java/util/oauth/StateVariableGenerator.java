@@ -43,7 +43,7 @@ public class StateVariableGenerator implements Callable {
 		Map<String,String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
 		String deployment = m.get("deployment");
 		
-		String link = apiUrl + "oauth2/authorize?client_id=" + connectAppBridgeId +
+		String link = apiUrl + "/oauth2/authorize?client_id=" + connectAppBridgeId +
 				"&response_type=code&state=" + deployment + "," + state;
 		
 		eventContext.getMessage().setProperty("state", state, PropertyScope.INVOCATION);
