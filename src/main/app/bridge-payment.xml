@@ -14,21 +14,23 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocation" connector-ref="VM" doc:name="VM"/>
         <component doc:name="Get payment for given Square account">
             <singleton-object class="util.payment.PaymentsFromLocationReporter">
-                <property key="apiUrl" value="${apiUrl}"/>
+                <property key="apiUrl" value="${api.url}${api.version}"/>
             </singleton-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.destinationQueue]" connector-ref="VM" doc:name="Send to &quot;destinationQueue&quot; sessionVar"/>
     </flow>
     <flow name="paymentsFromLocationsInput">
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsInput" connector-ref="VM" doc:name="VM"/>
-        <set-session-variable variableName="incomingDestinationQueue" value="#[sessionVars.destinationQueue]" doc:name="Set incomingDestinationQueue"/>
-        <set-session-variable variableName="destinationQueue" value="paymentsFromLocationsOutput" doc:name="Set destinationQueue"/>
+        <set-session-variable variableName="incomingDestinationQueue" value="#[sessionVars.destinationQueue]" doc:name="Set placeholder variable for destinationQueue"/>
+        <set-session-variable variableName="destinationQueue" value="paymentsFromLocationsOutput" doc:name="Set temporary destinationQueue"/>
         <collection-splitter doc:name="Collection Splitter"/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocation" connector-ref="VM" doc:name="Send to &quot;paymentsFromLocation&quot; queue"/>
     </flow>
     <flow name="paymentsFromLocationsOutput">
         <vm:inbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsOutput" connector-ref="VM" doc:name="Get from &quot;paymentsFromLocation&quot; queue"/>
         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+        <set-session-variable variableName="destinationQueue" value="#[sessionVars.incomingDestinationQueue]" doc:name="Reset destinationQueue from placeholder"/>
+        <remove-session-variable variableName="#[sessionVars.incomingDestinationQueue]" doc:name="Delete placeholder variable"/>
         <combine-collections-transformer doc:name="Combine Collections" doc:description="This is necessary because of an underlying Mule mechanic. This operation does not flatten arrays of arrays, but it does turn Mule collections of objects - like those created after a split-collect operation - into a single Mule message. The payload remains unaffected, but it allows operations on the payload to continue."/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.incomingDestinationQueue]" connector-ref="VM" doc:name="Send to &quot;incomingDestinationQueue&quot; sessionVar"/>
     </flow>
