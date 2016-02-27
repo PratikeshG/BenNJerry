@@ -28,7 +28,7 @@ public class AggregateCalculator implements Callable {
             Payment[] payments = (Payment[]) payload.getResults().get("paymentsFromLocation");
             
             LocationResult lr = new LocationResult();
-            lr.setMerchantId(payload.getLocationId());
+            lr.setMerchantId(payload.getMerchantId());
 
             lr.setGiftCardSales(totalMoneyCollectedForGiftCards(payments));
 

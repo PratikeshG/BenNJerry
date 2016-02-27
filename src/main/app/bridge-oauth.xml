@@ -51,6 +51,11 @@ VALUES (#[flowVars.deployment], "${connect.app.bridge.id}", #[payload.accessToke
             </otherwise>
         </choice>
     </flow>
+    <sub-flow name="retrieveToken">
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]></db:parameterized-query>
+        </db:select>
+    </sub-flow>
     <!-- <flow name="renewExpiredTokens">
     </flow> -->
 </mule>
