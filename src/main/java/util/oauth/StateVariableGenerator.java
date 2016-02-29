@@ -1,8 +1,7 @@
 package util.oauth;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Instant;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.Map;
 
 import org.mule.api.MuleEventContext;
@@ -11,12 +10,10 @@ import org.mule.api.transport.PropertyScope;
 
 public class StateVariableGenerator implements Callable {
 	
-	private String connectAppStateKey;
 	private String apiUrl;
 	private String connectAppBridgeId;
 	
 	public void setConnectAppStateKey(String connectAppStateKey) {
-		this.connectAppStateKey = connectAppStateKey;
 	}
 	
 	public void setApiUrl(String apiUrl) {
@@ -29,24 +26,16 @@ public class StateVariableGenerator implements Callable {
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		String time = String.valueOf(Instant.now().getEpochSecond());
-		String text = time + connectAppStateKey;
-		
-		MessageDigest digest = MessageDigest.getInstance("SHA-256");
-		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
-		// Convert byte array to hexadecimal string
-		StringBuffer state = new StringBuffer();
-	    for (int i = 0; i < hash.length; i++) {
-	    	state.append(Integer.toHexString(0xFF & hash[i]));
-	    }
+		SecureRandom random = new SecureRandom();
+		String session = new BigInteger(130, random).toString(32);
 		
 		Map<String,String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
 		String deployment = m.get("deployment");
 		
 		String link = apiUrl + "/oauth2/authorize?client_id=" + connectAppBridgeId +
-				"&response_type=code&state=" + deployment + "," + state;
+				"&response_type=code&state=" + deployment + "," + session;
 		
-		eventContext.getMessage().setProperty("state", state, PropertyScope.INVOCATION);
+		eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
 		eventContext.getMessage().setProperty("link", link, PropertyScope.INVOCATION);
 		
 		return null;

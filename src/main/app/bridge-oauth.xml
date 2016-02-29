@@ -16,9 +16,8 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
             <when expression="#[message.inboundProperties.'http.query.params'.deployment != null]">
                 <component doc:name="Generate state variable">
 		            <singleton-object class="util.oauth.StateVariableGenerator">
-		                <property key="connectAppStateKey" value="${connect.app.state.key}"/>
 		                <property key="apiUrl" value="${api.url}"/>
-		                <property key="connectAppBridgeId" value="${connect.app.bridge.id}"/>
+		                <property key="connectAppBridgeId" value="${connect.app.bridge.eldm.id}"/>
 		            </singleton-object>
 		        </component>
                 <parse-template location="src/main/resources/static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
@@ -36,13 +35,13 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
                 <component doc:name="Convert OAuth code to token">
 		            <singleton-object class="util.oauth.CodeToTokenConverter">
 		                <property key="apiUrl" value="${api.url}"/>
-		                <property key="connectAppBridgeId" value="${connect.app.bridge.id}"/>
-		                <property key="connectAppBridgeSecret" value="${connect.app.bridge.secret}"/>
+		                <property key="connectAppBridgeId" value="${connect.app.bridge.eldm.id}"/>
+		                <property key="connectAppBridgeSecret" value="${connect.app.bridge.eldm.secret}"/>
 		            </singleton-object>
 		        </component>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
                     <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
-VALUES (#[flowVars.deployment], "${connect.app.bridge.id}", #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
+VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
                 </db:insert>
                 <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
             </when>

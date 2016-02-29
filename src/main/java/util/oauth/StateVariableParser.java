@@ -12,21 +12,21 @@ public class StateVariableParser implements Callable {
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		String cookies = eventContext.getMessage().getProperty("Cookie", PropertyScope.INBOUND);
 		String[] cookieArray = cookies.split("; ");
-		String stateCookie = null;
+		String sessionCookie = null;
 		
 		for (String cookie : cookieArray) {
-			if (cookie.startsWith("state=")) {
-				stateCookie = cookie.split("=")[1];
+			if (cookie.startsWith("session=")) {
+				sessionCookie = cookie.split("=")[1];
 				break;
 			}
 		}
 		
 		Map<String,String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
 		String deployment = m.get("state").split(",")[0];
-		String state = m.get("state").split(",")[1];
+		String session = m.get("state").split(",")[1];
 		String code = m.get("code");
 		
-		if (stateCookie != null && stateCookie.equals(state)) {
+		if (sessionCookie != null && sessionCookie.equals(session)) {
 			eventContext.getMessage().setProperty("deployment", deployment, PropertyScope.INVOCATION);
 			eventContext.getMessage().setProperty("code", code, PropertyScope.INVOCATION);
 		}
