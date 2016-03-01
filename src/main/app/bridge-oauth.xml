@@ -13,19 +13,22 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     <flow name="createToken">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP"/>
         <choice doc:name="Prompt user to add deployment URI parameter">
-            <when expression="#[message.inboundProperties.'http.query.params'.deployment != null]">
-                <component doc:name="Generate state variable">
-		            <singleton-object class="util.oauth.StateVariableGenerator">
-		                <property key="apiUrl" value="${api.url}"/>
-		                <property key="connectAppBridgeId" value="${connect.app.bridge.eldm.id}"/>
-		            </singleton-object>
-		        </component>
-                <parse-template location="src/main/resources/static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
+            <when expression="#[message.inboundProperties.'http.query.params'.deployment == null]">
+                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
+            </when>
+            <when expression="#[message.inboundProperties.'http.query.params'.client_id == null]">
+                <set-payload value="You must provide a URI parameter, &quot;client_id&quot;, which denotes the Connect client ID." doc:name="Inform user of missing Connect client ID"/>
             </when>
             <otherwise>
-                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
+                <component doc:name="Generate state variable">
+                    <singleton-object class="util.oauth.StateVariableGenerator">
+                        <property key="apiUrl" value="${api.url}"/>
+                    </singleton-object>
+                </component>
+                <parse-template location="src/main/resources/static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
             </otherwise>
         </choice>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="callback">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/callback" doc:name="HTTP"/>
@@ -49,6 +52,7 @@ VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.acces
                 <set-payload value="Failed to validate state parameter. Token creation failed." doc:name="Inform user of failed operation"/>
             </otherwise>
         </choice>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
     <sub-flow name="retrieveToken">
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">

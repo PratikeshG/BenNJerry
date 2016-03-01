@@ -18,4 +18,10 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <context:property-placeholder location="${mule.env}.properties"/>
     <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration"/>
     <http:request-config name="SquareAPIRequestConfiguration" protocol="HTTPS" host="connect.squareupstaging.com" port="443" doc:name="HTTP Request Configuration"/>
+    <catch-exception-strategy name="globalExceptionCatchingStrategy">
+        <logger message="#[exception + '\n' + message + '\n' + exception.?cause.?message]" level="ERROR" doc:name="Log error to console"/>
+        <logger message="Paging on-call engineers." level="INFO" doc:name="Log email alert to console"/>
+        <set-payload value="#['Exception occurred in ' + app.name + ' for ${mule.env} environment at ' + server.dateTime + '.\n\n===== Exception =====\n' + exception + '\n\n===== Exception Message =====' + message + '\n\n===== Exception Cause =====\n' + exception.?cause.?message]" encoding="UTF-8" mimeType="text/plain" doc:name="Set email payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${exception.sending.email}" password="${exception.sending.password}" connector-ref="Gmail" to="${exception.receivingemail}" from="Square Mule" subject="ALERT - Exception in Mule Application" responseTimeout="10000" doc:name="Email on-call engineers"/>
+    </catch-exception-strategy>
 </mule>

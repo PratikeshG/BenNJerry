@@ -8,20 +8,18 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
+import com.squareup.connect.OAuthURIParams;
+import com.squareup.connect.SquareClient;
+
 public class StateVariableGenerator implements Callable {
 	
 	private String apiUrl;
-	private String connectAppBridgeId;
 	
 	public void setConnectAppStateKey(String connectAppStateKey) {
 	}
 	
 	public void setApiUrl(String apiUrl) {
 		this.apiUrl = apiUrl;
-	}
-
-	public void setConnectAppBridgeId(String connectAppBridgeId) {
-		this.connectAppBridgeId = connectAppBridgeId;
 	}
 
 	@Override
@@ -31,9 +29,15 @@ public class StateVariableGenerator implements Callable {
 		
 		Map<String,String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
 		String deployment = m.get("deployment");
+		String connectAppId = m.get("client_id");
 		
-		String link = apiUrl + "/oauth2/authorize?client_id=" + connectAppBridgeId +
-				"&response_type=code&state=" + deployment + "," + session;
+		OAuthURIParams params = new OAuthURIParams();
+		params.setClientId(connectAppId);
+		params.setResponseType("code");
+		params.setState(deployment + "," + session);
+		
+		SquareClient client = new SquareClient("", apiUrl, "");
+		String link = client.oauth().authorize(params);
 		
 		eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
 		eventContext.getMessage().setProperty("link", link, PropertyScope.INVOCATION);
