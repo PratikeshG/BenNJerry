@@ -33,7 +33,7 @@ public class TokenRenewer implements Callable {
 		properties.load(new FileInputStream("src/main/resources/development.properties"));
 		String secret = properties.getProperty("connect." + connectApp + ".secret");
 		
-		SquareClient client = new SquareClient(token, apiUrl, null, null);
+		SquareClient client = new SquareClient(token, apiUrl);
 		OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
 		
 		eventContext.getMessage().setProperty("oldId", id, PropertyScope.INVOCATION);

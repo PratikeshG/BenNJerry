@@ -38,8 +38,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
                 <component doc:name="Convert OAuth code to token">
 		            <singleton-object class="util.oauth.CodeToTokenConverter">
 		                <property key="apiUrl" value="${api.url}"/>
-		                <property key="connectAppBridgeId" value="${connect.app.bridge.eldm.id}"/>
-		                <property key="connectAppBridgeSecret" value="${connect.app.bridge.eldm.secret}"/>
 		            </singleton-object>
 		        </component>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
@@ -60,7 +58,7 @@ VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.acces
         </db:select>
     </sub-flow>
     <flow name="renewExpiredTokens">
-        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 0 ? * Saturday *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Saturday at 12:00am (UTC)">
+        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 9 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Sunday at 9:00am (UTC)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-payload value="#[server.dateTime.withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to current date in ISO8601 format"/>

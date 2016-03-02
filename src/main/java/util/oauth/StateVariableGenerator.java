@@ -31,9 +31,9 @@ public class StateVariableGenerator implements Callable {
 		OAuthURIParams params = new OAuthURIParams();
 		params.setClientId(connectAppId);
 		params.setResponseType("code");
-		params.setState(deployment + "," + session);
+		params.setState(deployment + "," + session + "," + connectAppId);
 		
-		SquareClient client = new SquareClient(null, apiUrl, null, null);
+		SquareClient client = new SquareClient(apiUrl);
 		String link = client.oauth().authorizeUrl(params);
 		
 		eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
