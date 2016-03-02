@@ -23,6 +23,16 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <sub-flow name="setAllParamsForPaymentReportForLocations">
         <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
         <set-variable variableName="timeMethod" value="getPastDayInterval" doc:name="Set time method"/>
+        <set-variable variableName="range" value="1" doc:name="Set range"/>
+        <set-variable variableName="offset" value="1" doc:name="Set offset"/>
+        <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
+        <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
+    </sub-flow>
+    <sub-flow name="setAllParamsForPaymentReportForLocations2">
+        <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
+        <set-variable variableName="timeMethod" value="getPastTimeInterval" doc:name="Set time method"/>
+        <set-variable variableName="seconds" value="3600" doc:name="Set seconds"/>
+        <set-variable variableName="offset" value="3600" doc:name="Set offset"/>
         <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
         <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
     </sub-flow>

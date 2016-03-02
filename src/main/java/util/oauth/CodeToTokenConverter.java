@@ -29,11 +29,12 @@ public class CodeToTokenConverter implements Callable {
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		OAuthCode code = new OAuthCode();
+		// TODO(colinlam): this needs to be dynamic.
 		code.setClientId(connectAppBridgeId);
 		code.setClientSecret(connectAppBridgeSecret);
 		code.setCode(eventContext.getMessage().getProperty("code", PropertyScope.INVOCATION));
 		
-		SquareClient client = new SquareClient(null, apiUrl, null);
+		SquareClient client = new SquareClient(null, apiUrl, null, null);
 		
 		OAuthToken token = client.oauth().obtainToken(code);
 		

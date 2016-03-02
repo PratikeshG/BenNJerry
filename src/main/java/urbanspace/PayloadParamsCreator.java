@@ -25,9 +25,21 @@ public class PayloadParamsCreator implements Callable {
 			sp.setAccessToken(m.get("token"));
 			sp.setMerchantId(m.get("merchantId"));
 			
-			if ("getPastDayInterval".equals(eventContext.getMessage().getProperty("timeMethod", PropertyScope.INVOCATION))) {
+			String timeMethod = eventContext.getMessage().getProperty("timeMethod", PropertyScope.INVOCATION);
+			if ("getPastDayInterval".equals(timeMethod)) {
+				int range = Integer.parseInt(eventContext.getMessage().getProperty("range", PropertyScope.INVOCATION));
+				int offset = Integer.parseInt(eventContext.getMessage().getProperty("offset", PropertyScope.INVOCATION));
 				String timeZone = eventContext.getMessage().getProperty("timeZone", PropertyScope.INVOCATION);
-				Map<String,String> mm = TimeManager.getPastDayInterval(timeZone);
+				
+				Map<String,String> mm = TimeManager.getPastDayInterval(range, offset, timeZone);
+				sp.getParams().put("begin_time", mm.get("begin_time"));
+				sp.getParams().put("end_time", mm.get("end_time"));
+			} else if ("getPastTimeInterval".equals(timeMethod)) {
+				int seconds = Integer.parseInt(eventContext.getMessage().getProperty("seconds", PropertyScope.INVOCATION));
+				int offset = Integer.parseInt(eventContext.getMessage().getProperty("offset", PropertyScope.INVOCATION));
+				String timeZone = eventContext.getMessage().getProperty("timeZone", PropertyScope.INVOCATION);
+				
+				Map<String,String> mm = TimeManager.getPastTimeInterval(seconds, offset, timeZone);
 				sp.getParams().put("begin_time", mm.get("begin_time"));
 				sp.getParams().put("end_time", mm.get("end_time"));
 			}

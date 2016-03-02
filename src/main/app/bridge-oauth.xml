@@ -59,6 +59,28 @@ VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.acces
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]></db:parameterized-query>
         </db:select>
     </sub-flow>
-    <!-- <flow name="renewExpiredTokens">
-    </flow> -->
+    <flow name="renewExpiredTokens">
+        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 0 ? * Saturday *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Saturday at 12:00am (UTC)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-payload value="#[server.dateTime.withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to current date in ISO8601 format"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE expiryDate < #[payload];]]></db:parameterized-query>
+        </db:select>
+        <foreach doc:name="For each expired token">
+            <component doc:name="Renew token">
+                <singleton-object class="util.oauth.TokenRenewer">
+                    <property key="apiUrl" value="${api.url}"/>
+                </singleton-object>
+            </component>
+            <db:insert config-ref="MySQL_Configuration" doc:name="Write new token to database">
+                <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
+VALUES (#[flowVars.deployment], #[flowVars.connectApp], #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
+            </db:insert>
+            <db:delete config-ref="MySQL_Configuration" doc:name="Delete old token">
+                <db:parameterized-query><![CDATA[DELETE FROM token WHERE id = #[flowVars.oldId];]]></db:parameterized-query>
+            </db:delete>
+        </foreach>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
+    </flow>
 </mule>

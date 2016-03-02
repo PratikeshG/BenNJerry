@@ -15,9 +15,6 @@ public class StateVariableGenerator implements Callable {
 	
 	private String apiUrl;
 	
-	public void setConnectAppStateKey(String connectAppStateKey) {
-	}
-	
 	public void setApiUrl(String apiUrl) {
 		this.apiUrl = apiUrl;
 	}
@@ -36,8 +33,8 @@ public class StateVariableGenerator implements Callable {
 		params.setResponseType("code");
 		params.setState(deployment + "," + session);
 		
-		SquareClient client = new SquareClient("", apiUrl, "");
-		String link = client.oauth().authorize(params);
+		SquareClient client = new SquareClient(null, apiUrl, null, null);
+		String link = client.oauth().authorizeUrl(params);
 		
 		eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
 		eventContext.getMessage().setProperty("link", link, PropertyScope.INVOCATION);
