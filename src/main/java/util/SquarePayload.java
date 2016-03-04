@@ -6,9 +6,8 @@ import java.util.Map;
 public class SquarePayload {
 
 	private String merchantId;
-	private String locationId;
 	private String accessToken;
-	private Map<String,String> params;
+	private Map<String,String> params = new HashMap<String,String>();
 	private Map<String,Object> results = new HashMap<String,Object>();
 	
 	public String getMerchantId() {
@@ -16,12 +15,6 @@ public class SquarePayload {
 	}
 	public void setMerchantId(String merchantId) {
 		this.merchantId = merchantId;
-	}
-	public String getLocationId() {
-		return locationId;
-	}
-	public void setLocationId(String locationId) {
-		this.locationId = locationId;
 	}
 	public String getAccessToken() {
 		return accessToken;

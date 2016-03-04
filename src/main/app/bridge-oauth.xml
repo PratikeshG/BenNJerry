@@ -11,43 +11,74 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <flow name="createToken">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP" doc:description="When this flow is initiated, it will direct the initiator to the Square OAuth dialogue. URI parameters can denote the deployment name, app ID, app secret (?), scopes and location ID."/>
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP"/>
         <choice doc:name="Prompt user to add deployment URI parameter">
-            <when expression="#[message.inboundProperties.'http.query.params'.deployment != null]">
-                <set-property propertyName="http.status" value="307" doc:name="Set HTTP status to 307 (Temporarily Moved)"/>
-                <set-property propertyName="Location" value="${api.url}oauth2/authorize?client_id=${connect.app.bridge.id}&amp;response_type=code&amp;state=#[message.inboundProperties.'http.query.params'.deployment]" doc:name="Set relocation address"/>
+            <when expression="#[message.inboundProperties.'http.query.params'.deployment == null]">
+                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
+            </when>
+            <when expression="#[message.inboundProperties.'http.query.params'.client_id == null]">
+                <set-payload value="You must provide a URI parameter, &quot;client_id&quot;, which denotes the Connect client ID." doc:name="Inform user of missing Connect client ID"/>
             </when>
             <otherwise>
-                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
+                <component doc:name="Generate state variable">
+                    <singleton-object class="util.oauth.StateVariableGenerator">
+                        <property key="apiUrl" value="${api.url}"/>
+                    </singleton-object>
+                </component>
+                <parse-template location="src/main/resources/static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
             </otherwise>
         </choice>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="callback">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/callback" doc:name="HTTP"/>
-        <set-variable variableName="deployment" value="#[message.inboundProperties.'http.query.params'.state]" doc:name="Record deployment name"/>
-        <flow-ref name="convertOAuthCodeToToken" doc:name="Convert OAuth code to token"/>
-        <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
-            <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
-VALUES (#[flowVars.deployment], "${connect.app.bridge.id}", #[json:access_token], #[json:merchant_id], #[json:expires_at]);]]></db:parameterized-query>
-        </db:insert>
-        <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
+        <component class="util.oauth.StateVariableParser" doc:name="Verify State Token"/>
+        <choice doc:name="Route based on valid state variable">
+            <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">
+                <component doc:name="Convert OAuth code to token">
+		            <singleton-object class="util.oauth.CodeToTokenConverter">
+		                <property key="apiUrl" value="${api.url}"/>
+		            </singleton-object>
+		        </component>
+                <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
+                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
+VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
+                </db:insert>
+                <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
+            </when>
+            <otherwise>
+                <set-payload value="Failed to validate state parameter. Token creation failed." doc:name="Inform user of failed operation"/>
+            </otherwise>
+        </choice>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
-    <sub-flow name="convertOAuthCodeToToken">
-        <set-payload value="#['{&quot;client_id&quot;: &quot;${connect.app.bridge.id}&quot;, &quot;client_secret&quot;: &quot;${connect.app.bridge.secret}&quot;, &quot;code&quot;: &quot;' + message.inboundProperties.'http.query.params'.code + '&quot;}']" doc:name="Create payload to Square API"/>
-        <http:request config-ref="SquareAPIRequestConfiguration" path="/oauth2/token" method="POST" doc:name="Convert OAuth code to token">
-            <http:request-builder>
-                <http:header headerName="Content-Type" value="application/json"/>
-            </http:request-builder>
-        </http:request>
-        <object-to-string-transformer doc:name="Read buffered input into memory"/>
-        <json:json-to-object-transformer doc:name="Convert JSON string to object"/>
-    </sub-flow>
-    <flow name="retrieveToken">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/retrieveToken" doc:name="HTTP"/>
-        <db:select config-ref="MySQL_Configuration" doc:name="Database">
-            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[message.inboundProperties.'http.query.params'.deployment];]]></db:parameterized-query>
+    <sub-flow name="retrieveToken">
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]></db:parameterized-query>
         </db:select>
+    </sub-flow>
+    <flow name="renewExpiredTokens">
+        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 9 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Sunday at 9:00am (UTC)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-payload value="#[server.dateTime.withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to current date in ISO8601 format"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE expiryDate < #[payload];]]></db:parameterized-query>
+        </db:select>
+        <foreach doc:name="For each expired token">
+            <component doc:name="Renew token">
+                <singleton-object class="util.oauth.TokenRenewer">
+                    <property key="apiUrl" value="${api.url}"/>
+                </singleton-object>
+            </component>
+            <db:insert config-ref="MySQL_Configuration" doc:name="Write new token to database">
+                <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
+VALUES (#[flowVars.deployment], #[flowVars.connectApp], #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
+            </db:insert>
+            <db:delete config-ref="MySQL_Configuration" doc:name="Delete old token">
+                <db:parameterized-query><![CDATA[DELETE FROM token WHERE id = #[flowVars.oldId];]]></db:parameterized-query>
+            </db:delete>
+        </foreach>
+        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
-    <!-- <flow name="renewExpiredTokens">
-    </flow> -->
 </mule>
