@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -7,22 +8,19 @@ import org.slf4j.LoggerFactory;
 
 public abstract class Record {
 
-	protected Map<String,String> values;
+	protected Map<String,String> values = new HashMap<String,String>();
 	protected char[] record;
 	
-	protected static Map<String,RecordDetails> fields;
-	protected static int length;
-	protected static String id;
 	private static Logger logger = LoggerFactory.getLogger(Record.class);
 	
 	public Record() {
 		clearCharArray();
-		values.put("Identifier", id);
+		values.put("Identifier", getId());
 	}
 	
 	public Record(String record) {
-		for (String key : fields.keySet()) {
-			RecordDetails details = fields.get(key);
+		for (String key : getFields().keySet()) {
+			RecordDetails details = getFields().get(key);
 			
 			// In the Epicor documentation, value locations are one-indexed,
 			// not zero-indexed.
@@ -33,6 +31,12 @@ public abstract class Record {
 			values.put(key, value);
 		}
 	}
+	
+	public abstract Map<String,RecordDetails> getFields();
+	
+	public abstract int getLength();
+	
+	public abstract String getId();
 	
 	public String toString() {
 		clearCharArray();
@@ -58,7 +62,7 @@ public abstract class Record {
 	 * by default.
 	 */
 	private void put(String field, String value) {
-		RecordDetails details = fields.get(field);
+		RecordDetails details = getFields().get(field);
 		
 		if (value.length() > details.getCharacters()) {
 			logger.info("Value " + value + " is too long to fit into field " + field +
@@ -97,8 +101,8 @@ public abstract class Record {
 	}
 	
 	private void clearCharArray() {
-		record = new char[length];
-		for (int i = 0; i < length; i++) {
+		record = new char[getLength()];
+		for (int i = 0; i < getLength(); i++) {
 			record[i] = ' ';
 		}
 	}

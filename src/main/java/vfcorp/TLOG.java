@@ -7,6 +7,12 @@ import java.util.List;
 
 import com.squareup.connect.Payment;
 
+import vfcorp.tlog.Associate;
+import vfcorp.tlog.EventGiveback;
+import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
+import vfcorp.tlog.LineItemAccountingString;
+import vfcorp.tlog.LineItemAssociateAndDiscountAccountingString;
+import vfcorp.tlog.MerchandiseItem;
 import vfcorp.tlog.TransactionHeader;
 
 public class TLOG {
@@ -29,10 +35,12 @@ public class TLOG {
 		 * 502 - starting bank - repeated for all registers in the store
 		 *   086, 023, 016
 		 * 200 - for each sale
-		 *   086, 051, 052, 053
+		 *   086, 010 (not supported), 051, 052, 053
 		 *   054 for each tax
 		 *   001, 026, 025, 055, 056, 071 for each item
+		 *   005
 		 *   061
+		 *   Item based on tender
 		 * 601 - Hotkey to Backoffice (???)
 		 *   086, 023
 		 * 610 - transaction number consumed without SA (???)
@@ -45,6 +53,7 @@ public class TLOG {
 		 * 040 - store close
 		 *   086, 017, 038
 		 */
+		createItemSaleRecords(squarePayments);
 	}
 	
 	/* This would be the method to generate a Square list, if that was needed
@@ -61,6 +70,18 @@ public class TLOG {
 		}
 		
 		return sb.toString();
+	}
+	
+	private void createItemSaleRecords(List<Payment> squarePayments) {
+		
+		for (Payment payment : squarePayments) {
+			transactionLog.add(new MerchandiseItem().parse(payment));
+			transactionLog.add(new Associate().parse(payment));
+			transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(payment));
+			transactionLog.add(new LineItemAccountingString().parse(payment));
+			transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(payment));
+			transactionLog.add(new EventGiveback().parse(payment));
+		}
 	}
 	
 	// This method would never be used

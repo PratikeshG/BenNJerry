@@ -8,7 +8,7 @@ import com.squareup.connect.Payment;
 import vfcorp.Record;
 import vfcorp.RecordDetails;
 
-public class MerchandiseItem extends Record {
+public class EventGiveback extends Record {
 	
 	private static Map<String,RecordDetails> fields;
 	private static int length;
@@ -16,17 +16,17 @@ public class MerchandiseItem extends Record {
 
 	static {
 		fields = new HashMap<String,RecordDetails>();
-		length = 122;
-		id = "001";
+		length = 73;
+		id = "071";
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
 	}
 	
-	public MerchandiseItem() {
+	public EventGiveback() {
 		super();
 	}
-	
-	public MerchandiseItem(String record) {
+
+	public EventGiveback(String record) {
 		super(record);
 	}
 
@@ -45,7 +45,7 @@ public class MerchandiseItem extends Record {
 		return id;
 	}
 	
-	public MerchandiseItem parse(Payment squarePayment) {
+	public EventGiveback parse(Payment squarePayment) {
 		return this;
 	}
 }
