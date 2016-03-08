@@ -20,6 +20,13 @@ public class EventGiveback extends Record {
 		id = "071";
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
+		fields.put("Item Number", new RecordDetails(24, 4, "Left justified, space filled"));
+		fields.put("Amount", new RecordDetails(10, 28, ""));
+		fields.put("Event Number", new RecordDetails(5, 38, ""));
+		fields.put("Deal Number", new RecordDetails(5, 43, ""));
+		fields.put("Coupon Number", new RecordDetails(24, 48, ""));
+		fields.put("Transaction Discount", new RecordDetails(1, 72, "0 = Item, 1 = Transaction"));
+		fields.put("Component Type", new RecordDetails(1, 73, ""));
 	}
 	
 	public EventGiveback() {

@@ -20,6 +20,10 @@ public class Associate extends Record {
 		id = "026";
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
+		fields.put("Associate Number", new RecordDetails(11, 4, ""));
+		fields.put("Employee Number", new RecordDetails(11, 15, ""));
+		fields.put("Team Associate Ind", new RecordDetails(1, 26, "1 = Member of team"));
+		fields.put("Team Number", new RecordDetails(3, 27, "Team = 0 if Ind = 0"));
 	}
 	
 	public Associate() {

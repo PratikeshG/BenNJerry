@@ -20,6 +20,13 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 		id = "025";
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
+		fields.put("Tax Type", new RecordDetails(2, 4, ""));
+		fields.put("Tax Method", new RecordDetails(2, 6, ""));
+		fields.put("Tax Rate", new RecordDetails(7, 8, "9(2)v99999"));
+		fields.put("Tax Amount", new RecordDetails(10, 15, ""));
+		fields.put("Tax Override Code", new RecordDetails(25, 25, ""));
+		fields.put("Taxable Amount", new RecordDetails(10, 50, ""));
+		fields.put("Tax Code", new RecordDetails(25, 60, ""));
 	}
 	
 	public ItemTaxMerchandiseNonMerchandiseItemsFees() {
