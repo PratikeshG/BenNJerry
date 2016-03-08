@@ -8,8 +8,6 @@ import vfcorp.Record;
 import vfcorp.RecordDetails;
 
 import com.squareup.connect.Employee;
-import com.squareup.connect.Payment;
-import com.squareup.connect.Tender;
 
 public class Associate extends Record {
 	
@@ -52,18 +50,11 @@ public class Associate extends Record {
 		return id;
 	}
 	
-	public Associate parse(Payment payment, List<Employee> squareEmployees) {
-		// TODO(colinlam): odd corner case arises when different employees take different tenders
-		// for the same transaction. Only one associate gets credited!
-		for (Tender tender : payment.getTender()) {
-			String employeeId = tender.getEmployeeId();
-			if (employeeId != null) {
-				for (Employee employee : squareEmployees) {
-					if (employee.getId().equals(employeeId)) {
-						values.put("Associate Number", employee.getExternalId());
-						values.put("Employee Number", employee.getExternalId());
-					}
-				}
+	public Associate parse(String employeeId, List<Employee> squareEmployees) {
+		for (Employee employee : squareEmployees) {
+			if (employee.getId().equals(employeeId)) {
+				values.put("Associate Number", employee.getExternalId());
+				values.put("Employee Number", employee.getExternalId());
 			}
 		}
 		

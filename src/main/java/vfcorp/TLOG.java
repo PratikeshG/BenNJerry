@@ -8,6 +8,8 @@ import java.util.List;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.PaymentTax;
+import com.squareup.connect.Tender;
 
 import vfcorp.tlog.Associate;
 import vfcorp.tlog.EventGiveback;
@@ -56,6 +58,8 @@ public class TLOG {
 		 *   086, 017, 038
 		 */
 		createItemSaleRecords(squarePayments, squareEmployees);
+		
+		// TODO(colinlam): pass refunds through here. they look similar to sales records.
 	}
 	
 	/* This would be the method to generate a Square list, if that was needed
@@ -81,10 +85,23 @@ public class TLOG {
 			// TODO(colinlam): transaction-specific stuff goes here
 			
 			for (PaymentItemization itemization : payment.getItemizations()) {
-				transactionLog.add(new MerchandiseItem().parse(itemization, 8)); // TODO(colinlam): fix this
-				transactionLog.add(new Associate().parse(payment, squareEmployees));
-				transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(itemization));
-				transactionLog.add(new LineItemAccountingString().parse(itemization));
+				transactionLog.add(new MerchandiseItem().parse(itemization, 8)); // TODO(colinlam): fix this (the 8)
+				
+				for (Tender tender : payment.getTender()) {
+					if (tender.getEmployeeId() != null) {
+						transactionLog.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
+					}
+				}
+				
+				for (PaymentTax tax : itemization.getTaxes()) {
+					transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
+				}
+				
+				int i = 1;
+				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
+					transactionLog.add(new LineItemAccountingString().parse(itemization, 8, i++, q)); // TODO(colinlam): fix this
+				}
+				
 				transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(itemization));
 				transactionLog.add(new EventGiveback().parse(itemization));
 			}

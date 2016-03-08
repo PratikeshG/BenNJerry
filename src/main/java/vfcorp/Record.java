@@ -73,16 +73,16 @@ public abstract class Record {
 		
 		boolean zeroFill = details.getComments().contains("zero filled");
 		boolean spaceFill = details.getComments().contains("space filled");
-		//boolean rightJust = details.getComments().contains("right justified");
+		boolean rightJust = details.getComments().contains("right justified");
 		boolean leftJust = details.getComments().contains("left justified");
 		
-		if (spaceFill || zeroFill) {
+		if (spaceFill || zeroFill || leftJust || rightJust) {
 			int width = details.getCharacters() - value.length();
 		    char fill;
-		    if (spaceFill) {
-		    	fill = ' ';
-		    } else {
+		    if (zeroFill) {
 		    	fill = '0';
+		    } else {
+		    	fill = ' ';
 		    }
 		    
 		    String stringFill = new String(new char[width]).replace('\0', fill);
