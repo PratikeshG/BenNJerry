@@ -3,10 +3,10 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-
 import vfcorp.Record;
 import vfcorp.RecordDetails;
+
+import com.squareup.connect.PaymentItemization;
 
 public class EventGiveback extends Record {
 	
@@ -52,7 +52,7 @@ public class EventGiveback extends Record {
 		return id;
 	}
 	
-	public EventGiveback parse(Payment squarePayment) {
+	public EventGiveback parse(PaymentItemization itemization) {
 		return this;
 	}
 }

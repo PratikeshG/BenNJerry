@@ -3,10 +3,10 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-
 import vfcorp.Record;
 import vfcorp.RecordDetails;
+
+import com.squareup.connect.PaymentItemization;
 
 public class LineItemAssociateAndDiscountAccountingString extends Record {
 	
@@ -67,7 +67,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		return id;
 	}
 	
-	public LineItemAssociateAndDiscountAccountingString parse(Payment squarePayment) {
+	public LineItemAssociateAndDiscountAccountingString parse(PaymentItemization itemization) {
 		return this;
 	}
 }

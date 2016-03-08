@@ -3,10 +3,10 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-
 import vfcorp.Record;
 import vfcorp.RecordDetails;
+
+import com.squareup.connect.PaymentItemization;
 
 public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 	
@@ -52,7 +52,7 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 		return id;
 	}
 	
-	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(Payment squarePayment) {
+	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentItemization itemization) {
 		return this;
 	}
 }

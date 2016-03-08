@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
+import com.squareup.connect.PaymentItemization;
 
 import vfcorp.tlog.Associate;
 import vfcorp.tlog.EventGiveback;
@@ -23,7 +25,7 @@ public class TLOG {
 		transactionLog = new LinkedList<Record>();
 	}
 	
-	public void parse(List<Payment> squarePayments) {
+	public void parse(List<Payment> squarePayments, List<Employee> squareEmployees) {
 		// Translate each Square payment into a record in the transaction log
 		
 		/* Here's a list of the transaction headers in the sample file:
@@ -53,7 +55,7 @@ public class TLOG {
 		 * 040 - store close
 		 *   086, 017, 038
 		 */
-		createItemSaleRecords(squarePayments);
+		createItemSaleRecords(squarePayments, squareEmployees);
 	}
 	
 	/* This would be the method to generate a Square list, if that was needed
@@ -72,15 +74,20 @@ public class TLOG {
 		return sb.toString();
 	}
 	
-	private void createItemSaleRecords(List<Payment> squarePayments) {
+	private void createItemSaleRecords(List<Payment> squarePayments, List<Employee> squareEmployees) {
 		
 		for (Payment payment : squarePayments) {
-			transactionLog.add(new MerchandiseItem().parse(payment));
-			transactionLog.add(new Associate().parse(payment));
-			transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(payment));
-			transactionLog.add(new LineItemAccountingString().parse(payment));
-			transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(payment));
-			transactionLog.add(new EventGiveback().parse(payment));
+			
+			// TODO(colinlam): transaction-specific stuff goes here
+			
+			for (PaymentItemization itemization : payment.getItemizations()) {
+				transactionLog.add(new MerchandiseItem().parse(itemization, 8)); // TODO(colinlam): fix this
+				transactionLog.add(new Associate().parse(payment, squareEmployees));
+				transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(itemization));
+				transactionLog.add(new LineItemAccountingString().parse(itemization));
+				transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(itemization));
+				transactionLog.add(new EventGiveback().parse(itemization));
+			}
 		}
 	}
 	

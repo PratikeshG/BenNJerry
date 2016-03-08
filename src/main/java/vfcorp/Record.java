@@ -87,9 +87,9 @@ public abstract class Record {
 		    
 		    String stringFill = new String(new char[width]).replace('\0', fill);
 		    if (leftJust) {
-		    	value = stringFill + value;
-		    } else {
 		    	value = value + stringFill;
+		    } else {
+		    	value = stringFill + value;
 		    }
 		}
 		
