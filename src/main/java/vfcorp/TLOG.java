@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.squareup.connect.Employee;
+import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
@@ -34,7 +35,7 @@ public class TLOG {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
 	
-	public void parse(List<Payment> squarePayments, List<Employee> squareEmployees) {
+	public void parse(List<Payment> squarePayments, List<Employee> squareEmployees, Merchant location) {
 		// Translate each Square payment into a record in the transaction log
 		
 		/* Here's a list of the transaction headers in the sample file:
@@ -64,7 +65,7 @@ public class TLOG {
 		 * 040 - store close
 		 *   086, 017, 038
 		 */
-		createItemSaleRecords(squarePayments, squareEmployees);
+		createItemSaleRecords(squarePayments, squareEmployees, location);
 		
 		// TODO(colinlam): pass refunds through here. they look similar to sales records.
 	}
@@ -85,40 +86,55 @@ public class TLOG {
 		return sb.toString();
 	}
 	
-	private void createItemSaleRecords(List<Payment> squarePayments, List<Employee> squareEmployees) {
+	private void createItemSaleRecords(List<Payment> squarePayments, List<Employee> squareEmployees, Merchant location) {
 		
 		for (Payment payment : squarePayments) {
 			
+			LinkedList<Record> paymentList = new LinkedList<Record>();
+			
 			// TODO(colinlam): transaction-specific stuff goes here
 			
+			// 086
+			// 010
+			// 051
+			// 052
+			// 053
+			// 054
+			// 029
+			// 030
+			
 			for (PaymentItemization itemization : payment.getItemizations()) {
-				transactionLog.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
+				paymentList.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
 				
 				Set<String> employeeIds = new HashSet<String>();
 				for (Tender tender : payment.getTender()) {
 					if (tender.getEmployeeId() != null) {
-						transactionLog.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
+						paymentList.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
 						employeeIds.add(tender.getEmployeeId());
 					}
 				}
 				
 				for (PaymentTax tax : itemization.getTaxes()) {
-					transactionLog.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
+					paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
 				}
 				
 				int i = 1;
 				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-					transactionLog.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
+					paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
 				}
 				
 				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
 					for (String employeeId : employeeIds) {
-						transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployees, q));
+						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployees, q));
 					}
 				}
 				
-				transactionLog.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
+				paymentList.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
 			}
+			
+			paymentList.addFirst(new TransactionHeader().parse(payment, location, squareEmployees, paymentList.size() + 1));
+			
+			transactionLog.addAll(paymentList);
 		}
 	}
 	

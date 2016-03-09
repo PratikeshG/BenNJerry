@@ -1,9 +1,13 @@
 package vfcorp.tlog;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.squareup.connect.Employee;
+import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.Tender;
 
 import vfcorp.Record;
 import vfcorp.RecordDetails;
@@ -21,9 +25,9 @@ public class TransactionHeader extends Record {
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
 		fields.put("Store Number", new RecordDetails(5, 4, "Zero filled, right justified"));
-		fields.put("Register Number", new RecordDetails(3, 9, ""));
+		fields.put("Register Number", new RecordDetails(3, 9, "zero filled"));
 		fields.put("Cashier Number", new RecordDetails(6, 12, "Zero filled, right justified"));
-		fields.put("Employee Number", new RecordDetails(11, 18, ""));
+		fields.put("Employee Number", new RecordDetails(11, 18, "zero filled"));
 		fields.put("Transaction Number", new RecordDetails(6, 29, ""));
 		fields.put("Transaction Date", new RecordDetails(8, 35, "MMDDYYYY"));
 		fields.put("Transaction Time", new RecordDetails(4, 43, "HHMM – Military"));
@@ -73,16 +77,30 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public void parse(Payment squarePayment, String storeNumber, String employeeNumber, String numberOfRecords) {
+	public TransactionHeader parse(Payment squarePayment, Merchant location, List<Employee> squareEmployees, int numberOfRecords) {
 		String date = squarePayment.getCreatedAt().substring(5, 7) +
 				squarePayment.getCreatedAt().substring(8, 10) + 
 				squarePayment.getCreatedAt().substring(0, 4);
 		String time = squarePayment.getCreatedAt().substring(11,13) + squarePayment.getCreatedAt().substring(14, 16);
 		
-		values.put("Store Number", storeNumber); // Must be retrieved from /locations - not present in a payment
-		values.put("Register Number", squarePayment.getDevice().getName()); // Only if device is named correctly
+		String employeeNumber = "";
+		for (Tender tender : squarePayment.getTender()) {
+			if (tender.getEmployeeId() != null) {
+				for (Employee employee : squareEmployees) {
+					if (employee.getId().equals(tender.getEmployeeId())) {
+						employeeNumber = employee.getExternalId();
+					}
+				}
+			}
+		}
+		
+		String registerNumber = squarePayment.getDevice().getName() != null ? squarePayment.getDevice().getName() : "";
+		String storeNumber = location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "";
+		
+		values.put("Store Number", storeNumber);
+		values.put("Register Number", registerNumber); // Only if device is named correctly
 		values.put("Cashier Number", "000000"); // What is the difference between a cashier and a register?
-		values.put("Employee Number", employeeNumber); // Must be retrieved from /employees
+		values.put("Employee Number", employeeNumber);
 		values.put("Transaction Number", "123456"); // Square transaction ID doesn't fit...where to get this?
 		values.put("Transaction Date", date);
 		values.put("Transaction Time", time);
@@ -94,7 +112,7 @@ public class TransactionHeader extends Record {
 		values.put("Training Indicator", "0"); // Doesn't exist in Square
 		values.put("Transaction Processor Attempts", "01"); // Will always be only 1
 		values.put("Transaction Error Code", "0000"); // Doesn't exist in Square
-		values.put("Number of Records", numberOfRecords); // A count that needs to be adjusted after the fact
+		values.put("Number of Records", "" + numberOfRecords); // A count that needs to be adjusted after the fact
 		values.put("Business Date", date);
 		values.put("RetailStore Product Generation", "0"); // Not using RetailStore
 		values.put("RetailStore Major Version", "0"); // Not using RetailStore
@@ -103,7 +121,9 @@ public class TransactionHeader extends Record {
 		values.put("RetailStore Hot Fix", "000"); // Not using RetailStore
 		values.put("(Customer) Code Release Number", "000"); // Not using customer software
 		values.put("(Customer) Code Release EFix", "000"); // Not using customer software
-		values.put("(Customer) Release Additional Data", "00000000000000000"); // Not using customer software
+		values.put("(Customer) Release Additional Data", ""); // Not using customer software
 		values.put("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
+		
+		return this;
 	}
 }
