@@ -21,9 +21,9 @@ public class EventGiveback extends Record {
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
 		fields.put("Item Number", new RecordDetails(24, 4, "Left justified, space filled"));
-		fields.put("Amount", new RecordDetails(10, 28, ""));
-		fields.put("Event Number", new RecordDetails(5, 38, ""));
-		fields.put("Deal Number", new RecordDetails(5, 43, ""));
+		fields.put("Amount", new RecordDetails(10, 28, "zero filled"));
+		fields.put("Event Number", new RecordDetails(5, 38, "zero filled"));
+		fields.put("Deal Number", new RecordDetails(5, 43, "zero filled"));
 		fields.put("Coupon Number", new RecordDetails(24, 48, ""));
 		fields.put("Transaction Discount", new RecordDetails(1, 72, "0 = Item, 1 = Transaction"));
 		fields.put("Component Type", new RecordDetails(1, 73, ""));
@@ -52,7 +52,20 @@ public class EventGiveback extends Record {
 		return id;
 	}
 	
-	public EventGiveback parse(PaymentItemization itemization) {
+	public EventGiveback parse(PaymentItemization itemization, int itemNumberLookupLength) {
+		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
+		if (sku.matches("[0-9]+")) {
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
+		}
+		
+		values.put("Item Number", sku);
+		values.put("Amount", ""); // promo events not supported
+		values.put("Event Number", ""); // not supported
+		values.put("Deal Number", ""); // not supported
+		values.put("Coupon Number", ""); // not supported
+		values.put("Transaction Discount", ""); // not supported
+		values.put("Component Type", ""); // not supported
+		
 		return this;
 	}
 }

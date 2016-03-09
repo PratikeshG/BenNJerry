@@ -74,7 +74,7 @@ public class MerchandiseItem extends Record {
 	public MerchandiseItem parse(PaymentItemization itemization, int itemNumberLookupLength) {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
-			String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
 		}
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
 		

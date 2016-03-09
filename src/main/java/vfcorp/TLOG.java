@@ -2,8 +2,10 @@ package vfcorp;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
@@ -22,9 +24,14 @@ import vfcorp.tlog.TransactionHeader;
 public class TLOG {
 	
 	private List<Record> transactionLog;
+	private int itemNumberLookupLength;
 
 	public TLOG() {
 		transactionLog = new LinkedList<Record>();
+	}
+	
+	public void setItemNumberLookupLength(int itemNumberLookupLength) {
+		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
 	
 	public void parse(List<Payment> squarePayments, List<Employee> squareEmployees) {
@@ -85,11 +92,13 @@ public class TLOG {
 			// TODO(colinlam): transaction-specific stuff goes here
 			
 			for (PaymentItemization itemization : payment.getItemizations()) {
-				transactionLog.add(new MerchandiseItem().parse(itemization, 8)); // TODO(colinlam): fix this (the 8)
+				transactionLog.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
 				
+				Set<String> employeeIds = new HashSet<String>();
 				for (Tender tender : payment.getTender()) {
 					if (tender.getEmployeeId() != null) {
 						transactionLog.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
+						employeeIds.add(tender.getEmployeeId());
 					}
 				}
 				
@@ -99,11 +108,16 @@ public class TLOG {
 				
 				int i = 1;
 				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-					transactionLog.add(new LineItemAccountingString().parse(itemization, 8, i++, q)); // TODO(colinlam): fix this
+					transactionLog.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
 				}
 				
-				transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(itemization));
-				transactionLog.add(new EventGiveback().parse(itemization));
+				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
+					for (String employeeId : employeeIds) {
+						transactionLog.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployees, q));
+					}
+				}
+				
+				transactionLog.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
 			}
 		}
 	}
