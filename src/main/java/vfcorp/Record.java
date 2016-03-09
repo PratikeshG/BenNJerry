@@ -65,8 +65,8 @@ public abstract class Record {
 		RecordDetails details = getFields().get(field);
 		
 		if (value.length() > details.getCharacters()) {
-			logger.info("Value " + value + " is too long to fit into field " + field +
-					"; cutting to " + value.substring(0, details.getCharacters()));
+			logger.info("Value \"" + value + "\" is too long to fit into field \"" + field +
+					"\"; cutting to " + value.substring(0, details.getCharacters()));
 			// Cut off value, culling characters from the right.
 			value = value.substring(0, details.getCharacters());
 		}
