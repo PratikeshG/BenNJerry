@@ -97,8 +97,6 @@ public class TLOG {
 			
 			paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			// 010 - Preferred Customer is not included because it is not supported.
-			
 			paymentList.add(new TransactionSubTotal().parse(payment));
 			paymentList.add(new TransactionTax().parse(payment));
 			paymentList.add(new TransactionTotal().parse(payment));
@@ -110,9 +108,6 @@ public class TLOG {
 			for (PaymentTax tax : payment.getInclusiveTax()) {
 				paymentList.add(new TransactionTaxExtended().parse(payment, tax));
 			}
-			
-			// 029 - Name (of the customer) is not included because it is not supported.
-			// 030 - Address (of the customer) is not included because it is not supported.
 			
 			for (PaymentItemization itemization : payment.getItemizations()) {
 				paymentList.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
@@ -141,6 +136,14 @@ public class TLOG {
 				}
 				
 				paymentList.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
+			}
+			
+			for (Tender tender : payment.getTender()) {
+				paymentList.add(new vfcorp.tlog.Tender().parse(tender));
+				
+				if (tender.getType().equals("CREDIT_CARD")) {
+					paymentList.add(new CreditCardTender().parse(tender));
+				}
 			}
 			
 			paymentList.addFirst(new TransactionHeader().parse(payment, location, squareEmployees, paymentList.size() + 1));

@@ -5,3 +5,5 @@ Employees must be configured to include associate/employee number in the "extern
 Locations must be configured to include store number as a Square location nickname.
 
 Individual devices must be configured to include the register number as the device name.
+
+Debit transactions will show up as credit card transactions, due to a limitation in Square.
