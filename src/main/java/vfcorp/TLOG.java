@@ -25,6 +25,7 @@ import vfcorp.tlog.StoreClose;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
 import vfcorp.tlog.TransactionHeader;
+import vfcorp.tlog.AuthorizationCode.FunctionIndicator;
 import vfcorp.tlog.TransactionHeader.TransactionType;
 import vfcorp.tlog.TransactionSubTotal;
 import vfcorp.tlog.TransactionTax;
@@ -106,13 +107,13 @@ public class TLOG {
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, "35")); // 35 is "open register"
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, FunctionIndicator.OPEN_REGISTER));
 			
 			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.STARTING_BANK, 4));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, "41")); // 41 is "starting bank"
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, FunctionIndicator.STARTING_BANK));
 			
 			transactionLog.add(new StartingEndingBank().parse(cashDrawerShift, "" + cashDrawerShift.getStartingCashMoney().getAmount(), true));
 		}
