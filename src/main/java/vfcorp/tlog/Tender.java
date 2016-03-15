@@ -5,21 +5,17 @@ import java.util.Map;
 
 import vfcorp.Record;
 import vfcorp.RecordDetails;
+import vfcorp.TLOG;
+import vfcorp.TLOG.TENDER_CODE;
 
 public class Tender extends Record {
 	
-	public static enum TENDER_CODE {
-		CASH, VISA, MASTERCARD, AMEX, DISCOVER, DISCOVERDINERS, JCB, DEBIT, CHECK, EGC, UNKNOWN
-	}
-	
 	private static Map<String,RecordDetails> fields;
-	private static Map<TENDER_CODE,String> tenderCodes;
 	private static int length;
 	private static String id;
 	
 	static {
 		fields = new HashMap<String,RecordDetails>();
-		tenderCodes = new HashMap<TENDER_CODE,String>();
 		length = 40;
 		id = "061";
 		
@@ -30,21 +26,6 @@ public class Tender extends Record {
 		fields.put("Sign Indicator", new RecordDetails(1, 25, "zero filled"));
 		fields.put("Currency Indicator", new RecordDetails(1, 26, "zero filled"));
 		fields.put("Currency Exchange Rate", new RecordDetails(14, 27, "zero filled"));
-		
-		// TODO(colinlam): these were found by examining the sample given to us. Seems like it can
-		// be configured, though. Need to verify.
-		tenderCodes.put(TENDER_CODE.CASH, "1");
-		tenderCodes.put(TENDER_CODE.VISA, "7");
-		tenderCodes.put(TENDER_CODE.MASTERCARD, "9");
-		tenderCodes.put(TENDER_CODE.AMEX, "11");
-		tenderCodes.put(TENDER_CODE.DISCOVER, "13");
-		tenderCodes.put(TENDER_CODE.DEBIT, "19");
-		tenderCodes.put(TENDER_CODE.EGC, "30");
-		
-		// TODO(colinlam): This is a guess. There doesn't seem to be one for JCB. Find this out.
-		tenderCodes.put(TENDER_CODE.JCB, "15");
-		tenderCodes.put(TENDER_CODE.DISCOVERDINERS, "17");
-		tenderCodes.put(TENDER_CODE.UNKNOWN, "99");
 	}
 
 	public Tender() {
@@ -70,11 +51,9 @@ public class Tender extends Record {
 		return id;
 	}
 	
-	public Map<TENDER_CODE,String> getTenderCodes() {
-		return tenderCodes;
-	}
-	
 	public Tender parse(com.squareup.connect.Tender tender) {
+		Map<TENDER_CODE,String> tenderCodes = TLOG.getTenderCodes();
+		
 		String tenderCode = "";
 		if (tender.getType().equals("CASH")) {
 			tenderCode = tenderCodes.get(TENDER_CODE.CASH);
@@ -108,7 +87,7 @@ public class Tender extends Record {
 		values.put("Tender Amount", tenderAmount);
 		values.put("Tender Count", "");
 		values.put("Sign Indicator", "0"); // sign is always positive
-		values.put("Currency Indicator", "0"); // TODO(colinlam): this is supported; figure it out.
+		values.put("Currency Indicator", "0");
 		values.put("Currency Exchange Rate", ""); // not supported
 		
 		return this;

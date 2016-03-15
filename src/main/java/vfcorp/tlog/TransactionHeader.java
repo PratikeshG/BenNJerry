@@ -29,8 +29,8 @@ public class TransactionHeader extends Record {
 		fields.put("Cashier Number", new RecordDetails(6, 12, "Zero filled, right justified"));
 		fields.put("Employee Number", new RecordDetails(11, 18, "zero filled"));
 		fields.put("Transaction Number", new RecordDetails(6, 29, ""));
-		fields.put("Transaction Date", new RecordDetails(8, 35, "MMDDYYYY"));
-		fields.put("Transaction Time", new RecordDetails(4, 43, "HHMM – Military"));
+		fields.put("Transaction Date", new RecordDetails(8, 35, "MMDDYYYY, zero filled"));
+		fields.put("Transaction Time", new RecordDetails(4, 43, "HHMM – Military, zero filled"));
 		fields.put("Transaction Type", new RecordDetails(3, 47, ""));
 		fields.put("Transaction Status", new RecordDetails(2, 50, ""));
 		fields.put("Cancel Indicator", new RecordDetails(1, 52, "1 = Cancelled"));
@@ -39,11 +39,11 @@ public class TransactionHeader extends Record {
 		fields.put("Training Indicator", new RecordDetails(1, 55, "1 = Training"));
 		fields.put("User Data", new RecordDetails(3, 56, ""));
 		fields.put("Transaction Processor Attempts", new RecordDetails(2, 59, ""));
-		fields.put("Transaction Error Code", new RecordDetails(4, 61, ""));
+		fields.put("Transaction Error Code", new RecordDetails(4, 61, "zero filled"));
 		fields.put("Number of Records", new RecordDetails(8, 65, "Detail records + header, zero filled, right justified"));
-		fields.put("Business Date", new RecordDetails(8, 73, "MMDDYYYY"));
-		fields.put("RetailStore Product Generation", new RecordDetails(1, 81, ""));
-		fields.put("RetailStore Major Version", new RecordDetails(1, 82, ""));
+		fields.put("Business Date", new RecordDetails(8, 73, "MMDDYYYY, zero filled"));
+		fields.put("RetailStore Product Generation", new RecordDetails(1, 81, "zero filled"));
+		fields.put("RetailStore Major Version", new RecordDetails(1, 82, "zero filled"));
 		fields.put("RetailStore Minor Version", new RecordDetails(2, 83, "Zero filled, right justified"));
 		fields.put("RetailStore Service Pack", new RecordDetails(2, 85, "Zero filled, right justified"));
 		fields.put("RetailStore Hot Fix", new RecordDetails(3, 87, "Zero filled, right justified"));
@@ -77,7 +77,7 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Payment squarePayment, Merchant location, List<Employee> squareEmployees, int numberOfRecords) {
+	public TransactionHeader parse(Payment squarePayment, Merchant location, List<Employee> squareEmployees, String type, int numberOfRecords) {
 		String date = squarePayment.getCreatedAt().substring(5, 7) +
 				squarePayment.getCreatedAt().substring(8, 10) + 
 				squarePayment.getCreatedAt().substring(0, 4);
@@ -99,28 +99,59 @@ public class TransactionHeader extends Record {
 		
 		values.put("Store Number", storeNumber);
 		values.put("Register Number", registerNumber); // Only if device is named correctly
-		values.put("Cashier Number", "000000"); // What is the difference between a cashier and a register?
+		values.put("Cashier Number", ""); // What is the difference between a cashier and a register?
 		values.put("Employee Number", employeeNumber);
-		values.put("Transaction Number", "123456"); // Square transaction ID doesn't fit...where to get this?
+		values.put("Transaction Number", "123456"); // TODO(colinlam): Square transaction ID doesn't fit...where to get this?
 		values.put("Transaction Date", date);
 		values.put("Transaction Time", time);
-		values.put("Transaction Type", "000"); // There are many possible kinds of these things
+		values.put("Transaction Type", type); // There are many possible kinds of these things
 		values.put("Transaction Status", "01"); // There are many possible kinds of these things
 		values.put("Cancel Indicator", "0"); // Doesn't exist in Square
 		values.put("Post Void Indicator", "0"); // Doesn't exist in Square
 		values.put("Tax Exempt Indicator", "0"); // Doesn't exist in Square
 		values.put("Training Indicator", "0"); // Doesn't exist in Square
 		values.put("Transaction Processor Attempts", "01"); // Will always be only 1
-		values.put("Transaction Error Code", "0000"); // Doesn't exist in Square
+		values.put("Transaction Error Code", ""); // Doesn't exist in Square
 		values.put("Number of Records", "" + numberOfRecords); // A count that needs to be adjusted after the fact
 		values.put("Business Date", date);
-		values.put("RetailStore Product Generation", "0"); // Not using RetailStore
-		values.put("RetailStore Major Version", "0"); // Not using RetailStore
-		values.put("RetailStore Minor Version", "00"); // Not using RetailStore
-		values.put("RetailStore Service Pack", "00"); // Not using RetailStore
-		values.put("RetailStore Hot Fix", "000"); // Not using RetailStore
-		values.put("(Customer) Code Release Number", "000"); // Not using customer software
-		values.put("(Customer) Code Release EFix", "000"); // Not using customer software
+		values.put("RetailStore Product Generation", ""); // Not using RetailStore
+		values.put("RetailStore Major Version", ""); // Not using RetailStore
+		values.put("RetailStore Minor Version", ""); // Not using RetailStore
+		values.put("RetailStore Service Pack", ""); // Not using RetailStore
+		values.put("RetailStore Hot Fix", ""); // Not using RetailStore
+		values.put("(Customer) Code Release Number", ""); // Not using customer software
+		values.put("(Customer) Code Release EFix", ""); // Not using customer software
+		values.put("(Customer) Release Additional Data", ""); // Not using customer software
+		values.put("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
+		
+		return this;
+	}
+	
+	public TransactionHeader parse(Map<String,String> params) {
+		values.put("Store Number", params.getOrDefault("Store Number", ""));
+		values.put("Register Number", params.getOrDefault("Register Number", "")); // Only if device is named correctly
+		values.put("Cashier Number", ""); // What is the difference between a cashier and a register?
+		values.put("Employee Number", params.getOrDefault("Employee Number", ""));
+		values.put("Transaction Number", "123456"); // TODO(colinlam): Square transaction ID doesn't fit...where to get this?
+		values.put("Transaction Date", params.getOrDefault("Transaction Date", "")); // not supported
+		values.put("Transaction Time", params.getOrDefault("Transaction Time", "")); // not supported
+		values.put("Transaction Type", params.getOrDefault("Transaction Type", "")); // There are many possible kinds of these things
+		values.put("Transaction Status", "01"); // There are many possible kinds of these things
+		values.put("Cancel Indicator", "0"); // Doesn't exist in Square
+		values.put("Post Void Indicator", "0"); // Doesn't exist in Square
+		values.put("Tax Exempt Indicator", "0"); // Doesn't exist in Square
+		values.put("Training Indicator", "0"); // Doesn't exist in Square
+		values.put("Transaction Processor Attempts", "01"); // Will always be only 1
+		values.put("Transaction Error Code", ""); // Doesn't exist in Square
+		values.put("Number of Records", params.getOrDefault("Number of Records", "")); // A count that needs to be adjusted after the fact
+		values.put("Business Date", ""); // not supported
+		values.put("RetailStore Product Generation", ""); // Not using RetailStore
+		values.put("RetailStore Major Version", ""); // Not using RetailStore
+		values.put("RetailStore Minor Version", ""); // Not using RetailStore
+		values.put("RetailStore Service Pack", ""); // Not using RetailStore
+		values.put("RetailStore Hot Fix", ""); // Not using RetailStore
+		values.put("(Customer) Code Release Number", ""); // Not using customer software
+		values.put("(Customer) Code Release EFix", ""); // Not using customer software
 		values.put("(Customer) Release Additional Data", ""); // Not using customer software
 		values.put("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
 		

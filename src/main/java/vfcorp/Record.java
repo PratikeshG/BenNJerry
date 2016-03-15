@@ -64,9 +64,14 @@ public abstract class Record {
 	private void put(String field, String value) {
 		RecordDetails details = getFields().get(field);
 		
+		if (value == null || details == null) {
+			System.out.println("!"); // handy for debugging
+		}
+		
 		if (value.length() > details.getCharacters()) {
-			logger.info("Value \"" + value + "\" is too long to fit into field \"" + field +
-					"\"; cutting to " + value.substring(0, details.getCharacters()));
+			logger.info("For class \"" + this.getClass().toString().substring(6) +
+				"\", value \"" + value + "\" is too long to fit into field \"" +
+				field + "\"; cutting to " + value.substring(0, details.getCharacters()));
 			// Cut off value, culling characters from the right.
 			value = value.substring(0, details.getCharacters());
 		}

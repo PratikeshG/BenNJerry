@@ -81,11 +81,13 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalTaxMoney(Payment[] payments) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            if (payment.getTaxMoney() != null) {
-                total += payment.getTaxMoney().getAmount();
-                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTaxMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            if (payment.getTaxMoney() != null) {
+	                total += payment.getTaxMoney().getAmount();
+	                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTaxMoney().getAmount());
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -96,11 +98,13 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalTipMoney(Payment[] payments) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            if (payment.getTipMoney() != null) {
-                total += payment.getTipMoney().getAmount();
-                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTipMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            if (payment.getTipMoney() != null) {
+	                total += payment.getTipMoney().getAmount();
+	                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTipMoney().getAmount());
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -111,11 +115,13 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalDiscountMoney(Payment[] payments) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            if (payment.getDiscountMoney() != null) {
-                total -= payment.getDiscountMoney().getAmount();
-                insertIntoLocationResultsMap(results, payment.getCreatedAt(), -payment.getDiscountMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            if (payment.getDiscountMoney() != null) {
+	                total -= payment.getDiscountMoney().getAmount();
+	                insertIntoLocationResultsMap(results, payment.getCreatedAt(), -payment.getDiscountMoney().getAmount());
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -126,11 +132,13 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalTotalCollectedMoney(Payment[] payments) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            if (payment.getTotalCollectedMoney() != null) {
-                total += payment.getTotalCollectedMoney().getAmount();
-                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTotalCollectedMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            if (payment.getTotalCollectedMoney() != null) {
+	                total += payment.getTotalCollectedMoney().getAmount();
+	                insertIntoLocationResultsMap(results, payment.getCreatedAt(), payment.getTotalCollectedMoney().getAmount());
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -141,11 +149,13 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalProcessingFeeMoney(Payment[] payments) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            if (payment.getProcessingFeeMoney() != null) {
-                total -= payment.getProcessingFeeMoney().getAmount();
-                insertIntoLocationResultsMap(results, payment.getCreatedAt(), -payment.getProcessingFeeMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            if (payment.getProcessingFeeMoney() != null) {
+	                total -= payment.getProcessingFeeMoney().getAmount();
+	                insertIntoLocationResultsMap(results, payment.getCreatedAt(), -payment.getProcessingFeeMoney().getAmount());
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -156,18 +166,20 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalMoneyCollectedForTender(Payment[] payments, String tenderType) {
         int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            for (Tender tender : payment.getTender()) {
-                if (tenderType.equals(tender.getType())) {
-                    if (tender.getTenderedMoney() != null) {
-                    	total += tender.getTenderedMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
-                    } else {
-                    	total += tender.getTotalMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
-                    }
-                }
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (Tender tender : payment.getTender()) {
+	                if (tenderType.equals(tender.getType())) {
+	                    if (tender.getTenderedMoney() != null) {
+	                    	total += tender.getTenderedMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
+	                    } else {
+	                    	total += tender.getTotalMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
+	                    }
+	                }
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -178,18 +190,20 @@ public class AggregateCalculator implements Callable {
     private Map<String,Map<String,Integer>> totalSalesPerCategory(Payment[] payments) {
         HashMap<String, Map<String, Integer>> categorySales = new HashMap<String,Map<String,Integer>>();
         
-        for (Payment payment : payments) {
-            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-                if (!categorySales.containsKey(paymentItemization.getItemDetail().getCategoryName())) {
-                    categorySales.put(paymentItemization.getItemDetail().getCategoryName(),
-                		newLocationResultsMap());
-                    categorySales.get(paymentItemization.getItemDetail().getCategoryName()).put("Total", 0);
-                }
-                
-                Map<String,Integer> categoryResultMap = categorySales.get(paymentItemization.getItemDetail().getCategoryName());
-                insertIntoLocationResultsMap(categoryResultMap, payment.getCreatedAt(), paymentItemization.getTotalMoney().getAmount());
-                categoryResultMap.put("Total", categoryResultMap.get("Total") + paymentItemization.getTotalMoney().getAmount());
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
+	                if (!categorySales.containsKey(paymentItemization.getItemDetail().getCategoryName())) {
+	                    categorySales.put(paymentItemization.getItemDetail().getCategoryName(),
+	                		newLocationResultsMap());
+	                    categorySales.get(paymentItemization.getItemDetail().getCategoryName()).put("Total", 0);
+	                }
+	                
+	                Map<String,Integer> categoryResultMap = categorySales.get(paymentItemization.getItemDetail().getCategoryName());
+	                insertIntoLocationResultsMap(categoryResultMap, payment.getCreatedAt(), paymentItemization.getTotalMoney().getAmount());
+	                categoryResultMap.put("Total", categoryResultMap.get("Total") + paymentItemization.getTotalMoney().getAmount());
+	            }
+	        }
         }
         
         if (categorySales.containsKey("")) {
@@ -203,19 +217,21 @@ public class AggregateCalculator implements Callable {
     private Map<String,Map<String,Integer>> totalSalesPerDiscount(Payment[] payments) {
         HashMap<String, Map<String, Integer>> discountSales = new HashMap<String,Map<String,Integer>>();
         
-        for (Payment payment : payments) {
-            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-                for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
-                    if (!discountSales.containsKey(paymentDiscount.getName())) {
-                        discountSales.put(paymentDiscount.getName(), newLocationResultsMap());
-                        discountSales.get(paymentDiscount.getName()).put("Total", 0);
-                    }
-                    
-                    Map<String,Integer> discountResultMap = discountSales.get(paymentDiscount.getName());
-                    insertIntoLocationResultsMap(discountResultMap, payment.getCreatedAt(), -paymentDiscount.getAppliedMoney().getAmount());
-                    discountResultMap.put("Total", discountResultMap.get("Total") - paymentDiscount.getAppliedMoney().getAmount());
-                }
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
+	                for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
+	                    if (!discountSales.containsKey(paymentDiscount.getName())) {
+	                        discountSales.put(paymentDiscount.getName(), newLocationResultsMap());
+	                        discountSales.get(paymentDiscount.getName()).put("Total", 0);
+	                    }
+	                    
+	                    Map<String,Integer> discountResultMap = discountSales.get(paymentDiscount.getName());
+	                    insertIntoLocationResultsMap(discountResultMap, payment.getCreatedAt(), -paymentDiscount.getAppliedMoney().getAmount());
+	                    discountResultMap.put("Total", discountResultMap.get("Total") - paymentDiscount.getAppliedMoney().getAmount());
+	                }
+	            }
+	        }
         }
         
         return discountSales;
@@ -224,18 +240,20 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalMoneyCollectedForCardEntryMethod(Payment[] payments, String method) {
     	int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            for (Tender tender : payment.getTender()) {
-                if (method.equals(tender.getEntryMethod())) {
-                    if (tender.getTenderedMoney() != null) {
-                    	total += tender.getTenderedMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
-                    } else {
-                    	total += tender.getTotalMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
-                    }
-                }
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (Tender tender : payment.getTender()) {
+	                if (method.equals(tender.getEntryMethod())) {
+	                    if (tender.getTenderedMoney() != null) {
+	                    	total += tender.getTenderedMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
+	                    } else {
+	                    	total += tender.getTotalMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
+	                    }
+	                }
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -246,18 +264,20 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalMoneyCollectedForCardBrand(Payment[] payments, String brand) {
     	int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            for (Tender tender : payment.getTender()) {
-                if (brand.equals(tender.getCardBrand())) {
-                    if (tender.getTenderedMoney() != null) {
-                    	total += tender.getTenderedMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
-                    } else {
-                    	total += tender.getTotalMoney().getAmount();
-                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
-                    }
-                }
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (Tender tender : payment.getTender()) {
+	                if (brand.equals(tender.getCardBrand())) {
+	                    if (tender.getTenderedMoney() != null) {
+	                    	total += tender.getTenderedMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTenderedMoney().getAmount());
+	                    } else {
+	                    	total += tender.getTotalMoney().getAmount();
+	                        insertIntoLocationResultsMap(results, payment.getCreatedAt(), tender.getTotalMoney().getAmount());
+	                    }
+	                }
+	            }
+	        }
         }
         
         results.put("Total", total);
@@ -268,13 +288,15 @@ public class AggregateCalculator implements Callable {
     private Map<String,Integer> totalMoneyCollectedForGiftCards(Payment[] payments) {
     	int total = 0;
         Map<String,Integer> results = newLocationResultsMap();
-        for (Payment payment : payments) {
-            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-                if (paymentItemization.getItemizationType().contains("GIFT_CARD") && paymentItemization.getTotalMoney() != null) {
-                	total += paymentItemization.getTotalMoney().getAmount();
-                    insertIntoLocationResultsMap(results, payment.getCreatedAt(), paymentItemization.getTotalMoney().getAmount());
-                }
-            }
+        if (payments != null) {
+	        for (Payment payment : payments) {
+	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
+	                if (paymentItemization.getItemizationType().contains("GIFT_CARD") && paymentItemization.getTotalMoney() != null) {
+	                	total += paymentItemization.getTotalMoney().getAmount();
+	                    insertIntoLocationResultsMap(results, payment.getCreatedAt(), paymentItemization.getTotalMoney().getAmount());
+	                }
+	            }
+	        }
         }
         
         results.put("Total", total);

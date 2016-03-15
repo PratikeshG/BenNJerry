@@ -1,7 +1,10 @@
-package vfcorp;
+package vfcorp.tlog;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import vfcorp.Record;
+import vfcorp.RecordDetails;
 
 import com.squareup.connect.Tender;
 
