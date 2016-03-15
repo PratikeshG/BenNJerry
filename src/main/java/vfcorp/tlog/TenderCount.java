@@ -3,12 +3,12 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.CashDrawerShift;
-
 import vfcorp.Record;
 import vfcorp.RecordDetails;
 import vfcorp.TLOG;
-import vfcorp.TLOG.TENDER_CODE;
+import vfcorp.TLOG.TenderCode;
+
+import com.squareup.connect.CashDrawerShift;
 
 public class TenderCount extends Record {
 
@@ -55,8 +55,8 @@ public class TenderCount extends Record {
 		return id;
 	}
 	
-	public TenderCount parse(TENDER_CODE tenderCode, CashDrawerShift cashDrawerShift) {
-		Map<TENDER_CODE,String> tenderCodes = TLOG.getTenderCodes();
+	public TenderCount parse(TenderCode tenderCode, CashDrawerShift cashDrawerShift) {
+		Map<TenderCode,String> tenderCodes = TLOG.getTenderCodes();
 		
 		String tenderCodeString = tenderCodes.get(tenderCode);
 		

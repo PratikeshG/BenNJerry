@@ -6,7 +6,7 @@ import java.util.Map;
 import vfcorp.Record;
 import vfcorp.RecordDetails;
 import vfcorp.TLOG;
-import vfcorp.TLOG.TENDER_CODE;
+import vfcorp.TLOG.TenderCode;
 
 public class Tender extends Record {
 	
@@ -52,29 +52,29 @@ public class Tender extends Record {
 	}
 	
 	public Tender parse(com.squareup.connect.Tender tender) {
-		Map<TENDER_CODE,String> tenderCodes = TLOG.getTenderCodes();
+		Map<TenderCode,String> tenderCodes = TLOG.getTenderCodes();
 		
 		String tenderCode = "";
 		if (tender.getType().equals("CASH")) {
-			tenderCode = tenderCodes.get(TENDER_CODE.CASH);
+			tenderCode = tenderCodes.get(TenderCode.CASH);
 		} else if (tender.getType().equals("CREDIT_CARD")) {
 			if (tender.getCardBrand().equals("VISA")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.VISA);
+				tenderCode = tenderCodes.get(TenderCode.VISA);
 			} else if (tender.getCardBrand().equals("MASTER_CARD")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.MASTERCARD);
+				tenderCode = tenderCodes.get(TenderCode.MASTERCARD);
 			} else if (tender.getCardBrand().equals("AMERICAN_EXPRESS")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.AMEX);
+				tenderCode = tenderCodes.get(TenderCode.AMEX);
 			} else if (tender.getCardBrand().equals("DISCOVER")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.DISCOVER);
+				tenderCode = tenderCodes.get(TenderCode.DISCOVER);
 			} else if (tender.getCardBrand().equals("DISCOVER_DINERS")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.DISCOVERDINERS);
+				tenderCode = tenderCodes.get(TenderCode.DISCOVERDINERS);
 			} else if (tender.getCardBrand().equals("JCB")) {
-				tenderCode = tenderCodes.get(TENDER_CODE.JCB);
+				tenderCode = tenderCodes.get(TenderCode.JCB);
 			} else {
-				tenderCode = tenderCodes.get(TENDER_CODE.UNKNOWN);
+				tenderCode = tenderCodes.get(TenderCode.UNKNOWN);
 			}
 		} else {
-			tenderCode = tenderCodes.get(TENDER_CODE.UNKNOWN);
+			tenderCode = tenderCodes.get(TenderCode.UNKNOWN);
 		}
 		
 		String tenderAmount = "";

@@ -25,6 +25,7 @@ import vfcorp.tlog.StoreClose;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
 import vfcorp.tlog.TransactionHeader;
+import vfcorp.tlog.TransactionHeader.TransactionType;
 import vfcorp.tlog.TransactionSubTotal;
 import vfcorp.tlog.TransactionTax;
 import vfcorp.tlog.TransactionTaxExtended;
@@ -40,29 +41,29 @@ import com.squareup.connect.Tender;
 
 public class TLOG {
 	
-	public static enum TENDER_CODE {
+	public static enum TenderCode {
 		CASH, VISA, MASTERCARD, AMEX, DISCOVER, DISCOVERDINERS, JCB, DEBIT, CHECK, EGC, UNKNOWN
 	}
 	
-	private static Map<TENDER_CODE,String> tenderCodes;
+	private static Map<TenderCode,String> tenderCodes;
 	
 	static {
-		tenderCodes = new HashMap<TENDER_CODE,String>();
+		tenderCodes = new HashMap<TenderCode,String>();
 		
 		// TODO(colinlam): these were found by examining the sample given to us. Seems like it can
 		// be configured, though. Need to verify.
-		tenderCodes.put(TENDER_CODE.CASH, "1");
-		tenderCodes.put(TENDER_CODE.VISA, "7");
-		tenderCodes.put(TENDER_CODE.MASTERCARD, "9");
-		tenderCodes.put(TENDER_CODE.AMEX, "11");
-		tenderCodes.put(TENDER_CODE.DISCOVER, "13");
-		tenderCodes.put(TENDER_CODE.DEBIT, "19");
-		tenderCodes.put(TENDER_CODE.EGC, "30");
+		tenderCodes.put(TenderCode.CASH, "1");
+		tenderCodes.put(TenderCode.VISA, "7");
+		tenderCodes.put(TenderCode.MASTERCARD, "9");
+		tenderCodes.put(TenderCode.AMEX, "11");
+		tenderCodes.put(TenderCode.DISCOVER, "13");
+		tenderCodes.put(TenderCode.DEBIT, "19");
+		tenderCodes.put(TenderCode.EGC, "30");
 		
 		// TODO(colinlam): This is a guess. There doesn't seem to be one for JCB. Find this out.
-		tenderCodes.put(TENDER_CODE.JCB, "15");
-		tenderCodes.put(TENDER_CODE.DISCOVERDINERS, "17");
-		tenderCodes.put(TENDER_CODE.UNKNOWN, "99");
+		tenderCodes.put(TenderCode.JCB, "15");
+		tenderCodes.put(TenderCode.DISCOVERDINERS, "17");
+		tenderCodes.put(TenderCode.UNKNOWN, "99");
 	}
 	
 	private List<Record> transactionLog;
@@ -79,7 +80,6 @@ public class TLOG {
 	public void parse(Merchant location, List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
 		createStoreInitializationRecords(location, squareEmployees, cashDrawerShifts);
 		createItemSaleRecords(location, squarePayments, squareEmployees);
-		// TODO(colinlam): pass refunds through here. they look similar to sales records.
 		createStoreCloseRecords(location, squarePayments, squareEmployees, cashDrawerShifts);
 	}
 
@@ -94,21 +94,21 @@ public class TLOG {
 	}
 	
 	private void createStoreInitializationRecords(Merchant location, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
-		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, "010", 2));
+		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, TransactionType.STORE_OPEN, 2));
 		
 		transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 		
 		for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
 			
-			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "050", 1));
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.MACHINE_STARTED_FOR_THE_DAY, 1));
 
-			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "699", 3));
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.OPEN_REGISTER, 3));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
 			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, "35")); // 35 is "open register"
 			
-			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "502", 4));
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.STARTING_BANK, 4));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
@@ -124,7 +124,7 @@ public class TLOG {
 			
 			if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
 				
-				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployees, "900", 3));
+				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployees, TransactionType.NO_SALE, 3));
 				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
@@ -185,13 +185,13 @@ public class TLOG {
 					}
 				}
 				
-				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployees, "200", paymentList.size() + 1));
+				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployees, TransactionType.SALE, paymentList.size() + 1));
 				
 				transactionLog.addAll(paymentList);
 			}
 		}
 		
-		// TODO(colinlam): add refunds
+		// TODO(colinlam): add refunds (and get a sample of what a refund looks like from VFC)
 	}
 
 	private void createStoreCloseRecords(Merchant location, List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
@@ -209,7 +209,7 @@ public class TLOG {
 			
 			// TODO(colinlam): in the sample SA file, there were entries for every possible
 			// tender code. This will only produce one for cash. Are they all necessary?
-			newRecordList.add(new TenderCount().parse(TENDER_CODE.CASH, cashDrawerShift));
+			newRecordList.add(new TenderCount().parse(TenderCode.CASH, cashDrawerShift));
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("002", squarePayments)); // "merchandise sales"
 			
@@ -229,12 +229,12 @@ public class TLOG {
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("036", squarePayments)); // "transaction discount"
 			
-			newRecordList.addFirst(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "400", newRecordList.size() + 1));
+			newRecordList.addFirst(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.TENDER_COUNT_REGISTER, newRecordList.size() + 1));
 			
 			transactionLog.addAll(newRecordList);
 		}
 		
-		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, "040", 4));
+		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, TransactionType.STORE_CLOSE, 4));
 		
 		transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 		
@@ -243,7 +243,7 @@ public class TLOG {
 		transactionLog.add(new DepositAmount().parse(squarePayments, location)); // TODO(colinlam): is this just for cash, or for all payments?
 	}
 	
-	public static Map<TENDER_CODE,String> getTenderCodes() {
+	public static Map<TenderCode,String> getTenderCodes() {
 		return tenderCodes;
 	}
 }
