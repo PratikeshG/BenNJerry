@@ -85,13 +85,13 @@ public class TransactionTaxExtended extends Record {
 		
 		int taxableAmount = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
 		
-		values.put("Tax Type", taxType);
-		values.put("Tax Method", "01"); // not supported
-		values.put("Tax Rate", "" + taxRate);
-		values.put("Tax Code", taxCode);
-		values.put("Taxable Amount", "" + taxableAmount); // TODO(colinlam): this doesn't take into account what kind of tax it is
-		values.put("Tax", "" + tax.getAppliedMoney().getAmount());
-		values.put("Sign Indicator", "0"); // always adds a positive amount
+		putValue("Tax Type", taxType);
+		putValue("Tax Method", "01"); // not supported
+		putValue("Tax Rate", "" + taxRate);
+		putValue("Tax Code", taxCode);
+		putValue("Taxable Amount", "" + taxableAmount); // TODO(colinlam): this doesn't take into account what kind of tax it is
+		putValue("Tax", "" + tax.getAppliedMoney().getAmount());
+		putValue("Sign Indicator", "0"); // always adds a positive amount
 		
 		return this;
 	}

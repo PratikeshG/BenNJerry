@@ -60,14 +60,14 @@ public class TenderCount extends Record {
 		
 		String tenderCodeString = tenderCodes.get(tenderCode);
 		
-		values.put("Tender Code", tenderCodeString);
-		values.put("Number In Drawer", ""); // not supported
-		values.put("Amount In Drawer", "" + cashDrawerShift.getExpectedCashMoney().getAmount());
-		values.put("Amount In Drawer Sign", cashDrawerShift.getExpectedCashMoney().getAmount() >= 0 ? "0" : "1");
-		values.put("Amount Counted", "" + cashDrawerShift.getClosedCashMoney().getAmount());
-		values.put("Amount Counted Sign", cashDrawerShift.getClosedCashMoney().getAmount() >= 0 ? "0" : "1");
-		values.put("Currency Indicator", "0"); // not supported
-		values.put("Counted Indicator", "1"); // 1 is "dollars"; other value not supported
+		putValue("Tender Code", tenderCodeString);
+		putValue("Number In Drawer", ""); // not supported
+		putValue("Amount In Drawer", "" + cashDrawerShift.getExpectedCashMoney().getAmount());
+		putValue("Amount In Drawer Sign", cashDrawerShift.getExpectedCashMoney().getAmount() >= 0 ? "0" : "1");
+		putValue("Amount Counted", "" + cashDrawerShift.getClosedCashMoney().getAmount());
+		putValue("Amount Counted Sign", cashDrawerShift.getClosedCashMoney().getAmount() >= 0 ? "0" : "1");
+		putValue("Currency Indicator", "0"); // not supported
+		putValue("Counted Indicator", "1"); // 1 is "dollars"; other value not supported
 		
 		return this;
 	}

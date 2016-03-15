@@ -60,14 +60,14 @@ public class CreditCardTender extends Record {
 		if (tender.getEntryMethod().equals("MANUAL"))
 			entryMethod = "2";
 		
-		values.put("Account Number", tender.getPanSuffix()); // not supported
-		values.put("Account Number Format", "0"); // not supported
-		values.put("Start Date", ""); // not supported
-		values.put("Expiration Date", ""); // not supported
-		values.put("Entry Method", entryMethod);
-		values.put("Authorization Method", "2"); // "electronic authorization"; only supported method
-		values.put("Authorization Code", ""); // not supported
-		values.put("Settlement Data", ""); // not supported
+		putValue("Account Number", tender.getPanSuffix()); // not supported
+		putValue("Account Number Format", "0"); // not supported
+		putValue("Start Date", ""); // not supported
+		putValue("Expiration Date", ""); // not supported
+		putValue("Entry Method", entryMethod);
+		putValue("Authorization Method", "2"); // "electronic authorization"; only supported method
+		putValue("Authorization Code", ""); // not supported
+		putValue("Settlement Data", ""); // not supported
 		
 		return this;
 	}

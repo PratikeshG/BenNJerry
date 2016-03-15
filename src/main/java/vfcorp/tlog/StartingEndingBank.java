@@ -6,6 +6,8 @@ import java.util.Map;
 import vfcorp.Record;
 import vfcorp.RecordDetails;
 
+import com.squareup.connect.CashDrawerShift;
+
 public class StartingEndingBank extends Record {
 
 	private static Map<String,RecordDetails> fields;
@@ -47,11 +49,17 @@ public class StartingEndingBank extends Record {
 		return id;
 	}
 	
-	public StartingEndingBank parse(boolean starting, String idNumber, String amount) {
-		values.put("Starting or Ending Bank", starting == true ? "0" : "1");
-		values.put("Identification Number", idNumber);
-		values.put("Identification Type", "0"); // doesn't support cashiers
-		values.put("Amount", amount);
+	public StartingEndingBank parse(CashDrawerShift cashDrawerShift, String amount, boolean starting) {
+		String registerNumber = "";
+		
+		if (cashDrawerShift.getDevice().getName() != null) {
+			registerNumber = cashDrawerShift.getDevice().getName();
+		}
+		
+		putValue("Starting or Ending Bank", starting == true ? "0" : "1");
+		putValue("Identification Number", registerNumber);
+		putValue("Identification Type", "0"); // doesn't support cashiers
+		putValue("Amount", amount);
 		
 		return this;
 	}

@@ -71,19 +71,19 @@ public class LineItemAccountingString extends Record {
 			productivityQuantity = String.format( "%.3f", quantity).replace(".", "");
 		}
 		
-		values.put("Item Number", sku); // requires special formating, according to documentation
-		values.put("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
-		values.put("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
-		values.put("Item Value", "" + itemization.getNetSalesMoney().getAmount());
-		values.put("Type Indicator", "01"); // "merchandise sale"
-		values.put("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
-		values.put("Sales Taxable Amount", "" + itemization.getNetSalesMoney().getAmount()); // not supported
-		values.put("Sales Not Taxable Amount", ""); // not supported
-		values.put("Sales Not Taxable Amount 2", ""); // not supported
-		values.put("Sales Taxable Amount 2", ""); // not supported
-		values.put("Return Quantity Indicator", "00"); // rentals are not supported
-		values.put("Productivity Quantity", productivityQuantity); // this string gets repeated until quantity is below 1
-		values.put("Item Index", "" + index);
+		putValue("Item Number", sku); // requires special formating, according to documentation
+		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
+		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
+		putValue("Item Value", "" + itemization.getNetSalesMoney().getAmount());
+		putValue("Type Indicator", "01"); // "merchandise sale"
+		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
+		putValue("Sales Taxable Amount", "" + itemization.getNetSalesMoney().getAmount()); // not supported
+		putValue("Sales Not Taxable Amount", ""); // not supported
+		putValue("Sales Not Taxable Amount 2", ""); // not supported
+		putValue("Sales Taxable Amount 2", ""); // not supported
+		putValue("Return Quantity Indicator", "00"); // rentals are not supported
+		putValue("Productivity Quantity", productivityQuantity); // this string gets repeated until quantity is below 1
+		putValue("Item Index", "" + index);
 		return this;
 	}
 }

@@ -78,32 +78,32 @@ public class MerchandiseItem extends Record {
 		}
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
 		
-		values.put("Void Indicator", "0"); // no such thing as voided transactions
-		values.put("Exchange Indicator", "0"); // no such thing as exchanged transactions
-		values.put("Item Number", sku); // requires special formating, according to documentation
-		values.put("Sku/Class Indicator", "0"); // this should always be 0...right?
-		values.put("Department Number", ""); // no such thing as a "department number"
-		values.put("Class Number", ""); // no such thing as a "class number"
-		values.put("Quantity", quantity); // three decimal places are implied
-		values.put("Price Original", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
-		values.put("Price On Lookup", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
-		values.put("Price Before Discount", Integer.toString(itemization.getSingleQuantityMoney().getAmount())); // not supported
-		values.put("Reserved for Future Use", Integer.toString(itemization.getSingleQuantityMoney().getAmount())); // this follows the pattern of what VFC gave us
-		values.put("Price Indicator", "01"); // not supported
-		values.put("Extended Total", Integer.toString(itemization.getGrossSalesMoney().getAmount()));
-		values.put("Not On File Indicator", "0"); // not supported
-		values.put("Entry Indicator", "1"); // not supported
-		values.put("Taxable Indicator", itemization.getTaxes() == null ? "1" : "0");
-		values.put("Item Status", "00"); // not supported
-		values.put("Raincheck", "0"); // not supported
-		values.put("Gift Item", "0"); // not supported
-		values.put("Package", "0"); // not supported
-		values.put("Send Item Indicator", "0"); // not supported
-		values.put("Send to Location #", "00"); // not supported
-		values.put("Team Associate Item Ind", "0"); // not supported
-		values.put("Team Number", "000"); // not supported
-		values.put("Return Indicator", "0"); // not supported
-		values.put("Item Sequence", "0000000"); // not supported
+		putValue("Void Indicator", "0"); // no such thing as voided transactions
+		putValue("Exchange Indicator", "0"); // no such thing as exchanged transactions
+		putValue("Item Number", sku); // requires special formating, according to documentation
+		putValue("Sku/Class Indicator", "0"); // this should always be 0...right?
+		putValue("Department Number", ""); // no such thing as a "department number"
+		putValue("Class Number", ""); // no such thing as a "class number"
+		putValue("Quantity", quantity); // three decimal places are implied
+		putValue("Price Original", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
+		putValue("Price On Lookup", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
+		putValue("Price Before Discount", Integer.toString(itemization.getSingleQuantityMoney().getAmount())); // not supported
+		putValue("Reserved for Future Use", Integer.toString(itemization.getSingleQuantityMoney().getAmount())); // this follows the pattern of what VFC gave us
+		putValue("Price Indicator", "01"); // not supported
+		putValue("Extended Total", Integer.toString(itemization.getGrossSalesMoney().getAmount()));
+		putValue("Not On File Indicator", "0"); // not supported
+		putValue("Entry Indicator", "1"); // not supported
+		putValue("Taxable Indicator", itemization.getTaxes() == null ? "1" : "0");
+		putValue("Item Status", "00"); // not supported
+		putValue("Raincheck", "0"); // not supported
+		putValue("Gift Item", "0"); // not supported
+		putValue("Package", "0"); // not supported
+		putValue("Send Item Indicator", "0"); // not supported
+		putValue("Send to Location #", "00"); // not supported
+		putValue("Team Associate Item Ind", "0"); // not supported
+		putValue("Team Number", "000"); // not supported
+		putValue("Return Indicator", "0"); // not supported
+		putValue("Item Sequence", "0000000"); // not supported
 		
 		return this;
 	}

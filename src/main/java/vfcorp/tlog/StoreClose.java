@@ -48,10 +48,10 @@ public class StoreClose extends Record {
 	}
 	
 	public StoreClose parse() {
-		values.put("Weather Code", ""); // not supported
-		values.put("Holiday Code", ""); // not supported
-		values.put("Special Event Code", ""); // not supported
-		values.put("Special Event Description", ""); // not supported
+		putValue("Weather Code", ""); // not supported
+		putValue("Holiday Code", ""); // not supported
+		putValue("Special Event Code", ""); // not supported
+		putValue("Special Event Description", ""); // not supported
 		
 		return this;
 	}

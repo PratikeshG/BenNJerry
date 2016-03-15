@@ -50,8 +50,8 @@ public class TransactionSubTotal extends Record {
 	public TransactionSubTotal parse(Payment payment) {
 		int subtotal = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
 		
-		values.put("Amount", "" + subtotal);
-		values.put("Sign Indicator", "0"); // subtotals are always positive
+		putValue("Amount", "" + subtotal);
+		putValue("Sign Indicator", "0"); // subtotals are always positive
 		
 		return this;
 	}

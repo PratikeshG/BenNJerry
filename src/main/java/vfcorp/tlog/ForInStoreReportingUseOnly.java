@@ -88,11 +88,11 @@ public class ForInStoreReportingUseOnly extends Record {
 			// TODO(colinlam): what is a transaction discount?
 		}
 		
-		values.put("Transaction Identifier", transactionIdentifier);
-		values.put("Count", "" + count);
-		values.put("Amount", "" + amount);
-		values.put("Amount Sign", amount >= 0 ? "0" : "1");
-		values.put("Currency Indicator", "0"); // 0 is primary; other value not supported
+		putValue("Transaction Identifier", transactionIdentifier);
+		putValue("Count", "" + count);
+		putValue("Amount", "" + amount);
+		putValue("Amount Sign", amount >= 0 ? "0" : "1");
+		putValue("Currency Indicator", "0"); // 0 is primary; other value not supported
 		
 		return this;
 	}

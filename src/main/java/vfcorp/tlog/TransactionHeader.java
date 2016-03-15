@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.squareup.connect.CashDrawerShift;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
@@ -77,83 +78,128 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Payment squarePayment, Merchant location, List<Employee> squareEmployees, String type, int numberOfRecords) {
+	public TransactionHeader parse(Merchant location, List<Employee> squareEmployees, CashDrawerShift cashDrawerShift, String transactionType, int numberOfRecords) {
+		Map<String,String> params = new HashMap<String,String>();
+		
+		if (cashDrawerShift.getOpeningEmployeeId() != null) {
+			for (Employee squareEmployee : squareEmployees) {
+				if (squareEmployee.getId().equals(cashDrawerShift.getOpeningEmployeeId())) {
+					params.put("Employee Number", squareEmployee.getExternalId());
+				}
+			}
+		}
+		
+		if (cashDrawerShift.getDevice().getName() != null) {
+			params.put("Register Number", cashDrawerShift.getDevice().getName());
+		}
+		
+		String cashDrawerDate = cashDrawerShift.getOpenedAt().substring(5, 7) +
+				cashDrawerShift.getOpenedAt().substring(8, 10) + 
+				cashDrawerShift.getOpenedAt().substring(0, 4);
+		params.put("Transaction Date", cashDrawerDate);
+		String cashDrawerTime = cashDrawerShift.getOpenedAt().substring(11,13) + cashDrawerShift.getOpenedAt().substring(14, 16);
+		params.put("Transaction Time", cashDrawerTime);
+		
+		params.put("Transaction Type", transactionType);
+		params.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
+		params.put("Number of Records", "" + numberOfRecords);
+		
+		return parse(params);
+	}
+	
+	public TransactionHeader parse(Merchant location, List<CashDrawerShift> cashDrawerShifts, String transactionType, int numberOfRecords) {
+		Map<String,String> params = new HashMap<String,String>();
+		
+		String startDate = "";
+		if ("010".equals(transactionType)) {
+			for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
+				if (startDate.equals("") || startDate.compareTo(cashDrawerShift.getOpenedAt()) > 0) {
+					startDate = cashDrawerShift.getOpenedAt();
+				}
+			}
+		} else if ("040".equals(transactionType)) {
+			for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
+				if (startDate.equals("") || startDate.compareTo(cashDrawerShift.getClosedAt()) < 0) {
+					startDate = cashDrawerShift.getClosedAt();
+				}
+			}
+		}
+		if (startDate.equals("")) {
+			startDate = "00000000000000000000";
+		}
+		
+		String date = startDate.substring(5, 7) +
+				startDate.substring(8, 10) + 
+				startDate.substring(0, 4);
+		params.put("Transaction Date", date);
+		String time = startDate.substring(11,13) + startDate.substring(14, 16);
+		params.put("Transaction Time", time);
+		
+		params.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
+		
+		params.put("Transaction Type", transactionType);
+		
+		params.put("Number of Records", "" + numberOfRecords);
+		
+		return parse(params);
+	}
+	
+	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords) {
+		Map<String,String> params = new HashMap<String,String>();
+		
 		String date = squarePayment.getCreatedAt().substring(5, 7) +
 				squarePayment.getCreatedAt().substring(8, 10) + 
 				squarePayment.getCreatedAt().substring(0, 4);
+		params.put("Transaction Date", date);
 		String time = squarePayment.getCreatedAt().substring(11,13) + squarePayment.getCreatedAt().substring(14, 16);
+		params.put("Transaction Time", time);
 		
-		String employeeNumber = "";
 		for (Tender tender : squarePayment.getTender()) {
 			if (tender.getEmployeeId() != null) {
 				for (Employee employee : squareEmployees) {
 					if (employee.getId().equals(tender.getEmployeeId())) {
-						employeeNumber = employee.getExternalId();
+						params.put("Employee Number", employee.getExternalId());
 					}
 				}
 			}
 		}
 		
-		String registerNumber = squarePayment.getDevice().getName() != null ? squarePayment.getDevice().getName() : "";
-		String storeNumber = location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "";
+		params.put("Register Number", squarePayment.getDevice().getName() != null ? squarePayment.getDevice().getName() : "");
+		params.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
+		params.put("Transaction Type", transactionType);
+		params.put("Number of Records", "" + numberOfRecords);
+		params.put("Business Date", date);
 		
-		values.put("Store Number", storeNumber);
-		values.put("Register Number", registerNumber); // Only if device is named correctly
-		values.put("Cashier Number", ""); // What is the difference between a cashier and a register?
-		values.put("Employee Number", employeeNumber);
-		values.put("Transaction Number", "123456"); // TODO(colinlam): Square transaction ID doesn't fit...where to get this?
-		values.put("Transaction Date", date);
-		values.put("Transaction Time", time);
-		values.put("Transaction Type", type); // There are many possible kinds of these things
-		values.put("Transaction Status", "01"); // There are many possible kinds of these things
-		values.put("Cancel Indicator", "0"); // Doesn't exist in Square
-		values.put("Post Void Indicator", "0"); // Doesn't exist in Square
-		values.put("Tax Exempt Indicator", "0"); // Doesn't exist in Square
-		values.put("Training Indicator", "0"); // Doesn't exist in Square
-		values.put("Transaction Processor Attempts", "01"); // Will always be only 1
-		values.put("Transaction Error Code", ""); // Doesn't exist in Square
-		values.put("Number of Records", "" + numberOfRecords); // A count that needs to be adjusted after the fact
-		values.put("Business Date", date);
-		values.put("RetailStore Product Generation", ""); // Not using RetailStore
-		values.put("RetailStore Major Version", ""); // Not using RetailStore
-		values.put("RetailStore Minor Version", ""); // Not using RetailStore
-		values.put("RetailStore Service Pack", ""); // Not using RetailStore
-		values.put("RetailStore Hot Fix", ""); // Not using RetailStore
-		values.put("(Customer) Code Release Number", ""); // Not using customer software
-		values.put("(Customer) Code Release EFix", ""); // Not using customer software
-		values.put("(Customer) Release Additional Data", ""); // Not using customer software
-		values.put("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
-		
-		return this;
+		return parse(params);
 	}
 	
 	public TransactionHeader parse(Map<String,String> params) {
-		values.put("Store Number", params.getOrDefault("Store Number", ""));
-		values.put("Register Number", params.getOrDefault("Register Number", "")); // Only if device is named correctly
-		values.put("Cashier Number", ""); // What is the difference between a cashier and a register?
-		values.put("Employee Number", params.getOrDefault("Employee Number", ""));
-		values.put("Transaction Number", "123456"); // TODO(colinlam): Square transaction ID doesn't fit...where to get this?
-		values.put("Transaction Date", params.getOrDefault("Transaction Date", "")); // not supported
-		values.put("Transaction Time", params.getOrDefault("Transaction Time", "")); // not supported
-		values.put("Transaction Type", params.getOrDefault("Transaction Type", "")); // There are many possible kinds of these things
-		values.put("Transaction Status", "01"); // There are many possible kinds of these things
-		values.put("Cancel Indicator", "0"); // Doesn't exist in Square
-		values.put("Post Void Indicator", "0"); // Doesn't exist in Square
-		values.put("Tax Exempt Indicator", "0"); // Doesn't exist in Square
-		values.put("Training Indicator", "0"); // Doesn't exist in Square
-		values.put("Transaction Processor Attempts", "01"); // Will always be only 1
-		values.put("Transaction Error Code", ""); // Doesn't exist in Square
-		values.put("Number of Records", params.getOrDefault("Number of Records", "")); // A count that needs to be adjusted after the fact
-		values.put("Business Date", ""); // not supported
-		values.put("RetailStore Product Generation", ""); // Not using RetailStore
-		values.put("RetailStore Major Version", ""); // Not using RetailStore
-		values.put("RetailStore Minor Version", ""); // Not using RetailStore
-		values.put("RetailStore Service Pack", ""); // Not using RetailStore
-		values.put("RetailStore Hot Fix", ""); // Not using RetailStore
-		values.put("(Customer) Code Release Number", ""); // Not using customer software
-		values.put("(Customer) Code Release EFix", ""); // Not using customer software
-		values.put("(Customer) Release Additional Data", ""); // Not using customer software
-		values.put("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
+		putValue("Store Number", params.getOrDefault("Store Number", ""));
+		putValue("Register Number", params.getOrDefault("Register Number", "")); // Only if device is named correctly
+		putValue("Cashier Number", ""); // What is the difference between a cashier and a register?
+		putValue("Employee Number", params.getOrDefault("Employee Number", ""));
+		putValue("Transaction Number", "123456"); // TODO(colinlam): Square transaction ID doesn't fit...where to get this?
+		putValue("Transaction Date", params.getOrDefault("Transaction Date", "")); // not supported
+		putValue("Transaction Time", params.getOrDefault("Transaction Time", "")); // not supported
+		putValue("Transaction Type", params.getOrDefault("Transaction Type", "")); // There are many possible kinds of these things
+		putValue("Transaction Status", "01"); // There are many possible kinds of these things
+		putValue("Cancel Indicator", "0"); // Doesn't exist in Square
+		putValue("Post Void Indicator", "0"); // Doesn't exist in Square
+		putValue("Tax Exempt Indicator", "0"); // Doesn't exist in Square
+		putValue("Training Indicator", "0"); // Doesn't exist in Square
+		putValue("Transaction Processor Attempts", "01"); // Will always be only 1
+		putValue("Transaction Error Code", ""); // Doesn't exist in Square
+		putValue("Number of Records", params.getOrDefault("Number of Records", "")); // A count that needs to be adjusted after the fact
+		putValue("Business Date", params.getOrDefault("Business Date", "")); // not supported
+		putValue("RetailStore Product Generation", ""); // Not using RetailStore
+		putValue("RetailStore Major Version", ""); // Not using RetailStore
+		putValue("RetailStore Minor Version", ""); // Not using RetailStore
+		putValue("RetailStore Service Pack", ""); // Not using RetailStore
+		putValue("RetailStore Hot Fix", ""); // Not using RetailStore
+		putValue("(Customer) Code Release Number", ""); // Not using customer software
+		putValue("(Customer) Code Release EFix", ""); // Not using customer software
+		putValue("(Customer) Release Additional Data", ""); // Not using customer software
+		putValue("Tax Calculator", "9"); // Neither RetailStore nor TaxConnect calculated taxes
 		
 		return this;
 	}

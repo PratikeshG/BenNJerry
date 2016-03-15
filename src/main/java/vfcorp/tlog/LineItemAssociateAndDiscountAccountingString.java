@@ -85,35 +85,35 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		
 		for (Employee employee : squareEmployees) {
 			if (employee.getId().equals(employeeId)) {
-				values.put("Associate Number", employee.getExternalId());
-				values.put("Employee Number", employee.getExternalId());
+				putValue("Associate Number", employee.getExternalId());
+				putValue("Employee Number", employee.getExternalId());
 			}
 		}
 		
 		if (values.get("Associate Number") == null) {
-			values.put("Associate Number", "");
-			values.put("Employee Number", "");
+			putValue("Associate Number", "");
+			putValue("Employee Number", "");
 		}
 		
-		values.put("Team Identifier", "0"); // not supported
-		values.put("Team Number", "000"); // not supported
-		values.put("Item Number", sku);
-		values.put("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
-		values.put("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
-		values.put("Value (per associate)", "" + itemization.getNetSalesMoney().getAmount());
-		values.put("Type Indicator", "01"); // "merchandise sale"; no other values supported
-		values.put("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
-		values.put("Emp Discount Value", "");
-		values.put("PCM Discount Value", "");
-		values.put("Line Item Discount Value", "" + -itemization.getDiscountMoney().getAmount());
-		values.put("Line Item Promo Value", ""); // not supported
-		values.put("Transaction Discount Value", "" + -payment.getDiscountMoney().getAmount());
-		values.put("Transaction Promo Value", ""); // not supported
-		values.put("Price Override Indicator", "0"); // not supported
-		values.put("Price Override Value", ""); // not supported
-		values.put("Receipt Presentation Price", "" + itemization.getGrossSalesMoney().getAmount());
-		values.put("Productivity Quantity", productivityQuantity);
-		values.put("PLU Sale Price Discount Value", "" + -itemization.getDiscountMoney().getAmount());
+		putValue("Team Identifier", "0"); // not supported
+		putValue("Team Number", "000"); // not supported
+		putValue("Item Number", sku);
+		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
+		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
+		putValue("Value (per associate)", "" + itemization.getNetSalesMoney().getAmount());
+		putValue("Type Indicator", "01"); // "merchandise sale"; no other values supported
+		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
+		putValue("Emp Discount Value", "");
+		putValue("PCM Discount Value", "");
+		putValue("Line Item Discount Value", "" + -itemization.getDiscountMoney().getAmount());
+		putValue("Line Item Promo Value", ""); // not supported
+		putValue("Transaction Discount Value", "" + -payment.getDiscountMoney().getAmount());
+		putValue("Transaction Promo Value", ""); // not supported
+		putValue("Price Override Indicator", "0"); // not supported
+		putValue("Price Override Value", ""); // not supported
+		putValue("Receipt Presentation Price", "" + itemization.getGrossSalesMoney().getAmount());
+		putValue("Productivity Quantity", productivityQuantity);
+		putValue("PLU Sale Price Discount Value", "" + -itemization.getDiscountMoney().getAmount());
 		
 		return this;
 	}

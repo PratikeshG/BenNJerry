@@ -60,10 +60,10 @@ public class DepositAmount extends Record {
 		
 		String storeNumber = location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "";
 		
-		values.put("Identification Number", storeNumber);
-		values.put("Identification Type", "2"); // default of "store"
-		values.put("Amount", "" + total);
-		values.put("Currency Indicator", "0");
+		putValue("Identification Number", storeNumber);
+		putValue("Identification Type", "2"); // default of "store"
+		putValue("Amount", "" + total);
+		putValue("Currency Indicator", "0");
 		
 		return this;
 	}

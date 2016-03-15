@@ -58,13 +58,13 @@ public class EventGiveback extends Record {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
 		}
 		
-		values.put("Item Number", sku);
-		values.put("Amount", ""); // promo events not supported
-		values.put("Event Number", ""); // not supported
-		values.put("Deal Number", ""); // not supported
-		values.put("Coupon Number", ""); // not supported
-		values.put("Transaction Discount", ""); // not supported
-		values.put("Component Type", ""); // not supported
+		putValue("Item Number", sku);
+		putValue("Amount", ""); // promo events not supported
+		putValue("Event Number", ""); // not supported
+		putValue("Deal Number", ""); // not supported
+		putValue("Coupon Number", ""); // not supported
+		putValue("Transaction Discount", ""); // not supported
+		putValue("Component Type", ""); // not supported
 		
 		return this;
 	}

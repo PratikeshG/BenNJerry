@@ -3,6 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.squareup.connect.CashDrawerShift;
+
 import vfcorp.Record;
 import vfcorp.RecordDetails;
 
@@ -46,10 +48,16 @@ public class CashierRegisterIdentification extends Record {
 		return id;
 	}
 	
-	public CashierRegisterIdentification parse(String registerNumber) {
-		values.put("Cashier/Register Number", registerNumber);
-		values.put("Number Type", "0"); // 0 is "register"
-		values.put("Currency Indicator", "0"); // 0 is "primary"; other currencies not supported
+	public CashierRegisterIdentification parse(CashDrawerShift cashDrawerShift) {
+		String registerNumber = "";
+		
+		if (cashDrawerShift.getDevice().getName() != null) {
+			registerNumber = cashDrawerShift.getDevice().getName();
+		}
+		
+		putValue("Cashier/Register Number", registerNumber);
+		putValue("Number Type", "0"); // 0 is "register"
+		putValue("Currency Indicator", "0"); // 0 is "primary"; other currencies not supported
 		
 		return this;
 	}

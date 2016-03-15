@@ -47,9 +47,9 @@ public class ReasonCode extends Record {
 	}
 	
 	public ReasonCode parse(String functionIndicator) {
-		values.put("Reason Code", ""); // TODO(colinlam): where do these come from?
-		values.put("Function Indicator", functionIndicator);
-		values.put("Special Indicator", "0"); // not supported
+		putValue("Reason Code", ""); // TODO(colinlam): where do these come from?
+		putValue("Function Indicator", functionIndicator);
+		putValue("Special Indicator", "0"); // not supported
 		
 		return this;
 	}

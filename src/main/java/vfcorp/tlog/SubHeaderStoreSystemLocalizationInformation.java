@@ -48,8 +48,8 @@ public class SubHeaderStoreSystemLocalizationInformation extends Record {
 	}
 	
 	public SubHeaderStoreSystemLocalizationInformation parse() {
-		values.put("Country/Language Indicator", "00000409"); // taken from the example file
-		values.put("Currency Decimal Indicator", "2"); // taken from the example file
+		putValue("Country/Language Indicator", "00000409"); // taken from the example file
+		putValue("Currency Decimal Indicator", "2"); // taken from the example file
 		
 		return this;
 	}

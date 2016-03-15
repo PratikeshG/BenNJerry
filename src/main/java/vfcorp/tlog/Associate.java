@@ -53,18 +53,18 @@ public class Associate extends Record {
 	public Associate parse(String employeeId, List<Employee> squareEmployees) {
 		for (Employee employee : squareEmployees) {
 			if (employee.getId().equals(employeeId)) {
-				values.put("Associate Number", employee.getExternalId());
-				values.put("Employee Number", employee.getExternalId());
+				putValue("Associate Number", employee.getExternalId());
+				putValue("Employee Number", employee.getExternalId());
 			}
 		}
 		
 		if (values.get("Associate Number") == null) {
-			values.put("Associate Number", "");
-			values.put("Employee Number", "");
+			putValue("Associate Number", "");
+			putValue("Employee Number", "");
 		}
 		
-		values.put("Team Associate Ind", "0");
-		values.put("Team Number", "000");
+		putValue("Team Associate Ind", "0");
+		putValue("Team Number", "000");
 		
 		return this;
 	}

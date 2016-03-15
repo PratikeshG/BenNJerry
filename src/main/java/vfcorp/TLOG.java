@@ -76,13 +76,11 @@ public class TLOG {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
 	
-	public void parse(List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts, Merchant location) {
-		// Translate each Square payment into a record in the transaction log
-		
-		createStoreInitializationRecords(squareEmployees, cashDrawerShifts, location);
-		createItemSaleRecords(squarePayments, squareEmployees, location);
+	public void parse(Merchant location, List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
+		createStoreInitializationRecords(location, squareEmployees, cashDrawerShifts);
+		createItemSaleRecords(location, squarePayments, squareEmployees);
 		// TODO(colinlam): pass refunds through here. they look similar to sales records.
-		createStoreCloseRecords(squarePayments, squareEmployees, cashDrawerShifts, location);
+		createStoreCloseRecords(location, squarePayments, squareEmployees, cashDrawerShifts);
 	}
 
 	public String toString() {
@@ -95,93 +93,41 @@ public class TLOG {
 		return sb.toString();
 	}
 	
-	private void createStoreInitializationRecords(List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts, Merchant location) {
+	private void createStoreInitializationRecords(Merchant location, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
+		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, "010", 2));
 		
-		String earliestOpenDate = "";
-		for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
-			if (earliestOpenDate.equals("") || earliestOpenDate.compareTo(cashDrawerShift.getOpenedAt()) > 0) {
-				earliestOpenDate = cashDrawerShift.getOpenedAt();
-			}
-		}
-		if (earliestOpenDate.equals("")) {
-			earliestOpenDate = "00000000000000000000";
-		}
-		
-		Map<String,String> params = new HashMap<String,String>();
-		
-		String date = earliestOpenDate.substring(5, 7) +
-				earliestOpenDate.substring(8, 10) + 
-				earliestOpenDate.substring(0, 4);
-		params.put("Transaction Date", date);
-		String time = earliestOpenDate.substring(11,13) + earliestOpenDate.substring(14, 16);
-		params.put("Transaction Time", time);
-		
-		params.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
-		
-		params.put("Transaction Type", "010");
-		
-		params.put("Number of Records", "" + 2);
-		
-		transactionLog.add(new TransactionHeader().parse(params));
 		transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 		
 		for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
-			Map<String,String> cashDrawerParams = new HashMap<String,String>();
 			
-			if (cashDrawerShift.getOpeningEmployeeId() != null) {
-				for (Employee squareEmployee : squareEmployees) {
-					if (squareEmployee.getId().equals(cashDrawerShift.getOpeningEmployeeId())) {
-						cashDrawerParams.put("Employee Number", squareEmployee.getExternalId());
-					}
-				}
-			}
-			
-			if (cashDrawerShift.getDevice().getName() != null) {
-				cashDrawerParams.put("Register Number", cashDrawerShift.getDevice().getName());
-			}
-			
-			String cashDrawerDate = cashDrawerShift.getOpenedAt().substring(5, 7) +
-					cashDrawerShift.getOpenedAt().substring(8, 10) + 
-					cashDrawerShift.getOpenedAt().substring(0, 4);
-			cashDrawerParams.put("Transaction Date", cashDrawerDate);
-			String cashDrawerTime = cashDrawerShift.getOpenedAt().substring(11,13) + cashDrawerShift.getOpenedAt().substring(14, 16);
-			cashDrawerParams.put("Transaction Time", cashDrawerTime);
-			
-			cashDrawerParams.put("Transaction Type", "050");
-			cashDrawerParams.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
-			cashDrawerParams.put("Number of Records", "" + 1);
-			
-			transactionLog.add(new TransactionHeader().parse(cashDrawerParams));
-			
-			cashDrawerParams.put("Transaction Type", "699");
-			cashDrawerParams.put("Number of Records", "" + 3);
-			
-			transactionLog.add(new TransactionHeader().parse(cashDrawerParams));
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "050", 1));
+
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "699", 3));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse("35", cashDrawerParams.get("Employee Number"))); // 35 is "open register"
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, "35")); // 35 is "open register"
 			
-			cashDrawerParams.put("Transaction Type", "502");
-			cashDrawerParams.put("Number of Records", "" + 4);
-			
-			transactionLog.add(new TransactionHeader().parse(cashDrawerParams));
+			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "502", 4));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse("41", cashDrawerParams.get("Employee Number"))); // 41 is "starting bank"
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, "41")); // 41 is "starting bank"
 			
-			transactionLog.add(new StartingEndingBank().parse(true, cashDrawerParams.get("Employee Number"), "" + cashDrawerShift.getStartingCashMoney().getAmount()));
+			transactionLog.add(new StartingEndingBank().parse(cashDrawerShift, "" + cashDrawerShift.getStartingCashMoney().getAmount(), true));
 		}
 	}
 	
-	private void createItemSaleRecords(List<Payment> squarePayments, List<Employee> squareEmployees, Merchant location) {
+	private void createItemSaleRecords(Merchant location, List<Payment> squarePayments, List<Employee> squareEmployees) {
 		
 		for (Payment payment : squarePayments) {
 			
 			if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
-				transactionLog.add(new TransactionHeader().parse(payment, location, squareEmployees, "900", 3));
+				
+				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployees, "900", 3));
+				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
+				
 				transactionLog.add(new ReasonCode().parse("05")); // 05 is "no sale"
 			} else {
 				LinkedList<Record> paymentList = new LinkedList<Record>();
@@ -189,7 +135,9 @@ public class TLOG {
 				paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
 				paymentList.add(new TransactionSubTotal().parse(payment));
+				
 				paymentList.add(new TransactionTax().parse(payment));
+				
 				paymentList.add(new TransactionTotal().parse(payment));
 				
 				for (PaymentTax tax : payment.getAdditiveTax()) {
@@ -237,110 +185,61 @@ public class TLOG {
 					}
 				}
 				
-				paymentList.addFirst(new TransactionHeader().parse(payment, location, squareEmployees, "200", paymentList.size() + 1));
+				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployees, "200", paymentList.size() + 1));
 				
 				transactionLog.addAll(paymentList);
 			}
 		}
 		
 		// TODO(colinlam): add refunds
-		// TODO(colinlam): add no sales
 	}
 
-	private void createStoreCloseRecords(List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts, Merchant location) {
-		
-		String latestOpenDate = "";
-		for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
-			if (latestOpenDate.equals("") || latestOpenDate.compareTo(cashDrawerShift.getClosedAt()) < 0) {
-				latestOpenDate = cashDrawerShift.getClosedAt();
-			}
-		}
-		if (latestOpenDate.equals("")) {
-			latestOpenDate = "00000000000000000000";
-		}
+	private void createStoreCloseRecords(Merchant location, List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts) {
 		
 		for (CashDrawerShift cashDrawerShift : cashDrawerShifts) {
 			LinkedList<Record> newRecordList = new LinkedList<Record>();
 			
-			String registerNumber = "";
-			if (cashDrawerShift.getDevice().getName() != null) {
-				registerNumber = cashDrawerShift.getDevice().getName();
-			}
-			
-			String employeeNumber = "";
-			if (cashDrawerShift.getOpeningEmployeeId() != null) {
-				for (Employee squareEmployee : squareEmployees) {
-					if (squareEmployee.getId().equals(cashDrawerShift.getOpeningEmployeeId())) {
-						employeeNumber = squareEmployee.getExternalId();
-					}
-				}
-			}
-			
 			newRecordList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
-			newRecordList.add(new CashierRegisterIdentification().parse(registerNumber));
-			newRecordList.add(new StartingEndingBank().parse(false, registerNumber, "" + cashDrawerShift.getClosedCashMoney().getAmount()));
-			newRecordList.add(new EndingBank().parse(registerNumber, "" + cashDrawerShift.getClosedCashMoney().getAmount()));
+			
+			newRecordList.add(new CashierRegisterIdentification().parse(cashDrawerShift));
+			
+			newRecordList.add(new StartingEndingBank().parse(cashDrawerShift, "" + cashDrawerShift.getClosedCashMoney().getAmount(), false));
+			
+			newRecordList.add(new EndingBank().parse(cashDrawerShift, "" + cashDrawerShift.getClosedCashMoney().getAmount()));
 			
 			// TODO(colinlam): in the sample SA file, there were entries for every possible
 			// tender code. This will only produce one for cash. Are they all necessary?
 			newRecordList.add(new TenderCount().parse(TENDER_CODE.CASH, cashDrawerShift));
 			
-			/*
-			 * 037
-			 *   Supported: 002, 003, 009, 013, 014, 015, 017, 018, 036, 
-			 *   Not supported: 001, 010, 011, 022, 052, 054, 055, 056, 057, 058
-			 */
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("002", squarePayments)); // "merchandise sales"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("003", squarePayments)); // "merchandise returns"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("009", squarePayments)); // "discounts"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("013", squarePayments)); // "sales tax"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("014", squarePayments)); // "net sales"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("015", squarePayments)); // "returns"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("017", squarePayments)); // "taxable sales"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("018", squarePayments)); // "non taxable sales"
+			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse("036", squarePayments)); // "transaction discount"
 			
-			Map<String,String> cashDrawerParams = new HashMap<String,String>();
+			newRecordList.addFirst(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, "400", newRecordList.size() + 1));
 			
-			cashDrawerParams.put("Register Number", registerNumber);
-			cashDrawerParams.put("Employee Number", employeeNumber);
-			
-			String cashDrawerDate = cashDrawerShift.getOpenedAt().substring(5, 7) +
-					cashDrawerShift.getOpenedAt().substring(8, 10) + 
-					cashDrawerShift.getOpenedAt().substring(0, 4);
-			cashDrawerParams.put("Transaction Date", cashDrawerDate);
-			String cashDrawerTime = cashDrawerShift.getOpenedAt().substring(11,13) + cashDrawerShift.getOpenedAt().substring(14, 16);
-			cashDrawerParams.put("Transaction Time", cashDrawerTime);
-			
-			cashDrawerParams.put("Transaction Type", "400");
-			cashDrawerParams.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
-			int size = newRecordList.size() + 1;
-			cashDrawerParams.put("Number of Records", "" + size);
-			
-			newRecordList.addFirst(new TransactionHeader().parse(cashDrawerParams));
-			
-			// Add all records in current list to transaction log
 			transactionLog.addAll(newRecordList);
 		}
 		
-		Map<String,String> params = new HashMap<String,String>();
+		transactionLog.add(new TransactionHeader().parse(location, cashDrawerShifts, "040", 4));
 		
-		String date = latestOpenDate.substring(5, 7) +
-				latestOpenDate.substring(8, 10) + 
-				latestOpenDate.substring(0, 4);
-		params.put("Transaction Date", date);
-		String time = latestOpenDate.substring(11,13) + latestOpenDate.substring(14, 16);
-		params.put("Transaction Time", time);
-		
-		params.put("Store Number", location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "");
-		
-		params.put("Transaction Type", "040");
-		
-		params.put("Number of Records", "" + 4);
-		
-		transactionLog.add(new TransactionHeader().parse(params));
 		transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
+		
 		transactionLog.add(new StoreClose().parse());
+		
 		transactionLog.add(new DepositAmount().parse(squarePayments, location)); // TODO(colinlam): is this just for cash, or for all payments?
 	}
 	

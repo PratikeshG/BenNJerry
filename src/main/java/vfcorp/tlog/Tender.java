@@ -83,12 +83,12 @@ public class Tender extends Record {
 		else
 			tenderAmount = "" + tender.getTenderedMoney().getAmount();
 		
-		values.put("Tender Code", tenderCode);
-		values.put("Tender Amount", tenderAmount);
-		values.put("Tender Count", "");
-		values.put("Sign Indicator", "0"); // sign is always positive
-		values.put("Currency Indicator", "0");
-		values.put("Currency Exchange Rate", ""); // not supported
+		putValue("Tender Code", tenderCode);
+		putValue("Tender Amount", tenderAmount);
+		putValue("Tender Count", "");
+		putValue("Sign Indicator", "0"); // sign is always positive
+		putValue("Currency Indicator", "0");
+		putValue("Currency Exchange Rate", ""); // not supported
 		
 		return this;
 	}

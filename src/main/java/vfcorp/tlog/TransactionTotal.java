@@ -48,8 +48,8 @@ public class TransactionTotal extends Record {
 	}
 	
 	public TransactionTotal parse(Payment payment) {
-		values.put("Amount", "" + payment.getTotalCollectedMoney().getAmount());
-		values.put("Sign Indicator", "0"); // subtotals are always positive
+		putValue("Amount", "" + payment.getTotalCollectedMoney().getAmount());
+		putValue("Sign Indicator", "0"); // subtotals are always positive
 		
 		return this;
 	}

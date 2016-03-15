@@ -1,7 +1,11 @@
 package vfcorp.tlog;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import com.squareup.connect.CashDrawerShift;
+import com.squareup.connect.Employee;
 
 import vfcorp.Record;
 import vfcorp.RecordDetails;
@@ -46,10 +50,21 @@ public class AuthorizationCode extends Record {
 		return id;
 	}
 	
-	public AuthorizationCode parse(String functionIndicator, String employeeNumber) {
-		values.put("Authorization Code", ""); // not supported
-		values.put("Function Indicator", functionIndicator); // several different supported types
-		values.put("Employee Number", employeeNumber);
+	public AuthorizationCode parse(List<Employee> squareEmployees, CashDrawerShift cashDrawerShift, String functionIndicator) {
+		String employeeNumber = "";
+		
+		if (cashDrawerShift.getOpeningEmployeeId() != null) {
+			for (Employee squareEmployee : squareEmployees) {
+				if (squareEmployee.getId().equals(cashDrawerShift.getOpeningEmployeeId())) {
+					employeeNumber = squareEmployee.getExternalId();
+				}
+			}
+		}
+		
+		
+		putValue("Authorization Code", ""); // not supported
+		putValue("Function Indicator", functionIndicator); // several different supported types
+		putValue("Employee Number", employeeNumber);
 		
 		return this;
 	}
