@@ -20,7 +20,7 @@ public class Tender extends Record {
 		id = "061";
 		
 		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Tender Code", new RecordDetails(8, 4, ""));
+		fields.put("Tender Code", new RecordDetails(8, 4, "left justified"));
 		fields.put("Tender Amount", new RecordDetails(10, 12, "zero filled"));
 		fields.put("Tender Count", new RecordDetails(3, 22, "zero filled"));
 		fields.put("Sign Indicator", new RecordDetails(1, 25, "zero filled"));

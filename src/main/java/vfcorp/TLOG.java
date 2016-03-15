@@ -19,6 +19,7 @@ import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
 import vfcorp.tlog.LineItemAssociateAndDiscountAccountingString;
 import vfcorp.tlog.MerchandiseItem;
+import vfcorp.tlog.ReasonCode;
 import vfcorp.tlog.StartingEndingBank;
 import vfcorp.tlog.StoreClose;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
@@ -80,9 +81,7 @@ public class TLOG {
 		
 		createStoreInitializationRecords(squareEmployees, cashDrawerShifts, location);
 		createItemSaleRecords(squarePayments, squareEmployees, location);
-		
 		// TODO(colinlam): pass refunds through here. they look similar to sales records.
-		
 		createStoreCloseRecords(squarePayments, squareEmployees, cashDrawerShifts, location);
 	}
 
@@ -180,63 +179,72 @@ public class TLOG {
 		
 		for (Payment payment : squarePayments) {
 			
-			LinkedList<Record> paymentList = new LinkedList<Record>();
-			
-			paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
-			
-			paymentList.add(new TransactionSubTotal().parse(payment));
-			paymentList.add(new TransactionTax().parse(payment));
-			paymentList.add(new TransactionTotal().parse(payment));
-			
-			for (PaymentTax tax : payment.getAdditiveTax()) {
-				paymentList.add(new TransactionTaxExtended().parse(payment, tax));
-			}
-			
-			for (PaymentTax tax : payment.getInclusiveTax()) {
-				paymentList.add(new TransactionTaxExtended().parse(payment, tax));
-			}
-			
-			for (PaymentItemization itemization : payment.getItemizations()) {
-				paymentList.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
+			if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
+				transactionLog.add(new TransactionHeader().parse(payment, location, squareEmployees, "900", 3));
+				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
+				transactionLog.add(new ReasonCode().parse("05")); // 05 is "no sale"
+			} else {
+				LinkedList<Record> paymentList = new LinkedList<Record>();
 				
-				Set<String> employeeIds = new HashSet<String>();
+				paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
+				
+				paymentList.add(new TransactionSubTotal().parse(payment));
+				paymentList.add(new TransactionTax().parse(payment));
+				paymentList.add(new TransactionTotal().parse(payment));
+				
+				for (PaymentTax tax : payment.getAdditiveTax()) {
+					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
+				}
+				
+				for (PaymentTax tax : payment.getInclusiveTax()) {
+					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
+				}
+				
+				for (PaymentItemization itemization : payment.getItemizations()) {
+					paymentList.add(new MerchandiseItem().parse(itemization, itemNumberLookupLength));
+					
+					Set<String> employeeIds = new HashSet<String>();
+					for (Tender tender : payment.getTender()) {
+						if (tender.getEmployeeId() != null) {
+							paymentList.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
+							employeeIds.add(tender.getEmployeeId());
+						}
+					}
+					
+					for (PaymentTax tax : itemization.getTaxes()) {
+						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
+					}
+					
+					int i = 1;
+					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
+						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
+					}
+					
+					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
+						for (String employeeId : employeeIds) {
+							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployees, q));
+						}
+					}
+					
+					paymentList.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
+				}
+				
 				for (Tender tender : payment.getTender()) {
-					if (tender.getEmployeeId() != null) {
-						paymentList.add(new Associate().parse(tender.getEmployeeId(), squareEmployees));
-						employeeIds.add(tender.getEmployeeId());
+					paymentList.add(new vfcorp.tlog.Tender().parse(tender));
+					
+					if (tender.getType().equals("CREDIT_CARD")) {
+						paymentList.add(new CreditCardTender().parse(tender));
 					}
 				}
 				
-				for (PaymentTax tax : itemization.getTaxes()) {
-					paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
-				}
+				paymentList.addFirst(new TransactionHeader().parse(payment, location, squareEmployees, "200", paymentList.size() + 1));
 				
-				int i = 1;
-				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-					paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
-				}
-				
-				for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-					for (String employeeId : employeeIds) {
-						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployees, q));
-					}
-				}
-				
-				paymentList.add(new EventGiveback().parse(itemization, itemNumberLookupLength));
+				transactionLog.addAll(paymentList);
 			}
-			
-			for (Tender tender : payment.getTender()) {
-				paymentList.add(new vfcorp.tlog.Tender().parse(tender));
-				
-				if (tender.getType().equals("CREDIT_CARD")) {
-					paymentList.add(new CreditCardTender().parse(tender));
-				}
-			}
-			
-			paymentList.addFirst(new TransactionHeader().parse(payment, location, squareEmployees, "200", paymentList.size() + 1));
-			
-			transactionLog.addAll(paymentList);
 		}
+		
+		// TODO(colinlam): add refunds
+		// TODO(colinlam): add no sales
 	}
 
 	private void createStoreCloseRecords(List<Payment> squarePayments, List<Employee> squareEmployees, List<CashDrawerShift> cashDrawerShifts, Merchant location) {

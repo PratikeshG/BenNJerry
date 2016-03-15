@@ -1,0 +1,56 @@
+package vfcorp.tlog;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import vfcorp.Record;
+import vfcorp.RecordDetails;
+
+public class ReasonCode extends Record {
+
+	private static Map<String,RecordDetails> fields;
+	private static int length;
+	private static String id;
+	
+	static {
+		fields = new HashMap<String,RecordDetails>();
+		length = 14;
+		id = "022";
+		
+		fields.put("Identifier", new RecordDetails(3, 1, ""));
+		fields.put("Reason Code", new RecordDetails(8, 4, "left justified"));
+		fields.put("Function Indicator", new RecordDetails(2, 12, ""));
+		fields.put("Special Indicator", new RecordDetails(1, 14, ""));
+	}
+	
+	public ReasonCode() {
+		super();
+	}
+
+	public ReasonCode(String record) {
+		super(record);
+	}
+
+	@Override
+	public Map<String, RecordDetails> getFields() {
+		return fields;
+	}
+
+	@Override
+	public int getLength() {
+		return length;
+	}
+
+	@Override
+	public String getId() {
+		return id;
+	}
+	
+	public ReasonCode parse(String functionIndicator) {
+		values.put("Reason Code", ""); // TODO(colinlam): where do these come from?
+		values.put("Function Indicator", functionIndicator);
+		values.put("Special Indicator", "0"); // not supported
+		
+		return this;
+	}
+}
