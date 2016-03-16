@@ -3,12 +3,28 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import vfcorp.Record;
 import vfcorp.FieldDetails;
-import vfcorp.TLOG;
-import vfcorp.TLOG.TenderCode;
+import vfcorp.Record;
 
 public class Tender extends Record {
+	
+	public static final String TENDER_CODE_CASH = "1";
+	public static final String TENDER_CODE_CHEQUE = "2";
+	public static final String TENDER_CODE_STORE_CREDIT = "4";
+	public static final String TENDER_CODE_TRAVELERS_CHEQUE = "5";
+	public static final String TENDER_CODE_GIFT_CERTIFICATE = "6";
+	public static final String TENDER_CODE_VISA = "7";
+	public static final String TENDER_CODE_MASTERCARD = "9";
+	public static final String TENDER_CODE_AMEX = "11";
+	public static final String TENDER_CODE_MALL_GC = "12";
+	public static final String TENDER_CODE_DISCOVER = "13";
+	public static final String TENDER_CODE_JCB = "14";
+	public static final String TENDER_CODE_DISCOVERDINERS = "17";
+	public static final String TENDER_CODE_DEBIT = "19";
+	public static final String TENDER_CODE_MAIL_CHEQUE = "20";
+	public static final String TENDER_CODE_EGC = "30";
+	public static final String TENDER_CODE_98 = "98";
+	public static final String TENDER_CODE_ECHEQUE = "99";
 	
 	private static Map<String,FieldDetails> fields;
 	private static int length;
@@ -51,30 +67,28 @@ public class Tender extends Record {
 		return id;
 	}
 	
-	public Tender parse(com.squareup.connect.Tender tender) {
-		Map<TenderCode,String> tenderCodes = TLOG.getTenderCodes();
-		
+	public Tender parse(com.squareup.connect.Tender tender, boolean refund) {
 		String tenderCode = "";
 		if (tender.getType().equals("CASH")) {
-			tenderCode = tenderCodes.get(TenderCode.CASH);
+			tenderCode = TENDER_CODE_CASH;
 		} else if (tender.getType().equals("CREDIT_CARD")) {
 			if (tender.getCardBrand().equals("VISA")) {
-				tenderCode = tenderCodes.get(TenderCode.VISA);
+				tenderCode = TENDER_CODE_VISA;
 			} else if (tender.getCardBrand().equals("MASTER_CARD")) {
-				tenderCode = tenderCodes.get(TenderCode.MASTERCARD);
+				tenderCode = TENDER_CODE_MASTERCARD;
 			} else if (tender.getCardBrand().equals("AMERICAN_EXPRESS")) {
-				tenderCode = tenderCodes.get(TenderCode.AMEX);
+				tenderCode = TENDER_CODE_AMEX;
 			} else if (tender.getCardBrand().equals("DISCOVER")) {
-				tenderCode = tenderCodes.get(TenderCode.DISCOVER);
+				tenderCode = TENDER_CODE_DISCOVER;
 			} else if (tender.getCardBrand().equals("DISCOVER_DINERS")) {
-				tenderCode = tenderCodes.get(TenderCode.DISCOVERDINERS);
+				tenderCode = TENDER_CODE_DISCOVERDINERS;
 			} else if (tender.getCardBrand().equals("JCB")) {
-				tenderCode = tenderCodes.get(TenderCode.JCB);
+				tenderCode = TENDER_CODE_JCB;
 			} else {
-				tenderCode = tenderCodes.get(TenderCode.UNKNOWN);
+				tenderCode = TENDER_CODE_ECHEQUE;
 			}
 		} else {
-			tenderCode = tenderCodes.get(TenderCode.UNKNOWN);
+			tenderCode = TENDER_CODE_ECHEQUE;
 		}
 		
 		String tenderAmount = "";
@@ -86,7 +100,7 @@ public class Tender extends Record {
 		putValue("Tender Code", tenderCode);
 		putValue("Tender Amount", tenderAmount);
 		putValue("Tender Count", "");
-		putValue("Sign Indicator", "0"); // sign is always positive
+		putValue("Sign Indicator", (refund ? "1" : "0"));
 		putValue("Currency Indicator", "0");
 		putValue("Currency Exchange Rate", ""); // not supported
 		

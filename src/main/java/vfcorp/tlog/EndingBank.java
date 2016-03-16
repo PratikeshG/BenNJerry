@@ -52,7 +52,12 @@ public class EndingBank extends Record {
 		String registerNumber = "";
 		
 		if (cashDrawerShift.getDevice().getName() != null) {
-			registerNumber = cashDrawerShift.getDevice().getName();
+			if (cashDrawerShift.getDevice().getName() != null) {
+				int registerNumberFirstIndex = cashDrawerShift.getDevice().getName().indexOf('(');
+				int registerNumberLastIndex = cashDrawerShift.getDevice().getName().indexOf(')');
+				if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1)
+					registerNumber = cashDrawerShift.getDevice().getName().substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
+			}
 		}
 		
 		putValue("Identification Number", registerNumber);

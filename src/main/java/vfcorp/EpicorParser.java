@@ -3,18 +3,18 @@ package vfcorp;
 public class EpicorParser {
 
 	private TLOG tlog;
-	private RPCParser rpc;
+	private RPC rpc;
 	
 	public EpicorParser() {
 		tlog = new TLOG();
-		rpc = new RPCParser();
+		rpc = new RPC();
 	}
 	
 	public TLOG tlog() {
 		return tlog;
 	}
 	
-	public RPCParser rpc() {
+	public RPC rpc() {
 		return rpc;
 	}
 }

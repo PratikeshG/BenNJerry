@@ -23,12 +23,12 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
                 <component doc:name="Generate state variable">
                     <singleton-object class="util.oauth.StateVariableGenerator">
                         <property key="apiUrl" value="${api.url}"/>
+                        <property key="legacyAppId" value="${connect.legacy.id}"/>
                     </singleton-object>
                 </component>
                 <parse-template location="static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="callback">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/callback" doc:name="HTTP"/>
@@ -36,13 +36,17 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <choice doc:name="Route based on valid state variable">
             <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">
                 <component doc:name="Convert OAuth code to token">
-		            <singleton-object class="util.oauth.CodeToTokenConverter">
-		                <property key="apiUrl" value="${api.url}"/>
-		            </singleton-object>
+                    <singleton-object class="util.oauth.CodeToTokenConverter">
+                        <property key="apiUrl" value="${api.url}"/>
+                        <property key="multiUnitAppId" value="${connect.multiunit.id}"/>
+                        <property key="multiUnitAppSecret" value="${connect.multiunit.secret}"/>
+                        <property key="legacyAppId" value="${connect.legacy.id}"/>
+                        <property key="legacyAppSecret" value="${connect.legacy.secret}"/>
+                    </singleton-object>
 		        </component>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
-                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
-VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, locationId, legacy, expiryDate)
+VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken], #[payload.merchantId], #[payload.merchantId], #[flowVars.legacy], #[payload.expiresAt]);]]></db:parameterized-query>
                 </db:insert>
                 <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
             </when>
@@ -50,7 +54,6 @@ VALUES (#[flowVars.deployment], "${connect.app.bridge.eldm.id}", #[payload.acces
                 <set-payload value="Failed to validate state parameter. Token creation failed." doc:name="Inform user of failed operation"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
     <sub-flow name="retrieveToken">
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">
@@ -79,6 +82,5 @@ VALUES (#[flowVars.deployment], #[flowVars.connectApp], #[payload.accessToken], 
                 <db:parameterized-query><![CDATA[DELETE FROM token WHERE id = #[flowVars.oldId];]]></db:parameterized-query>
             </db:delete>
         </foreach>
-        <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>
     </flow>
 </mule>

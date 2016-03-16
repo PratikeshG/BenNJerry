@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -11,57 +11,44 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
-    <flow name="generatePaymentReportForLocations">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace" doc:name="HTTP"/>
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
+    <flow name="urbanspaceGenerateReportsForLocations">
+        <quartz:inbound-endpoint jobName="generateUrbanSpace" cronExpression="0 0 9 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 9:00am (UTC)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <flow-ref name="setAllParamsForPaymentReportForLocations" doc:name="Set all params"/>
         <flow-ref name="retrieveToken" doc:name="Get Square OAuth tokens for given deployment ID"/>
-        <component class="urbanspace.PayloadParamsCreator" doc:name="Prep Square Payload object and params"/>
-        <flow-ref name="getPaymentsFromLocations" doc:name="Get payments from all locations"/>
+        <component class="util.SquarePayloadCreator" doc:name="Create Square payload objects"/>
+        <flow-ref name="listPayments" doc:name="Get payments from all locations"/>
+        <flow-ref name="listRefunds" doc:name="Get all refunds"/>
+        <flow-ref name="retrieveRefundPayments" doc:name="Get individual refunds"/>
         <flow-ref name="convertResultsToCSV" doc:name="Convert retrieved payments into CSV"/>
         <set-payload value="Operation completed." doc:name="Set Payload"/>
     </flow>
+    <flow name="urbanspaceTriggerGenerateReports">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspacetrigger" doc:name="HTTP"/>
+        <flow-ref name="urbanspaceGenerateReportsForLocations" doc:name="generatePaymentReportForLocations"/>
+    </flow>
     <sub-flow name="setAllParamsForPaymentReportForLocations">
-        <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
-        <set-variable variableName="timeMethod" value="getPastDayInterval" doc:name="Set time method"/>
-        <set-variable variableName="range" value="1" doc:name="Set range"/>
-        <set-variable variableName="offset" value="1" doc:name="Set offset"/>
-        <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
-    </sub-flow>
-    <sub-flow name="setAllParamsForPaymentReportForLocations2">
-        <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
-        <set-variable variableName="timeMethod" value="getPastTimeInterval" doc:name="Set time method"/>
-        <set-variable variableName="seconds" value="3600" doc:name="Set seconds"/>
-        <set-variable variableName="offset" value="3600" doc:name="Set offset"/>
-        <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
+        <set-variable variableName="deployment" value="${urbanspace.generatePaymentForLocationsParams.deploymentId}" doc:name="Set deployment ID"/>
+        <set-variable variableName="timeMethod" value="${urbanspace.generatePaymentForLocationsParams.timeMethod}" doc:name="Set time method"/>
+        <set-variable variableName="range" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.range}" doc:name="Set range"/>
+        <set-variable variableName="seconds" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.seconds}" doc:name="Set seconds"/>
+        <set-variable variableName="offset" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.offset}" doc:name="Set offset"/>
+        <set-variable variableName="timeZone" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.timeZone}" doc:name="Set time zone"/>
     </sub-flow>
     <sub-flow name="convertResultsToCSV">
-        <component class="urbanspace.AggregateCalculator" doc:name="Calculate UrbanSpace Aggregate Totals"/>
-        <dw:transform-message metadata:id="f4449560-d176-4e04-8781-82f97f51039b" doc:name="Turn Java object into CSV">
-            <dw:input-payload doc:sample="list_LocationResults.dwl"/>
-            <dw:set-payload><![CDATA[%dw 1.0
-%input payload application/java
-%output application/csv
----
-payload map {
-	"Merchant": $.merchantId,
-	"Gross Sales": $.grossSales["Total"],
-	"Discounts": $.totalDiscountsMoney["Total"],
-	"Net Sales": $.netSales["Total"],
-	"Gift Card Sales": $.giftCardSales["Total"],
-	"Tax": $.totalTaxMoney["Total"],
-	"Tips": $.totalTipMoney["Total"],
-	"Total Collected": $.totalCollectedMoney["Total"],
-	"Cash": $.totalCashMoney["Total"],
-	"Card": $.totalCardMoney["Total"],
-	"Gift Card": $.totalGiftCardMoney["Total"],
-	"Other": $.totalOtherMoney["Total"],
-	"Fees": $.totalFeesMoney["Total"],
-	"Net Total": $.netTotalMoney["Total"]
-}]]></dw:set-payload>
-        </dw:transform-message>
-        <object-to-string-transformer doc:name="Convert CSV object into String"/>
+        <component doc:name="Calculate UrbanSpace Aggregate Totals">
+            <singleton-object class="urbanspace.ReportGenerator">
+                <property key="timeMethod" value="${urbanspace.generatePaymentForLocationsParams.timeMethod}"/>
+                <property key="timeZone" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.timeZone}"/>
+                <property key="offset" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.offset}"/>
+                <property key="range" value="${urbanspace.generatePaymentForLocationsParams.timeMethod.range}"/>
+            </singleton-object>
+        </component>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="prospectenhancer2%40gmail.com" password="LittleHorseshoe351" connector-ref="Gmail" to="colinlam+muletest@squareup.com" from="Square Mule" subject="Square Report Test" responseTimeout="10000" doc:name="SMTP"/>
+        <set-payload value="Attached." doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail"  from="Square Mule" subject="Urbanspace - Mad. Sq. Eats - Daily Aggregate Report" responseTimeout="10000" doc:name="SMTP" bcc="${urbanspace.results.email}"/>
     </sub-flow>
 </mule>

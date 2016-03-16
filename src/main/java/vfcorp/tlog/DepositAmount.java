@@ -58,7 +58,15 @@ public class DepositAmount extends Record {
 			total += payment.getNetTotalMoney().getAmount();
 		}
 		
-		String storeNumber = location.getLocationDetails().getNickname() != null ? location.getLocationDetails().getNickname() : "";
+		String storeNumber = "";
+		if (location.getLocationDetails().getNickname() != null) {
+			int storeNumberFirstIndex = location.getLocationDetails().getNickname().indexOf('(');
+			int storeNumberLastIndex = location.getLocationDetails().getNickname().indexOf(')');
+			if (storeNumberFirstIndex > -1 && storeNumberLastIndex > -1) {
+				storeNumber = location.getLocationDetails().getNickname().substring(storeNumberFirstIndex + 1, storeNumberLastIndex);
+				storeNumber = storeNumber.replaceAll("[^\\d]", "");
+			}
+		}
 		
 		putValue("Identification Number", storeNumber);
 		putValue("Identification Type", "2"); // default of "store"

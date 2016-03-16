@@ -67,7 +67,7 @@ public class CreditCardTender extends Record {
 		putValue("Entry Method", entryMethod);
 		putValue("Authorization Method", "2"); // "electronic authorization"; only supported method
 		putValue("Authorization Code", ""); // not supported
-		putValue("Settlement Data", ""); // not supported
+		putValue("Settlement Data", tender.getCardBrand() != null ? tender.getCardBrand() : "");
 		
 		return this;
 	}

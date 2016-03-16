@@ -1,11 +1,15 @@
 package vfcorp.tlog;
 
+import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import vfcorp.Record;
 import vfcorp.FieldDetails;
 
+import com.squareup.connect.Item;
+import com.squareup.connect.ItemVariation;
 import com.squareup.connect.PaymentItemization;
 
 public class MerchandiseItem extends Record {
@@ -25,7 +29,7 @@ public class MerchandiseItem extends Record {
 		fields.put("Item Number", new FieldDetails(24, 6, "Left justified, space filled"));
 		fields.put("Sku/Class Indicator", new FieldDetails(1, 30, "0 = SKU, 1 = Class"));
 		fields.put("Department Number", new FieldDetails(4, 31, "Left justified, space filled"));
-		fields.put("Class Number", new FieldDetails(4, 35, ""));
+		fields.put("Class Number", new FieldDetails(4, 35, "left justified, space filled"));
 		fields.put("Quantity", new FieldDetails(9, 39, "9(6)v999, right justified, zero filled"));
 		fields.put("Price Original", new FieldDetails(10, 48, "zero filled"));
 		fields.put("Price On Lookup", new FieldDetails(10, 58, "zero filled"));
@@ -71,19 +75,34 @@ public class MerchandiseItem extends Record {
 		return id;
 	}
 	
-	public MerchandiseItem parse(PaymentItemization itemization, int itemNumberLookupLength) {
+	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemNumberLookupLength) {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
-			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
+		
+		String departmentNumber = "";
+		String classNumber = "";
+		for (Item item : squareItemsList) {
+			if (item.getId().equals(itemization.getItemDetail().getItemId())) {
+				for (ItemVariation itemVariation : item.getVariations()) {
+					if (itemVariation.getId().equals(itemization.getItemDetail().getItemVariationId())) {
+						if (itemVariation.getUserData() != null && itemVariation.getUserData().length() >= 8) {
+							departmentNumber = itemVariation.getUserData().substring(0, 4);
+							classNumber = itemVariation.getUserData().substring(4, 8);
+						}
+					}
+				}
+			}
+		}
 		
 		putValue("Void Indicator", "0"); // no such thing as voided transactions
 		putValue("Exchange Indicator", "0"); // no such thing as exchanged transactions
 		putValue("Item Number", sku); // requires special formating, according to documentation
 		putValue("Sku/Class Indicator", "0"); // this should always be 0...right?
-		putValue("Department Number", ""); // no such thing as a "department number"
-		putValue("Class Number", ""); // no such thing as a "class number"
+		putValue("Department Number", departmentNumber);
+		putValue("Class Number", classNumber);
 		putValue("Quantity", quantity); // three decimal places are implied
 		putValue("Price Original", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
 		putValue("Price On Lookup", Integer.toString(itemization.getSingleQuantityMoney().getAmount()));

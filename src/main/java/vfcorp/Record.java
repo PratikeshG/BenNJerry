@@ -31,8 +31,12 @@ public abstract class Record {
 			// not zero-indexed.
 			int zeroIndexStartLocation = details.getStartLocation() - 1;
 			int zeroIndexEndLocation = zeroIndexStartLocation + details.getCharacters();
-			String value = record.substring(zeroIndexStartLocation, zeroIndexEndLocation);
 			
+			// If input is too short, pad it out with spaces
+			if (zeroIndexEndLocation > record.length()) {
+				record = String.format("%1$-" + zeroIndexEndLocation + "s", record);
+			}
+			String value = record.substring(zeroIndexStartLocation, zeroIndexEndLocation);
 			values.put(key, value);
 		}
 	}

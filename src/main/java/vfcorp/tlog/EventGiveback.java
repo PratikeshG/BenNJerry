@@ -1,5 +1,6 @@
 package vfcorp.tlog;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,7 +56,7 @@ public class EventGiveback extends Record {
 	public EventGiveback parse(PaymentItemization itemization, int itemNumberLookupLength) {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
-			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 		
 		putValue("Item Number", sku);
