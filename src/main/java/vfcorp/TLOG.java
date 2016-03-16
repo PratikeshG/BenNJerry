@@ -15,6 +15,7 @@ import vfcorp.tlog.DepositAmount;
 import vfcorp.tlog.EndingBank;
 import vfcorp.tlog.EventGiveback;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
+import vfcorp.tlog.ForInStoreReportingUseOnly.TransactionIdentifier;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
 import vfcorp.tlog.LineItemAssociateAndDiscountAccountingString;
@@ -25,7 +26,6 @@ import vfcorp.tlog.StoreClose;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
 import vfcorp.tlog.TransactionHeader;
-import vfcorp.tlog.AuthorizationCode.FunctionIndicator;
 import vfcorp.tlog.TransactionHeader.TransactionType;
 import vfcorp.tlog.TransactionSubTotal;
 import vfcorp.tlog.TransactionTax;
@@ -107,13 +107,13 @@ public class TLOG {
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, FunctionIndicator.OPEN_REGISTER));
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, AuthorizationCode.FunctionIndicator.OPEN_REGISTER));
 			
 			transactionLog.add(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.STARTING_BANK, 4));
 			
 			transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 			
-			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, FunctionIndicator.STARTING_BANK));
+			transactionLog.add(new AuthorizationCode().parse(squareEmployees, cashDrawerShift, AuthorizationCode.FunctionIndicator.STARTING_BANK));
 			
 			transactionLog.add(new StartingEndingBank().parse(cashDrawerShift, "" + cashDrawerShift.getStartingCashMoney().getAmount(), true));
 		}
@@ -129,7 +129,7 @@ public class TLOG {
 				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
-				transactionLog.add(new ReasonCode().parse("05")); // 05 is "no sale"
+				transactionLog.add(new ReasonCode().parse(ReasonCode.FunctionIndicator.NO_SALE)); // 05 is "no sale"
 			} else {
 				LinkedList<Record> paymentList = new LinkedList<Record>();
 				
@@ -212,23 +212,23 @@ public class TLOG {
 			// tender code. This will only produce one for cash. Are they all necessary?
 			newRecordList.add(new TenderCount().parse(TenderCode.CASH, cashDrawerShift));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("002", squarePayments)); // "merchandise sales"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.MERCHANDISE_SALES, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("003", squarePayments)); // "merchandise returns"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.MERCHANDISE_RETURNS, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("009", squarePayments)); // "discounts"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.DISCOUNTS, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("013", squarePayments)); // "sales tax"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.SALES_TAX, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("014", squarePayments)); // "net sales"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.NET_SALES, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("015", squarePayments)); // "returns"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.RETURNS, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("017", squarePayments)); // "taxable sales"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.TAXABLE_SALES, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("018", squarePayments)); // "non taxable sales"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.NON_TAXABLE_SALES, squarePayments));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse("036", squarePayments)); // "transaction discount"
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(TransactionIdentifier.TRANSACTION_DISCOUNT, squarePayments));
 			
 			newRecordList.addFirst(new TransactionHeader().parse(location, squareEmployees, cashDrawerShift, TransactionType.TENDER_COUNT_REGISTER, newRecordList.size() + 1));
 			
