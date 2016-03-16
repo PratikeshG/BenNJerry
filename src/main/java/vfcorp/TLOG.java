@@ -129,7 +129,7 @@ public class TLOG {
 				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
-				transactionLog.add(new ReasonCode().parse(ReasonCode.FunctionIndicator.NO_SALE)); // 05 is "no sale"
+				transactionLog.add(new ReasonCode().parse(ReasonCode.FunctionIndicator.NO_SALE));
 			} else {
 				LinkedList<Record> paymentList = new LinkedList<Record>();
 				
