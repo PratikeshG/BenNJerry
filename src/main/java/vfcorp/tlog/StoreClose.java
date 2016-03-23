@@ -4,24 +4,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class StoreClose extends Record {
 
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 33;
 		id = "017";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Weather Code", new RecordDetails(2, 4, "zero filled"));
-		fields.put("Holiday Code", new RecordDetails(2, 6, "zero filled"));
-		fields.put("Special Event Code", new RecordDetails(2, 8, "zero filled"));
-		fields.put("Special Event Description", new RecordDetails(24, 10, ""));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Weather Code", new FieldDetails(2, 4, "zero filled"));
+		fields.put("Holiday Code", new FieldDetails(2, 6, "zero filled"));
+		fields.put("Special Event Code", new FieldDetails(2, 8, "zero filled"));
+		fields.put("Special Event Description", new FieldDetails(24, 10, ""));
 	}
 	
 	public StoreClose() {
@@ -33,7 +33,7 @@ public class StoreClose extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

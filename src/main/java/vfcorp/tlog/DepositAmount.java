@@ -5,27 +5,27 @@ import java.util.List;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 
 public class DepositAmount extends Record {
 
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 21;
 		id = "038";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Identification Number", new RecordDetails(6, 4, "zero filled"));
-		fields.put("Identification Type", new RecordDetails(1, 10, "zero filled"));
-		fields.put("Amount", new RecordDetails(10, 11, "zero filled"));
-		fields.put("Currency Indicator", new RecordDetails(1, 21, ""));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Identification Number", new FieldDetails(6, 4, "zero filled"));
+		fields.put("Identification Type", new FieldDetails(1, 10, "zero filled"));
+		fields.put("Amount", new FieldDetails(10, 11, "zero filled"));
+		fields.put("Currency Indicator", new FieldDetails(1, 21, ""));
 	}
 	
 	public DepositAmount() {
@@ -37,7 +37,7 @@ public class DepositAmount extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

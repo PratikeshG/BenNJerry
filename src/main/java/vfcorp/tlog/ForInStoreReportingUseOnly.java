@@ -7,7 +7,7 @@ import java.util.Map;
 import com.squareup.connect.Payment;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class ForInStoreReportingUseOnly extends Record {
 
@@ -74,23 +74,23 @@ public class ForInStoreReportingUseOnly extends Record {
 		ROUNDING_ADJUSTMENT
 	}
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static Map<TransactionIdentifier,String> transactionIdentifiers;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		transactionIdentifiers = new HashMap<TransactionIdentifier,String>();
 		length = 24;
 		id = "037";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Transaction Identifier", new RecordDetails(3, 4, ""));
-		fields.put("Count", new RecordDetails(6, 7, "zero filled"));
-		fields.put("Amount", new RecordDetails(10, 13, "zero filled"));
-		fields.put("Amount Sign", new RecordDetails(1, 23, "1 = Negative"));
-		fields.put("Currency Indicator", new RecordDetails(1, 24, "1 = Alternate, 0 = Primary"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Transaction Identifier", new FieldDetails(3, 4, ""));
+		fields.put("Count", new FieldDetails(6, 7, "zero filled"));
+		fields.put("Amount", new FieldDetails(10, 13, "zero filled"));
+		fields.put("Amount Sign", new FieldDetails(1, 23, "1 = Negative"));
+		fields.put("Currency Indicator", new FieldDetails(1, 24, "1 = Alternate, 0 = Primary"));
 		
 		transactionIdentifiers.put(TransactionIdentifier.ITEM_VOIDS, "001");
 		transactionIdentifiers.put(TransactionIdentifier.MERCHANDISE_SALES, "002");
@@ -163,7 +163,7 @@ public class ForInStoreReportingUseOnly extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

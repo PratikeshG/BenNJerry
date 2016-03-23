@@ -4,30 +4,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 import com.squareup.connect.Tender;
 
 public class CreditCardTender extends Record {
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 662;
 		id = "065";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Account Number", new RecordDetails(120, 4, "Left justified, space filled"));
-		fields.put("Account Number Format", new RecordDetails(1, 124, ""));
-		fields.put("Start Date", new RecordDetails(8, 125, "00MMYYYY, zero filled"));
-		fields.put("Expiration Date", new RecordDetails(8, 133, "00MMYYYY, zero filled"));
-		fields.put("Entry Method", new RecordDetails(1, 141, "zero filled"));
-		fields.put("Authorization Method", new RecordDetails(1, 142, "zero filled"));
-		fields.put("Authorization Code", new RecordDetails(8, 143, "Left justified"));
-		fields.put("Settlement Data", new RecordDetails(512, 151, "Left justified"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Account Number", new FieldDetails(120, 4, "Left justified, space filled"));
+		fields.put("Account Number Format", new FieldDetails(1, 124, ""));
+		fields.put("Start Date", new FieldDetails(8, 125, "00MMYYYY, zero filled"));
+		fields.put("Expiration Date", new FieldDetails(8, 133, "00MMYYYY, zero filled"));
+		fields.put("Entry Method", new FieldDetails(1, 141, "zero filled"));
+		fields.put("Authorization Method", new FieldDetails(1, 142, "zero filled"));
+		fields.put("Authorization Code", new FieldDetails(8, 143, "Left justified"));
+		fields.put("Settlement Data", new FieldDetails(512, 151, "Left justified"));
 	}
 
 	public CreditCardTender() {
@@ -39,7 +39,7 @@ public class CreditCardTender extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

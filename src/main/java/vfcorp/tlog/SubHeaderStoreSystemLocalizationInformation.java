@@ -4,24 +4,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class SubHeaderStoreSystemLocalizationInformation extends Record {
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 133;
 		id = "086";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Country/Language Indicator", new RecordDetails(20, 4, "Left justified, space filled"));
-		fields.put("Currency Decimal Indicator", new RecordDetails(10, 24, "Right justified, zero filled"));
-		fields.put("CRM Currency Code", new RecordDetails(3, 34, ""));
-		fields.put("Reserved", new RecordDetails(97, 37, "Space filled, reserved"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Country/Language Indicator", new FieldDetails(20, 4, "Left justified, space filled"));
+		fields.put("Currency Decimal Indicator", new FieldDetails(10, 24, "Right justified, zero filled"));
+		fields.put("CRM Currency Code", new FieldDetails(3, 34, ""));
+		fields.put("Reserved", new FieldDetails(97, 37, "Space filled, reserved"));
 	}
 
 	public SubHeaderStoreSystemLocalizationInformation() {
@@ -33,7 +33,7 @@ public class SubHeaderStoreSystemLocalizationInformation extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

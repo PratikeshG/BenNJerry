@@ -4,26 +4,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 import com.squareup.connect.CashDrawerShift;
 
 public class StartingEndingBank extends Record {
 
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 21;
 		id = "016";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Starting or Ending Bank", new RecordDetails(1, 4, ""));
-		fields.put("Identification Number", new RecordDetails(6, 5, "zero filled"));
-		fields.put("Identification Type", new RecordDetails(1, 11, "="));
-		fields.put("Amount", new RecordDetails(10, 12, "zero filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Starting or Ending Bank", new FieldDetails(1, 4, ""));
+		fields.put("Identification Number", new FieldDetails(6, 5, "zero filled"));
+		fields.put("Identification Type", new FieldDetails(1, 11, "="));
+		fields.put("Amount", new FieldDetails(10, 12, "zero filled"));
 	}
 	
 	public StartingEndingBank() {
@@ -35,7 +35,7 @@ public class StartingEndingBank extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

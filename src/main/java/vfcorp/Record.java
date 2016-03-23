@@ -8,6 +8,11 @@ import org.slf4j.LoggerFactory;
 
 public abstract class Record {
 
+	/*
+	 * The "values" map is a mapping between a string name and a string value.
+	 * The name is derived from a record field, found in in the "fields" map.
+	 * The value is an alphanumeric string.
+	 */
 	protected Map<String,String> values = new HashMap<String,String>();
 	protected char[] record;
 	
@@ -20,7 +25,7 @@ public abstract class Record {
 	
 	public Record(String record) {
 		for (String key : getFields().keySet()) {
-			RecordDetails details = getFields().get(key);
+			FieldDetails details = getFields().get(key);
 			
 			// In the Epicor documentation, value locations are one-indexed,
 			// not zero-indexed.
@@ -32,10 +37,23 @@ public abstract class Record {
 		}
 	}
 	
-	public abstract Map<String,RecordDetails> getFields();
+	/*
+	 * The "fields" map is a mapping between a string name and a set of details
+	 * regarding that field. Every record has a unique set of fields, each
+	 * with their own unique characteristics.
+	 */
+	public abstract Map<String,FieldDetails> getFields();
 	
+	/*
+	 * Every record is serialized into a string, the length of which is kept in
+	 * a variable in every record; this method retrieves that length.
+	 */
 	public abstract int getLength();
 	
+	/*
+	 * Every record is denoted by a unique identifier, maintained in each
+	 * record; this method retrieves that identifier.
+	 */
 	public abstract String getId();
 	
 	public String toString() {
@@ -62,7 +80,7 @@ public abstract class Record {
 	 * by default.
 	 */
 	private void put(String field, String value) {
-		RecordDetails details = getFields().get(field);
+		FieldDetails details = getFields().get(field);
 		
 		if (value == null || details == null) {
 			System.out.println("!"); // handy for debugging

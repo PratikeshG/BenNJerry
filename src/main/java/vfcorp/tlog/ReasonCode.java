@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class ReasonCode extends Record {
 
@@ -20,20 +20,20 @@ public class ReasonCode extends Record {
 		MANUAL_CASH_DRAWER_OPEN
 	}
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static Map<FunctionIndicator,String> functionIndicators;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 14;
 		id = "022";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Reason Code", new RecordDetails(8, 4, "left justified"));
-		fields.put("Function Indicator", new RecordDetails(2, 12, ""));
-		fields.put("Special Indicator", new RecordDetails(1, 14, ""));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Reason Code", new FieldDetails(8, 4, "left justified"));
+		fields.put("Function Indicator", new FieldDetails(2, 12, ""));
+		fields.put("Special Indicator", new FieldDetails(1, 14, ""));
 		
 		functionIndicators.put(FunctionIndicator.PRICE_CORRECT, "01");
 		functionIndicators.put(FunctionIndicator.RETURN, "02");
@@ -55,7 +55,7 @@ public class ReasonCode extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

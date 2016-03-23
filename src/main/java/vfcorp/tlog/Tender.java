@@ -4,28 +4,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 import vfcorp.TLOG;
 import vfcorp.TLOG.TenderCode;
 
 public class Tender extends Record {
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 40;
 		id = "061";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Tender Code", new RecordDetails(8, 4, "left justified"));
-		fields.put("Tender Amount", new RecordDetails(10, 12, "zero filled"));
-		fields.put("Tender Count", new RecordDetails(3, 22, "zero filled"));
-		fields.put("Sign Indicator", new RecordDetails(1, 25, "zero filled"));
-		fields.put("Currency Indicator", new RecordDetails(1, 26, "zero filled"));
-		fields.put("Currency Exchange Rate", new RecordDetails(14, 27, "zero filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Tender Code", new FieldDetails(8, 4, "left justified"));
+		fields.put("Tender Amount", new FieldDetails(10, 12, "zero filled"));
+		fields.put("Tender Count", new FieldDetails(3, 22, "zero filled"));
+		fields.put("Sign Indicator", new FieldDetails(1, 25, "zero filled"));
+		fields.put("Currency Indicator", new FieldDetails(1, 26, "zero filled"));
+		fields.put("Currency Exchange Rate", new FieldDetails(14, 27, "zero filled"));
 	}
 
 	public Tender() {
@@ -37,7 +37,7 @@ public class Tender extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

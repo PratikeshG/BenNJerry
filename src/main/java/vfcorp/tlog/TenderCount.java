@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 import vfcorp.TLOG;
 import vfcorp.TLOG.TenderCode;
 
@@ -12,24 +12,24 @@ import com.squareup.connect.CashDrawerShift;
 
 public class TenderCount extends Record {
 
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 41;
 		id = "034";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Tender Code", new RecordDetails(8, 4, "From table, left justified"));
-		fields.put("Number In Drawer", new RecordDetails(6, 12, "zero filled"));
-		fields.put("Amount In Drawer", new RecordDetails(10, 18, "zero filled"));
-		fields.put("Amount In Drawer Sign", new RecordDetails(1, 28, "1 = Negative, zero filled"));
-		fields.put("Amount Counted", new RecordDetails(10, 29, "zero filled"));
-		fields.put("Amount Counted Sign", new RecordDetails(1, 39, "1 = Negative, zero filled"));
-		fields.put("Currency Indicator", new RecordDetails(1, 40, "1 = Alternate, 0 = Primary, zero filled"));
-		fields.put("Counted Indicator", new RecordDetails(1, 41, "1 = Dollar, 0 = Quantity, zero filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Tender Code", new FieldDetails(8, 4, "From table, left justified"));
+		fields.put("Number In Drawer", new FieldDetails(6, 12, "zero filled"));
+		fields.put("Amount In Drawer", new FieldDetails(10, 18, "zero filled"));
+		fields.put("Amount In Drawer Sign", new FieldDetails(1, 28, "1 = Negative, zero filled"));
+		fields.put("Amount Counted", new FieldDetails(10, 29, "zero filled"));
+		fields.put("Amount Counted Sign", new FieldDetails(1, 39, "1 = Negative, zero filled"));
+		fields.put("Currency Indicator", new FieldDetails(1, 40, "1 = Alternate, 0 = Primary, zero filled"));
+		fields.put("Counted Indicator", new FieldDetails(1, 41, "1 = Dollar, 0 = Quantity, zero filled"));
 	}
 	
 	public TenderCount() {
@@ -41,7 +41,7 @@ public class TenderCount extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

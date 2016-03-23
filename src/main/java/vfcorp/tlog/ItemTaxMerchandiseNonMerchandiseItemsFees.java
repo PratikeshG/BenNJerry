@@ -4,30 +4,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 
 public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 84;
 		id = "025";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Tax Type", new RecordDetails(2, 4, ""));
-		fields.put("Tax Method", new RecordDetails(2, 6, ""));
-		fields.put("Tax Rate", new RecordDetails(7, 8, "9(2)v99999, zero filled"));
-		fields.put("Tax Amount", new RecordDetails(10, 15, "zero filled"));
-		fields.put("Tax Override Code", new RecordDetails(25, 25, ""));
-		fields.put("Taxable Amount", new RecordDetails(10, 50, "zero filled"));
-		fields.put("Tax Code", new RecordDetails(25, 60, "left justified"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Tax Type", new FieldDetails(2, 4, ""));
+		fields.put("Tax Method", new FieldDetails(2, 6, ""));
+		fields.put("Tax Rate", new FieldDetails(7, 8, "9(2)v99999, zero filled"));
+		fields.put("Tax Amount", new FieldDetails(10, 15, "zero filled"));
+		fields.put("Tax Override Code", new FieldDetails(25, 25, ""));
+		fields.put("Taxable Amount", new FieldDetails(10, 50, "zero filled"));
+		fields.put("Tax Code", new FieldDetails(25, 60, "left justified"));
 	}
 	
 	public ItemTaxMerchandiseNonMerchandiseItemsFees() {
@@ -39,7 +39,7 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 	}
 
 	@Override
-	public Map<String,RecordDetails> getFields() {
+	public Map<String,FieldDetails> getFields() {
 		return fields;
 	}
 

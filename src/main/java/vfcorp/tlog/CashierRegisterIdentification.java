@@ -6,23 +6,23 @@ import java.util.Map;
 import com.squareup.connect.CashDrawerShift;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class CashierRegisterIdentification extends Record {
 
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		length = 11;
 		id = "036";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Cashier/Register Number", new RecordDetails(6, 4, "zero filled"));
-		fields.put("Number Type", new RecordDetails(1, 10, "zero filled"));
-		fields.put("Currency Indicator", new RecordDetails(1, 11, "zero filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Cashier/Register Number", new FieldDetails(6, 4, "zero filled"));
+		fields.put("Number Type", new FieldDetails(1, 10, "zero filled"));
+		fields.put("Currency Indicator", new FieldDetails(1, 11, "zero filled"));
 	}
 	
 	public CashierRegisterIdentification() {
@@ -34,7 +34,7 @@ public class CashierRegisterIdentification extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

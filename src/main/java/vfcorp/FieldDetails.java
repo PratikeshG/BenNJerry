@@ -3,13 +3,13 @@ package vfcorp;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecordDetails {
+public class FieldDetails {
 
 	private int characters;
 	private int startLocation;
 	private List<String> comments;
 	
-	public RecordDetails(int characters, int startLocation, String comments) {
+	public FieldDetails(int characters, int startLocation, String comments) {
 		this.characters = characters;
 		this.startLocation = startLocation;
 		this.comments = new ArrayList<String>();

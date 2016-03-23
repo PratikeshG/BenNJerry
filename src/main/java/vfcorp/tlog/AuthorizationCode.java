@@ -8,7 +8,7 @@ import com.squareup.connect.CashDrawerShift;
 import com.squareup.connect.Employee;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class AuthorizationCode extends Record {
 
@@ -69,21 +69,21 @@ public class AuthorizationCode extends Record {
 		SEARCH_FOR_TRANSACTION
 	}
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static Map<FunctionIndicator,String> functionIndicators;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		functionIndicators = new HashMap<FunctionIndicator,String>();
 		length = 24;
 		id = "023";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Authorization Code", new RecordDetails(8, 4, ""));
-		fields.put("Function Indicator", new RecordDetails(2, 12, ""));
-		fields.put("Employee Number", new RecordDetails(11, 14, "right justified, zero filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Authorization Code", new FieldDetails(8, 4, ""));
+		fields.put("Function Indicator", new FieldDetails(2, 12, ""));
+		fields.put("Employee Number", new FieldDetails(11, 14, "right justified, zero filled"));
 		
 		functionIndicators.put(FunctionIndicator.CASH_A_CHECK, "01");
 		functionIndicators.put(FunctionIndicator.NO_SALE, "02");
@@ -150,7 +150,7 @@ public class AuthorizationCode extends Record {
 	}
 
 	@Override
-	public Map<String, RecordDetails> getFields() {
+	public Map<String, FieldDetails> getFields() {
 		return fields;
 	}
 

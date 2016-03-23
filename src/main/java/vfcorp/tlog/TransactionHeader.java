@@ -11,7 +11,7 @@ import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
 import vfcorp.Record;
-import vfcorp.RecordDetails;
+import vfcorp.FieldDetails;
 
 public class TransactionHeader extends Record {
 	
@@ -107,46 +107,46 @@ public class TransactionHeader extends Record {
 		USER_TRANSACTION
 	}
 	
-	private static Map<String,RecordDetails> fields;
+	private static Map<String,FieldDetails> fields;
 	private static Map<TransactionType,String> transactionTypes;
 	private static int length;
 	private static String id;
 	
 	static {
-		fields = new HashMap<String,RecordDetails>();
+		fields = new HashMap<String,FieldDetails>();
 		transactionTypes = new HashMap<TransactionType,String>();
 		length = 162;
 		id = "000";
 		
-		fields.put("Identifier", new RecordDetails(3, 1, ""));
-		fields.put("Store Number", new RecordDetails(5, 4, "Zero filled, right justified"));
-		fields.put("Register Number", new RecordDetails(3, 9, "zero filled"));
-		fields.put("Cashier Number", new RecordDetails(6, 12, "Zero filled, right justified"));
-		fields.put("Employee Number", new RecordDetails(11, 18, "zero filled"));
-		fields.put("Transaction Number", new RecordDetails(6, 29, ""));
-		fields.put("Transaction Date", new RecordDetails(8, 35, "MMDDYYYY, zero filled"));
-		fields.put("Transaction Time", new RecordDetails(4, 43, "HHMM – Military, zero filled"));
-		fields.put("Transaction Type", new RecordDetails(3, 47, ""));
-		fields.put("Transaction Status", new RecordDetails(2, 50, ""));
-		fields.put("Cancel Indicator", new RecordDetails(1, 52, "1 = Cancelled"));
-		fields.put("Post Void Indicator", new RecordDetails(1, 53, "1 = Post Void"));
-		fields.put("Tax Exempt Indicator", new RecordDetails(1, 54, "1 = Tax Exempt"));
-		fields.put("Training Indicator", new RecordDetails(1, 55, "1 = Training"));
-		fields.put("User Data", new RecordDetails(3, 56, ""));
-		fields.put("Transaction Processor Attempts", new RecordDetails(2, 59, ""));
-		fields.put("Transaction Error Code", new RecordDetails(4, 61, "zero filled"));
-		fields.put("Number of Records", new RecordDetails(8, 65, "Detail records + header, zero filled, right justified"));
-		fields.put("Business Date", new RecordDetails(8, 73, "MMDDYYYY, zero filled"));
-		fields.put("RetailStore Product Generation", new RecordDetails(1, 81, "zero filled"));
-		fields.put("RetailStore Major Version", new RecordDetails(1, 82, "zero filled"));
-		fields.put("RetailStore Minor Version", new RecordDetails(2, 83, "Zero filled, right justified"));
-		fields.put("RetailStore Service Pack", new RecordDetails(2, 85, "Zero filled, right justified"));
-		fields.put("RetailStore Hot Fix", new RecordDetails(3, 87, "Zero filled, right justified"));
-		fields.put("(Customer) Code Release Number", new RecordDetails(3, 90, "Zero filled, right justified"));
-		fields.put("(Customer) Code Release EFix", new RecordDetails(3, 93, "Zero filled"));
-		fields.put("(Customer) Release Additional Data", new RecordDetails(17, 96, "Left justified, space filled"));
-		fields.put("Tax Calculator", new RecordDetails(1, 113, ""));
-		fields.put("Reserved for Future Use", new RecordDetails(49, 114, "Space filled"));
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Store Number", new FieldDetails(5, 4, "Zero filled, right justified"));
+		fields.put("Register Number", new FieldDetails(3, 9, "zero filled"));
+		fields.put("Cashier Number", new FieldDetails(6, 12, "Zero filled, right justified"));
+		fields.put("Employee Number", new FieldDetails(11, 18, "zero filled"));
+		fields.put("Transaction Number", new FieldDetails(6, 29, ""));
+		fields.put("Transaction Date", new FieldDetails(8, 35, "MMDDYYYY, zero filled"));
+		fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM – Military, zero filled"));
+		fields.put("Transaction Type", new FieldDetails(3, 47, ""));
+		fields.put("Transaction Status", new FieldDetails(2, 50, ""));
+		fields.put("Cancel Indicator", new FieldDetails(1, 52, "1 = Cancelled"));
+		fields.put("Post Void Indicator", new FieldDetails(1, 53, "1 = Post Void"));
+		fields.put("Tax Exempt Indicator", new FieldDetails(1, 54, "1 = Tax Exempt"));
+		fields.put("Training Indicator", new FieldDetails(1, 55, "1 = Training"));
+		fields.put("User Data", new FieldDetails(3, 56, ""));
+		fields.put("Transaction Processor Attempts", new FieldDetails(2, 59, ""));
+		fields.put("Transaction Error Code", new FieldDetails(4, 61, "zero filled"));
+		fields.put("Number of Records", new FieldDetails(8, 65, "Detail records + header, zero filled, right justified"));
+		fields.put("Business Date", new FieldDetails(8, 73, "MMDDYYYY, zero filled"));
+		fields.put("RetailStore Product Generation", new FieldDetails(1, 81, "zero filled"));
+		fields.put("RetailStore Major Version", new FieldDetails(1, 82, "zero filled"));
+		fields.put("RetailStore Minor Version", new FieldDetails(2, 83, "Zero filled, right justified"));
+		fields.put("RetailStore Service Pack", new FieldDetails(2, 85, "Zero filled, right justified"));
+		fields.put("RetailStore Hot Fix", new FieldDetails(3, 87, "Zero filled, right justified"));
+		fields.put("(Customer) Code Release Number", new FieldDetails(3, 90, "Zero filled, right justified"));
+		fields.put("(Customer) Code Release EFix", new FieldDetails(3, 93, "Zero filled"));
+		fields.put("(Customer) Release Additional Data", new FieldDetails(17, 96, "Left justified, space filled"));
+		fields.put("Tax Calculator", new FieldDetails(1, 113, ""));
+		fields.put("Reserved for Future Use", new FieldDetails(49, 114, "Space filled"));
 		
 		transactionTypes.put(TransactionType.STORE_OPEN, "010");
 		transactionTypes.put(TransactionType.CASHIER_LOGOFF, "030");
@@ -248,7 +248,7 @@ public class TransactionHeader extends Record {
 	}
 
 	@Override
-	public Map<String,RecordDetails> getFields() {
+	public Map<String,FieldDetails> getFields() {
 		return fields;
 	}
 
