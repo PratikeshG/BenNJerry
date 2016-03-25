@@ -1,0 +1,58 @@
+package vfcorp.tlog;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.squareup.connect.Payment;
+
+import vfcorp.Record;
+import vfcorp.FieldDetails;
+
+public class TransactionSubTotal extends Record {
+	
+	private static Map<String,FieldDetails> fields;
+	private static int length;
+	private static String id;
+	
+	static {
+		fields = new HashMap<String,FieldDetails>();
+		length = 14;
+		id = "051";
+		
+		fields.put("Identifier", new FieldDetails(3, 1, ""));
+		fields.put("Amount", new FieldDetails(10, 4, "zero filled"));
+		fields.put("Sign Indicator", new FieldDetails(1, 14, ""));
+	}
+
+	public TransactionSubTotal() {
+		super();
+	}
+
+	public TransactionSubTotal(String record) {
+		super(record);
+	}
+
+	@Override
+	public Map<String, FieldDetails> getFields() {
+		return fields;
+	}
+
+	@Override
+	public int getLength() {
+		return length;
+	}
+
+	@Override
+	public String getId() {
+		return id;
+	}
+	
+	public TransactionSubTotal parse(Payment payment) {
+		int subtotal = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
+		
+		putValue("Amount", "" + subtotal);
+		putValue("Sign Indicator", "0"); // subtotals are always positive
+		
+		return this;
+	}
+}

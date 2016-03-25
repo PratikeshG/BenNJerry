@@ -25,7 +25,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
                         <property key="apiUrl" value="${api.url}"/>
                     </singleton-object>
                 </component>
-                <parse-template location="src/main/resources/static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
+                <parse-template location="static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
             </otherwise>
         </choice>
         <exception-strategy ref="globalExceptionCatchingStrategy" doc:name="Reference Exception Strategy"/>

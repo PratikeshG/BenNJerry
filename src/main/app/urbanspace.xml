@@ -17,8 +17,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <flow-ref name="setAllParamsForPaymentReportForLocations" doc:name="Set all params"/>
         <flow-ref name="retrieveToken" doc:name="Get Square OAuth tokens for given deployment ID"/>
         <component class="urbanspace.PayloadParamsCreator" doc:name="Prep Square Payload object and params"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="paymentsFromLocationsInput" connector-ref="VM" doc:name="VM"/>
-        <set-payload value="UrbanSpace report generation initiated." doc:name="Set Payload"/>
+        <flow-ref name="getPaymentsFromLocations" doc:name="Get payments from all locations"/>
+        <flow-ref name="convertResultsToCSV" doc:name="Convert retrieved payments into CSV"/>
+        <set-payload value="Operation completed." doc:name="Set Payload"/>
     </flow>
     <sub-flow name="setAllParamsForPaymentReportForLocations">
         <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
@@ -26,7 +27,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="range" value="1" doc:name="Set range"/>
         <set-variable variableName="offset" value="1" doc:name="Set offset"/>
         <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
-        <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
     </sub-flow>
     <sub-flow name="setAllParamsForPaymentReportForLocations2">
         <set-variable variableName="deployment" value="urbanspace" doc:name="Set deployment ID"/>
@@ -34,10 +34,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="seconds" value="3600" doc:name="Set seconds"/>
         <set-variable variableName="offset" value="3600" doc:name="Set offset"/>
         <set-variable variableName="timeZone" value="GMT-08:00" doc:name="Set time zone"/>
-        <set-session-variable variableName="destinationQueue" value="urbanspaceResults" doc:name="Set destination VM"/>
     </sub-flow>
-    <flow name="convertResultsToCSV">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="urbanspaceResults" connector-ref="VM" doc:name="VM"/>
+    <sub-flow name="convertResultsToCSV">
         <component class="urbanspace.AggregateCalculator" doc:name="Calculate UrbanSpace Aggregate Totals"/>
         <dw:transform-message metadata:id="f4449560-d176-4e04-8781-82f97f51039b" doc:name="Turn Java object into CSV">
             <dw:input-payload doc:sample="list_LocationResults.dwl"/>
@@ -65,5 +63,5 @@ payload map {
         <object-to-string-transformer doc:name="Convert CSV object into String"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="prospectenhancer2%40gmail.com" password="LittleHorseshoe351" connector-ref="Gmail" to="colinlam+muletest@squareup.com" from="Square Mule" subject="Square Report Test" responseTimeout="10000" doc:name="SMTP"/>
-    </flow>
+    </sub-flow>
 </mule>
