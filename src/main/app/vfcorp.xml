@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
 	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -12,9 +12,10 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
-http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
     <flow name="vfcorpGenerateTLOG" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="generateTLOG" cronExpression="0 0 9 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Sunday at 9:00am (UTC)">
+        <quartz:inbound-endpoint jobName="generateTLOG" cronExpression="0 0 5 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 5:00am (UTC)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <flow-ref name="setAllParamsForGenerateTLOG" doc:name="Set all parameters"/>
@@ -27,11 +28,11 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
             </singleton-object>
         </component>
         <foreach doc:name="For Each">
-            <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="${vfcorp.generateTLOG.output.namePattern}" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" doc:name="SFTP" path="${vfcorp.generateTLOG.output.sftp.path}" duplicateHandling="overwrite"/>
-            <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="New TLOG generated for VFCorp" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+            <set-variable variableName="vfcorpStoreNumber" value="#[payload.getStoreNumber()]" doc:name="Set VF store number"/>
+            <set-payload value="#[payload.getTlog()]" doc:name="Set payload to generated TLOG"/>
+            <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" doc:name="SFTP" path="${vfcorp.generateTLOG.output.sftp.path}" duplicateHandling="overwrite"/>
+            <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         </foreach>
-        <flow-ref name="setLastTransactionNumber" doc:name="setLastTransactionNumber"/>
-        <set-payload value="!" doc:name="Set Payload"/>
     </flow>
     <flow name="vfcorpTriggerGenerateTLOG">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vftrigger" doc:name="HTTP"/>
@@ -44,7 +45,6 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
         <set-variable variableName="seconds" value="${vfcorp.generateTLOGparams.timeMethod.seconds}" doc:name="Set seconds"/>
         <set-variable variableName="offset" value="${vfcorp.generateTLOGparams.timeMethod.offset}" doc:name="Set offset"/>
         <set-variable variableName="timeZone" value="${vfcorp.generateTLOGparams.timeMethod.timeZone}" doc:name="Set time zone"/>
-        <flow-ref name="getLastTransactionNumber" doc:name="getLastTransactionNumber"/>
     </sub-flow>
     <sub-flow name="getAllSquareObjects">
         <flow-ref name="listLocations" doc:name="getLocations"/>
@@ -52,19 +52,10 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
         <flow-ref name="listItems" doc:name="Get items from locations"/>
         <flow-ref name="listEmployees" doc:name="Get employees from locations"/>
     </sub-flow>
-    <sub-flow name="getLastTransactionNumber">
-        <db:select config-ref="MySQL_Configuration" doc:name="Query database for last transaction number">
-            <db:parameterized-query><![CDATA[SELECT * FROM `${vfcorp.generateTLOGparams.transactionNumberTable}` LIMIT 1;]]></db:parameterized-query>
-        </db:select>
-        <set-variable variableName="lastTransactionNumber" value="#[payload[0].lastTransactionNumber]" doc:name="Set last transaction number"/>
-    </sub-flow>
-    <sub-flow name="setLastTransactionNumber">
-        <db:update config-ref="MySQL_Configuration" doc:name="Update last transaction number to table">
-            <db:parameterized-query><![CDATA[UPDATE `vfcorp-transaction-number` SET lastTransactionNumber = #[flowVars.newLastTransactionNumber] WHERE lastTransactionNumber = #[flowVars.lastTransactionNumber];]]></db:parameterized-query>
-        </db:update>
-    </sub-flow>
-    <flow name="vfcorpIngestPLU" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.rpc.sftp.host}" port="${vfcorp.rpc.sftp.port}" path="${vfcorp.rpc.sftp.path}" user="${vfcorp.rpc.sftp.username}" password="${vfcorp.rpc.sftp.password}" responseTimeout="10000" pollingFrequency="${vfcorp.sftp.pollingFrequency}" doc:name="SFTP" tempDir="processing" useTempFileTimestampSuffix="true"/>
+    <flow name="vfcorpIngestPLU" processingStrategy="synchronous" >
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.rpc.sftp.host}" port="${vfcorp.rpc.sftp.port}" path="${vfcorp.rpc.sftp.path}" user="${vfcorp.rpc.sftp.username}" password="${vfcorp.rpc.sftp.password}" responseTimeout="10000" pollingFrequency="${vfcorp.sftp.pollingFrequency}" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" tempDir="processing" useTempFileTimestampSuffix="true" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+        	<file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
         <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Store stream reader to variable"/>
         <set-variable variableName="deployment" value="${vfcorp.generateTLOGparams.deploymentId}" doc:name="Set deployment ID"/>
         <flow-ref name="retrieveToken" doc:name="Get Square OAuth tokens for given deployment ID"/>
@@ -83,6 +74,6 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
             </singleton-object>
         </component>
         <set-payload value="New PLU file ingested by VFCorp." doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="New PLU ingested by VFCorp" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp']" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
 </mule>

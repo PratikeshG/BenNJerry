@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.mule.api.store.ObjectStore;
+
 import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
@@ -33,11 +35,11 @@ import com.squareup.connect.Tender;
 
 public class TLOG {
 	
-	private static final int MAX_TRANSACTION_NUMBER = 99999;
-	
 	private List<Record> transactionLog;
 	private int itemNumberLookupLength;
-	private int transactionNumber = 1;
+	private String deployment;
+
+	private ObjectStore<String> objectStore;
 
 	public TLOG() {
 		transactionLog = new LinkedList<Record>();
@@ -46,7 +48,15 @@ public class TLOG {
 	public void setItemNumberLookupLength(int itemNumberLookupLength) {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
-	
+
+	public void setDeployment(String deployment) {
+		this.deployment = deployment;
+	}
+
+	public void setObjectStore(ObjectStore<String> objectStore) {
+		this.objectStore = objectStore;
+	}
+
 	public void parse(Merchant location, Payment[] squarePayments, Item[] squareItems, Employee[] squareEmployees) {
 		List<Payment> squarePaymentsList = Arrays.asList(squarePayments);
 		List<Item> squareItemsList = Arrays.asList(squareItems);
@@ -80,7 +90,7 @@ public class TLOG {
 			
 			if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
 				
-				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_NO_SALE, 3, incrementTransactionNumber()));
+				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_NO_SALE, 3, objectStore, deployment));
 				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
@@ -143,7 +153,7 @@ public class TLOG {
 					}
 				}
 				
-				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, incrementTransactionNumber()));
+				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment));
 				
 				transactionLog.addAll(paymentList);
 			}
@@ -217,27 +227,9 @@ public class TLOG {
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_TRANSACTION_DISCOUNT, squarePaymentsList));
 			
-			newRecordList.addFirst(new TransactionHeader().parse(location, squarePaymentsList, squareEmployeesList, deviceName, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, incrementTransactionNumber()));
+			newRecordList.addFirst(new TransactionHeader().parse(location, squarePaymentsList, deviceName, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore, deployment));
 			
 			transactionLog.addAll(newRecordList);
 		}
-	}
-
-	public int getTransactionNumber() {
-		return transactionNumber;
-	}
-
-	public void setTransactionNumber(int transactionNumber) {
-		this.transactionNumber = transactionNumber;
-	}
-	
-	private int incrementTransactionNumber() {
-		int ret = transactionNumber;
-		
-		if (++transactionNumber > MAX_TRANSACTION_NUMBER) {
-			transactionNumber = 1;
-		}
-		
-		return ret;
 	}
 }

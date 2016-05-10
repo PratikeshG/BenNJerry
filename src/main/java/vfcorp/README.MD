@@ -34,7 +34,9 @@ All transactions will only exist in one currency (the currency being used in the
 
 Refund transactions will only be itemized if they are FULL refunds, with a refund reason of "Returned Goods". If this is not the case, the refunds will show up in the TLOG, but will not have items.
 
-For non-full refunds, all transaction money will show up solely as transaction total, without breaking down the refund into various taxes or fees. 
+For non-full refunds, all transaction money will show up solely as transaction total, without breaking down the refund into various taxes or fees.
+
+There are certain cases where payments will not be pulled from the API. One such case is for offline payments; these payments will not be pulled from the API until they are reconciled, at which point they may not be reported if the window in which they're processed has passed. This must be handled at some point. 
 
 ### RPC
 
@@ -45,7 +47,7 @@ The only information that gets pulled into Square is the following:
 
 All other information is ignored.
 
-## Account Configuration
+## Account and Device Configuration
 
 Items must be configured to include PLUs as a Square SKU.
 

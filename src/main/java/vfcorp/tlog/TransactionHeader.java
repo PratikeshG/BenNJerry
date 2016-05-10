@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.mule.api.store.ObjectStore;
+import org.mule.api.store.ObjectStoreException;
+
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
@@ -13,6 +16,8 @@ import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
 public class TransactionHeader extends Record {
+
+	private static final int MAX_TRANSACTION_NUMBER = 999999;
 	
 	public static final String TRANSACTION_TYPE_STORE_OPEN = "010";
 	public static final String TRANSACTION_TYPE_CASHIER_LOGOFF = "030";
@@ -167,19 +172,8 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, List<Employee> squareEmployees, String deviceName, String transactionType, int numberOfRecords, int transactionNumber) {
+	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) {
 		Map<String,String> params = new HashMap<String,String>();
-		
-		String registerNumber = "";
-		if (deviceName != null) {
-			int registerNumberFirstIndex = deviceName.indexOf('(');
-			int registerNumberLastIndex = deviceName.indexOf(')');
-			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1)
-				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
-		}
-		params.put("Register Number", registerNumber);
-		
-		params.put("Transaction Number", String.format("%06d", transactionNumber));
 		
 		String lastDate = "";
 		for (Payment squarePayment : squarePaymentsList) {
@@ -189,35 +183,18 @@ public class TransactionHeader extends Record {
 		}
 		if (lastDate != "") {
 			params.put("Transaction Date", lastDate.substring(5, 7) + lastDate.substring(8, 10) + lastDate.substring(0, 4));
+			params.put("Business Date", lastDate.substring(5, 7) + lastDate.substring(8, 10) + lastDate.substring(0, 4));
 			params.put("Transaction Time", lastDate.substring(11,13) + lastDate.substring(14, 16));
 		}
 		
-		params.put("Transaction Type", transactionType);
+		String registerNumber = getRegisterNumber(deviceName);
+		params.put("Register Number", registerNumber);
 		
-		String storeNumber = "";
-		if (location.getLocationDetails().getNickname() != null) {
-			int storeNumberFirstIndex = location.getLocationDetails().getNickname().indexOf('(');
-			int storeNumberLastIndex = location.getLocationDetails().getNickname().indexOf(')');
-			if (storeNumberFirstIndex > -1 && storeNumberLastIndex > -1) {
-				storeNumber = location.getLocationDetails().getNickname().substring(storeNumberFirstIndex + 1, storeNumberLastIndex);
-				storeNumber = storeNumber.replaceAll("[^\\d]", "");
-			}
-		}
-		params.put("Store Number", storeNumber);
-		params.put("Number of Records", "" + numberOfRecords);
-		
-		return parse(params);
+		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
-	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, int transactionNumber) {
+	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) {
 		Map<String,String> params = new HashMap<String,String>();
-		
-		String date = squarePayment.getCreatedAt().substring(5, 7) +
-				squarePayment.getCreatedAt().substring(8, 10) + 
-				squarePayment.getCreatedAt().substring(0, 4);
-		params.put("Transaction Date", date);
-		String time = squarePayment.getCreatedAt().substring(11,13) + squarePayment.getCreatedAt().substring(14, 16);
-		params.put("Transaction Time", time);
 		
 		for (Tender tender : squarePayment.getTender()) {
 			if (tender.getEmployeeId() != null) {
@@ -229,35 +206,24 @@ public class TransactionHeader extends Record {
 			}
 		}
 		
-		String registerNumber = "";
-		if (squarePayment.getDevice().getName() != null) {
-			int registerNumberFirstIndex = squarePayment.getDevice().getName().indexOf('(');
-			int registerNumberLastIndex = squarePayment.getDevice().getName().indexOf(')');
-			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1)
-				registerNumber = squarePayment.getDevice().getName().substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
-		}
+		params.put("Transaction Date", squarePayment.getCreatedAt().substring(5, 7) + squarePayment.getCreatedAt().substring(8, 10) + squarePayment.getCreatedAt().substring(0, 4));
+		params.put("Business Date", squarePayment.getCreatedAt().substring(5, 7) + squarePayment.getCreatedAt().substring(8, 10) + squarePayment.getCreatedAt().substring(0, 4));
+		params.put("Transaction Time", squarePayment.getCreatedAt().substring(11,13) + squarePayment.getCreatedAt().substring(14, 16));
 		
-		String storeNumber = "";
-		if (location.getLocationDetails().getNickname() != null) {
-			int storeNumberFirstIndex = location.getLocationDetails().getNickname().indexOf('(');
-			int storeNumberLastIndex = location.getLocationDetails().getNickname().indexOf(')');
-			if (storeNumberFirstIndex > -1 && storeNumberLastIndex > -1) {
-				storeNumber = location.getLocationDetails().getNickname().substring(storeNumberFirstIndex + 1, storeNumberLastIndex);
-				storeNumber = storeNumber.replaceAll("[^\\d]", "");
-			}
-		}
-		
+		String registerNumber = getRegisterNumber(squarePayment.getDevice().getName());
 		params.put("Register Number", registerNumber);
-		params.put("Store Number", storeNumber);
-		params.put("Transaction Number", String.format("%06d", transactionNumber));
-		params.put("Transaction Type", transactionType);
-		params.put("Number of Records", "" + numberOfRecords);
-		params.put("Business Date", date);
 		
-		return parse(params);
+		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
-	public TransactionHeader parse(Map<String,String> params) {
+	public TransactionHeader parse(Merchant location, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params) {
+		String storeNumber = getStoreNumber(location);
+		params.put("Store Number", storeNumber);
+		
+		params.put("Transaction Number", String.format("%06d", getTransactionNumber(objectStore, storeNumber, registerNumber, deployment)));
+		params.put("Number of Records", "" + numberOfRecords);
+		params.put("Transaction Type", transactionType);
+		
 		putValue("Store Number", params.getOrDefault("Store Number", ""));
 		putValue("Register Number", params.getOrDefault("Register Number", "")); // Only if device is named correctly
 		putValue("Cashier Number", ""); // What is the difference between a cashier and a register?
@@ -286,5 +252,67 @@ public class TransactionHeader extends Record {
 		putValue("Tax Calculator", "0"); // ?? Neither RetailStore nor TaxConnect calculated taxes
 		
 		return this;
+	}
+	
+	private int getTransactionNumber(ObjectStore<String> objectStore, String storeNumber, String registerNumber, String deployment) {
+		if (storeNumber == null || storeNumber.equals("")) {
+			storeNumber = "0";
+		}
+		if (registerNumber == null || registerNumber.equals("")) {
+			registerNumber = "0";
+		}
+		
+		String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
+		String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
+		
+		try {
+			String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-" + registerNumberFormatted;
+			
+			if (objectStore.contains(transactionNumberKey)) {
+				int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
+				
+				if (transactionNumber > MAX_TRANSACTION_NUMBER) {
+					transactionNumber = 1;
+				}
+				
+				objectStore.remove(transactionNumberKey);
+				objectStore.store(transactionNumberKey, "" + transactionNumber);
+				return transactionNumber;
+			} else {
+				objectStore.store(transactionNumberKey, "" + 1);
+				return 1;
+			}
+		} catch (ObjectStoreException e) {
+			return 1;
+		}
+	}
+
+	private String getRegisterNumber(String deviceName) {
+		String registerNumber = "";
+		
+		if (deviceName != null) {
+			int registerNumberFirstIndex = deviceName.indexOf('(');
+			int registerNumberLastIndex = deviceName.indexOf(')');
+			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1) {
+				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
+			}
+		}
+		
+		return registerNumber;
+	}
+
+	private String getStoreNumber(Merchant location) {
+		String storeNumber = "";
+		
+		if (location.getLocationDetails().getNickname() != null) {
+			int storeNumberFirstIndex = location.getLocationDetails().getNickname().indexOf('(');
+			int storeNumberLastIndex = location.getLocationDetails().getNickname().indexOf(')');
+			if (storeNumberFirstIndex > -1 && storeNumberLastIndex > -1) {
+				storeNumber = location.getLocationDetails().getNickname().substring(storeNumberFirstIndex + 1, storeNumberLastIndex);
+				storeNumber = storeNumber.replaceAll("[^\\d]", "");
+			}
+		}
+		
+		return storeNumber;
 	}
 }

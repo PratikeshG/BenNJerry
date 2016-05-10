@@ -56,9 +56,9 @@ public class ReportGenerator implements Callable {
 		eventContext.getMessage().addOutboundAttachment(currentDate + "-aggregate.csv", dataHandler);
 		
 		// Generate individual reports
-		IndividualCalculator individualCalculator = new IndividualCalculator(timeMethod, timeZone, offset, range);
+		IndividualReportGenerator individualReportGenerator = new IndividualReportGenerator(timeZone, offset, range);
 		for (SquarePayload squarePayload : squarePayloads) {
-			String individualReport = individualCalculator.generate(squarePayload);
+			String individualReport = individualReportGenerator.generate(squarePayload);
 			dataHandler = new DataHandler(individualReport, "text/plain; charset=UTF-8");
 			eventContext.getMessage().addOutboundAttachment(currentDate + "-" + squarePayload.getMerchantAlias() + ".csv", dataHandler);
 		}

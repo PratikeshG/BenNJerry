@@ -1,14 +1,20 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -98,20 +104,8 @@ public class Test {
 		ccr.call();
 		*/
 		
-		SquareClient client = new SquareClient("sq0atp-c-QNyU8TxlLFsgRuc6XlDQ", "https://connect.squareup.com", "v1", "8W5RH94104PGR", "8W5RH94104PGR");
-		
-		HashMap<String,String> map = new HashMap<String,String>();
-		
-		map.put("begin_time", "2016-04-30T00:00:00-04:00");
-		map.put("end_time", "2016-04-30T23:59:59-04:00");
-		
-		Refund[] refunds = client.refunds().list(map);
-		
-		int total = 0;
-		for (Refund refund : refunds) {
-			total += refund.getRefundedMoney().getAmount();
-		}
-		
-		System.out.println(total);
+		SquareClient clientMaster = new SquareClient("sq0atp-R8QA_3XoGz67JNhM1pX7zQ", "https://connect.squareup.com", "v1", "me", "58R606YEZ83T9");
+		Item[] items = clientMaster.items().list();
+		System.out.println(items.length);
     }
 }

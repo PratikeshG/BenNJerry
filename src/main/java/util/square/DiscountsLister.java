@@ -5,11 +5,11 @@ import org.mule.api.lifecycle.Callable;
 
 import util.SquarePayload;
 
-import com.squareup.connect.Payment;
+import com.squareup.connect.Discount;
 import com.squareup.connect.SquareClient;
 
-public class PaymentsLister implements Callable {
-	
+public class DiscountsLister implements Callable {
+
 	private String apiUrl;
 	private String apiVersion;
 	
@@ -27,9 +27,9 @@ public class PaymentsLister implements Callable {
 		
 		SquareClient client = new SquareClient(sp.getAccessToken(), apiUrl, apiVersion, sp.getMerchantId(), sp.getLocationId());
 		
-        Payment[] payments = client.payments().list(sp.getParams());
+		Discount[] discounts = client.discounts().list();
         
-        sp.getResults().put(this.getClass().getName(), payments);
+        sp.getResults().put(this.getClass().getName(), discounts);
         
         return sp;
 	}
