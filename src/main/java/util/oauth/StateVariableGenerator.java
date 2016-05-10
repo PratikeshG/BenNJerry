@@ -14,9 +14,14 @@ import com.squareup.connect.SquareClient;
 public class StateVariableGenerator implements Callable {
 	
 	private String apiUrl;
+	private String legacyAppId;
 	
 	public void setApiUrl(String apiUrl) {
 		this.apiUrl = apiUrl;
+	}
+
+	public void setLegacyAppId(String legacyAppId) {
+		this.legacyAppId = legacyAppId;
 	}
 
 	@Override
@@ -32,6 +37,13 @@ public class StateVariableGenerator implements Callable {
 		params.setClientId(connectAppId);
 		params.setResponseType("code");
 		params.setState(deployment + "," + session + "," + connectAppId);
+		params.setSession(true);
+		
+		if (connectAppId.equals(legacyAppId)) {
+			params.setScope(new String[]{"MERCHANT_PROFILE_READ","PAYMENTS_READ","ITEMS_READ","ITEMS_WRITE"});
+		} else {
+			params.setScope(new String[]{"MERCHANT_PROFILE_READ","PAYMENTS_READ","ITEMS_READ","ITEMS_WRITE","EMPLOYEES_READ","TIMECARDS_READ"});
+		}
 		
 		SquareClient client = new SquareClient(apiUrl);
 		String link = client.oauth().authorizeUrl(params);

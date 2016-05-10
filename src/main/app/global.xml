@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:context="http://www.springframework.org/schema/context" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:secure-property-placeholder="http://www.mulesoft.org/schema/mule/secure-property-placeholder" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:context="http://www.springframework.org/schema/context" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
@@ -11,17 +11,33 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/secure-property-placeholder http://www.mulesoft.org/schema/mule/secure-property-placeholder/current/mule-secure-property-placeholder.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
 	<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
-    <vm:connector name="VM" validateConnections="true" doc:name="VM"/>
     <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail"/>
-    <context:property-placeholder location="${mule.env}.properties"/>
+    <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties" doc:name="Secure Property Placeholder"/>
     <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration"/>
-    <http:request-config name="SquareAPIRequestConfiguration" protocol="HTTPS" host="connect.squareupstaging.com" port="443" doc:name="HTTP Request Configuration"/>
+    <configuration defaultExceptionStrategy-ref="globalExceptionCatchingStrategy" doc:name="Configuration">
+        <http:config useTransportForUris="false"/>
+    </configuration>
+    <sftp:connector name="VFCorpSFTP" validateConnections="true" doc:name="SFTP"/>
+    <flow name="flowInitializer" initialState="started">
+        <quartz:inbound-endpoint jobName="flowInitializer" repeatInterval="0" repeatCount="0" responseTimeout="10000" doc:name="Quartz">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <component doc:name="Initialize flows based on configuration">
+            <singleton-object class="util.FlowInitializer">
+                <property key="inactiveFlows" value="${inactiveFlows}"/>
+            </singleton-object>
+        </component>
+    </flow>
     <catch-exception-strategy name="globalExceptionCatchingStrategy">
         <logger message="#[exception + '\n' + message + '\n' + exception.?cause.?message]" level="ERROR" doc:name="Log error to console"/>
-        <logger message="Paging on-call engineers." level="INFO" doc:name="Log email alert to console"/>
-        <set-payload value="#['Exception occurred in ' + app.name + ' for ${mule.env} environment at ' + server.dateTime + '.\n\n===== Exception =====\n' + exception + '\n\n===== Exception Message =====' + message + '\n\n===== Exception Cause =====\n' + exception.?cause.?message]" encoding="UTF-8" mimeType="text/plain" doc:name="Set email payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${exception.sending.email}" password="${exception.sending.password}" connector-ref="Gmail" to="${exception.receivingemail}" from="Square Mule" subject="ALERT - Exception in Mule Application" responseTimeout="10000" doc:name="Email on-call engineers"/>
+        <set-payload value="#['Exception occurred in ' + app.name + ' for ${mule.env} environment at ' + server.dateTime + '.\n\n===== Exception =====\n' + exception + '\n\n===== Exception Message =====' + message + '\n\n===== Exception Cause =====\n' + exception.?cause.?message + '\n\n===== Exception Stack Trace =====\n' + org.mule.util.ExceptionUtils.getFullStackTrace(exception)]" encoding="UTF-8" mimeType="text/plain" doc:name="Set email payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.exception.sending.email}" password="${email.exception.sending.password}" connector-ref="Gmail" to="${email.exception.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' ALERT - Exception in Mule Application']" responseTimeout="10000" doc:name="Email on-call engineers"/>
     </catch-exception-strategy>
 </mule>

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Refund;
 
 import vfcorp.Record;
 import vfcorp.FieldDetails;
@@ -47,11 +48,18 @@ public class TransactionSubTotal extends Record {
 		return id;
 	}
 	
-	public TransactionSubTotal parse(Payment payment) {
+	public TransactionSubTotal parse(Payment payment, boolean refund) {
 		int subtotal = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
 		
-		putValue("Amount", "" + subtotal);
-		putValue("Sign Indicator", "0"); // subtotals are always positive
+		putValue("Amount", "" + Math.abs(subtotal));
+		putValue("Sign Indicator", (refund ? "1" : "0"));
+		
+		return this;
+	}
+	
+	public TransactionSubTotal parse(Refund refund) {
+		putValue("Amount", "" + Math.abs(refund.getRefundedMoney().getAmount()));
+		putValue("Sign Indicator", "1"); // subtotals are always negative
 		
 		return this;
 	}

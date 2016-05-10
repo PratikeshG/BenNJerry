@@ -1,5 +1,6 @@
 package vfcorp.tlog;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 	public LineItemAssociateAndDiscountAccountingString parse(Payment payment, PaymentItemization itemization, int itemNumberLookupLength, String employeeId, List<Employee> squareEmployees, double quantity) {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
-			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", Integer.parseInt(sku));
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 		
 		String productivityQuantity = "";
@@ -85,13 +86,11 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		
 		for (Employee employee : squareEmployees) {
 			if (employee.getId().equals(employeeId)) {
-				putValue("Associate Number", employee.getExternalId());
 				putValue("Employee Number", employee.getExternalId());
 			}
 		}
 		
-		if (values.get("Associate Number") == null) {
-			putValue("Associate Number", "");
+		if (values.get("Employee Number") == null) {
 			putValue("Employee Number", "");
 		}
 		
@@ -100,6 +99,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Item Number", sku);
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
 		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
+		putValue("Associate Number", "");
 		putValue("Value (per associate)", "" + itemization.getNetSalesMoney().getAmount());
 		putValue("Type Indicator", "01"); // "merchandise sale"; no other values supported
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion

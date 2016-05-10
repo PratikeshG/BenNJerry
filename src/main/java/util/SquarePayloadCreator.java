@@ -1,4 +1,4 @@
-package urbanspace;
+package util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,22 +8,24 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-import util.SquarePayload;
-import util.TimeManager;
-
-public class PayloadParamsCreator implements Callable {
+public class SquarePayloadCreator implements Callable {
 
 	@Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
 		@SuppressWarnings("unchecked")
-		List<Map<String,String>> ms = (List<Map<String,String>>) eventContext.getMessage().getPayload();
-		List<SquarePayload> lsp = new ArrayList<SquarePayload>();
+		// The payload is a set of entries retrieved from a SQL database, which
+		// is expected to have certain parameters.
+		List<Map<String,Object>> merchantDatabaseEntries = (List<Map<String,Object>>) eventContext.getMessage().getPayload();
+		List<SquarePayload> squarePayloads = new ArrayList<SquarePayload>();
 		
-		for (Map<String,String> m : ms) {
-			SquarePayload sp = new SquarePayload();
+		for (Map<String,Object> merchantDatabaseEntry : merchantDatabaseEntries) {
+			SquarePayload squarePayload = new SquarePayload();
 			
-			sp.setAccessToken(m.get("token"));
-			sp.setMerchantId(m.get("merchantId"));
+			squarePayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
+			squarePayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
+			squarePayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
+			squarePayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
+			squarePayload.setLegacy((Boolean) merchantDatabaseEntry.get("legacy"));
 			
 			String timeMethod = eventContext.getMessage().getProperty("timeMethod", PropertyScope.INVOCATION);
 			if ("getPastDayInterval".equals(timeMethod)) {
@@ -32,22 +34,21 @@ public class PayloadParamsCreator implements Callable {
 				String timeZone = eventContext.getMessage().getProperty("timeZone", PropertyScope.INVOCATION);
 				
 				Map<String,String> mm = TimeManager.getPastDayInterval(range, offset, timeZone);
-				sp.getParams().put("begin_time", mm.get("begin_time"));
-				sp.getParams().put("end_time", mm.get("end_time"));
+				squarePayload.getParams().put("begin_time", mm.get("begin_time"));
+				squarePayload.getParams().put("end_time", mm.get("end_time"));
 			} else if ("getPastTimeInterval".equals(timeMethod)) {
 				int seconds = Integer.parseInt(eventContext.getMessage().getProperty("seconds", PropertyScope.INVOCATION));
 				int offset = Integer.parseInt(eventContext.getMessage().getProperty("offset", PropertyScope.INVOCATION));
 				String timeZone = eventContext.getMessage().getProperty("timeZone", PropertyScope.INVOCATION);
 				
 				Map<String,String> mm = TimeManager.getPastTimeInterval(seconds, offset, timeZone);
-				sp.getParams().put("begin_time", mm.get("begin_time"));
-				sp.getParams().put("end_time", mm.get("end_time"));
+				squarePayload.getParams().put("begin_time", mm.get("begin_time"));
+				squarePayload.getParams().put("end_time", mm.get("end_time"));
 			}
 			
-			lsp.add(sp);
-			
+			squarePayloads.add(squarePayload);
 		}
 		
-		return lsp;
+		return squarePayloads;
 	}
 }

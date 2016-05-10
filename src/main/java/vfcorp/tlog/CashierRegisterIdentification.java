@@ -3,10 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.CashDrawerShift;
-
-import vfcorp.Record;
 import vfcorp.FieldDetails;
+import vfcorp.Record;
 
 public class CashierRegisterIdentification extends Record {
 
@@ -48,11 +46,14 @@ public class CashierRegisterIdentification extends Record {
 		return id;
 	}
 	
-	public CashierRegisterIdentification parse(CashDrawerShift cashDrawerShift) {
+	public CashierRegisterIdentification parse(String deviceName) {
 		String registerNumber = "";
 		
-		if (cashDrawerShift.getDevice().getName() != null) {
-			registerNumber = cashDrawerShift.getDevice().getName();
+		if (deviceName != null) {
+			int registerNumberFirstIndex = deviceName.indexOf('(');
+			int registerNumberLastIndex = deviceName.indexOf(')');
+			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1)
+				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
 		}
 		
 		putValue("Cashier/Register Number", registerNumber);

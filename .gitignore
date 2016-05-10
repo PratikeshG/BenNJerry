@@ -1,2 +1,4 @@
 target/**
 catalog/**
+.mule/**
+mule-project.xml

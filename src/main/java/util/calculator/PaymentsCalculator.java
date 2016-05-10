@@ -1,4 +1,4 @@
-package util.payment;
+package util.calculator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +8,7 @@ import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.Tender;
 
-public class PaymentReporter {
+public class PaymentsCalculator {
 	
 	/* Non-predicate testing classes */
 	

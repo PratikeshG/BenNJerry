@@ -1,14 +1,13 @@
 package vfcorp.tlog;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import vfcorp.Record;
 import vfcorp.FieldDetails;
-import vfcorp.TLOG;
-import vfcorp.TLOG.TenderCode;
+import vfcorp.Record;
 
-import com.squareup.connect.CashDrawerShift;
+import com.squareup.connect.Payment;
 
 public class TenderCount extends Record {
 
@@ -55,17 +54,37 @@ public class TenderCount extends Record {
 		return id;
 	}
 	
-	public TenderCount parse(TenderCode tenderCode, CashDrawerShift cashDrawerShift) {
-		Map<TenderCode,String> tenderCodes = TLOG.getTenderCodes();
+	public TenderCount parse(String tenderCode, List<Payment> squarePaymentsList) {
+		int number = 0;
+		int amount = 0;
 		
-		String tenderCodeString = tenderCodes.get(tenderCode);
+		for (Payment squarePayment : squarePaymentsList) {
+			for (com.squareup.connect.Tender tender : squarePayment.getTender()) {
+				if ((Tender.TENDER_CODE_CASH.equals(tenderCode) && tender.getType().equals("CASH")) ||
+						(Tender.TENDER_CODE_AMEX.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("AMERICAN_EXPRESS")) ||
+						(Tender.TENDER_CODE_DISCOVER.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("DISCOVER")) ||
+						(Tender.TENDER_CODE_VISA.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("VISA")) ||
+						(Tender.TENDER_CODE_MASTERCARD.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("MASTER_CARD")) ||
+						(Tender.TENDER_CODE_JCB.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("JCB")) ||
+						(Tender.TENDER_CODE_GIFT_CERTIFICATE.equals(tenderCode) && tender.getType().equals("OTHER")) ||
+						(Tender.TENDER_CODE_98.equals(tenderCode) && tender.getType().equals("UNKNOWN"))) {
+					
+					number += 1;
+					if (tender.getTenderedMoney() != null) {
+						amount += tender.getTenderedMoney().getAmount();
+					} else {
+						amount += tender.getTotalMoney().getAmount();
+					}
+				}
+			}
+		}
 		
-		putValue("Tender Code", tenderCodeString);
-		putValue("Number In Drawer", ""); // not supported
-		putValue("Amount In Drawer", "" + cashDrawerShift.getExpectedCashMoney().getAmount());
-		putValue("Amount In Drawer Sign", cashDrawerShift.getExpectedCashMoney().getAmount() >= 0 ? "0" : "1");
-		putValue("Amount Counted", "" + cashDrawerShift.getClosedCashMoney().getAmount());
-		putValue("Amount Counted Sign", cashDrawerShift.getClosedCashMoney().getAmount() >= 0 ? "0" : "1");
+		putValue("Tender Code", tenderCode);
+		putValue("Number In Drawer", "" + number);
+		putValue("Amount In Drawer", "" + amount);
+		putValue("Amount In Drawer Sign", amount >= 0 ? "0" : "1");
+		putValue("Amount Counted", "" + amount);
+		putValue("Amount Counted Sign", amount >= 0 ? "0" : "1");
 		putValue("Currency Indicator", "0"); // not supported
 		putValue("Counted Indicator", "1"); // 1 is "dollars"; other value not supported
 		
