@@ -46,7 +46,8 @@ public class AggregateCalculatorTest {
 		List<SquarePayload> squarePayloads = new LinkedList<SquarePayload>();
 		squarePayloads.add(squarePayload);
 		
-		AggregateReportGenerator aggregateCalculator = new AggregateReportGenerator("America/Los_Angeles", 1, 1);
+		// TODO: automate this part (the offset has to be calculated manually, currently; no good)
+		AggregateReportGenerator aggregateCalculator = new AggregateReportGenerator("America/Los_Angeles", 8, 1);
 		String aggregateReport = aggregateCalculator.generate(squarePayloads);
 		
 		assertEquals("reports should be equal", expectedReport, aggregateReport);

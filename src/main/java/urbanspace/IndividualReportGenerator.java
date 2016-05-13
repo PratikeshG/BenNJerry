@@ -12,24 +12,21 @@ import java.util.TimeZone;
 import util.SquarePayload;
 import util.TimeManager;
 
+import com.squareup.connect.Category;
+import com.squareup.connect.Discount;
 import com.squareup.connect.Payment;
 
-public class IndividualCalculator {
+public class IndividualReportGenerator {
 
-	private String timeMethod;
 	private String timeZone;
 	private int offset;
 	private int range;
 	private ReportCalculator reportCalculator;
 	
-	public IndividualCalculator(String timeMethod, String timeZone, int offset, int range) {
+	public IndividualReportGenerator(String timeZone, int offset, int range) {
 		this.timeZone = timeZone;
 		this.offset = offset;
 		this.range = range;
-	}
-
-	public void setTimeMethod(String timeMethod) {
-		this.timeMethod = timeMethod;
 	}
 	
 	public void setTimeZone(String timeZone) {
@@ -47,6 +44,8 @@ public class IndividualCalculator {
 	public String generate(SquarePayload squarePayload) throws ParseException {
 		Payment[] payments = (Payment[]) squarePayload.getResults().get("util.square.PaymentsLister");
 		Payment[] refundPayments = (Payment[]) squarePayload.getResults().get("util.square.RefundPaymentsRetriever");
+		Category[] categories = (Category[]) squarePayload.getResults().get("util.square.CategoriesLister");
+		Discount[] discounts = (Discount[]) squarePayload.getResults().get("util.square.DiscountsLister");
 		
 		reportCalculator = new ReportCalculator(range, offset, timeZone);
 		
@@ -96,12 +95,21 @@ public class IndividualCalculator {
         locationResult.setTotalGiftCardMoney(totalMoneyCollectedForTenderByTime(payments, "SQUARE_GIFT_CARD"));
         locationResult.setTotalGiftCardMoneyRefunds(totalMoneyCollectedForTenderRefundsByTime(refundPayments, "SQUARE_GIFT_CARD"));
         locationResult.setTotalGiftCardMoneyNet(addTimeMoneyMaps(locationResult.getTotalGiftCardMoney(), locationResult.getTotalGiftCardMoneyRefunds()));
-
-        /*
-        locationResult.setTotalOtherMoney(totalMoneyCollectedForTender(payments, "NO_SALE") + totalMoneyCollectedForTender(payments, "SQUARE_WALLET") + totalMoneyCollectedForTender(payments, "UNKNOWN") + totalMoneyCollectedForTender(payments, "OTHER") + totalMoneyCollectedForTender(payments, "THIRD_PARTY_CARD"));
-        locationResult.setTotalOtherMoneyRefunds(totalMoneyCollectedForTenderRefunds(refundPayments, "NO_SALE") + totalMoneyCollectedForTenderRefunds(refundPayments, "SQUARE_WALLET") + totalMoneyCollectedForTenderRefunds(refundPayments, "UNKNOWN") + totalMoneyCollectedForTenderRefunds(refundPayments, "OTHER") + totalMoneyCollectedForTenderRefunds(payments, "THIRD_PARTY_CARD"));
-        locationResult.setTotalOtherMoneyNet(locationResult.getTotalOtherMoney() + locationResult.getTotalOtherMoneyRefunds());
-		*/
+        
+        LinkedHashMap<String,Integer> intermediaryResult1 = addTimeMoneyMaps(totalMoneyCollectedForTenderByTime(payments, "OTHER"), totalMoneyCollectedForTenderByTime(payments, "THIRD_PARTY_CARD"));
+        LinkedHashMap<String,Integer> intermediaryResult2 = addTimeMoneyMaps(totalMoneyCollectedForTenderByTime(payments, "UNKNOWN"), intermediaryResult1);
+        LinkedHashMap<String,Integer> intermediaryResult3 = addTimeMoneyMaps(totalMoneyCollectedForTenderByTime(payments, "SQUARE_WALLET"), intermediaryResult2);
+        LinkedHashMap<String,Integer> intermediaryResult4 = addTimeMoneyMaps(totalMoneyCollectedForTenderByTime(payments, "NO_SALE"), intermediaryResult3);
+        locationResult.setTotalOtherMoney(intermediaryResult4);
+        
+        intermediaryResult1 = addTimeMoneyMaps(totalMoneyCollectedForTenderRefundsByTime(payments, "OTHER"), totalMoneyCollectedForTenderRefundsByTime(payments, "THIRD_PARTY_CARD"));
+        intermediaryResult2 = addTimeMoneyMaps(totalMoneyCollectedForTenderRefundsByTime(payments, "UNKNOWN"), intermediaryResult1);
+        intermediaryResult3 = addTimeMoneyMaps(totalMoneyCollectedForTenderRefundsByTime(payments, "SQUARE_WALLET"), intermediaryResult2);
+        intermediaryResult4 = addTimeMoneyMaps(totalMoneyCollectedForTenderRefundsByTime(payments, "NO_SALE"), intermediaryResult3);
+        locationResult.setTotalOtherMoneyRefunds(intermediaryResult4);
+        
+        locationResult.setTotalOtherMoneyNet(addTimeMoneyMaps(locationResult.getTotalOtherMoney(), locationResult.getTotalOtherMoneyRefunds()));
+		
         locationResult.setTotalPartialRefundsMoney(totalPartialRefundsByTime());
         locationResult.setTotalPartialRefundsMoneyRefunds(totalPartialRefundsRefundsByTime(refundPayments));
         locationResult.setTotalPartialRefundsMoneyNet(addTimeMoneyMaps(locationResult.getTotalPartialRefundsMoney(), locationResult.getTotalPartialRefundsMoneyRefunds()));
@@ -114,22 +122,44 @@ public class IndividualCalculator {
         locationResult.setNetTotalMoneyRefunds(addTimeMoneyMaps(locationResult.getTotalCollectedMoneyRefunds(), locationResult.getTotalFeesMoneyRefunds()));
         locationResult.setNetTotalMoneyNet(addTimeMoneyMaps(locationResult.getNetTotalMoney(), locationResult.getNetTotalMoneyRefunds()));
         
-        /* Needs to be patched up
-        locationResult.setCategorySales(totalSalesPerCategory(payments));
-        locationResult.setTotalsPerDiscount(totalSalesPerDiscount(payments));
+        locationResult.setCategorySales(totalSalesForCategoriesByTime(payments, categories));
+        locationResult.setCategorySalesRefunds(totalSalesForCategoriesRefundsByTime(payments, categories));
+        locationResult.setCategorySalesNet(totalSalesForCategoriesNetByTime(locationResult.getCategorySales(), locationResult.getCategorySalesRefunds()));
         
-        locationResult.setTotalCardSwipedMoney(totalMoneyCollectedForCardEntryMethod(payments, "SWIPED"));
-        // No can do on dips or taps
-        locationResult.setTotalCardKeyedMoney(totalMoneyCollectedForCardEntryMethod(payments, "MANUAL"));
-        locationResult.setTotalVisaMoney(totalMoneyCollectedForCardBrand(payments, "VISA"));
-        locationResult.setTotalMasterCardMoney(totalMoneyCollectedForCardBrand(payments, "MASTER_CARD"));
-        locationResult.setTotalDiscoverMoney(totalMoneyCollectedForCardBrand(payments, "DISCOVER"));
-        locationResult.setTotalAmexMoney(totalMoneyCollectedForCardBrand(payments, "AMERICAN_EXPRESS"));
-        locationResult.setTotalOtherCardMoney(totalOtherCardMoney(totalMoneyCollectedForCardBrand(payments, "DISCOVER_DINERS"), totalMoneyCollectedForCardBrand(payments, "JCB"), totalMoneyCollectedForCardBrand(payments, "UNKNOWN")));
-        end patching up */
+        locationResult.setTotalsPerDiscount(totalSalesForDiscountsByTime(payments, discounts));
+        locationResult.setTotalsPerDiscountRefunds(totalSalesForDiscountsRefundsByTime(payments, discounts));
+        locationResult.setTotalsPerDiscountNet(totalSalesForDiscountsNetByTime(locationResult.getTotalsPerDiscount(), locationResult.getTotalsPerDiscountRefunds()));
+        
+        locationResult.setTotalCardSwipedMoney(totalMoneyCollectedForCardEntryMethodByTime(payments, "SWIPED"));
+        locationResult.setTotalCardSwipedMoneyRefunds(totalMoneyCollectedForCardEntryMethodRefundsByTime(payments, "SWIPED"));
+        locationResult.setTotalCardSwipedMoneyNet(addTimeMoneyMaps(locationResult.getTotalCardSwipedMoney(), locationResult.getTotalCardSwipedMoneyRefunds()));
+        
+        locationResult.setTotalCardKeyedMoney(totalMoneyCollectedForCardEntryMethodByTime(payments, "MANUAL"));
+        locationResult.setTotalCardKeyedMoneyRefunds(totalMoneyCollectedForCardEntryMethodRefundsByTime(payments, "MANUAL"));
+        locationResult.setTotalCardKeyedMoneyNet(addTimeMoneyMaps(locationResult.getTotalCardKeyedMoney(), locationResult.getTotalCardKeyedMoneyRefunds()));
+        
+        locationResult.setTotalVisaMoney(totalMoneyCollectedForCardBrandByTime(payments, "VISA"));
+        locationResult.setTotalVisaMoneyRefunds(totalMoneyCollectedForCardBrandRefundsByTime(payments, "VISA"));
+        locationResult.setTotalVisaMoneyNet(addTimeMoneyMaps(locationResult.getTotalVisaMoney(), locationResult.getTotalVisaMoneyRefunds()));
+        
+        locationResult.setTotalMasterCardMoney(totalMoneyCollectedForCardBrandByTime(payments, "MASTER_CARD"));
+        locationResult.setTotalMasterCardMoneyRefunds(totalMoneyCollectedForCardBrandRefundsByTime(payments, "MASTER_CARD"));
+        locationResult.setTotalMasterCardMoneyNet(addTimeMoneyMaps(locationResult.getTotalMasterCardMoney(), locationResult.getTotalMasterCardMoneyRefunds()));
+        
+        locationResult.setTotalDiscoverMoney(totalMoneyCollectedForCardBrandByTime(payments, "DISCOVER"));
+        locationResult.setTotalDiscoverMoneyRefunds(totalMoneyCollectedForCardBrandRefundsByTime(payments, "DISCOVER"));
+        locationResult.setTotalDiscoverMoneyNet(addTimeMoneyMaps(locationResult.getTotalDiscoverMoney(), locationResult.getTotalDiscoverMoneyRefunds()));
+        
+        locationResult.setTotalAmexMoney(totalMoneyCollectedForCardBrandByTime(payments, "AMERICAN_EXPRESS"));
+        locationResult.setTotalAmexMoneyRefunds(totalMoneyCollectedForCardBrandRefundsByTime(payments, "AMERICAN_EXPRESS"));
+        locationResult.setTotalAmexMoneyNet(addTimeMoneyMaps(locationResult.getTotalAmexMoney(), locationResult.getTotalAmexMoneyRefunds()));
+        
+        locationResult.setTotalOtherCardMoney(addTimeMoneyMaps(totalMoneyCollectedForCardBrandByTime(payments, "DISCOVER_DINERS"), addTimeMoneyMaps(totalMoneyCollectedForCardBrandByTime(payments, "JCB"), totalMoneyCollectedForCardBrandByTime(payments, "UNKNOWN"))));
+        locationResult.setTotalOtherCardMoneyRefunds(addTimeMoneyMaps(totalMoneyCollectedForCardBrandRefundsByTime(payments, "DISCOVER_DINERS"), addTimeMoneyMaps(totalMoneyCollectedForCardBrandRefundsByTime(payments, "JCB"), totalMoneyCollectedForCardBrandRefundsByTime(payments, "UNKNOWN"))));
+        locationResult.setTotalOtherCardMoneyNet(addTimeMoneyMaps(locationResult.getTotalOtherCardMoney(), locationResult.getTotalOtherCardMoneyRefunds()));
         
 		StringBuilder sb = new StringBuilder();
-		sb.append("\"" + locationResult.getMerchantName() + "\",Daily Total,6am-7am,7am-8am,8am-9am,9am-10am,10am-11am,11am-12pm,12pm-1pm,1pm-2pm,2pm-3pm,3pm-4pm,4pm-5pm,5pm-6pm,6pm-7pm,7pm-8pm,8pm-9pm\n");
+		sb.append("\"" + locationResult.getMerchantName() + "\",Daily Total,6am-7am,7am-8am,8am-9am,9am-10am,10am-11am,11am-12pm,12pm-1pm,1pm-2pm,2pm-3pm,3pm-4pm,4pm-5pm,5pm-6pm,6pm-7pm,7pm-8pm,8pm-9pm,9pm-10pm,10pm-11pm\n");
 		sb.append("Gross Sales," + breakoutTimeTotalString(locationResult.getGrossSales()) + "\n");
 		sb.append("Gross Sales (Refunds)," + breakoutTimeTotalString(locationResult.getGrossSalesRefunds()) + "\n");
 		sb.append("Gross Sales (Net)," + breakoutTimeTotalString(locationResult.getGrossSalesNet()) + "\n");
@@ -173,8 +203,9 @@ public class IndividualCalculator {
 		sb.append("Net Total Money (Refunds)," + breakoutTimeTotalString(locationResult.getNetTotalMoneyRefunds()) + "\n");
 		sb.append("Net Total Money (Net)," + breakoutTimeTotalString(locationResult.getNetTotalMoneyNet()) + "\n");
 
-		sb.append("\nCategory Sales\n");
 		if (locationResult.getCategorySales() != null) {
+			sb.append("\nCategory Sales\n");
+			
 			for (String category : locationResult.getCategorySales().keySet()) {
 				LinkedHashMap<String,Integer> categorySales = locationResult.getCategorySales().get(category);
 				sb.append("\"" + category + "\"," + breakoutTimeTotalString(categorySales) + "\n");
@@ -187,8 +218,9 @@ public class IndividualCalculator {
 			}
 		}
 		
-		sb.append("\nDiscounts\n");
-		if (locationResult.getTotalsPerDiscount() != null) {
+		if (locationResult.getTotalsPerDiscount() != null && locationResult.getTotalsPerDiscount().size() != 0) {
+			sb.append("\nDiscounts\n");
+			
 			for (String discount : locationResult.getTotalsPerDiscount().keySet()) {
 				LinkedHashMap<String,Integer> discountSales = locationResult.getTotalsPerDiscount().get(discount);
 				sb.append("\"" + discount + "\"," + breakoutTimeTotalString(discountSales) + "\n");
@@ -201,18 +233,12 @@ public class IndividualCalculator {
 			}
 		}
 		
-		sb.append("Total Card Swiped Money," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoney()) + "\n");
+		sb.append("\nTotal Card Swiped Money," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoney()) + "\n");
 		sb.append("Total Card Swiped Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoneyRefunds()) + "\n");
 		sb.append("Total Card Swiped Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoneyNet()) + "\n");
-		sb.append("Total Card Tapped Money," + breakoutTimeTotalString(locationResult.getTotalCardTappedMoney()) + "\n");
-		sb.append("Total Card Tapped Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardTappedMoneyRefunds()) + "\n");
-		sb.append("Total Card Tapped Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardTappedMoneyNet()) + "\n");
-		sb.append("Total Card Dipped Money," + breakoutTimeTotalString(locationResult.getTotalCardDippedMoney()) + "\n");
-		sb.append("Total Card Dipped Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardDippedMoneyRefunds()) + "\n");
-		sb.append("Total Card Dipped Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardDippedMoneyNet()) + "\n");
-		sb.append("Total Card Keyed Money," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoney()) + "\n");
-		sb.append("Total Card Keyed Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyRefunds()) + "\n");
-		sb.append("Total Card Keyed Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyNet()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoney()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Refunds)\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyRefunds()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Net)\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyNet()) + "\n");
 		sb.append("Total Visa Money," + breakoutTimeTotalString(locationResult.getTotalVisaMoney()) + "\n");
 		sb.append("Total Visa Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalVisaMoneyRefunds()) + "\n");
 		sb.append("Total Visa Money (Net)," + breakoutTimeTotalString(locationResult.getTotalVisaMoneyNet()) + "\n");
@@ -267,8 +293,10 @@ public class IndividualCalculator {
 		paymentsSplitByTime.put("sixPm", new LinkedList<Payment>());
 		paymentsSplitByTime.put("sevenPm", new LinkedList<Payment>());
 		paymentsSplitByTime.put("eightPm", new LinkedList<Payment>());
+		paymentsSplitByTime.put("ninePm", new LinkedList<Payment>());
+		paymentsSplitByTime.put("tenPm", new LinkedList<Payment>());
 		
-		// Starts at 6am-7am; goes to 8pm-9pm
+		// Starts at 6am-7am; goes to 10pm-11pm
 		for (Payment payment : payments) {
 			Calendar c = TimeManager.toCalendar(payment.getCreatedAt());
 			c.setTimeZone(TimeZone.getTimeZone(timeZone));
@@ -303,6 +331,10 @@ public class IndividualCalculator {
 			    paymentsSplitByTime.get("sevenPm").add(payment);
 			} else if (c.get(Calendar.HOUR_OF_DAY) == 20) {
 			    paymentsSplitByTime.get("eightPm").add(payment);
+			} else if (c.get(Calendar.HOUR_OF_DAY) == 21) {
+			    paymentsSplitByTime.get("ninePm").add(payment);
+			} else if (c.get(Calendar.HOUR_OF_DAY) == 22) {
+			    paymentsSplitByTime.get("tenPm").add(payment);
 			}
 		}
 		
@@ -363,16 +395,30 @@ public class IndividualCalculator {
 		return totalGrossSalesRefundsByTime;
 	}
 
-	private LinkedHashMap<String, Integer> totalMoneyCollectedForGiftCardsByTime(
-			Payment[] payments) {
-		// TODO Auto-generated method stub
-		return null;
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForGiftCardsByTime(Payment[] payments) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForGiftCardsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalMoneyCollectedForGiftCardsByTime.put(key, reportCalculator.totalMoneyCollectedForGiftCards(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()])));
+		}
+		
+		return totalMoneyCollectedForGiftCardsByTime;
 	}
 	
-	private LinkedHashMap<String, Integer> totalMoneyCollectedForGiftCardsRefundsByTime(
-			Payment[] refundPayments) {
-		// TODO Auto-generated method stub
-		return null;
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForGiftCardsRefundsByTime(Payment[] refundPayments) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(refundPayments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForGiftCardsRefundsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalMoneyCollectedForGiftCardsRefundsByTime.put(key, reportCalculator.totalMoneyCollectedForGiftCardsRefunds(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()])));
+		}
+		
+		return totalMoneyCollectedForGiftCardsRefundsByTime;
 	}
 
 	private LinkedHashMap<String, Integer> totalTaxMoneyByTime(Payment[] payments) throws ParseException {
@@ -554,5 +600,183 @@ public class IndividualCalculator {
 		}
 		
 		return totalProcessingFeeMoneyByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForCardEntryMethodByTime(Payment[] payments, String method) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForCardEntryMethodByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			
+			
+			totalMoneyCollectedForCardEntryMethodByTime.put(key, reportCalculator.totalMoneyCollectedForCardEntryMethod(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), method));
+		}
+		
+		return totalMoneyCollectedForCardEntryMethodByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForCardEntryMethodRefundsByTime(Payment[] refundPayments, String method) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(refundPayments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForCardEntryMethodRefundsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalMoneyCollectedForCardEntryMethodRefundsByTime.put(key, reportCalculator.totalMoneyCollectedForCardEntryMethodRefunds(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), method));
+		}
+		
+		return totalMoneyCollectedForCardEntryMethodRefundsByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForCardBrandByTime(Payment[] refundPayments, String brand) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(refundPayments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForCardBrandByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalMoneyCollectedForCardBrandByTime.put(key, reportCalculator.totalMoneyCollectedForCardBrand(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), brand));
+		}
+		
+		return totalMoneyCollectedForCardBrandByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalMoneyCollectedForCardBrandRefundsByTime(Payment[] refundPayments, String brand) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(refundPayments);
+		
+		LinkedHashMap<String,Integer> totalMoneyCollectedForCardBrandRefundsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalMoneyCollectedForCardBrandRefundsByTime.put(key, reportCalculator.totalMoneyCollectedForCardBrandRefunds(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), brand));
+		}
+		
+		return totalMoneyCollectedForCardBrandRefundsByTime;
+	}
+	
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesByTime(Payment[] payments, Category[] categories) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForCategoriesByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (Category category : categories) {
+			totalSalesForCategoriesByTime.put(category.getName(), totalSalesForCategoryByTime(payments, category.getName()));
+		}
+
+		totalSalesForCategoriesByTime.put("No category", totalSalesForCategoryByTime(payments, ""));
+		
+		return totalSalesForCategoriesByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalSalesForCategoryByTime(Payment[] payments, String category) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalSalesForCategoryByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalSalesForCategoryByTime.put(key, reportCalculator.totalMoneyCollectedForCategory(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), category));
+		}
+		
+		return totalSalesForCategoryByTime;
+	}
+
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesRefundsByTime(Payment[] payments, Category[] categories) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForCategoriesRefundsByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (Category category : categories) {
+			totalSalesForCategoriesRefundsByTime.put(category.getName(), totalSalesForCategoryRefundsByTime(payments, category.getName()));
+		}
+
+		totalSalesForCategoriesRefundsByTime.put("No category", totalSalesForCategoryRefundsByTime(payments, ""));
+		
+		return totalSalesForCategoriesRefundsByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalSalesForCategoryRefundsByTime(Payment[] payments, String category) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalSalesForCategoryRefundsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalSalesForCategoryRefundsByTime.put(key, reportCalculator.totalMoneyCollectedForCategoryRefunds(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), category));
+		}
+		
+		return totalSalesForCategoryRefundsByTime;
+	}
+	
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesNetByTime(LinkedHashMap<String, LinkedHashMap<String, Integer>> categorySales, LinkedHashMap<String, LinkedHashMap<String, Integer>> categorySalesRefunds) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForCategoriesNetByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (String category : categorySales.keySet()) {
+			LinkedHashMap<String, Integer> categorySalesMap = categorySales.get(category);
+			LinkedHashMap<String, Integer> categorySalesRefundsMap = categorySalesRefunds.get(category);
+			totalSalesForCategoriesNetByTime.put(category, addTimeMoneyMaps(categorySalesMap, categorySalesRefundsMap));
+		}
+		
+		LinkedHashMap<String, Integer> categorySalesNoCategory = categorySales.get("No category");
+		LinkedHashMap<String, Integer> categorySalesRefundsNoCategory = categorySalesRefunds.get("No category");
+		totalSalesForCategoriesNetByTime.put("No category", addTimeMoneyMaps(categorySalesNoCategory, categorySalesRefundsNoCategory));
+		
+		return totalSalesForCategoriesNetByTime;
+	}
+	
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsByTime(Payment[] payments, Discount[] discounts) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForDiscountByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (Discount discount : discounts) {
+			totalSalesForDiscountByTime.put(discount.getName(), totalSalesForDiscountByTime(payments, discount.getName()));
+		}
+		
+		return totalSalesForDiscountByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalSalesForDiscountByTime(Payment[] payments, String discount) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalSalesForCategoryByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalSalesForCategoryByTime.put(key, reportCalculator.totalMoneyCollectedForDiscount(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), discount));
+		}
+		
+		return totalSalesForCategoryByTime;
+	}
+	
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsRefundsByTime(Payment[] payments, Discount[] discounts) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForDiscountsRefundsByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (Discount discount : discounts) {
+			totalSalesForDiscountsRefundsByTime.put(discount.getName(), totalSalesForDiscountRefundsByTime(payments, discount.getName()));
+		}
+		
+		return totalSalesForDiscountsRefundsByTime;
+	}
+
+	private LinkedHashMap<String, Integer> totalSalesForDiscountRefundsByTime(Payment[] payments, String discount) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalSalesForDiscountRefundsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalSalesForDiscountRefundsByTime.put(key, reportCalculator.totalMoneyCollectedForDiscountRefunds(paymentsInTimeInterval.toArray(new Payment[paymentsInTimeInterval.size()]), discount));
+		}
+		
+		return totalSalesForDiscountRefundsByTime;
+	}
+	
+	private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsNetByTime(LinkedHashMap<String, LinkedHashMap<String, Integer>> discountSales, LinkedHashMap<String, LinkedHashMap<String, Integer>> discountSalesRefunds) throws ParseException {
+		LinkedHashMap<String, LinkedHashMap<String,Integer>> totalSalesForDiscountsNetByTime = new LinkedHashMap<String, LinkedHashMap<String,Integer>>();
+		
+		for (String discount : discountSales.keySet()) {
+			LinkedHashMap<String, Integer> discountSalesMap = discountSales.get(discount);
+			LinkedHashMap<String, Integer> discountSalesRefundsMap = discountSalesRefunds.get(discount);
+			totalSalesForDiscountsNetByTime.put(discount, addTimeMoneyMaps(discountSalesMap, discountSalesRefundsMap));
+		}
+		
+		return totalSalesForDiscountsNetByTime;
 	}
 }
