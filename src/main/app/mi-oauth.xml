@@ -60,15 +60,15 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]></db:parameterized-query>
         </db:select>
     </sub-flow>
-    <flow name="renewExpiredTokens">
-        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 9 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every Sunday at 9:00am (UTC)">
+    <flow name="renewExpiringTokens">
+        <quartz:inbound-endpoint jobName="renewExpiredTokens" cronExpression="0 0 9 1/2 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every two days at 9:00am (UTC)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-payload value="#[server.dateTime.withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to current date in ISO8601 format"/>
+        <set-payload value="#[server.dateTime.plusDays(7).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date one week in the future in ISO8601 format"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE expiryDate < #[payload];]]></db:parameterized-query>
         </db:select>
-        <foreach doc:name="For each expired token">
+        <foreach doc:name="For each expiring token">
             <component doc:name="Renew token">
                 <singleton-object class="util.oauth.TokenRenewer">
                     <property key="apiUrl" value="${api.url}"/>
