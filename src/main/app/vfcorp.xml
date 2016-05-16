@@ -15,7 +15,8 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
     <flow name="vfcorpGenerateTLOG" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="generateTLOG" cronExpression="0 0 5 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 5:00am (UTC)">
+    	<!-- TODO: this runs in UTC time. It does not account for daylight savings. -->
+        <quartz:inbound-endpoint jobName="generateTLOG" cronExpression="0 30 3 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:30am (UTC)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <flow-ref name="setAllParamsForGenerateTLOG" doc:name="Set all parameters"/>
