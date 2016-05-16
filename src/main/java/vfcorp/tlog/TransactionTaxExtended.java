@@ -53,7 +53,7 @@ public class TransactionTaxExtended extends Record {
 		return id;
 	}
 	
-	public TransactionTaxExtended parse(Payment payment, PaymentTax tax) {
+	public TransactionTaxExtended parse(Payment payment, PaymentTax tax) throws Exception {
 		String taxType = "01";
 		String taxCode = "";
 		switch (tax.getName()) {

@@ -47,7 +47,7 @@ public class SubHeaderStoreSystemLocalizationInformation extends Record {
 		return id;
 	}
 	
-	public SubHeaderStoreSystemLocalizationInformation parse() {
+	public SubHeaderStoreSystemLocalizationInformation parse() throws Exception {
 		putValue("Country/Language Indicator", "00000409"); // taken from the example file
 		putValue("Currency Decimal Indicator", "2"); // taken from the example file
 		

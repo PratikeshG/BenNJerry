@@ -172,7 +172,7 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) {
+	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) throws Exception {
 		Map<String,String> params = new HashMap<String,String>();
 		
 		String lastDate = "";
@@ -193,7 +193,7 @@ public class TransactionHeader extends Record {
 		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
-	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) {
+	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) throws Exception {
 		Map<String,String> params = new HashMap<String,String>();
 		
 		// TODO(colinlam): refactor to only include a single employee ID passed in
@@ -218,7 +218,7 @@ public class TransactionHeader extends Record {
 		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
-	public TransactionHeader parse(Merchant location, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params) {
+	public TransactionHeader parse(Merchant location, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params) throws Exception {
 		String storeNumber = getStoreNumber(location);
 		params.put("Store Number", storeNumber);
 		

@@ -75,7 +75,7 @@ public class MerchandiseItem extends Record {
 		return id;
 	}
 	
-	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemNumberLookupLength) {
+	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemNumberLookupLength) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));

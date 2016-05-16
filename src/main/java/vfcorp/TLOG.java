@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.mule.api.store.ObjectStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
@@ -38,6 +40,7 @@ public class TLOG {
 	private List<Record> transactionLog;
 	private int itemNumberLookupLength;
 	private String deployment;
+	private static Logger logger = LoggerFactory.getLogger(TLOG.class);
 
 	private ObjectStore<String> objectStore;
 
@@ -57,7 +60,7 @@ public class TLOG {
 		this.objectStore = objectStore;
 	}
 
-	public void parse(Merchant location, Payment[] squarePayments, Item[] squareItems, Employee[] squareEmployees) {
+	public void parse(Merchant location, Payment[] squarePayments, Item[] squareItems, Employee[] squareEmployees) throws Exception {
 		List<Payment> squarePaymentsList = Arrays.asList(squarePayments);
 		List<Item> squareItemsList = Arrays.asList(squareItems);
 		List<Employee> squareEmployeesList = Arrays.asList(squareEmployees);
@@ -84,7 +87,7 @@ public class TLOG {
 		return sb.toString();
 	}
 	
-	private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList, List<Item> squareItemsList, List<Employee> squareEmployeesList) {
+	private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList, List<Item> squareItemsList, List<Employee> squareEmployeesList) throws Exception {
 		
 		for (Payment payment : squarePaymentsList) {
 			
@@ -128,8 +131,10 @@ public class TLOG {
 					}
 					
 					Set<String> employeeIds = new HashSet<String>();
+					boolean employeeIdShouldBePresent = false;
 					for (Tender tender : payment.getTender()) {
 						if (tender.getEmployeeId() != null) {
+							employeeIdShouldBePresent = true;
 							for (Employee employee : squareEmployeesList) {
 								if (tender.getEmployeeId().equals(employee.getId())) {
 									employeeIds.add(employee.getExternalId());
@@ -139,10 +144,15 @@ public class TLOG {
 						}
 					}
 					
+					if (employeeIdShouldBePresent && employeeIds.size() == 0) {
+						logger.error("tender had an employee ID that did not match any existing employee; aborting operation");
+						throw new Exception("tender had an employee ID that did not match any existing employee; aborting operation");
+					}
+					
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
 						for (String employeeId : employeeIds) {
 							if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
-								paymentList.add(new AuthorizationCode().parse(payment, itemization, employeeId));
+								paymentList.add(new AuthorizationCode().parse(employeeId));
 							}
 							
 							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
@@ -165,7 +175,7 @@ public class TLOG {
 		}
 	}
 
-	private void createStoreCloseRecords(Merchant location, List<Payment> squarePaymentsList, List<Employee> squareEmployeesList) {
+	private void createStoreCloseRecords(Merchant location, List<Payment> squarePaymentsList, List<Employee> squareEmployeesList) throws Exception {
 		
 		Set<String> deviceNames = new HashSet<String>();
 		for (Payment squarePayment : squarePaymentsList) {

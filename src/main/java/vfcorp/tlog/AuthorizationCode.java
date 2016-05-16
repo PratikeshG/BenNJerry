@@ -3,9 +3,6 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.PaymentItemization;
-
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
@@ -104,7 +101,7 @@ public class AuthorizationCode extends Record {
 		return id;
 	}
 	
-	public AuthorizationCode parse(Payment payment, PaymentItemization itemization, String employeeNumber) {
+	public AuthorizationCode parse(String employeeNumber) throws Exception {
 		// TODO(colinlam): need to decipher the function indicator here.
 		// Is this a line item or transaction discount?
 		// Is it by percentage or amoount?

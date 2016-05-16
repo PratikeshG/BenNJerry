@@ -112,7 +112,7 @@ public class ForInStoreReportingUseOnly extends Record {
 		return id;
 	}
 	
-	public ForInStoreReportingUseOnly parse(String transactionIdentifier, List<Payment> squarePayments) {
+	public ForInStoreReportingUseOnly parse(String transactionIdentifier, List<Payment> squarePayments) throws Exception {
 		int count = 0;
 		int amount = 0;
 		

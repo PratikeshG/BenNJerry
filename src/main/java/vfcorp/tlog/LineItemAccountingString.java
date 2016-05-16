@@ -60,7 +60,7 @@ public class LineItemAccountingString extends Record {
 		return id;
 	}
 	
-	public LineItemAccountingString parse(PaymentItemization itemization, int itemNumberLookupLength, int index, double quantity) {
+	public LineItemAccountingString parse(PaymentItemization itemization, int itemNumberLookupLength, int index, double quantity) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));

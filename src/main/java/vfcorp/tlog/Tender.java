@@ -67,7 +67,7 @@ public class Tender extends Record {
 		return id;
 	}
 	
-	public Tender parse(com.squareup.connect.Tender tender, boolean refund) {
+	public Tender parse(com.squareup.connect.Tender tender, boolean refund) throws Exception {
 		String tenderCode = "";
 		if (tender.getType().equals("CASH")) {
 			tenderCode = TENDER_CODE_CASH;

@@ -71,7 +71,12 @@ public abstract class Record {
 		return new String(record);
 	}
 	
-	protected String putValue(String field, String value) {
+	protected String putValue(String field, String value) throws Exception {
+		if (getFields().get(field) == null) {
+			logger.error("field details were not found for " + field + "for record type " + this.getId());
+			throw new Exception("field details were not found for " + field + "for record type " + this.getId());
+		}
+		
 		return values.put(field, value);
 	}
 	
@@ -86,8 +91,10 @@ public abstract class Record {
 	private void put(String field, String value) {
 		FieldDetails details = getFields().get(field);
 		
-		if (value == null || details == null) {
-			System.out.println("!"); // handy for debugging
+		// Passed in value should always be a string. A null string should be treated as empty.
+		if (value == null) {
+			logger.info("null string passed in for field " + field + " for record type " + this.getId() + "; turning into empty string");
+			value = "";
 		}
 		
 		if (value.length() > details.getCharacters()) {

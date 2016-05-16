@@ -48,14 +48,14 @@ public class TransactionTotal extends Record {
 		return id;
 	}
 	
-	public TransactionTotal parse(Payment payment, boolean refund) {
+	public TransactionTotal parse(Payment payment, boolean refund) throws Exception {
 		putValue("Amount", "" + Math.abs(payment.getTotalCollectedMoney().getAmount()));
 		putValue("Sign Indicator", (refund ? "1" : "0"));
 		
 		return this;
 	}
 	
-	public TransactionTotal parse(Refund refund) {
+	public TransactionTotal parse(Refund refund) throws Exception {
 		putValue("Amount", "" + Math.abs(refund.getRefundedMoney().getAmount()));
 		putValue("Sign Indicator", "1"); // subtotals are always negative
 		
