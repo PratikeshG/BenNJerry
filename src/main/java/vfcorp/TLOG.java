@@ -130,7 +130,12 @@ public class TLOG {
 					Set<String> employeeIds = new HashSet<String>();
 					for (Tender tender : payment.getTender()) {
 						if (tender.getEmployeeId() != null) {
-							employeeIds.add(tender.getEmployeeId());
+							for (Employee employee : squareEmployeesList) {
+								if (tender.getEmployeeId().equals(employee.getId())) {
+									employeeIds.add(employee.getExternalId());
+									break;
+								}
+							}
 						}
 					}
 					
@@ -140,7 +145,7 @@ public class TLOG {
 								paymentList.add(new AuthorizationCode().parse(payment, itemization, employeeId));
 							}
 							
-							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, squareEmployeesList, q));
+							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
 						}
 					}
 				}

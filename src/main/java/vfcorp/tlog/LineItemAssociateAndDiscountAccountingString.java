@@ -2,13 +2,11 @@ package vfcorp.tlog;
 
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import vfcorp.Record;
 import vfcorp.FieldDetails;
+import vfcorp.Record;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
 
@@ -71,7 +69,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		return id;
 	}
 	
-	public LineItemAssociateAndDiscountAccountingString parse(Payment payment, PaymentItemization itemization, int itemNumberLookupLength, String employeeId, List<Employee> squareEmployees, double quantity) {
+	public LineItemAssociateAndDiscountAccountingString parse(Payment payment, PaymentItemization itemization, int itemNumberLookupLength, String employeeId, double quantity) {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
@@ -82,16 +80,6 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 			productivityQuantity = String.format( "%.3f", 1.0).replace(".", "");
 		} else {
 			productivityQuantity = String.format( "%.3f", quantity).replace(".", "");
-		}
-		
-		for (Employee employee : squareEmployees) {
-			if (employee.getId().equals(employeeId)) {
-				putValue("Employee Number", employee.getExternalId());
-			}
-		}
-		
-		if (values.get("Employee Number") == null) {
-			putValue("Employee Number", "");
 		}
 		
 		putValue("Team Identifier", "0"); // not supported
@@ -112,6 +100,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Price Override Indicator", "0"); // not supported
 		putValue("Price Override Value", ""); // not supported
 		putValue("Receipt Presentation Price", "" + itemization.getGrossSalesMoney().getAmount());
+		putValue("Employee Number", employeeId);
 		putValue("Productivity Quantity", productivityQuantity);
 		putValue("PLU Sale Price Discount Value", "" + -itemization.getDiscountMoney().getAmount());
 		
