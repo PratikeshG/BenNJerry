@@ -196,11 +196,13 @@ public class TransactionHeader extends Record {
 	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) {
 		Map<String,String> params = new HashMap<String,String>();
 		
+		// TODO(colinlam): refactor to only include a single employee ID passed in
 		for (Tender tender : squarePayment.getTender()) {
 			if (tender.getEmployeeId() != null) {
 				for (Employee employee : squareEmployees) {
 					if (employee.getId().equals(tender.getEmployeeId())) {
 						params.put("Employee Number", employee.getExternalId());
+						break;
 					}
 				}
 			}
