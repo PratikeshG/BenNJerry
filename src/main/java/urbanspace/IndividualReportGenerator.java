@@ -122,6 +122,9 @@ public class IndividualReportGenerator {
         locationResult.setNetTotalMoneyRefunds(addTimeMoneyMaps(locationResult.getTotalCollectedMoneyRefunds(), locationResult.getTotalFeesMoneyRefunds()));
         locationResult.setNetTotalMoneyNet(addTimeMoneyMaps(locationResult.getNetTotalMoney(), locationResult.getNetTotalMoneyRefunds()));
         
+        locationResult.setTotalNumberOfPayments(totalNumberOfTransactionsByTime(payments));
+        locationResult.setTotalNumberOfRefunds(totalNumberOfTransactionsByTime(refundPayments));
+        
         locationResult.setCategorySales(totalSalesForCategoriesByTime(payments, categories));
         locationResult.setCategorySalesRefunds(totalSalesForCategoriesRefundsByTime(payments, categories));
         locationResult.setCategorySalesNet(totalSalesForCategoriesNetByTime(locationResult.getCategorySales(), locationResult.getCategorySalesRefunds()));
@@ -160,61 +163,64 @@ public class IndividualReportGenerator {
         
 		StringBuilder sb = new StringBuilder();
 		sb.append("\"" + locationResult.getMerchantName() + "\",Daily Total,6am-7am,7am-8am,8am-9am,9am-10am,10am-11am,11am-12pm,12pm-1pm,1pm-2pm,2pm-3pm,3pm-4pm,4pm-5pm,5pm-6pm,6pm-7pm,7pm-8pm,8pm-9pm,9pm-10pm,10pm-11pm\n");
-		sb.append("Gross Sales," + breakoutTimeTotalString(locationResult.getGrossSales()) + "\n");
-		sb.append("Gross Sales (Refunds)," + breakoutTimeTotalString(locationResult.getGrossSalesRefunds()) + "\n");
-		sb.append("Gross Sales (Net)," + breakoutTimeTotalString(locationResult.getGrossSalesNet()) + "\n");
-		sb.append("Total Discounts Money," + breakoutTimeTotalString(locationResult.getTotalDiscountsMoney()) + "\n");
-		sb.append("Total Discounts Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalDiscountsMoneyRefunds()) + "\n");
-		sb.append("Total Discounts Money (Net)," + breakoutTimeTotalString(locationResult.getTotalDiscountsMoneyNet()) + "\n");
-		sb.append("Net Sales," + breakoutTimeTotalString(locationResult.getNetSales()) + "\n");
-		sb.append("Net Sales (Refunds)," + breakoutTimeTotalString(locationResult.getNetSalesRefunds()) + "\n");
-		sb.append("Net Sales (Net)," + breakoutTimeTotalString(locationResult.getNetSalesNet()) + "\n");
-		sb.append("Gift Card Sales," + breakoutTimeTotalString(locationResult.getGiftCardSales()) + "\n");
-		sb.append("Gift Card Sales (Refunds)," + breakoutTimeTotalString(locationResult.getGiftCardSalesRefunds()) + "\n");
-		sb.append("Gift Card Sales (Net)," + breakoutTimeTotalString(locationResult.getGiftCardSalesNet()) + "\n");
-		sb.append("Total Tax Money," + breakoutTimeTotalString(locationResult.getTotalTaxMoney()) + "\n");
-		sb.append("Total Tax Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalTaxMoneyRefunds()) + "\n");
-		sb.append("Total Tax Money (Net)," + breakoutTimeTotalString(locationResult.getTotalTaxMoneyNet()) + "\n");
-		sb.append("Total Tip Money," + breakoutTimeTotalString(locationResult.getTotalTipMoney()) + "\n");
-		sb.append("Total Tip Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalTipMoneyRefunds()) + "\n");
-		sb.append("Total Tip Money (Net)," + breakoutTimeTotalString(locationResult.getTotalTipMoneyNet()) + "\n");
-		sb.append("Total Partial Refunds Money," + breakoutTimeTotalString(locationResult.getTotalPartialRefundsMoney()) + "\n");
-		sb.append("Total Partial Refunds Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalPartialRefundsMoneyRefunds()) + "\n");
-		sb.append("Total Partial Refunds Money (Net)," + breakoutTimeTotalString(locationResult.getTotalPartialRefundsMoneyNet()) + "\n");
-		sb.append("Total Collected Money," + breakoutTimeTotalString(locationResult.getTotalCollectedMoney()) + "\n");
-		sb.append("Total Collected Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCollectedMoneyRefunds()) + "\n");
-		sb.append("Total Collected Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCollectedMoneyNet()) + "\n");
-		sb.append("Total Cash Money," + breakoutTimeTotalString(locationResult.getTotalCashMoney()) + "\n");
-		sb.append("Total Cash Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCashMoneyRefunds()) + "\n");
-		sb.append("Total Cash Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCashMoneyNet()) + "\n");
-		sb.append("Total Card Money," + breakoutTimeTotalString(locationResult.getTotalCardMoney()) + "\n");
-		sb.append("Total Card Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardMoneyRefunds()) + "\n");
-		sb.append("Total Card Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardMoneyNet()) + "\n");
-		sb.append("Total Gift Card Money," + breakoutTimeTotalString(locationResult.getTotalGiftCardMoney()) + "\n");
-		sb.append("Total Gift Card Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalGiftCardMoneyRefunds()) + "\n");
-		sb.append("Total Gift Card Money (Net)," + breakoutTimeTotalString(locationResult.getTotalGiftCardMoneyNet()) + "\n");
-		sb.append("Total Other Money," + breakoutTimeTotalString(locationResult.getTotalOtherMoney()) + "\n");
-		sb.append("Total Other Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalOtherMoneyRefunds()) + "\n");
-		sb.append("Total Other Money (Net)," + breakoutTimeTotalString(locationResult.getTotalOtherMoneyNet()) + "\n");
-		sb.append("Total Fees Money," + breakoutTimeTotalString(locationResult.getTotalFeesMoney()) + "\n");
-		sb.append("Total Fees Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalFeesMoneyRefunds()) + "\n");
-		sb.append("Total Fees Money (Net)," + breakoutTimeTotalString(locationResult.getTotalFeesMoneyNet()) + "\n");
-		sb.append("Net Total Money," + breakoutTimeTotalString(locationResult.getNetTotalMoney()) + "\n");
-		sb.append("Net Total Money (Refunds)," + breakoutTimeTotalString(locationResult.getNetTotalMoneyRefunds()) + "\n");
-		sb.append("Net Total Money (Net)," + breakoutTimeTotalString(locationResult.getNetTotalMoneyNet()) + "\n");
+		sb.append("Gross Sales," + breakoutTimeTotalMoneyString(locationResult.getGrossSales()) + "\n");
+		sb.append("Gross Sales (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getGrossSalesRefunds()) + "\n");
+		sb.append("Gross Sales (Net)," + breakoutTimeTotalMoneyString(locationResult.getGrossSalesNet()) + "\n");
+		sb.append("Total Discounts Money," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscountsMoney()) + "\n");
+		sb.append("Total Discounts Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscountsMoneyRefunds()) + "\n");
+		sb.append("Total Discounts Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscountsMoneyNet()) + "\n");
+		sb.append("Net Sales," + breakoutTimeTotalMoneyString(locationResult.getNetSales()) + "\n");
+		sb.append("Net Sales (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getNetSalesRefunds()) + "\n");
+		sb.append("Net Sales (Net)," + breakoutTimeTotalMoneyString(locationResult.getNetSalesNet()) + "\n");
+		sb.append("Gift Card Sales," + breakoutTimeTotalMoneyString(locationResult.getGiftCardSales()) + "\n");
+		sb.append("Gift Card Sales (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getGiftCardSalesRefunds()) + "\n");
+		sb.append("Gift Card Sales (Net)," + breakoutTimeTotalMoneyString(locationResult.getGiftCardSalesNet()) + "\n");
+		sb.append("Total Tax Money," + breakoutTimeTotalMoneyString(locationResult.getTotalTaxMoney()) + "\n");
+		sb.append("Total Tax Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalTaxMoneyRefunds()) + "\n");
+		sb.append("Total Tax Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalTaxMoneyNet()) + "\n");
+		sb.append("Total Tip Money," + breakoutTimeTotalMoneyString(locationResult.getTotalTipMoney()) + "\n");
+		sb.append("Total Tip Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalTipMoneyRefunds()) + "\n");
+		sb.append("Total Tip Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalTipMoneyNet()) + "\n");
+		sb.append("Total Partial Refunds Money," + breakoutTimeTotalMoneyString(locationResult.getTotalPartialRefundsMoney()) + "\n");
+		sb.append("Total Partial Refunds Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalPartialRefundsMoneyRefunds()) + "\n");
+		sb.append("Total Partial Refunds Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalPartialRefundsMoneyNet()) + "\n");
+		sb.append("Total Collected Money," + breakoutTimeTotalMoneyString(locationResult.getTotalCollectedMoney()) + "\n");
+		sb.append("Total Collected Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalCollectedMoneyRefunds()) + "\n");
+		sb.append("Total Collected Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalCollectedMoneyNet()) + "\n");
+		sb.append("Total Cash Money," + breakoutTimeTotalMoneyString(locationResult.getTotalCashMoney()) + "\n");
+		sb.append("Total Cash Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalCashMoneyRefunds()) + "\n");
+		sb.append("Total Cash Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalCashMoneyNet()) + "\n");
+		sb.append("Total Card Money," + breakoutTimeTotalMoneyString(locationResult.getTotalCardMoney()) + "\n");
+		sb.append("Total Card Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalCardMoneyRefunds()) + "\n");
+		sb.append("Total Card Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalCardMoneyNet()) + "\n");
+		sb.append("Total Gift Card Money," + breakoutTimeTotalMoneyString(locationResult.getTotalGiftCardMoney()) + "\n");
+		sb.append("Total Gift Card Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalGiftCardMoneyRefunds()) + "\n");
+		sb.append("Total Gift Card Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalGiftCardMoneyNet()) + "\n");
+		sb.append("Total Other Money," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherMoney()) + "\n");
+		sb.append("Total Other Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherMoneyRefunds()) + "\n");
+		sb.append("Total Other Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherMoneyNet()) + "\n");
+		sb.append("Total Fees Money," + breakoutTimeTotalMoneyString(locationResult.getTotalFeesMoney()) + "\n");
+		sb.append("Total Fees Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalFeesMoneyRefunds()) + "\n");
+		sb.append("Total Fees Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalFeesMoneyNet()) + "\n");
+		sb.append("Net Total Money," + breakoutTimeTotalMoneyString(locationResult.getNetTotalMoney()) + "\n");
+		sb.append("Net Total Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getNetTotalMoneyRefunds()) + "\n");
+		sb.append("Net Total Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getNetTotalMoneyNet()) + "\n");
 
+		sb.append("\nNumber of Payments," + breakoutTimeTotalString(locationResult.getTotalNumberOfPayments()) + "\n");
+		sb.append("Number of Refunds," + breakoutTimeTotalString(locationResult.getTotalNumberOfRefunds()) + "\n");
+		
 		if (locationResult.getCategorySales() != null) {
 			sb.append("\nCategory Sales\n");
 			
 			for (String category : locationResult.getCategorySales().keySet()) {
 				LinkedHashMap<String,Integer> categorySales = locationResult.getCategorySales().get(category);
-				sb.append("\"" + category + "\"," + breakoutTimeTotalString(categorySales) + "\n");
+				sb.append("\"" + category + "\"," + breakoutTimeTotalMoneyString(categorySales) + "\n");
 				
 				LinkedHashMap<String,Integer> categorySalesRefunds = locationResult.getCategorySalesRefunds().get(category);
-				sb.append("\"" + category + " (Refunds)\"," + breakoutTimeTotalString(categorySalesRefunds) + "\n");
+				sb.append("\"" + category + " (Refunds)\"," + breakoutTimeTotalMoneyString(categorySalesRefunds) + "\n");
 				
 				LinkedHashMap<String,Integer> categorySalesNet = locationResult.getCategorySalesNet().get(category);
-				sb.append("\"" + category + " (Net)\"," + breakoutTimeTotalString(categorySalesNet) + "\n");
+				sb.append("\"" + category + " (Net)\"," + breakoutTimeTotalMoneyString(categorySalesNet) + "\n");
 			}
 		}
 		
@@ -223,37 +229,37 @@ public class IndividualReportGenerator {
 			
 			for (String discount : locationResult.getTotalsPerDiscount().keySet()) {
 				LinkedHashMap<String,Integer> discountSales = locationResult.getTotalsPerDiscount().get(discount);
-				sb.append("\"" + discount + "\"," + breakoutTimeTotalString(discountSales) + "\n");
+				sb.append("\"" + discount + "\"," + breakoutTimeTotalMoneyString(discountSales) + "\n");
 				
 				LinkedHashMap<String,Integer> discountSalesRefunds = locationResult.getTotalsPerDiscountRefunds().get(discount);
-				sb.append("\"" + discount + " (Refunds)\"," + breakoutTimeTotalString(discountSalesRefunds) + "\n");
+				sb.append("\"" + discount + " (Refunds)\"," + breakoutTimeTotalMoneyString(discountSalesRefunds) + "\n");
 				
 				LinkedHashMap<String,Integer> discountSalesNet = locationResult.getTotalsPerDiscountNet().get(discount);
-				sb.append("\"" + discount + " (Net)\"," + breakoutTimeTotalString(discountSalesNet) + "\n");
+				sb.append("\"" + discount + " (Net)\"," + breakoutTimeTotalMoneyString(discountSalesNet) + "\n");
 			}
 		}
 		
-		sb.append("\nTotal Card Swiped Money," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoney()) + "\n");
-		sb.append("Total Card Swiped Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoneyRefunds()) + "\n");
-		sb.append("Total Card Swiped Money (Net)," + breakoutTimeTotalString(locationResult.getTotalCardSwipedMoneyNet()) + "\n");
-		sb.append("\"Total Card Tapped, Dipped, or Keyed Money\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoney()) + "\n");
-		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Refunds)\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyRefunds()) + "\n");
-		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Net)\"," + breakoutTimeTotalString(locationResult.getTotalCardKeyedMoneyNet()) + "\n");
-		sb.append("Total Visa Money," + breakoutTimeTotalString(locationResult.getTotalVisaMoney()) + "\n");
-		sb.append("Total Visa Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalVisaMoneyRefunds()) + "\n");
-		sb.append("Total Visa Money (Net)," + breakoutTimeTotalString(locationResult.getTotalVisaMoneyNet()) + "\n");
-		sb.append("Total MasterCard Money," + breakoutTimeTotalString(locationResult.getTotalMasterCardMoney()) + "\n");
-		sb.append("Total MasterCard Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalMasterCardMoneyRefunds()) + "\n");
-		sb.append("Total MasterCard Money (Net)," + breakoutTimeTotalString(locationResult.getTotalMasterCardMoneyNet()) + "\n");
-		sb.append("Total Discover Money," + breakoutTimeTotalString(locationResult.getTotalDiscoverMoney()) + "\n");
-		sb.append("Total Discover Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalDiscoverMoneyRefunds()) + "\n");
-		sb.append("Total Discover Money (Net)," + breakoutTimeTotalString(locationResult.getTotalDiscoverMoneyNet()) + "\n");
-		sb.append("Total Amex Money," + breakoutTimeTotalString(locationResult.getTotalAmexMoney()) + "\n");
-		sb.append("Total Amex Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalAmexMoneyRefunds()) + "\n");
-		sb.append("Total Amex Money (Net)," + breakoutTimeTotalString(locationResult.getTotalAmexMoneyNet()) + "\n");
-		sb.append("Total Other Card Money," + breakoutTimeTotalString(locationResult.getTotalOtherCardMoney()) + "\n");
-		sb.append("Total Other Card Money (Refunds)," + breakoutTimeTotalString(locationResult.getTotalOtherCardMoneyRefunds()) + "\n");
-		sb.append("Total Other Card Money (Net)," + breakoutTimeTotalString(locationResult.getTotalOtherCardMoneyNet()) + "\n");
+		sb.append("\nTotal Card Swiped Money," + breakoutTimeTotalMoneyString(locationResult.getTotalCardSwipedMoney()) + "\n");
+		sb.append("Total Card Swiped Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalCardSwipedMoneyRefunds()) + "\n");
+		sb.append("Total Card Swiped Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalCardSwipedMoneyNet()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money\"," + breakoutTimeTotalMoneyString(locationResult.getTotalCardKeyedMoney()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Refunds)\"," + breakoutTimeTotalMoneyString(locationResult.getTotalCardKeyedMoneyRefunds()) + "\n");
+		sb.append("\"Total Card Tapped, Dipped, or Keyed Money (Net)\"," + breakoutTimeTotalMoneyString(locationResult.getTotalCardKeyedMoneyNet()) + "\n");
+		sb.append("Total Visa Money," + breakoutTimeTotalMoneyString(locationResult.getTotalVisaMoney()) + "\n");
+		sb.append("Total Visa Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalVisaMoneyRefunds()) + "\n");
+		sb.append("Total Visa Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalVisaMoneyNet()) + "\n");
+		sb.append("Total MasterCard Money," + breakoutTimeTotalMoneyString(locationResult.getTotalMasterCardMoney()) + "\n");
+		sb.append("Total MasterCard Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalMasterCardMoneyRefunds()) + "\n");
+		sb.append("Total MasterCard Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalMasterCardMoneyNet()) + "\n");
+		sb.append("Total Discover Money," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscoverMoney()) + "\n");
+		sb.append("Total Discover Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscoverMoneyRefunds()) + "\n");
+		sb.append("Total Discover Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalDiscoverMoneyNet()) + "\n");
+		sb.append("Total Amex Money," + breakoutTimeTotalMoneyString(locationResult.getTotalAmexMoney()) + "\n");
+		sb.append("Total Amex Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalAmexMoneyRefunds()) + "\n");
+		sb.append("Total Amex Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalAmexMoneyNet()) + "\n");
+		sb.append("Total Other Card Money," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherCardMoney()) + "\n");
+		sb.append("Total Other Card Money (Refunds)," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherCardMoneyRefunds()) + "\n");
+		sb.append("Total Other Card Money (Net)," + breakoutTimeTotalMoneyString(locationResult.getTotalOtherCardMoneyNet()) + "\n");
 		
 		return sb.toString();
 	}
@@ -341,7 +347,7 @@ public class IndividualReportGenerator {
 		return paymentsSplitByTime;
 	}
 	
-	private String breakoutTimeTotalString(LinkedHashMap<String,Integer> totalsByTime) {
+	private String breakoutTimeTotalMoneyString(LinkedHashMap<String,Integer> totalsByTime) {
 		StringBuilder sb = new StringBuilder();
 		
 		if (totalsByTime != null) {
@@ -354,6 +360,27 @@ public class IndividualReportGenerator {
 			
 			for (Integer integer : totalsByTime.values()) {
 				sb.append(centsToDollars(integer) + ",");
+			}
+			
+			sb.setLength(sb.length() - 1);
+		}
+		
+		return sb.toString();
+	}
+	
+	private String breakoutTimeTotalString(LinkedHashMap<String,Integer> totalsByTime) {
+		StringBuilder sb = new StringBuilder();
+		
+		if (totalsByTime != null) {
+			int total = 0;
+			for (Integer integer: totalsByTime.values()) {
+				total += integer;
+			}
+			
+			sb.append(total + ",");
+			
+			for (Integer integer : totalsByTime.values()) {
+				sb.append(integer + ",");
 			}
 			
 			sb.setLength(sb.length() - 1);
@@ -778,5 +805,18 @@ public class IndividualReportGenerator {
 		}
 		
 		return totalSalesForDiscountsNetByTime;
+	}
+	
+	private LinkedHashMap<String,Integer> totalNumberOfTransactionsByTime(Payment[] payments) throws ParseException {
+		LinkedHashMap<String,List<Payment>> paymentsSplitByTime = splitPaymentsByTime(payments);
+		
+		LinkedHashMap<String,Integer> totalNumberOfTransactionsByTime = new LinkedHashMap<String,Integer>();
+		
+		for (String key : paymentsSplitByTime.keySet()) {
+			List<Payment> paymentsInTimeInterval = paymentsSplitByTime.get(key);
+			totalNumberOfTransactionsByTime.put(key, paymentsInTimeInterval.size());
+		}
+		
+		return totalNumberOfTransactionsByTime;
 	}
 }

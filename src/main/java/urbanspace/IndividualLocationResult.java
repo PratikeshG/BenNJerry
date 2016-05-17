@@ -47,6 +47,8 @@ public class IndividualLocationResult {
 	private LinkedHashMap<String,Integer> netTotalMoney;
 	private LinkedHashMap<String,Integer> netTotalMoneyRefunds;
 	private LinkedHashMap<String,Integer> netTotalMoneyNet;
+	private LinkedHashMap<String,Integer> totalNumberOfPayments;
+	private LinkedHashMap<String,Integer> totalNumberOfRefunds;
 	private LinkedHashMap<String,LinkedHashMap<String,Integer>> categorySales;
 	private LinkedHashMap<String,LinkedHashMap<String,Integer>> categorySalesRefunds;
 	private LinkedHashMap<String,LinkedHashMap<String,Integer>> categorySalesNet;
@@ -353,6 +355,19 @@ public class IndividualLocationResult {
 	}
 	public void setNetTotalMoneyNet(LinkedHashMap<String, Integer> netTotalMoneyNet) {
 		this.netTotalMoneyNet = netTotalMoneyNet;
+	}
+	public LinkedHashMap<String,Integer> getTotalNumberOfPayments() {
+		return totalNumberOfPayments;
+	}
+	public void setTotalNumberOfPayments(LinkedHashMap<String,Integer> totalNumberOfPayments) {
+		this.totalNumberOfPayments = totalNumberOfPayments;
+	}
+	public LinkedHashMap<String, Integer> getTotalNumberOfRefunds() {
+		return totalNumberOfRefunds;
+	}
+	public void setTotalNumberOfRefunds(
+			LinkedHashMap<String, Integer> totalNumberOfRefunds) {
+		this.totalNumberOfRefunds = totalNumberOfRefunds;
 	}
 	public LinkedHashMap<String, LinkedHashMap<String, Integer>> getCategorySales() {
 		return categorySales;
