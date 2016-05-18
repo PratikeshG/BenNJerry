@@ -53,7 +53,7 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 		return id;
 	}
 	
-	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization) {
+	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization) throws Exception {
 		String taxType = "01";
 		switch (tax.getName()) {
 			case "Sales Tax": taxType = "01";

@@ -54,7 +54,7 @@ public class TenderCount extends Record {
 		return id;
 	}
 	
-	public TenderCount parse(String tenderCode, List<Payment> squarePaymentsList) {
+	public TenderCount parse(String tenderCode, List<Payment> squarePaymentsList) throws Exception {
 		int number = 0;
 		int amount = 0;
 		

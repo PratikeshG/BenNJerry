@@ -46,7 +46,7 @@ public class CashierRegisterIdentification extends Record {
 		return id;
 	}
 	
-	public CashierRegisterIdentification parse(String deviceName) {
+	public CashierRegisterIdentification parse(String deviceName) throws Exception {
 		String registerNumber = "";
 		
 		if (deviceName != null) {

@@ -56,7 +56,7 @@ public class ReasonCode extends Record {
 		return id;
 	}
 	
-	public ReasonCode parse(String functionIndicator) {
+	public ReasonCode parse(String functionIndicator) throws Exception {
 		putValue("Reason Code", ""); // TODO(colinlam): where do these come from?
 		putValue("Function Indicator", functionIndicator);
 		putValue("Special Indicator", "0"); // not supported

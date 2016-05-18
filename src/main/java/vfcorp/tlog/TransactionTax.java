@@ -48,14 +48,14 @@ public class TransactionTax extends Record {
 		return id;
 	}
 	
-	public TransactionTax parse(Payment payment, boolean refund) {
+	public TransactionTax parse(Payment payment, boolean refund) throws Exception {
 		putValue("Amount", "" + Math.abs(payment.getTaxMoney().getAmount()));
 		putValue("Sign Indicator", (refund ? "1" : "0"));
 		
 		return this;
 	}
 	
-	public TransactionTax parse(Refund refund) {
+	public TransactionTax parse(Refund refund) throws Exception {
 		putValue("Amount", "");
 		putValue("Sign Indicator", "");
 		

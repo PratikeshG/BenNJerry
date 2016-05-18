@@ -53,7 +53,7 @@ public class CreditCardTender extends Record {
 		return id;
 	}
 	
-	public CreditCardTender parse(Tender tender) {
+	public CreditCardTender parse(Tender tender) throws Exception {
 		String entryMethod = "";
 		if (tender.getEntryMethod().equals("SWIPED"))
 			entryMethod = "1";
