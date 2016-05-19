@@ -5,8 +5,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.LinkedList;
+
+import vfcorp.rpc.AlternateRecord;
+import vfcorp.rpc.DepartmentClassRecord;
+import vfcorp.rpc.DepartmentRecord;
+import vfcorp.rpc.ItemAdditionalDataRecord;
+import vfcorp.rpc.ItemAlternateDescription;
+import vfcorp.rpc.ItemRecord;
 
 import com.squareup.connect.Category;
 import com.squareup.connect.Fee;
@@ -15,13 +21,6 @@ import com.squareup.connect.ItemVariation;
 import com.squareup.connect.Money;
 import com.squareup.connect.diff.Catalog;
 import com.squareup.connect.diff.CatalogChangeRequest;
-
-import vfcorp.rpc.AlternateRecord;
-import vfcorp.rpc.DepartmentClassRecord;
-import vfcorp.rpc.DepartmentRecord;
-import vfcorp.rpc.ItemAdditionalDataRecord;
-import vfcorp.rpc.ItemAlternateDescription;
-import vfcorp.rpc.ItemRecord;
 
 public class RPC {
 
@@ -54,16 +53,15 @@ public class RPC {
 		this.suspiciousNumberOfRecords = suspiciousNumberOfRecords;
 	}
 	
+	// This method CONSUMES the RPC linked list.
 	public Catalog convert(Catalog current, CatalogChangeRequest.PrimaryKey primaryKey) throws Exception {
 		Catalog clone = new Catalog(current);
 		
-		Iterator<Record> i = rpc.iterator();
-		while (i.hasNext()) {
-			Record record = i.next();
-			
+		while (rpc.size() > 0) {
+			Record record = rpc.removeFirst();
 			if (record != null && record.getId() != null) {
 				if (record.getId().equals(ITEM_RECORD)) {
-					convertItem(primaryKey, clone, i, record);
+					convertItem(primaryKey, clone, record);
 				} else if (record.getId().equals(DEPARTMENT_CLASS_RECORD)) {
 					convertCategory(primaryKey, clone, record);
 				}
@@ -75,7 +73,7 @@ public class RPC {
 		return clone;
 	}
 	
-	private void convertItem(CatalogChangeRequest.PrimaryKey primaryKey, Catalog clone, Iterator<Record> i, Record record) {
+	private void convertItem(CatalogChangeRequest.PrimaryKey primaryKey, Catalog clone, Record record) {
 		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
 		
 		String matchingKey = null;
@@ -118,10 +116,23 @@ public class RPC {
 			
 			matchingItem.setName(record.getValue("Description").replaceFirst("\\s+$", ""));
 			
-			for (int j = 0; j < 3; j++) {
-				Record next = i.next();
-				if (next.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
-					matchingItem.setName(matchingItem.getName() + " - " + next.getValue("Item Alternate Description").replaceFirst("\\s+$", ""));
+			// Remove records until an item or category is found
+			if (rpc.size() > 0) {
+				Record nextRecord = rpc.removeFirst();
+				boolean itemOrCategoryRecordFound = false;
+				
+				while (!itemOrCategoryRecordFound && rpc.size() > 0) {
+					if (nextRecord.getId().equals(ITEM_RECORD) || nextRecord.getId().equals(DEPARTMENT_CLASS_RECORD)) {
+						rpc.addFirst(nextRecord);
+						itemOrCategoryRecordFound = true;
+					} else if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
+						if (nextRecord.getValue("Action Type").equals("1")) { // add
+							matchingItem.setName(matchingItem.getName() + " - " + nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", ""));
+						}
+						nextRecord = rpc.removeFirst();
+					} else {
+						nextRecord = rpc.removeFirst();
+					}
 				}
 			}
 			

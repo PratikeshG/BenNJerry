@@ -436,4 +436,48 @@ public class RPCTest {
 		
 		assertTrue("catalog doesn't have any categories", result.getCategories().size() == 0);
 	}
+	
+	@Test
+	public void convertItem_ingestPLUWithDeleteItemAlternateDescription_IgnoresItemAlternateDescription() throws Exception {
+		String recordString = "01100885928005807          11  1102                         00CC401                                          000000000000000                PLASMATIC JKT W BLU F14 1000001999900000299000000000000000000000000000000000000000000                                  000001000                             00001110               00000000000000000000000000000000000000000000000000000000000000000000000000000000000    00000000000                         010\n29200885928005807          01                                        \n29100885928005807          01PLASMATIC JKT W BLU F14 00CC401F7S      \n36100885928005807          5    ";
+		Catalog empty = new Catalog();
+		
+		EpicorParser epicor = new EpicorParser();
+		epicor.rpc().setItemNumberLookupLength(14);
+		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
+		
+		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		
+		assertTrue("catalog contains correctly named item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14 - PLASMATIC JKT W BLU F14 00CC401F7S"));
+	}
+	
+	@Test
+	public void convertItem_ingestPLUWithManyItemAlternateDescriptions_IgnoresItemAlternateDescriptions() throws Exception {
+		String recordString = "01100885928005807          11  1102                         00CC401                                          000000000000000                PLASMATIC JKT W BLU F14 1000001999900000299000000000000000000000000000000000000000000                                  000001000                             00001110               00000000000000000000000000000000000000000000000000000000000000000000000000000000000    00000000000                         010\n29200885928005807          01                                        \n29200885928005807          01                                        \n29200885928005807          01                                        \n29200885928005807          01                                        \n29200885928005807          01                                        \n36100885928005807          5    ";
+		Catalog empty = new Catalog();
+		
+		EpicorParser epicor = new EpicorParser();
+		epicor.rpc().setItemNumberLookupLength(14);
+		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
+		
+		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		
+		assertTrue("catalog contains correctly named item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14"));
+	}
+	
+	@Test
+	public void convertItem_ingestPLUWithItemInterruptedByCategory_CorrectlyGetsItems() throws Exception {
+		String recordString = "01100885928005807          11  1102                         00CC401                                          000000000000000                PLASMATIC JKT W BLU F14 1000001999900000299000000000000000000000000000000000000000000                                  000001000                             00001110               00000000000000000000000000000000000000000000000000000000000000000000000000000000000    00000000000                         010\n0411092200 MENS WATCHES  \n01100048283543357          301 3313                                                                          000000000000000                FSH KNIT                100000036500000003650000000000000000000000000000000000000000002022016                          000001000                             00001110               00000000000000000000000000000000000000000000000000000000000000000000000000000000000    00000000000                         010";
+		Catalog empty = new Catalog();
+		
+		EpicorParser epicor = new EpicorParser();
+		epicor.rpc().setItemNumberLookupLength(14);
+		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
+		
+		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		
+		assertTrue("catalog contains first item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14"));
+		assertTrue("catalog contains second item", catalog.getItems().keySet().contains("FSH KNIT"));
+		assertTrue("catalog contains category", catalog.getCategories().keySet().contains("200 1092 MENS WATCHES"));
+	}
 }
