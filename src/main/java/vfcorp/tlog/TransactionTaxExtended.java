@@ -91,6 +91,7 @@ public class TransactionTaxExtended extends Record {
 		putValue("Tax Code", taxCode);
 		putValue("Taxable Amount", "" + taxableAmount); // TODO(colinlam): this doesn't take into account what kind of tax it is
 		putValue("Tax", "" + tax.getAppliedMoney().getAmount());
+		// TODO(): needs to be refactored for refunds
 		putValue("Sign Indicator", "0"); // always adds a positive amount
 		
 		return this;

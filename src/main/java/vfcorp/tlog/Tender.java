@@ -24,7 +24,7 @@ public class Tender extends Record {
 	public static final String TENDER_CODE_MAIL_CHEQUE = "20";
 	public static final String TENDER_CODE_EGC = "30";
 	public static final String TENDER_CODE_98 = "98";
-	public static final String TENDER_CODE_ECHEQUE = "99";
+	public static final String TENDER_CODE_ECHECK = "99";
 	
 	private static Map<String,FieldDetails> fields;
 	private static int length;
@@ -67,7 +67,7 @@ public class Tender extends Record {
 		return id;
 	}
 	
-	public Tender parse(com.squareup.connect.Tender tender, boolean refund) throws Exception {
+	public Tender parse(com.squareup.connect.Tender tender) throws Exception {
 		String tenderCode = "";
 		if (tender.getType().equals("CASH")) {
 			tenderCode = TENDER_CODE_CASH;
@@ -85,22 +85,24 @@ public class Tender extends Record {
 			} else if (tender.getCardBrand().equals("JCB")) {
 				tenderCode = TENDER_CODE_JCB;
 			} else {
-				tenderCode = TENDER_CODE_ECHEQUE;
+				tenderCode = TENDER_CODE_ECHECK;
 			}
 		} else {
-			tenderCode = TENDER_CODE_ECHEQUE;
+			tenderCode = TENDER_CODE_ECHECK;
 		}
 		
 		String tenderAmount = "";
-		if (tender.getTenderedMoney() == null)
+		if (tender.getTenderedMoney() == null) {
 			tenderAmount = "" + tender.getTotalMoney().getAmount();
-		else
+		} else {
 			tenderAmount = "" + tender.getTenderedMoney().getAmount();
+		}
 		
 		putValue("Tender Code", tenderCode);
 		putValue("Tender Amount", tenderAmount);
 		putValue("Tender Count", "");
-		putValue("Sign Indicator", (refund ? "1" : "0"));
+		// TODO(): needs to be refactored for refunds
+		putValue("Sign Indicator", "0"); // always positive
 		putValue("Currency Indicator", "0");
 		putValue("Currency Exchange Rate", ""); // not supported
 		

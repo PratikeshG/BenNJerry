@@ -3,11 +3,10 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.Refund;
-
-import vfcorp.Record;
 import vfcorp.FieldDetails;
+import vfcorp.Record;
+
+import com.squareup.connect.Payment;
 
 public class TransactionTax extends Record {
 
@@ -48,16 +47,10 @@ public class TransactionTax extends Record {
 		return id;
 	}
 	
-	public TransactionTax parse(Payment payment, boolean refund) throws Exception {
-		putValue("Amount", "" + Math.abs(payment.getTaxMoney().getAmount()));
-		putValue("Sign Indicator", (refund ? "1" : "0"));
-		
-		return this;
-	}
-	
-	public TransactionTax parse(Refund refund) throws Exception {
-		putValue("Amount", "");
-		putValue("Sign Indicator", "");
+	public TransactionTax parse(Payment payment) throws Exception {
+		putValue("Amount", "" + payment.getTaxMoney().getAmount());
+		// TODO(): needs to be refactored for refunds
+		putValue("Sign Indicator", "0"); // always positive
 		
 		return this;
 	}
