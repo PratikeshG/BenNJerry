@@ -26,6 +26,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
         <component doc:name="Generate TLOGs">
             <singleton-object class="vfcorp.TLOGGenerator">
                 <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                <property key="timeZoneId" value="${vfcorp.generateTLOGparams.timeMethod.timeZone}"/>
             </singleton-object>
         </component>
         <foreach doc:name="For Each">

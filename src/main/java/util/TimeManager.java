@@ -106,4 +106,19 @@ public class TimeManager {
         calendar.setTime(date);
         return calendar;
     }
+
+	public static String toSimpleDateTimeInTimeZone(String iso8601string, String timeZoneId, String format) throws ParseException {
+		if (timeZoneId == null) {
+			throw new ParseException("time zone is necessary", 0);
+		}
+		
+		Calendar cal = TimeManager.toCalendar(iso8601string);
+		cal.setTimeZone(TimeZone.getTimeZone(timeZoneId));
+		
+		SimpleDateFormat sdf = new SimpleDateFormat(format);
+		sdf.setTimeZone(TimeZone.getTimeZone(timeZoneId));
+		String formatted = sdf.format(cal.getTime());
+
+		return formatted;
+	}
 }

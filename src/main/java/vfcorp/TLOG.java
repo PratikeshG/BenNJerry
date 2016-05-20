@@ -40,6 +40,7 @@ public class TLOG {
 	private List<Record> transactionLog;
 	private int itemNumberLookupLength;
 	private String deployment;
+	private String timeZoneId;
 	private static Logger logger = LoggerFactory.getLogger(TLOG.class);
 
 	private ObjectStore<String> objectStore;
@@ -54,6 +55,10 @@ public class TLOG {
 
 	public void setDeployment(String deployment) {
 		this.deployment = deployment;
+	}
+	
+	public void setTimeZoneId(String timeZoneId) {
+		this.timeZoneId = timeZoneId;
 	}
 
 	public void setObjectStore(ObjectStore<String> objectStore) {
@@ -93,7 +98,7 @@ public class TLOG {
 			
 			if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
 				
-				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_NO_SALE, 3, objectStore, deployment));
+				transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_NO_SALE, 3, objectStore, deployment, timeZoneId));
 				
 				transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
@@ -104,11 +109,11 @@ public class TLOG {
 				
 				paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 				
-				paymentList.add(new TransactionSubTotal().parse(payment, false));
+				paymentList.add(new TransactionSubTotal().parse(payment));
 				
-				paymentList.add(new TransactionTax().parse(payment, false));
+				paymentList.add(new TransactionTax().parse(payment));
 				
-				paymentList.add(new TransactionTotal().parse(payment, false));
+				paymentList.add(new TransactionTotal().parse(payment));
 				
 				for (PaymentTax tax : payment.getAdditiveTax()) {
 					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
@@ -161,14 +166,14 @@ public class TLOG {
 				}
 				
 				for (Tender tender : payment.getTender()) {
-					paymentList.add(new vfcorp.tlog.Tender().parse(tender, false));
+					paymentList.add(new vfcorp.tlog.Tender().parse(tender));
 					
 					if (tender.getType().equals("CREDIT_CARD")) {
 						paymentList.add(new CreditCardTender().parse(tender));
 					}
 				}
 				
-				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment));
+				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment, timeZoneId));
 				
 				transactionLog.addAll(paymentList);
 			}
@@ -222,27 +227,15 @@ public class TLOG {
 			
 			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, squarePaymentsList));
 			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHEQUE, squarePaymentsList));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, squarePaymentsList));
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_RETURNS, squarePaymentsList));
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, squarePaymentsList));
 			
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, squarePaymentsList));
 			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_NET_SALES, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_RETURNS, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_TAXABLE_SALES, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_NON_TAXABLE_SALES, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_TRANSACTION_DISCOUNT, squarePaymentsList));
-			
-			newRecordList.addFirst(new TransactionHeader().parse(location, squarePaymentsList, deviceName, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore, deployment));
+			newRecordList.addFirst(new TransactionHeader().parse(location, squarePaymentsList, deviceName, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore, deployment, timeZoneId));
 			
 			transactionLog.addAll(newRecordList);
 		}

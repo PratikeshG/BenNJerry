@@ -119,13 +119,11 @@ public class ForInStoreReportingUseOnly extends Record {
 		if (TRANSACTION_IDENTIFIER_MERCHANDISE_SALES.equals(transactionIdentifier)) {
 			count = squarePayments.size();
 			for (Payment payment : squarePayments) {
-				amount += payment.getNetTotalMoney().getAmount();
+				amount += payment.getTotalCollectedMoney().getAmount();
 			}
-		} else if (TRANSACTION_IDENTIFIER_MERCHANDISE_RETURNS.equals(transactionIdentifier)) {
-			// TODO(colinlam): do this
 		} else if (TRANSACTION_IDENTIFIER_DISCOUNTS.equals(transactionIdentifier)) {
 			for (Payment payment : squarePayments) {
-				if (payment.getDiscountMoney().getAmount() > 0) {
+				if (payment.getDiscountMoney().getAmount() != 0) {
 					count += 1;
 					amount += payment.getDiscountMoney().getAmount();
 				}
@@ -137,21 +135,11 @@ public class ForInStoreReportingUseOnly extends Record {
 					amount += payment.getTaxMoney().getAmount();
 				}
 			}
-		} else if (TRANSACTION_IDENTIFIER_NET_SALES.equals(transactionIdentifier)) {
-			// TODO(colinlam): what is the difference between net sales and merchandise sales?
-		} else if (TRANSACTION_IDENTIFIER_RETURNS.equals(transactionIdentifier)) {
-			// TODO(colinlam): what is the difference between returns and merchandise returns?
-		} else if (TRANSACTION_IDENTIFIER_TAXABLE_SALES.equals(transactionIdentifier)) {
-			// TODO(colinlam): what is taxable sales?
-		} else if (TRANSACTION_IDENTIFIER_NON_TAXABLE_SALES.equals(transactionIdentifier)) {
-			// TODO(colinlam): what is non-taxable sales?
-		} else if (TRANSACTION_IDENTIFIER_TRANSACTION_DISCOUNT.equals(transactionIdentifier)) {
-			// TODO(colinlam): what is a transaction discount?
 		}
 		
 		putValue("Transaction Identifier", transactionIdentifier);
 		putValue("Count", "" + count);
-		putValue("Amount", "" + amount);
+		putValue("Amount", "" + Math.abs(amount));
 		putValue("Amount Sign", amount >= 0 ? "0" : "1");
 		putValue("Currency Indicator", "0"); // 0 is primary; other value not supported
 		

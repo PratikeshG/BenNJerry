@@ -7,6 +7,7 @@ import java.util.Map;
 import org.mule.api.store.ObjectStore;
 import org.mule.api.store.ObjectStoreException;
 
+import util.TimeManager;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
@@ -172,7 +173,7 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) throws Exception {
+	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String timeZoneId) throws Exception {
 		Map<String,String> params = new HashMap<String,String>();
 		
 		String lastDate = "";
@@ -182,9 +183,9 @@ public class TransactionHeader extends Record {
 			}
 		}
 		if (lastDate != "") {
-			params.put("Transaction Date", lastDate.substring(5, 7) + lastDate.substring(8, 10) + lastDate.substring(0, 4));
-			params.put("Business Date", lastDate.substring(5, 7) + lastDate.substring(8, 10) + lastDate.substring(0, 4));
-			params.put("Transaction Time", lastDate.substring(11,13) + lastDate.substring(14, 16));
+			params.put("Transaction Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
+			params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
+			params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "HHmm"));
 		}
 		
 		String registerNumber = getRegisterNumber(deviceName);
@@ -193,7 +194,7 @@ public class TransactionHeader extends Record {
 		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
-	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment) throws Exception {
+	public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String timeZoneId) throws Exception {
 		Map<String,String> params = new HashMap<String,String>();
 		
 		// TODO(colinlam): refactor to only include a single employee ID passed in
@@ -208,9 +209,9 @@ public class TransactionHeader extends Record {
 			}
 		}
 		
-		params.put("Transaction Date", squarePayment.getCreatedAt().substring(5, 7) + squarePayment.getCreatedAt().substring(8, 10) + squarePayment.getCreatedAt().substring(0, 4));
-		params.put("Business Date", squarePayment.getCreatedAt().substring(5, 7) + squarePayment.getCreatedAt().substring(8, 10) + squarePayment.getCreatedAt().substring(0, 4));
-		params.put("Transaction Time", squarePayment.getCreatedAt().substring(11,13) + squarePayment.getCreatedAt().substring(14, 16));
+		params.put("Transaction Date", TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+		params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+		params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
 		
 		String registerNumber = getRegisterNumber(squarePayment.getDevice().getName());
 		params.put("Register Number", registerNumber);

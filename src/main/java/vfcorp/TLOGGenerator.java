@@ -18,9 +18,14 @@ import com.squareup.connect.Payment;
 public class TLOGGenerator implements Callable {
 
 	private int itemNumberLookupLength;
+	private String timeZoneId;
 	
 	public void setItemNumberLookupLength(int itemNumberLookupLength) {
 		this.itemNumberLookupLength = itemNumberLookupLength;
+	}
+	
+	public void setTimeZoneId(String timeZoneId) {
+		this.timeZoneId = timeZoneId;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -41,6 +46,7 @@ public class TLOGGenerator implements Callable {
 				EpicorParser epicor = new EpicorParser();
 				epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
 				epicor.tlog().setDeployment((String) eventContext.getMessage().getProperty("deployment", PropertyScope.INVOCATION) + 1);
+				epicor.tlog().setTimeZoneId(timeZoneId);
 				
 				// Get Cloudhub default object store
 				ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry().lookupObject("_defaultUserObjectStore");
