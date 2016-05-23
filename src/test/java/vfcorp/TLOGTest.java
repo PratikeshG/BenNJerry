@@ -1601,6 +1601,129 @@ public class TLOGTest {
 		assertEquals("expecting specific format for cashier register ID string", "03600000000", cashierRegisterIDStrings.get(0));
 	}
 	
+	@Test
+	public void parse_OtherTenderTypeNotGiftCard_NotTallied() throws Exception {
+		Employee[] employees = new Employee[]{};
+		
+		MerchantLocationDetails merchantLocationDetails = new MerchantLocationDetails();
+		
+		Merchant merchant = new Merchant();
+		merchant.setLocationDetails(merchantLocationDetails);
+		
+		Tender tender = new Tender();
+		tender.setType("OTHER");
+		tender.setTotalMoney(new Money(5));
+		
+		Device device = new Device();
+		device.setName("(123)");
+		
+		Payment payment = new Payment();
+		payment.setItemizations(new PaymentItemization[]{});
+		payment.setTender(new Tender[]{tender});
+		payment.setDevice(device);
+		payment.setTotalCollectedMoney(new Money(1));
+		payment.setTaxMoney(new Money(2));
+		payment.setNetTotalMoney(new Money(3));
+		payment.setDiscountMoney(new Money(-4));
+		payment.setAdditiveTax(new PaymentTax[]{});
+		payment.setInclusiveTax(new PaymentTax[]{});
+		payment.setCreatedAt("2016-05-20T12:00:00Z");
+		Payment[] payments = new Payment[]{payment};
+		
+		TLOG tlog = new TLOG();
+		tlog.setItemNumberLookupLength(1);
+		tlog.setObjectStore(new FakeObjectStore<String>());
+		tlog.setTimeZoneId("UTC");
+		tlog.parse(merchant, payments, new Item[]{}, employees);
+		
+		List<String> tlogStrings = Arrays.asList(tlog.toString().split("\\r?\\n"));
+		List<String> cashierRegisterIDStrings = tlogStrings.stream().filter(s -> s.startsWith(CASHIER_REGISTER_IDENTIFICATION) == true).collect(Collectors.toList());
+		List<String> tenderCountStrings = tlogStrings.stream().filter(s -> s.startsWith(TENDER_COUNT) == true).collect(Collectors.toList());
+
+		assertEquals("only expecting one cashier register ID string", 1, cashierRegisterIDStrings.size());
+		assertEquals("expecting specific format for cashier register ID string", "03600012300", cashierRegisterIDStrings.get(0));
+		
+		assertEquals("expecting sixteen tender count strings", 16, tenderCountStrings.size());
+		assertEquals("expecting specific format for cash tender count string", "0341       000000000000000000000000000001", tenderCountStrings.get(0));
+		assertEquals("expecting specific format for amex tender count string", "03411      000000000000000000000000000001", tenderCountStrings.get(1));
+		assertEquals("expecting specific format for mall gift card tender count string", "03412      000000000000000000000000000001", tenderCountStrings.get(2));
+		assertEquals("expecting specific format for discover tender count string", "03413      000000000000000000000000000001", tenderCountStrings.get(3));
+		assertEquals("expecting specific format for jcb tender count string", "03414      000000000000000000000000000001", tenderCountStrings.get(4));
+		assertEquals("expecting specific format for debit tender count string", "03419      000000000000000000000000000001", tenderCountStrings.get(5));
+		assertEquals("expecting specific format for cheque tender count string", "0342       000000000000000000000000000001", tenderCountStrings.get(6));
+		assertEquals("expecting specific format for mail cheque tender count string", "03420      000000000000000000000000000001", tenderCountStrings.get(7));
+		assertEquals("expecting specific format for electronic gift card tender count string", "03430      000000000000000000000000000001", tenderCountStrings.get(8));
+		assertEquals("expecting specific format for store credit tender count string", "0344       000000000000000000000000000001", tenderCountStrings.get(9));
+		assertEquals("expecting specific format for travellers cheque tender count string", "0345       000000000000000000000000000001", tenderCountStrings.get(10));
+		assertEquals("expecting specific format for gift certificate tender count string", "0346       000000000000000000000000000001", tenderCountStrings.get(11));
+		assertEquals("expecting specific format for visa tender count string", "0347       000000000000000000000000000001", tenderCountStrings.get(12));
+		assertEquals("expecting specific format for mastercard tender count string", "0349       000000000000000000000000000001", tenderCountStrings.get(13));
+		assertEquals("expecting specific format for 98 tender count string", "03498      000000000000000000000000000001", tenderCountStrings.get(14));
+		assertEquals("expecting specific format for echeck tender count string", "03499      000000000000000000000000000001", tenderCountStrings.get(15));
+	}
+	
+	@Test
+	public void parse_OtherTenderTypeGiftCard_TalliedAsGiftCard() throws Exception {
+		Employee[] employees = new Employee[]{};
+		
+		MerchantLocationDetails merchantLocationDetails = new MerchantLocationDetails();
+		
+		Merchant merchant = new Merchant();
+		merchant.setLocationDetails(merchantLocationDetails);
+		
+		Tender tender = new Tender();
+		tender.setType("OTHER");
+		tender.setName("MERCHANT_GIFT_CARD");
+		tender.setTotalMoney(new Money(5));
+		
+		Device device = new Device();
+		device.setName("(123)");
+		
+		Payment payment = new Payment();
+		payment.setItemizations(new PaymentItemization[]{});
+		payment.setTender(new Tender[]{tender});
+		payment.setDevice(device);
+		payment.setTotalCollectedMoney(new Money(1));
+		payment.setTaxMoney(new Money(2));
+		payment.setNetTotalMoney(new Money(3));
+		payment.setDiscountMoney(new Money(-4));
+		payment.setAdditiveTax(new PaymentTax[]{});
+		payment.setInclusiveTax(new PaymentTax[]{});
+		payment.setCreatedAt("2016-05-20T12:00:00Z");
+		Payment[] payments = new Payment[]{payment};
+		
+		TLOG tlog = new TLOG();
+		tlog.setItemNumberLookupLength(1);
+		tlog.setObjectStore(new FakeObjectStore<String>());
+		tlog.setTimeZoneId("UTC");
+		tlog.parse(merchant, payments, new Item[]{}, employees);
+		
+		List<String> tlogStrings = Arrays.asList(tlog.toString().split("\\r?\\n"));
+		List<String> cashierRegisterIDStrings = tlogStrings.stream().filter(s -> s.startsWith(CASHIER_REGISTER_IDENTIFICATION) == true).collect(Collectors.toList());
+		List<String> tenderCountStrings = tlogStrings.stream().filter(s -> s.startsWith(TENDER_COUNT) == true).collect(Collectors.toList());
+
+		assertEquals("only expecting one cashier register ID string", 1, cashierRegisterIDStrings.size());
+		assertEquals("expecting specific format for cashier register ID string", "03600012300", cashierRegisterIDStrings.get(0));
+		
+		assertEquals("expecting sixteen tender count strings", 16, tenderCountStrings.size());
+		assertEquals("expecting specific format for cash tender count string", "0341       000000000000000000000000000001", tenderCountStrings.get(0));
+		assertEquals("expecting specific format for amex tender count string", "03411      000000000000000000000000000001", tenderCountStrings.get(1));
+		assertEquals("expecting specific format for mall gift card tender count string", "03412      000000000000000000000000000001", tenderCountStrings.get(2));
+		assertEquals("expecting specific format for discover tender count string", "03413      000000000000000000000000000001", tenderCountStrings.get(3));
+		assertEquals("expecting specific format for jcb tender count string", "03414      000000000000000000000000000001", tenderCountStrings.get(4));
+		assertEquals("expecting specific format for debit tender count string", "03419      000000000000000000000000000001", tenderCountStrings.get(5));
+		assertEquals("expecting specific format for cheque tender count string", "0342       000000000000000000000000000001", tenderCountStrings.get(6));
+		assertEquals("expecting specific format for mail cheque tender count string", "03420      000000000000000000000000000001", tenderCountStrings.get(7));
+		assertEquals("expecting specific format for electronic gift card tender count string", "03430      000000000000000000000000000001", tenderCountStrings.get(8));
+		assertEquals("expecting specific format for store credit tender count string", "0344       000000000000000000000000000001", tenderCountStrings.get(9));
+		assertEquals("expecting specific format for travellers cheque tender count string", "0345       000000000000000000000000000001", tenderCountStrings.get(10));
+		assertEquals("expecting specific format for gift certificate tender count string", "0346       000001000000000500000000005001", tenderCountStrings.get(11));
+		assertEquals("expecting specific format for visa tender count string", "0347       000000000000000000000000000001", tenderCountStrings.get(12));
+		assertEquals("expecting specific format for mastercard tender count string", "0349       000000000000000000000000000001", tenderCountStrings.get(13));
+		assertEquals("expecting specific format for 98 tender count string", "03498      000000000000000000000000000001", tenderCountStrings.get(14));
+		assertEquals("expecting specific format for echeck tender count string", "03499      000000000000000000000000000001", tenderCountStrings.get(15));
+	}
+	
 	/*
 	 * fewest number of objects necessary to create a valid TLOG. Useful as a base for building new test cases.
 	@Test

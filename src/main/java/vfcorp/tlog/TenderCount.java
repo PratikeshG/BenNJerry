@@ -66,7 +66,7 @@ public class TenderCount extends Record {
 						(Tender.TENDER_CODE_VISA.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("VISA")) ||
 						(Tender.TENDER_CODE_MASTERCARD.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("MASTER_CARD")) ||
 						(Tender.TENDER_CODE_JCB.equals(tenderCode) && tender.getType().equals("CREDIT_CARD") && tender.getCardBrand().equals("JCB")) ||
-						(Tender.TENDER_CODE_GIFT_CERTIFICATE.equals(tenderCode) && tender.getType().equals("OTHER")) ||
+						(Tender.TENDER_CODE_GIFT_CERTIFICATE.equals(tenderCode) && tender.getType().equals("OTHER") && "MERCHANT_GIFT_CARD".equals(tender.getName())) ||
 						(Tender.TENDER_CODE_98.equals(tenderCode) && tender.getType().equals("UNKNOWN"))) {
 					
 					number += 1;
