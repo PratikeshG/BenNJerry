@@ -4,4 +4,5 @@
     <description></description>
     <muleExtension name="Secure Property Placeholder" qualifier="org.mule.tooling.ui.contribution.secure-property-placeholder.3.5.0"/>
     <muleExtension name="ObjectStore" qualifier="org.mule.tooling.ui.contribution.objectstore"/>
+    <muleExtension name="Secure Property Placeholder" qualifier="org.mule.tooling.ui.contribution.secure-property-placeholder"/>
 </mule-project>
