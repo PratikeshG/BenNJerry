@@ -75,10 +75,10 @@ public class LineItemAccountingString extends Record {
 		putValue("Item Number", sku); // requires special formating, according to documentation
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
 		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
-		putValue("Item Value", "" + itemization.getNetSalesMoney().getAmount());
+		putValue("Item Value", "" + itemization.getTotalMoney().getAmount());
 		putValue("Type Indicator", "01"); // "merchandise sale"
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
-		putValue("Sales Taxable Amount", "" + itemization.getNetSalesMoney().getAmount()); // not supported
+		putValue("Sales Taxable Amount", "" + itemization.getTotalMoney().getAmount()); // not supported
 		putValue("Sales Not Taxable Amount", ""); // not supported
 		putValue("Sales Not Taxable Amount 2", ""); // not supported
 		putValue("Sales Taxable Amount 2", ""); // not supported
