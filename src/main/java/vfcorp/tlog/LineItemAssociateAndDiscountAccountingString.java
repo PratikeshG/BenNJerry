@@ -88,7 +88,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
 		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
 		putValue("Associate Number", "");
-		putValue("Value (per associate)", "" + itemization.getTotalMoney().getAmount());
+		putValue("Value (per associate)", "" + itemization.getNetSalesMoney().getAmount());
 		putValue("Type Indicator", "01"); // "merchandise sale"; no other values supported
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
 		putValue("Emp Discount Value", "");
