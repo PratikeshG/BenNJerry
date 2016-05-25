@@ -55,7 +55,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
         <flow-ref name="listEmployees" doc:name="Get employees from locations"/>
     </sub-flow>
     <flow name="vfcorpIngestPLU" processingStrategy="synchronous" >
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.rpc.sftp.host}" port="${vfcorp.rpc.sftp.port}" path="${vfcorp.rpc.sftp.path}" user="${vfcorp.rpc.sftp.username}" password="${vfcorp.rpc.sftp.password}" responseTimeout="10000" pollingFrequency="${vfcorp.sftp.pollingFrequency}" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" tempDir="processing" useTempFileTimestampSuffix="true" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.rpc.sftp.host}" port="${vfcorp.rpc.sftp.port}" path="${vfcorp.rpc.sftp.path}" user="${vfcorp.rpc.sftp.username}" password="${vfcorp.rpc.sftp.password}" responseTimeout="${vfcorp.rpc.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" tempDir="processing" useTempFileTimestampSuffix="true" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
         	<file:filename-wildcard-filter pattern="plu.chg*"/>
         </sftp:inbound-endpoint>
         <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Store stream reader to variable"/>
