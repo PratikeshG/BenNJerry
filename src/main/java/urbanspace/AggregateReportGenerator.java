@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import util.SquarePayload;
-
 import com.squareup.connect.Payment;
 
 public class AggregateReportGenerator {
@@ -37,13 +35,13 @@ public class AggregateReportGenerator {
 		this.range = range;
 	}
 	
-	public String generate(List<SquarePayload> squarePayloads) throws ParseException {
+	public String generate(List<ReportGeneratorPayload> reportGeneratorPayloads) throws ParseException {
 		ArrayList<AggregateLocationResult> locationResults = new ArrayList<AggregateLocationResult>();
 		ReportCalculator reportCalculator = new ReportCalculator(range, offset, timeZone);
 		
-		for (SquarePayload squarePayload: squarePayloads) {
-			Payment[] payments = (Payment[]) squarePayload.getResults().get("util.square.PaymentsLister");
-			Payment[] refundPayments = (Payment[]) squarePayload.getResults().get("util.square.RefundPaymentsRetriever");
+		for (ReportGeneratorPayload reportGeneratorPayload: reportGeneratorPayloads) {
+			Payment[] payments = reportGeneratorPayload.getPayments();
+			Payment[] refundPayments = reportGeneratorPayload.getRefundPayments();
 			
 			// Dedupe refunds objects
 			Map<String,Payment> deduped = new HashMap<String,Payment>();
@@ -54,8 +52,8 @@ public class AggregateReportGenerator {
 			
 			AggregateLocationResult locationResult = new AggregateLocationResult();
 			
-            locationResult.setMerchantId(squarePayload.getMerchantId());
-            locationResult.setMerchantName(squarePayload.getMerchantAlias());
+            locationResult.setMerchantId(reportGeneratorPayload.getMerchantId());
+            locationResult.setMerchantName(reportGeneratorPayload.getMerchantAlias());
 
             locationResult.setGiftCardSales(reportCalculator.totalMoneyCollectedForGiftCards(payments));
             locationResult.setGiftCardSalesRefunds(reportCalculator.totalMoneyCollectedForGiftCardsRefunds(refundPayments));

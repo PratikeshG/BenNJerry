@@ -25,6 +25,10 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <http:config useTransportForUris="false"/>
     </configuration>
     <sftp:connector name="VFCorpSFTP" validateConnections="true" doc:name="SFTP"/>
+    <sub-flow name="GLOBAL:set-session-vars"> 
+        <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"></set-session-variable>  
+        <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"></set-session-variable>  
+    </sub-flow>
     <flow name="flowInitializer" initialState="started">
         <quartz:inbound-endpoint jobName="flowInitializer" repeatInterval="0" repeatCount="0" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>

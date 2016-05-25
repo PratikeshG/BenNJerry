@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import util.SquarePayload;
 import util.TimeManager;
 
 import com.squareup.connect.Category;
@@ -41,18 +40,18 @@ public class IndividualReportGenerator {
 		this.range = range;
 	}
 	
-	public String generate(SquarePayload squarePayload) throws ParseException {
-		Payment[] payments = (Payment[]) squarePayload.getResults().get("util.square.PaymentsLister");
-		Payment[] refundPayments = (Payment[]) squarePayload.getResults().get("util.square.RefundPaymentsRetriever");
-		Category[] categories = (Category[]) squarePayload.getResults().get("util.square.CategoriesLister");
-		Discount[] discounts = (Discount[]) squarePayload.getResults().get("util.square.DiscountsLister");
+	public String generate(ReportGeneratorPayload reportGeneratorPayload) throws ParseException {
+		Payment[] payments = reportGeneratorPayload.getPayments();
+		Payment[] refundPayments = reportGeneratorPayload.getRefundPayments();
+		Category[] categories = reportGeneratorPayload.getCategories();
+		Discount[] discounts = reportGeneratorPayload.getDiscounts();
 		
 		reportCalculator = new ReportCalculator(range, offset, timeZone);
 		
 		IndividualLocationResult locationResult = new IndividualLocationResult();
 		
-		locationResult.setMerchantId(squarePayload.getMerchantId());
-        locationResult.setMerchantName(squarePayload.getMerchantAlias());
+		locationResult.setMerchantId(reportGeneratorPayload.getMerchantId());
+        locationResult.setMerchantName(reportGeneratorPayload.getMerchantAlias());
 		
         locationResult.setGiftCardSales(totalMoneyCollectedForGiftCardsByTime(payments));
         locationResult.setGiftCardSalesRefunds(totalMoneyCollectedForGiftCardsRefundsByTime(refundPayments));
