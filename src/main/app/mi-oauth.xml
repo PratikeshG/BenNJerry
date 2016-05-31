@@ -72,6 +72,10 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
             <component doc:name="Renew token">
                 <singleton-object class="util.oauth.TokenRenewer">
                     <property key="apiUrl" value="${api.url}"/>
+                    <property key="multiunitId" value="${connect.multiunit.id}"/>
+                    <property key="multiunitSecret" value="${connect.multiunit.secret}"/>
+                    <property key="legacyId" value="${connect.legacy.id}"/>
+                    <property key="legacySecret" value="${connect.legacy.secret}"/>
                 </singleton-object>
             </component>
             <db:insert config-ref="MySQL_Configuration" doc:name="Write new token to database">
