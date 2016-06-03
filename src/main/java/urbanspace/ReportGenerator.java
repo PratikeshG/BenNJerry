@@ -10,8 +10,6 @@ import javax.activation.DataHandler;
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 
-import util.SquarePayload;
-
 public class ReportGenerator implements Callable {
 
 	private String timeMethod;
@@ -38,7 +36,7 @@ public class ReportGenerator implements Callable {
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		@SuppressWarnings("unchecked")
-		List<SquarePayload> squarePayloads = (List<SquarePayload>) eventContext.getMessage().getPayload();
+		List<ReportGeneratorPayload> reportGeneratorPayloads = (List<ReportGeneratorPayload>) eventContext.getMessage().getPayload();
 		
 		// Calculate day of report generated
 		Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
@@ -51,16 +49,16 @@ public class ReportGenerator implements Callable {
 		
 		// Generate aggregate report
 		AggregateReportGenerator aggregateCalculator = new AggregateReportGenerator(timeZone, offset, range);
-		String aggregateReport = aggregateCalculator.generate(squarePayloads);
+		String aggregateReport = aggregateCalculator.generate(reportGeneratorPayloads);
 		DataHandler dataHandler = new DataHandler(aggregateReport, "text/plain; charset=UTF-8");
 		eventContext.getMessage().addOutboundAttachment(currentDate + "-aggregate.csv", dataHandler);
 		
 		// Generate individual reports
 		IndividualReportGenerator individualReportGenerator = new IndividualReportGenerator(timeZone, offset, range);
-		for (SquarePayload squarePayload : squarePayloads) {
-			String individualReport = individualReportGenerator.generate(squarePayload);
+		for (ReportGeneratorPayload reportGeneratorPayload : reportGeneratorPayloads) {
+			String individualReport = individualReportGenerator.generate(reportGeneratorPayload);
 			dataHandler = new DataHandler(individualReport, "text/plain; charset=UTF-8");
-			eventContext.getMessage().addOutboundAttachment(currentDate + "-" + squarePayload.getMerchantAlias() + ".csv", dataHandler);
+			eventContext.getMessage().addOutboundAttachment(currentDate + "-" + reportGeneratorPayload.getMerchantAlias() + ".csv", dataHandler);
 		}
 		
 		return eventContext.getMessage();

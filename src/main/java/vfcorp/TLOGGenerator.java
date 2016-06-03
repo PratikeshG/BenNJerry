@@ -1,14 +1,9 @@
 package vfcorp;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
-
-import util.SquarePayload;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Item;
@@ -28,45 +23,39 @@ public class TLOGGenerator implements Callable {
 		this.timeZoneId = timeZoneId;
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		List<SquarePayload> sps = (List<SquarePayload>) eventContext.getMessage().getPayload();
-		List<TLOGResult> tlogs = new ArrayList<TLOGResult>();
+		TLOGGeneratorPayload tlogGeneratorPayload = (TLOGGeneratorPayload) eventContext.getMessage().getPayload();
 		
-		for (SquarePayload sp: sps) {
-			Merchant matchingMerchant = null;
-			for (Merchant merchant : (Merchant[]) sp.getResults().get("util.square.LocationsLister")) {
-				if (merchant.getId().equals(sp.getLocationId())) {
-					matchingMerchant = merchant;
-				}
-			}
-			
-			if (matchingMerchant != null) {
-				EpicorParser epicor = new EpicorParser();
-				epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
-				epicor.tlog().setDeployment((String) eventContext.getMessage().getProperty("deployment", PropertyScope.INVOCATION) + 1);
-				epicor.tlog().setTimeZoneId(timeZoneId);
-				
-				// Get Cloudhub default object store
-				ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry().lookupObject("_defaultUserObjectStore");
-				epicor.tlog().setObjectStore(objectStore);
-				
-				Payment[] squarePayments = (Payment[]) sp.getResults().get("util.square.PaymentsLister");
-				Item[] squareItems = (Item[]) sp.getResults().get("util.square.ItemsLister");
-				Employee[] squareEmployees = (Employee[]) sp.getResults().get("util.square.EmployeesLister");
-				
-				epicor.tlog().parse(matchingMerchant, squarePayments, squareItems, squareEmployees);
-				
-				TLOGResult tlogResult = new TLOGResult();
-				tlogResult.setTlog(epicor.tlog().toString());
-				tlogResult.setStoreNumber(getStoreNumber(matchingMerchant));
-				
-				tlogs.add(tlogResult);
+		Merchant matchingMerchant = null;
+		for (Merchant merchant : (Merchant[]) tlogGeneratorPayload.getLocations()) {
+			if (merchant.getId().equals(tlogGeneratorPayload.getLocationId())) {
+				matchingMerchant = merchant;
 			}
 		}
 		
-		return tlogs;
+		if (matchingMerchant != null) {
+			EpicorParser epicor = new EpicorParser();
+			epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
+			epicor.tlog().setDeployment((String) eventContext.getMessage().getProperty("deployment", PropertyScope.INVOCATION) + 1);
+			epicor.tlog().setTimeZoneId(timeZoneId);
+			
+			// Get Cloudhub default object store
+			ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry().lookupObject("_defaultUserObjectStore");
+			epicor.tlog().setObjectStore(objectStore);
+			
+			Payment[] squarePayments = tlogGeneratorPayload.getPayments();
+			Item[] squareItems = tlogGeneratorPayload.getItems();
+			Employee[] squareEmployees = tlogGeneratorPayload.getEmployees();
+			
+			epicor.tlog().parse(matchingMerchant, squarePayments, squareItems, squareEmployees);
+			
+			eventContext.getMessage().setProperty("vfcorpStoreNumber", getStoreNumber(matchingMerchant), PropertyScope.INVOCATION);
+			
+			return epicor.tlog().toString();
+		}
+		
+		return null;
 	}
 	
 	private String getStoreNumber(Merchant merchant) {
