@@ -17,10 +17,10 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <queued-asynchronous-processing-strategy name="Urbanspace_Report_Asynch_Processing_Strategy" maxThreads="${urbanspace.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${urbanspace.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports">
-        <poll doc:name="Run every day at 9:00am (UTC)">
-            <schedulers:cron-scheduler expression="0 0 9 1/1 * ? *"/>
-            <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports." level="INFO" doc:name="Logger"/>
-        </poll>
+        <quartz:inbound-endpoint jobName="urbanspaceGenerateReportsCron" cronExpression="0 0 9 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 9am UTC">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports." level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="Urbanspace:set-params-for-report-generation" doc:name="Urbanspace:set-params-for-report-generation"/>
         <flow-ref name="MI:OAuth:retrieve-tokens" doc:name="retrieveToken"/>
