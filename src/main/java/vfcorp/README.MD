@@ -1,60 +1,28 @@
-# VFCorp - Implementation Details
+# VFC Runbook
 
-## Functional Limitations
-
-### TLOG
-
-Record 000 (Transaction Header) does not support cancels or post voids, tax exemptions, training mode, transaction error codes, RetailStore features, customer softwarre features, or a tax calculator because none of these features are avilable in Square.
-
-Record 001 (Merchandise Item) does not support voided or exchanged transactions, dynamic price lookups, item sending, or associate sales as these features are not provided by the POS.
-
-Record 017 (Store Close) is not supported because none of the required features are provided in Square (weather on closing, holiday on closing, special event on closing).
-
-Record 023 (Authorzation Code) does not support authorization codes, because there is no ability to enter authorization codes into the POS.
-
-Record 025 (Item Tax Merchandise Non Merchandise Items Fees) only supports static calculation of taxes.
-
-Record 026 (Associate) does not support team numbers, because employees do not have team numbers.
-
-Record 034 (Tender Count) does not support a count in a drawer (as opposed to an amount in a drawer) because Square does not track the number of a given tender received or given (i.e. number of cheques).
-
-Record 055 (Line Item Accounting String) does not support non-merchandise or rentals.
-
-Record 056 (Line Item Associate And Discount Accounting String) does not support associate discounting in general, as discounts are not differentiated in Square by whether or not they are associate discounts.
-
-Record 061 (Tender) does not support currency exchange because the POS does not perform currency exchange.
-
-Record 065 (Credit Card Tender) does not support full account numbers, expiry dates, authorization data, or settlement data because the API does not make this information available.
-
-Record 071 (Event Giveback) does not support event, deal or coupon numbers, transaction discounts, or component types because there is no dynamic pricing engine available.
-
-Debit transactions will show up as credit card transactions, due to a limitation in Square.
-
-All transactions will only exist in one currency (the currency being used in the country in which the Square account is configured).
-
-Refund transactions will only be itemized if they are FULL refunds, with a refund reason of "Returned Goods". If this is not the case, the refunds will show up in the TLOG, but will not have items.
-
-For non-full refunds, all transaction money will show up solely as transaction total, without breaking down the refund into various taxes or fees.
-
-There are certain cases where payments will not be pulled from the API. One such case is for offline payments; these payments will not be pulled from the API until they are reconciled, at which point they may not be reported if the window in which they're processed has passed. This must be handled at some point. 
-
-### RPC
-
-The only information that gets pulled into Square is the following:
-
-  - Record 01 (Item Record): Item Number, Retail Price, Department Number, Class Number, Description
-  - Record 29 (Item Alernate Description): Item Alternate Description
-
-All other information is ignored.
-
-## Account and Device Configuration
-
-Items must be configured to include PLUs as a Square SKU.
-
+### New location setup
 Employees must be configured to include associate/employee number in the "external ID".
 
 Locations must be configured to include store number as a Square location nickname, in brackets. For example, the nickname might be "Location 1 (00231)".
 
+### New device setup
 Individual devices must be configured to include the register number as the device name, in brackets. For example, a device name might be "Register B (002)".
 
-The account used to access the SFTP server must be able to create new files, delete files, and create new directories.
+### Uploading a full item library
+It is strongly recommended to upload full PLUs via the Square web dashboard, as uploading them through the Managed Integrations app takes a long time (10+ hours for 25,000 items) and requires a full redeploy of the Managed Integrations app.
+
+##### Uploading via the Square web dashboard
+In order to do a full PLU upload, the account must first be cleared of items. This can be done in any way desired; the fastest is probably to upload a Square item CSV (which can be downloaded from the Square web dashboard) which does not contain any items.
+
+If necessary, a Regulator permission on the account to disable the item upload limit must be toggled (`IGNORE_ITEMS_BULK_OBJECT_LIMIT`).
+
+The PLU must then be converted into a Square CSV. This can be done with a utility class that exists in the Managed Integrations project: `vfcorp.PLUToCSVConverter`. The PLU file and the output file can be set within the class; once it is run, it will produce a CSV that can be uploaded to the Square web dashboard. This will also create the necessary categories.
+
+Finally, if necessary, create a tax and apply it to the newly created items, as the generated CSV will not do this.
+
+##### Uploading via the Managed Integrations app
+Before doing any of the following steps, ensure that the necessary tax exists in the account before continuing; otherwise, the tax will have to be manually applied to all new items via the Square web dashboard once the PLU has been ingested.
+
+By default, the PLU ingestion process runs two health checks: the first checks to see if the PLU contains only additions, and the second checks to see if the PLU is suspiciously large. If either condition is true, the PLU ingestion process will thrown an exception and not continue. This makes uploading a full PLU impossible via the Managed Integrations app, which is by design (it guards against accidental upload of a full PLU catalog).
+
+To upload the full PLU via the Managed Integrations app, these checks must be disabled. The checks are controlled within the `[env].vfcorp.properties` file. The two properties that must be set to false are `vfcorp.rpc.onlyAddsCheck` and `vfcorp.rpc.suspiciousNumberOfRecordsCheck`. Once these are set to false and the application is redeployed, full PLUs will be processed successfully by uploading them via the Managed Integrations app.
