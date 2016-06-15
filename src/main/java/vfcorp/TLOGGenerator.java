@@ -33,7 +33,7 @@ public class TLOGGenerator implements Callable {
 				matchingMerchant = merchant;
 			}
 		}
-		
+
 		if (matchingMerchant != null) {
 			EpicorParser epicor = new EpicorParser();
 			epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
@@ -54,7 +54,7 @@ public class TLOGGenerator implements Callable {
 			
 			return epicor.tlog().toString();
 		}
-		
+
 		return null;
 	}
 	

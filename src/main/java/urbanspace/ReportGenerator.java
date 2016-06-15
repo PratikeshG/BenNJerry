@@ -12,14 +12,9 @@ import org.mule.api.lifecycle.Callable;
 
 public class ReportGenerator implements Callable {
 
-	private String timeMethod;
 	private String timeZone;
 	private int offset;
 	private int range;
-	
-	public void setTimeMethod(String timeMethod) {
-		this.timeMethod = timeMethod;
-	}
 	
 	public void setTimeZone(String timeZone) {
 		this.timeZone = timeZone;
@@ -42,9 +37,7 @@ public class ReportGenerator implements Callable {
 		Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		sdf.setTimeZone(c.getTimeZone());
-		if (timeMethod.equals("getPastDayInterval")) {
-			c.add(Calendar.DATE, -offset);
-		}
+		c.add(Calendar.DATE, -offset);
 		String currentDate = sdf.format(c.getTime());
 		
 		// Generate aggregate report
