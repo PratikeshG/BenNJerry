@@ -18,10 +18,10 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <queued-asynchronous-processing-strategy name="VFC_Report_Asynch_Processing_Strategy" maxThreads="${vfcorp.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${vfcorp.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
     <flow name="VFC:generate-tlogs-for-locations" processingStrategy="synchronous">
-        <poll doc:name="Run every day at 3:30am UTC">
-            <schedulers:cron-scheduler expression="0 30 3 1/1 * ? *"/>
-            <logger level="INFO" doc:name="Logger" message="Starting VFC:generate-tlogs-for-locations flow."/>
-        </poll>
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCron" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="Starting VFC:generate-tlogs-for-locations flow." level="INFO" doc:name="Logger"/>
     	<!-- TODO: this runs in UTC time. It does not account for daylight savings. -->
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="VFC:generate-tlogs-for-locations-set-params" doc:name="VFC:generate-tlogs-for-locations-set-params"/>

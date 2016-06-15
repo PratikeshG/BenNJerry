@@ -64,10 +64,9 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
         </db:select>
     </sub-flow>
     <flow name="MI:OAuth:renew-expiring-tokens">
-        <poll doc:name="Run every seven days at 9:00am (UTC)">
-            <schedulers:cron-scheduler expression="0 0 9 1/7 * ? *"/>
-            <logger message="Starting MI:OAuth:renew-expiring-tokens." level="INFO" doc:name="Logger"/>
-        </poll>
+        <quartz:inbound-endpoint jobName="renewExpiringTokens" cronExpression="0 0 9 ? * SUN" repeatInterval="0" responseTimeout="10000" doc:name="Run every sunday at 9:00am (UTC)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <set-payload value="#[server.dateTime.plusDays(7).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date one week in the future in ISO8601 format"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE expiryDate < #[payload];]]></db:parameterized-query>
@@ -82,13 +81,11 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
                     <property key="legacySecret" value="${connect.legacy.secret}"/>
                 </singleton-object>
             </component>
-            <db:insert config-ref="MySQL_Configuration" doc:name="Write new token to database">
-                <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, expiryDate)
-VALUES (#[flowVars.deployment], #[flowVars.connectApp], #[payload.accessToken], #[payload.merchantId], #[payload.expiresAt]);]]></db:parameterized-query>
-            </db:insert>
-            <db:delete config-ref="MySQL_Configuration" doc:name="Delete old token">
-                <db:parameterized-query><![CDATA[DELETE FROM token WHERE id = #[flowVars.oldId];]]></db:parameterized-query>
-            </db:delete>
+            <db:update config-ref="MySQL_Configuration" doc:name="Update token in database">
+                <db:parameterized-query><![CDATA[UPDATE `token`
+SET token = #[payload.accessToken], expiryDate = #[payload.expiresAt]
+WHERE id = #[flowVars.tokenId];]]></db:parameterized-query>
+            </db:update>
         </foreach>
     </flow>
 </mule>
