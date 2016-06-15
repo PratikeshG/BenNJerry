@@ -181,9 +181,6 @@ return sp;]]></scripting:script>
     <sub-flow name="Urbanspace:convert-api-results-to-csvs">
         <component doc:name="Calculate UrbanSpace Aggregate Totals">
             <singleton-object class="urbanspace.ReportGenerator">
-                <property key="timeZone" value="#[sessionVars.timeZone]"/>
-                <property key="offset" value="#[sessionVars.offset]"/>
-                <property key="range" value="#[sessionVars.range]"/>
             </singleton-object>
         </component>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
