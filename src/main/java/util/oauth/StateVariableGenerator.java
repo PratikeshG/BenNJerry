@@ -37,7 +37,7 @@ public class StateVariableGenerator implements Callable {
 		params.setClientId(connectAppId);
 		params.setResponseType("code");
 		params.setState(deployment + "," + session + "," + connectAppId);
-		params.setSession(true);
+		params.setSession(false);
 		
 		if (connectAppId.equals(legacyAppId)) {
 			params.setScope(new String[]{"MERCHANT_PROFILE_READ","PAYMENTS_READ","ITEMS_READ","ITEMS_WRITE"});
