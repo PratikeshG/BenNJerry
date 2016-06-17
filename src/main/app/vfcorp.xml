@@ -17,6 +17,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <queued-asynchronous-processing-strategy name="VFC_Report_Asynch_Processing_Strategy" maxThreads="${vfcorp.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${vfcorp.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
+    <vm:connector name="VFC_VM_Config" validateConnections="true" doc:name="VM"/>
     <flow name="VFC:generate-tlogs-for-locations" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCron" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC">
             <quartz:event-generator-job/>
@@ -62,18 +63,18 @@ for (Map<String,Object> merchantDatabaseEntry : merchantDatabaseEntries) {
 return tlogGeneratorPayloads;]]></scripting:script>
         </scripting:transformer>
         <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-splitter"/>
-            <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-reply"/>
+            <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-splitter" connector-ref="VFC_VM_Config"/>
+            <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-reply" connector-ref="VFC_VM_Config"/>
         </request-reply>
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:generate-tlogs-for-locations-queue-splitter">
-        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-splitter"/>
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-splitter" connector-ref="VFC_VM_Config"/>
         <collection-splitter doc:name="Collection Splitter"/>
-        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-async-worker"/>
+        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-async-worker" connector-ref="VFC_VM_Config"/>
     </flow>
     <flow name="VFC:generate-tlogs-for-locations-async-worker" processingStrategy="VFC_Report_Asynch_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-async-worker"/>
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-async-worker" connector-ref="VFC_VM_Config"/>
         <scripting:transformer doc:name="Get locations for business">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
 import com.squareup.connect.Merchant;
@@ -142,12 +143,12 @@ return sp;]]></scripting:script>
         </component>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" path="${vfcorp.generateTLOG.output.sftp.path}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator"/>
+        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator" connector-ref="VFC_VM_Config"/>
     </flow>
     <flow name="VFC:generate-tlogs-for-locations-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator"/>
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator" connector-ref="VFC_VM_Config"/>
         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-reply"/>
+        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-reply" connector-ref="VFC_VM_Config"/>
     </flow>
     <sub-flow name="VFC:generate-tlogs-for-locations-set-params">
         <set-variable variableName="deployment" value="${vfcorp.generateTLOGparams.deploymentId}" doc:name="Set deployment ID"/>
