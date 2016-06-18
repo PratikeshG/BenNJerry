@@ -30,6 +30,7 @@ import util.TimeManager;
 public class TLOGGenerator {
 
 	static final int MAX_DEVICE_ID_LENGTH = 2;
+	static final int SKU_LENGTH = 11;
 
 	private String storeId;
 	private String defaultDeviceId;
@@ -219,6 +220,8 @@ public class TLOGGenerator {
 		}
 
 		String sku = itemization.getItemVariationName().replace("-", "");
+		sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
+
 		String cost = "";
 		String deptCode = "";
 

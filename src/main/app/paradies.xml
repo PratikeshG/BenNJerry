@@ -125,7 +125,7 @@ reportPayload.setCatalog(catalog);
 TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);]]></scripting:script>
             </scripting:component>
   
-            <logger message="Location payload: #[payload.getTlogs()]" level="INFO" doc:name="Copy_of_Copy_of_LOG" metadata:id="ac32c127-a665-4898-8752-9a0deebe8897"></logger>  
+            <logger message="Location payload: #[payload.getTlogs()]" level="INFO" doc:name="log results" metadata:id="ac32c127-a665-4898-8752-9a0deebe8897"></logger>
         </foreach>  
         <set-payload value="Done!" doc:name="Set Payload"></set-payload>  
         <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>  
