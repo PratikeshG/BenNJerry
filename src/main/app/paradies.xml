@@ -1,35 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
 	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:file="http://www.mulesoft.org/schema/mule/file"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
-http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd">
     <vm:connector name="Paradies_VM_Catalog" validateConnections="true" createMultipleTransactedReceivers="true" numberOfConcurrentTransactedReceivers="5" doc:name="VM"></vm:connector>
     <vm:connector name="Paradies_VM_Worker" validateConnections="true" doc:name="VM"> 
         <vm:queue-profile maxOutstandingMessages="1"></vm:queue-profile>  
     </vm:connector>
-    <!-- <ftp:connector name="Paradies_FTP_catalog" pollingFrequency="5000" validateConnections="true" moveToDirectory="/Outbound/Complete/" moveToPattern="#[sessionVars['originalFilename']]" outputPattern="#[sessionVars['originalFilename']]" doc:name="FTP"></ftp:connector> -->
     <queued-asynchronous-processing-strategy name="Paradies_Catalog_Asynch_Processing_Strategy" maxThreads="1" minThreads="1" doc:name="Queued Asynchronous Processing Strategy"></queued-asynchronous-processing-strategy>
-    <file:connector name="File" readFromDirectory="/Users/bhartard/Desktop/FTP_TEST/Paradies/Outbound" autoDelete="true" streaming="true" validateConnections="true" doc:name="File"/>
+    <ftp:connector name="Paradies_FTP_catalog" pollingFrequency="5000" validateConnections="true" moveToDirectory="${paradies.ftp.path.items}${paradies.ftp.path.complete}" moveToPattern="#[sessionVars['originalFilename']]" outputPattern="#[sessionVars['originalFilename']]" doc:name="FTP"></ftp:connector>
     <sub-flow name="Paradies:set-flow-vars"> 
         <set-session-variable variableName="merchantId" value="#[payload.merchantId]" doc:name="Set merchantId"></set-session-variable>  
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
     <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
-        <file:inbound-endpoint responseTimeout="10000" doc:name="File" moveToDirectory="/Users/bhartard/Desktop/FTP_TEST/Paradies/Outbound/Complete" path="/Users/bhartard/Desktop/FTP_TEST/Paradies/Outbound" connector-ref="File">
-            <file:filename-regex-filter pattern="master_1.txt" caseSensitive="true"/>
-        </file:inbound-endpoint>
-        <file:file-to-byte-array-transformer doc:name="File to Byte Array"/>  
+        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}">
+			<file:filename-wildcard-filter pattern="master_1.txt"/>
+        </ftp:inbound-endpoint>
+        <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>
         <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
         <set-session-variable variableName="originalFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Set originalFilename"></set-session-variable>  
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"></flow-ref>  
@@ -40,22 +32,18 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         <request-reply doc:name="Request-Reply"> 
             <vm:outbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogRequestQueue" doc:name="Catalog Update Request Queue" connector-ref="Paradies_VM_Catalog"></vm:outbound-endpoint>  
             <vm:inbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogResponseQueue" doc:name="Catalog Update Response Queue" connector-ref="Paradies_VM_Catalog"></vm:inbound-endpoint>  
-        </request-reply>  
+        </request-reply>
         <logger message="DONE!!!!!!!!" level="INFO" doc:name="Finish"></logger>  
-        <!-- 
-            <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' - Test Pandora Items Flow']" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-        	-->  
     </flow>
     <flow name="Pandora:location-update-catalog-queue-splitter" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogRequestQueue" connector-ref="Paradies_VM_Catalog" doc:name="VM"></vm:inbound-endpoint>  
-        <collection-splitter metadata:id="1055750a-fb72-47fc-86e1-d1d24ea958b5" doc:name="Process catalog update separately for each location"></collection-splitter>
-  
+        <collection-splitter metadata:id="1055750a-fb72-47fc-86e1-d1d24ea958b5" doc:name="Process catalog update separately for each location"></collection-splitter>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:outbound-endpoint>  
     </flow>
     <flow name="Pandora:async-process-location-update-catalog" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:inbound-endpoint>
         <logger message="Started processing location: #[payload.locationDetails.nickname] (#[payload.id])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Location X catelog update started"></logger>  
-        <flow-ref name="Pandora:location-update-catelog" metadata:id="5ec9e8d1-661a-4b9d-980b-c156b65e5b27" doc:name="Pandora:location-update-catelog"></flow-ref>  
+        <flow-ref name="Pandora:location-update-catelog" metadata:id="5ec9e8d1-661a-4b9d-980b-c156b65e5b27" doc:name="Pandora:location-update-catelog"></flow-ref>
         <vm:outbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesLocationCatalogAggregationQueue"></vm:outbound-endpoint>  
     </flow>
     <sub-flow name="Pandora:location-update-catelog"> 
@@ -124,11 +112,10 @@ reportPayload.setCatalog(catalog);
 
 TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);]]></scripting:script>
             </scripting:component>
-  
             <logger message="Location payload: #[payload.getTlogs()]" level="INFO" doc:name="log results" metadata:id="ac32c127-a665-4898-8752-9a0deebe8897"></logger>
-        </foreach>  
-        <set-payload value="Done!" doc:name="Set Payload"></set-payload>  
-        <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>  
+        </foreach>
+        <set-payload value="Done!" doc:name="Set Payload"></set-payload>
+        <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>
     </flow>
     <flow name="Pandora:trigger-generate-TLOGs"> 
         <http:listener config-ref="HTTP_Listener_Configuration" path="/pandora-tlogs" doc:name="/pandora-tlogs"></http:listener>  
