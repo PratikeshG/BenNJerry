@@ -273,11 +273,16 @@ public class TransactionHeader extends Record {
 			
 			if (objectStore.contains(transactionNumberKey)) {
 				int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
-				
+
+				// TODO(bhartard): REMOVE once migrated to mysql store
+				if (registerNumberFormatted.equals("002") && transactionNumber < 61) {
+					transactionNumber = 61;
+				}
+
 				if (transactionNumber > MAX_TRANSACTION_NUMBER) {
 					transactionNumber = 1;
 				}
-				
+
 				objectStore.remove(transactionNumberKey);
 				objectStore.store(transactionNumberKey, "" + transactionNumber);
 				return transactionNumber;
