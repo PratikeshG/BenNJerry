@@ -152,6 +152,7 @@ return sp;]]></scripting:script>
     </flow>
     <sub-flow name="VFC:generate-tlogs-for-locations-set-params">
         <set-variable variableName="deployment" value="${vfcorp.generateTLOGparams.deploymentId}" doc:name="Set deployment ID"/>
+        <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
         <set-variable variableName="timeMethod" value="${vfcorp.generateTLOGparams.timeMethod}" doc:name="Set time method"/>
         <set-variable variableName="range" value="${vfcorp.generateTLOGparams.timeMethod.range}" doc:name="Set date range to one day"/>
         <set-variable variableName="seconds" value="${vfcorp.generateTLOGparams.timeMethod.seconds}" doc:name="Set seconds"/>
@@ -254,4 +255,8 @@ return sp;]]></scripting:script>
         <set-payload value="New PLU file ingested by VFCorp." doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp']" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
+    <flow name="VFC:trigger-generate-tlogs-for-locations">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc-tlogs/jXsEyB.UFz71ZNg" doc:name="/vfc-tlogs"/>
+        <flow-ref name="VFC:generate-tlogs-for-locations" doc:name="VFC:generate-tlogs-for-locations"/>
+    </flow>
 </mule>

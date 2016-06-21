@@ -35,9 +35,11 @@ public class TLOGGenerator implements Callable {
 		}
 
 		if (matchingMerchant != null) {
+			String deploymentId = (String) eventContext.getMessage().getProperty("deploymentId", PropertyScope.SESSION) + 1;
+
 			EpicorParser epicor = new EpicorParser();
 			epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
-			epicor.tlog().setDeployment((String) eventContext.getMessage().getProperty("deployment", PropertyScope.INVOCATION) + 1);
+			epicor.tlog().setDeployment(deploymentId);
 			epicor.tlog().setTimeZoneId(timeZoneId);
 			
 			// Get Cloudhub default object store
