@@ -1,13 +1,10 @@
 package paradies;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.squareup.connect.Employee;
@@ -16,7 +13,6 @@ import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
-import com.squareup.connect.diff.Catalog;
 
 import paradies.TLOG;
 import paradies.records.HeaderRecord;
@@ -93,14 +89,18 @@ public class TLOGGenerator {
 		}
 
 		for (String deviceId : devicePaymentsCache.keySet()) {
-			tlogs.put(deviceId, generateDeviceTlog(deviceId, devicePaymentsCache.get(deviceId)));
+			// TODO(bhartard): Do we create TLOG for devices with no sales?
+			TLOG tl = generateDeviceTlog(deviceId, devicePaymentsCache.get(deviceId));
+			if (tl.getEntries().size() > 0) {
+				tlogs.put(deviceId, tl);
+			}
 		}
 	}
 
 	private TLOG generateDeviceTlog(String deviceId, ArrayList<Payment> payments) throws ParseException {
 
 		TLOG deviceTLOG = new TLOG(storeId, deviceId);		
-		int sequentialTransactionNumber = 1;
+		int sequentialTransactionNumber = 11;
 
 		for (Payment payment : payments) {
 			// skip no sale event
@@ -156,11 +156,11 @@ public class TLOGGenerator {
 	private HeaderRecord createHeaderRecord(String deviceId, String recordType, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
 
 		String employeeId = getEmployeeIdFromPayment(payment);
-		String dateTime = getPaymentDateTimeInFormat(payment.getCreatedAt(), "yyMMddHHmmss");
+		String dateTime = TimeManager.toSimpleDateTimeInTimeZone(payment.getCreatedAt(), timeZone, "yyMMddHHmmss");
 		String tNumber = Integer.toString(transactionNumber);
 		String rSequence = recordSequence.toString();
 		String businessDate = dateTime.substring(2, 6);
-		
+
 		HeaderRecord header = new HeaderRecord(recordType);
 		header.setFieldValue(HeaderRecord.FIELD_STORE_ID, storeId);
 		header.setFieldValue(HeaderRecord.FIELD_REGISTER_ID, deviceId);
@@ -362,16 +362,6 @@ public class TLOGGenerator {
 		pRecord.setFieldValue(MethodOfPaymentRecord.FIELD_CHANGE_DUE, Integer.toString(changeDue));
 
 		return pRecord;
-	}
-
-	private String getPaymentDateTimeInFormat(String ISO8601, String format) throws ParseException {
-		Calendar cal = TimeManager.toCalendar(ISO8601);
-		cal.setTimeZone(TimeZone.getTimeZone(timeZone));
-		
-		SimpleDateFormat sdf = new SimpleDateFormat(format);
-		String formatted = sdf.format(cal.getTime());
-
-		return formatted;
 	}
 
 	/*

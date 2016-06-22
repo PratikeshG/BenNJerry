@@ -55,4 +55,9 @@ public class TLOG {
 
 		return output;
 	}
+
+	public String getDeviceIdCharacter() {
+		int intDeviceId = Integer.parseInt(deviceId);
+		return String.valueOf((char)(intDeviceId + 64));
+	}
 }

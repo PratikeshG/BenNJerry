@@ -18,10 +18,10 @@
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
     <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
-        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}">
-			<file:filename-wildcard-filter pattern="master_1.txt"/>
-        </ftp:inbound-endpoint>
-        <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>
+        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}"> 
+            <file:filename-wildcard-filter pattern="master_1.txt"></file:filename-wildcard-filter>  
+        </ftp:inbound-endpoint>  
+        <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>  
         <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
         <set-session-variable variableName="originalFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Set originalFilename"></set-session-variable>  
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"></flow-ref>  
@@ -32,7 +32,7 @@
         <request-reply doc:name="Request-Reply"> 
             <vm:outbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogRequestQueue" doc:name="Catalog Update Request Queue" connector-ref="Paradies_VM_Catalog"></vm:outbound-endpoint>  
             <vm:inbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogResponseQueue" doc:name="Catalog Update Response Queue" connector-ref="Paradies_VM_Catalog"></vm:inbound-endpoint>  
-        </request-reply>
+        </request-reply>  
         <logger message="DONE!!!!!!!!" level="INFO" doc:name="Finish"></logger>  
     </flow>
     <flow name="Pandora:location-update-catalog-queue-splitter" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
@@ -41,9 +41,9 @@
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:outbound-endpoint>  
     </flow>
     <flow name="Pandora:async-process-location-update-catalog" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
-        <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:inbound-endpoint>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:inbound-endpoint>  
         <logger message="Started processing location: #[payload.locationDetails.nickname] (#[payload.id])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Location X catelog update started"></logger>  
-        <flow-ref name="Pandora:location-update-catelog" metadata:id="5ec9e8d1-661a-4b9d-980b-c156b65e5b27" doc:name="Pandora:location-update-catelog"></flow-ref>
+        <flow-ref name="Pandora:location-update-catelog" metadata:id="5ec9e8d1-661a-4b9d-980b-c156b65e5b27" doc:name="Pandora:location-update-catelog"></flow-ref>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesLocationCatalogAggregationQueue"></vm:outbound-endpoint>  
     </flow>
     <sub-flow name="Pandora:location-update-catelog"> 
@@ -67,8 +67,8 @@
         <flow-ref name="Paradies:set-flow-vars" doc:name="Paradies:set-flow-vars"></flow-ref>  
         <flow-ref name="Paradies:set-report-payload-flow-vars" doc:name="Paradies:set-report-payload-flow-vars"></flow-ref>  
         <flow-ref name="MI:getLocations" metadata:id="023b028f-25a2-48ff-aa6c-c181ef7f3259" doc:name="MI:getLocations"></flow-ref>  
-        <foreach counterVariableName="paradies-location-counter" doc:name="For Each Location">
-            <scripting:component doc:name="Run TLOGGenerator">
+        <foreach counterVariableName="paradies-location-counter" doc:name="For Each Location"> 
+            <scripting:component doc:name="Run TLOGGenerator"> 
                 <scripting:script engine="Groovy"><![CDATA[import paradies.TLOGGenerator;
 import paradies.TLOGGeneratorPayload;
 
@@ -110,15 +110,27 @@ reportPayload.setPayments(client.payments().list(paymentParams));
 Catalog catalog = Catalog.getCatalog(client, flowVars['itemPrimaryKey'], flowVars['otherPrimaryKey']);
 reportPayload.setCatalog(catalog);
 
-TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);]]></scripting:script>
-            </scripting:component>
-            <logger message="Location payload: #[payload.getTlogs()]" level="INFO" doc:name="log results" metadata:id="ac32c127-a665-4898-8752-9a0deebe8897"></logger>
-        </foreach>
-        <set-payload value="Done!" doc:name="Set Payload"></set-payload>
-        <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>
+TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);
+
+return tlogGenerator.getTlogs();]]></scripting:script>  
+            </scripting:component>  
+            <choice doc:name="Choice"> 
+                <when expression="#[payload.isEmpty()]"> 
+                    <logger message="No TLOGs for location" level="INFO" doc:name="Logger"></logger>  
+                </when>  
+                <otherwise> 
+                    <foreach collection="#[payload.values()]" counterVariableName="deviceTLOGsCounter" doc:name="For Each Device TLOG"> 
+                        <ftp:outbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.reports}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" outputPattern="#['str' + payload.getStoreId() + payload.getDeviceIdCharacter() + '.asc']" responseTimeout="10000" doc:name="FTP"></ftp:outbound-endpoint>  
+                    </foreach>  
+                </otherwise>  
+            </choice>  
+            <logger message="Location payload: #[payload]" level="INFO" doc:name="log results" metadata:id="ac32c127-a665-4898-8752-9a0deebe8897"></logger>  
+        </foreach>  
+        <set-payload value="Done!" doc:name="Set Payload"></set-payload>  
+        <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>  
     </flow>
     <flow name="Pandora:trigger-generate-TLOGs"> 
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/pandora-tlogs" doc:name="/pandora-tlogs"></http:listener>  
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/pandora-tlogs/jXsEyB.UFz71ZNg" doc:name="/pandora-tlogs"></http:listener>  
         <flow-ref name="Pandora:generate-TLOGs" doc:name="Pandora:generate-TLOGs"></flow-ref>  
     </flow>
     <sub-flow name="Paradies:set-reporting-flow-vars"> 
