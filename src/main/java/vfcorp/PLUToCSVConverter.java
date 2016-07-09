@@ -8,13 +8,15 @@ import java.io.FileWriter;
 
 import com.squareup.connect.Item;
 import com.squareup.connect.diff.Catalog;
-import com.squareup.connect.diff.CatalogChangeRequest;
 
 public class PLUToCSVConverter {
 
 	public static void main(String[] args) throws Exception {
-		String path = "/Users/colinlam/Downloads/PLU_ANDY.RPT";
-		String donePath = "/Users/colinlam/Downloads/plu_andy.csv";
+		
+		System.out.println("Starting PLU to CSV converter...");
+		
+		String path = "/Users/bhartard/desktop/VFC/xaa";
+		String donePath = "/Users/bhartard/desktop/VFC/catalog1.csv";
 		int itemNumberLookupLength = 14;
 		
 		RPC rpc = new RPC();
@@ -26,7 +28,7 @@ public class PLUToCSVConverter {
 		rpc.ingest(bis);
 		
 		Catalog empty = new Catalog();
-		Catalog catalog = rpc.convert(empty, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog catalog = rpc.convert(empty);
 		
 		StringBuffer sb = new StringBuffer();
 		
@@ -34,11 +36,17 @@ public class PLUToCSVConverter {
 		
 		for (Item item : catalog.getItems().values()) {
 			sb.append(",");
-			sb.append(item.getName() + ",");
-			sb.append(item.getCategory().getName() + ",");
+			sb.append("\"" + item.getName().replaceAll("\"","\"\"") + "\",");
+			sb.append("\"" + item.getCategory().getName().replaceAll("\"","\"\"") + "\",");
 			sb.append(",");
 			sb.append(item.getVariations()[0].getName() + ",");
-			sb.append(item.getVariations()[0].getPriceMoney().getAmount() + ",");
+
+			String price = Integer.toString(item.getVariations()[0].getPriceMoney().getAmount());
+			if (price.length() > 2) {
+				price = price.substring(0, price.length() - 2) + "." + price.substring(price.length() - 2);
+			}
+
+			sb.append(price + ",");
 			sb.append(item.getVariations()[0].getSku() + "\n");
 		}
 		
@@ -46,6 +54,8 @@ public class PLUToCSVConverter {
 		bwr.write(sb.toString());
 		bwr.flush();
 		bwr.close();
+
+		System.out.println("Done.");
 	}
 
 }

@@ -32,90 +32,95 @@ public class RPC {
 	public static final String ITEM_ADDITIONAL_DATA_RECORD = "36";
 	
 	private LinkedList<Record> rpc;
-	private boolean onlyAddsCheck;
-	private boolean suspiciousNumberOfRecordsCheck;
 	private int itemNumberLookupLength;
-	private int suspiciousNumberOfRecords;
 	
-	public void setOnlyAddsCheck(boolean onlyAddsCheck) {
-		this.onlyAddsCheck = onlyAddsCheck;
-	}
-	
-	public void setSuspiciousNumberOfRecordsCheck(boolean suspiciousNumberOfRecordsCheck) {
-		this.suspiciousNumberOfRecordsCheck = suspiciousNumberOfRecordsCheck;
-	}
-	
-	public void setItemNumberLookupLength(int itemNumberLookupLength) {
+	void setItemNumberLookupLength(int itemNumberLookupLength) {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
 	
-	public void setSuspiciousNumberOfRecords(int suspiciousNumberOfRecords) {
-		this.suspiciousNumberOfRecords = suspiciousNumberOfRecords;
-	}
-	
 	// This method CONSUMES the RPC linked list.
-	public Catalog convert(Catalog current, CatalogChangeRequest.PrimaryKey primaryKey) throws Exception {
+	public Catalog convert(Catalog current) throws Exception {
 		Catalog clone = new Catalog(current);
+
+		System.out.println("Consuming PLU file...");
+
+		LinkedList<Record> saleRecords = new LinkedList<Record>();
 		
 		while (rpc.size() > 0) {
 			Record record = rpc.removeFirst();
+
 			if (record != null && record.getId() != null) {
 				if (record.getId().equals(ITEM_RECORD)) {
-					convertItem(primaryKey, clone, record);
+					// Process sale records last
+					if (record.getValue("Action Type").equals(ItemRecord.ACTION_TYPE_PLACE_ON_SALE)) {
+						saleRecords.add(record);
+					} else {
+						convertItem(clone, record);
+					}
 				} else if (record.getId().equals(DEPARTMENT_CLASS_RECORD)) {
-					convertCategory(primaryKey, clone, record);
+					convertCategory(clone, record);
 				}
 			}
 		}
 		
-		performHealthChecks();
+		// Process sale records
+		while (saleRecords.size() > 0) {
+			Record saleRecord = saleRecords.removeFirst();
+			convertItem(clone, saleRecord);
+		}
 		
 		return clone;
 	}
 	
-	private void convertItem(CatalogChangeRequest.PrimaryKey primaryKey, Catalog clone, Record record) {
+	private void convertItem(Catalog clone, Record record) {
 		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
-		
+
 		String matchingKey = null;
 		Item matchingItem = null;
 		ItemVariation matchingVariation = null;
-		for (String key : clone.getItems().keySet()) {
-			Item item = clone.getItems().get(key);
+
+		Item item = clone.getItems().get(sku);
+		if (item != null) {
 			if (sku.equals(item.getVariations()[0].getSku())) {
-				matchingKey = key;
+				matchingKey = sku;
 				matchingItem = item;
 				matchingVariation = item.getVariations()[0];
-				break;
 			}
 		}
-		
-		if (ItemRecord.ACTION_TYPE_ADD.equals(record.getValue("Action Type")) ||
-				ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(record.getValue("Action Type")) ||
-				ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(record.getValue("Action Type"))) {
-			
+
+		String actionType = record.getValue("Action Type");
+		if (ItemRecord.ACTION_TYPE_ADD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(actionType)) {
+
 			if (matchingItem == null) {
 				matchingItem = new Item();
 				matchingVariation = new ItemVariation("Regular");
 				matchingVariation.setSku(sku);
 				matchingItem.setVariations(new ItemVariation[]{matchingVariation});
 			}
-			
+
 			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Retail Price"))));
-			matchingVariation.setUserData(record.getValue("Department Number") + record.getValue("Class Number"));
-			
+
+			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
+			// Storing on variation to save to payment record details
+			matchingVariation.setName("Regular (" + deptCodeClass + ")");
+			matchingVariation.setUserData(deptCodeClass);
+
 			for (Category category : clone.getCategories().values()) {
-				if (category.getName().subSequence(0, 8).equals(record.getValue("Department Number") + record.getValue("Class Number"))) {
+				if (category.getName().subSequence(0, 8).equals(deptCodeClass)) {
 					matchingItem.setCategory(category);
+					break;
 				}
 			}
-			
+
 			// Assumes that only one tax exists per catalog. Applies it to all items.
 			if (clone.getFees().values().size() > 0) {
 				matchingItem.setFees(new Fee[]{(Fee) clone.getFees().values().toArray()[0]});
 			}
-			
+
 			matchingItem.setName(record.getValue("Description").replaceFirst("\\s+$", ""));
-			
+
 			// Remove records until an item or category is found
 			if (rpc.size() > 0) {
 				Record nextRecord = rpc.removeFirst();
@@ -135,16 +140,19 @@ public class RPC {
 					}
 				}
 			}
-			
-			clone.addItem(matchingItem, primaryKey);
-		} else if (ItemRecord.ACTION_TYPE_DELETE.equals(record.getValue("Action Type")) && matchingItem != null) {
+
+			clone.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
+		} else if (ItemRecord.ACTION_TYPE_PLACE_ON_SALE.equals(actionType) && matchingItem != null && matchingVariation != null) {
+			// TODO(bhartard): Check if date within sale price date or queue for future use?
+			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Sale Price"))));
+		} else if (ItemRecord.ACTION_TYPE_DELETE.equals(actionType) && matchingItem != null) {
 			clone.getItems().remove(matchingKey);
 		}
 	}
 
-	private void convertCategory(CatalogChangeRequest.PrimaryKey primaryKey, Catalog clone, Record record) {
+	private void convertCategory(Catalog clone, Record record) {
 		String name = record.getValue("Department Number") + record.getValue("Class Number") + " " + record.getValue("Class Description").trim();
-		
+
 		String matchingKey = null;
 		Category matchingCategory = null;
 		for (String key : clone.getCategories().keySet()) {
@@ -155,30 +163,23 @@ public class RPC {
 				break;
 			}
 		}
-		
-		if (matchingCategory == null) {
-			if (ItemRecord.ACTION_TYPE_ADD.equals(record.getValue("Action Type")) ||
-					ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(record.getValue("Action Type")) ||
-					ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(record.getValue("Action Type"))) {
-				Category category = new Category();
-				category.setName(name);
-				clone.addCategory(category, CatalogChangeRequest.PrimaryKey.NAME);
+
+		String actionType = record.getValue("Action Type");
+		if (ItemRecord.ACTION_TYPE_ADD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(actionType)) {
+
+			if (matchingCategory == null) {
+				matchingCategory = new Category();
 			}
-		} else {
-			if ((ItemRecord.ACTION_TYPE_ADD.equals(record.getValue("Action Type")) ||
-					ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(record.getValue("Action Type")) ||
-					ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(record.getValue("Action Type"))) &&
-					!matchingKey.equals(name)) {
-				Category category = new Category();
-				category.setName(name);
-				clone.addCategory(category, primaryKey);
-				clone.getCategories().remove(matchingKey);
-			} else if (ItemRecord.ACTION_TYPE_DELETE.equals(record.getValue("Action Type"))) {
-				clone.getCategories().remove(name);
-			}
+
+			matchingCategory.setName(name);
+			clone.addCategory(matchingCategory, CatalogChangeRequest.PrimaryKey.NAME);
+		} else if (ItemRecord.ACTION_TYPE_DELETE.equals(actionType) && matchingKey != null) {
+			clone.getCategories().remove(matchingKey);
 		}
 	}
-	
+
 	private String convertItemNumberIntoSku(String itemNumber) {
 		String shortItemNumber = itemNumber.substring(0, itemNumberLookupLength);
 		
@@ -191,46 +192,26 @@ public class RPC {
 		}
 	}
 
-	private void performHealthChecks() throws Exception {
-		// Check to see if this is a suspicious number of records
-		if (suspiciousNumberOfRecordsCheck) {
-			if (rpc.size() > suspiciousNumberOfRecords) {
-				throw new Exception("A suspicious number of records was detected for this PLU: " + rpc.size() + " records");
-			}
-		}
-		
-		// Check to see if this PLU contains only adds
-		if (onlyAddsCheck) {
-			boolean onlyAdds = true;
-			for (Record record : rpc) {
-				if (record != null && record.getId() != null) {
-					if (record.getId().equals(ITEM_RECORD) || record.getId().equals(DEPARTMENT_CLASS_RECORD)) {
-						if (!ItemRecord.ACTION_TYPE_ADD.equals(record.getValue("Action Type"))) {
-							onlyAdds = false;
-							break;
-						}
-					}
-				}
-			}
-			
-			if (onlyAdds) {
-				throw new Exception("Items were only added in the current PLU; no items were updated or deleted");
-			}
-		}
-	}
-	
 	public void ingest(BufferedInputStream rpc) throws IOException {
 		this.rpc = new LinkedList<Record>();
-		
+
 		BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
 		String rpcLine = "";
-		
+
+		int totalRecordsProcessed = 0;
+		System.out.println("Ingesting PLU file...");
+
 		while ((rpcLine = r.readLine()) != null) {
+
+			if (totalRecordsProcessed % 5000 == 0) {
+				System.out.println(totalRecordsProcessed);
+			}
+
 			if (rpcLine.length() < 2) {
 				continue;
 			} else {
 				String line = rpcLine.substring(0, 2);
-				
+
 				switch(line) {
 				case ITEM_RECORD:
 					this.rpc.add(new ItemRecord(rpcLine));
@@ -252,6 +233,8 @@ public class RPC {
 					break;
 				}
 			}
+
+			totalRecordsProcessed++;
 		}
 	}
 }

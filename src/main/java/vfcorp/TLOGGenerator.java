@@ -71,6 +71,7 @@ public class TLOGGenerator implements Callable {
 			}
 		}
 		
+		// Pad to five characters with left zeros
 		return String.format("%05d", Integer.parseInt(storeNumber));
 	}
 }
