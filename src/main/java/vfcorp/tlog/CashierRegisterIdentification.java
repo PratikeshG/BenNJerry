@@ -47,7 +47,7 @@ public class CashierRegisterIdentification extends Record {
 	}
 	
 	public CashierRegisterIdentification parse(String deviceName) throws Exception {
-		String registerNumber = "";
+		String registerNumber = "099"; // default
 		
 		if (deviceName != null) {
 			int registerNumberFirstIndex = deviceName.indexOf('(');

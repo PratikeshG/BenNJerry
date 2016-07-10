@@ -102,9 +102,9 @@ public class RPC {
 
 			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Retail Price"))));
 
-			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
 			// Storing on variation to save to payment record details
-			matchingVariation.setName("Regular (" + deptCodeClass + ")");
+			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
+			matchingVariation.setName(sku + " (" + deptCodeClass + ")");
 			matchingVariation.setUserData(deptCodeClass);
 
 			for (Category category : clone.getCategories().values()) {

@@ -296,7 +296,7 @@ public class TransactionHeader extends Record {
 	}
 
 	private String getRegisterNumber(String deviceName) {
-		String registerNumber = "";
+		String registerNumber = "099"; // default
 		
 		if (deviceName != null) {
 			int registerNumberFirstIndex = deviceName.indexOf('(');

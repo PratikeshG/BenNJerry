@@ -263,7 +263,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains no items", result.getItems().size() == 0);
 	}
