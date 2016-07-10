@@ -141,7 +141,9 @@ return sp;]]></scripting:script>
                 <property key="timeZoneId" value="${vfcorp.generateTLOGparams.timeMethod.timeZone}"/>
             </singleton-object>
         </component>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" path="${vfcorp.generateTLOG.output.sftp.path}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" path="${vfcorp.generateTLOG.output.sftp.path}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator" connector-ref="VFC_VM_Config"/>
     </flow>
@@ -241,12 +243,16 @@ return rpcIngesterPayload;]]></scripting:script>
         <flow-ref name="VFC:ingest-plu-work" doc:name="VFC:ingest-plu-work"/>
     </sub-flow>
     <flow name="VFC:Kipling:plu-store-5019" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel."/>
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <reconnect-forever/>
+        </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-kipling-05019" doc:name="Deployment: vfcorp-kipling-05019"/>
         <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
     <flow name="VFC:TNF:plu-store-1" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel."/>
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <reconnect-forever/>
+        </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
         <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
