@@ -244,6 +244,7 @@ return rpcIngesterPayload;]]></scripting:script>
     </sub-flow>
     <flow name="VFC:Kipling:plu-store-5019" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
             <reconnect-forever/>
         </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-kipling-05019" doc:name="Deployment: vfcorp-kipling-05019"/>
@@ -251,10 +252,13 @@ return rpcIngesterPayload;]]></scripting:script>
     </flow>
     <flow name="VFC:TNF:plu-store-1" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
             <reconnect-forever/>
         </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
-        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+        <set-variable variableName="pluFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Copy_of_Save pluFilename"/>
+        <set-payload value="Attempted TNF: #[flowVars.pluFilename]" doc:name="Copy_of_Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp - ' + flowVars.deployment + ' - NORTH FACE']" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
     <sub-flow name="VFC:generate-tlog-work">
         <scripting:transformer doc:name="Get locations for business">

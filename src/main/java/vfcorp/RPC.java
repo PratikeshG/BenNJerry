@@ -180,7 +180,17 @@ public class RPC {
 		}
 	}
 
-	// TODO(bhartard): WHY REMOVE LEADING ZEROS?
+	/*
+	 * They provide 14 digit SKUs, padded with 0s, but SKUs can also start with 0... ugh
+	 * SKUs that start with 0 are 12 or less characters
+	 *
+	 * Examples:
+	 * 12345678901234 => 12345678901234
+	 * 123456789012 => 123456789012
+	 * 00012345678901 => 012345678901
+	 * 012345678901 => 01234567890
+	 *
+	 */
 	private String convertItemNumberIntoSku(String itemNumber) {
 		String shortItemNumber = itemNumber.substring(0, itemNumberLookupLength);
 
@@ -188,7 +198,7 @@ public class RPC {
 			// Remove leading zeros
 			shortItemNumber = shortItemNumber.replaceFirst("^0+(?!$)", "");
 
-			// But SKUs should be at least 12, pad
+			// But SKUs should be at least 12, pad 0s
 			if (shortItemNumber.length() < 12) {
 				shortItemNumber = ("000000000000" + shortItemNumber).substring(shortItemNumber.length());
 			}
