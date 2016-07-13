@@ -24,7 +24,6 @@ public class MethodOfPaymentRecord extends Record {
 	public static final String FIELD_DECLINE_OVERRIDE = "Decline Override";
 	public static final String FIELD_PROFILE_PROMPT_FLAG = "Profile Prompt Flag";
 
-
 	public MethodOfPaymentRecord() {
 		super(TOTAL_FIELDS, SIZE);
 		

@@ -180,12 +180,19 @@ public class RPC {
 		}
 	}
 
+	// TODO(bhartard): WHY REMOVE LEADING ZEROS?
 	private String convertItemNumberIntoSku(String itemNumber) {
 		String shortItemNumber = itemNumber.substring(0, itemNumberLookupLength);
-		
+
 		if (shortItemNumber.matches("[0-9]+")) {
 			// Remove leading zeros
-			return shortItemNumber.replaceFirst("^0+(?!$)", "");
+			shortItemNumber = shortItemNumber.replaceFirst("^0+(?!$)", "");
+
+			// But SKUs should be at least 12, pad
+			if (shortItemNumber.length() < 12) {
+				shortItemNumber = ("000000000000" + shortItemNumber).substring(shortItemNumber.length());
+			}
+			return shortItemNumber;
 		} else {
 			// Remove trailing spaces
 			return shortItemNumber.replaceFirst("\\s+$", "");

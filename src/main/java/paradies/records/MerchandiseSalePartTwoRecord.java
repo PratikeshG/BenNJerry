@@ -88,8 +88,8 @@ public class MerchandiseSalePartTwoRecord extends Record {
 			new Field(47, FIELD_PROMO_DETAIL_ID, 111, "8", Field.Type.NUMERIC),
 			new Field(48, FIELD_ORIGINAL_PRICE, 119, "6.2", Field.Type.NUMERIC),
 			new Field(49, FIELD_PROMOTION_APPLY_PRICE_METHOD, 127, "4", Field.Type.NUMERIC),
-			new Field(50, FIELD_INVENTORY_GROUP_ID, 131, "18", Field.Type.NUMERIC),
-			new Field(51, FIELD_UNIT_SIZE, 149, "6", Field.Type.NUMERIC),
+			new Field(50, FIELD_INVENTORY_GROUP_ID, 131, "18", Field.Type.ALPHANUMERIC),
+			new Field(51, FIELD_UNIT_SIZE, 149, "6", Field.Type.ALPHANUMERIC),
 			new Field(52, FIELD_EXTENDED_TAXABLE_AMOUNT, 155, "6.2", Field.Type.NUMERIC)
 		};
 

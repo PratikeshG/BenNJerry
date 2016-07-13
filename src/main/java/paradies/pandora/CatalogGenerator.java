@@ -1,72 +1,71 @@
 package paradies.pandora;
 
-import paradies.Tax;
-import paradies.TaxTable;
-import paradies.Util;
-import paradies.pandora.CatalogEntry;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.mule.api.MuleMessage;
-import org.mule.api.MuleEventContext;
-import org.mule.api.lifecycle.Callable;
-import org.mule.api.transport.PropertyScope;
-
-import util.square.models.LocationCatalog;
-
-import com.squareup.connect.Item;
-import com.squareup.connect.ItemVariation;
 import com.squareup.connect.Discount;
 import com.squareup.connect.Fee;
+import com.squareup.connect.Item;
+import com.squareup.connect.ItemVariation;
 import com.squareup.connect.Money;
-import com.squareup.connect.SquareClient;
 import com.squareup.connect.diff.Catalog;
-import com.squareup.connect.diff.CatalogChangeRequest;
 
-public class CatalogProcessor implements Callable {
+import paradies.Tax;
+import paradies.TaxTable;
+import paradies.Util;
+
+public class CatalogGenerator {
+
+	public static final int INDEX_START_UPC = 0;
+	public static final int INDEX_START_NAME = 16;
+	public static final int INDEX_START_SKU = 38;
+	public static final int INDEX_START_DEPT = 51;
+	public static final int INDEX_START_COST = 56;
+	public static final int INDEX_START_PRICE = 64;
+	public static final int INDEX_START_TAX = 72;
 	
 	private String currencyCode;
 	private String storeId;
 	private TaxTable taxTable;
-	
-	@Override
-	public Object onCall(MuleEventContext eventContext) throws Exception {
-		
-		MuleMessage message = eventContext.getMessage();
-		LocationCatalog locationCatalog = (LocationCatalog) message.getPayload();
-		this.currencyCode = locationCatalog.getLocation().getCurrencyCode();
-		this.storeId = Util.getStoreIdFromLocationNickname(locationCatalog.getLocation().getLocationDetails().getNickname());
+
+	public CatalogGenerator(String storeId, String currencyCode) throws Exception {
+		this.storeId = storeId;
+		this.currencyCode = currencyCode;
 		this.taxTable = new TaxTable(storeId);
-
-		byte[] ftpPayload = eventContext.getMessage().getProperty("ftpPayload", PropertyScope.SESSION);
-		Catalog currentCatalog = locationCatalog.getCatalog();
-		Catalog newCatalog = parsePayload(ftpPayload, currentCatalog);
-		
-		CatalogChangeRequest ccr = CatalogChangeRequest.diff(currentCatalog, newCatalog);
-		
-		String accessToken = message.getProperty("token", PropertyScope.SESSION);
-		String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
-		String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
-		String merchantId = message.getProperty("merchantId", PropertyScope.SESSION);
-		SquareClient client = new SquareClient(accessToken, apiUrl, apiVersion, merchantId, locationCatalog.getLocation().getId());
-		
-		ccr.setSquareClient(client);
-		ccr.call();
-
-		locationCatalog.setCatalog(newCatalog);
-		return locationCatalog;
 	}
-	
+
+	public String getCurrencyCode() {
+		return currencyCode;
+	}
+
+	public void setCurrencyCode(String currencyCode) {
+		this.currencyCode = currencyCode;
+	}
+
+	public String getStoreId() {
+		return storeId;
+	}
+
+	public void setStoreId(String storeId) {
+		this.storeId = storeId;
+	}
+
+	public TaxTable getTaxTable() {
+		return taxTable;
+	}
+
+	public void setTaxTable(TaxTable taxTable) {
+		this.taxTable = taxTable;
+	}
+
 	public Catalog parsePayload(byte[] payload, Catalog currentCatalog) throws IOException {
 
 		InputStream stream = new ByteArrayInputStream(payload);
@@ -78,13 +77,13 @@ public class CatalogProcessor implements Callable {
         while((line = bfReader.readLine()) != null) {
         	CatalogEntry entry = new CatalogEntry();
 
-        	entry.setUpc(line.substring(0, 15).trim());
-        	entry.setName(line.substring(15, 36).trim());
-        	entry.setSku(line.substring(36, 52).trim());
-        	entry.setDeptCode("");
-        	entry.setCost(line.substring(53, 60).trim());
-        	entry.setPrice(line.substring(60, 68).trim());
-        	entry.setTaxCode(line.substring(69, 72).trim());
+        	entry.setUpc(line.substring(INDEX_START_UPC, INDEX_START_NAME).trim());
+        	entry.setName(line.substring(INDEX_START_NAME, INDEX_START_SKU).trim());
+        	entry.setSku(line.substring(INDEX_START_SKU, INDEX_START_DEPT).trim());
+        	entry.setDeptCode(line.substring(INDEX_START_DEPT, INDEX_START_COST).trim());
+        	entry.setCost(line.substring(INDEX_START_COST, INDEX_START_PRICE).trim());
+        	entry.setPrice(line.substring(INDEX_START_PRICE, INDEX_START_TAX).trim());
+        	entry.setTaxCode(line.substring(INDEX_START_TAX).trim());
 
         	payloadEntries.add(entry);
         }
@@ -100,6 +99,7 @@ public class CatalogProcessor implements Callable {
 		addNewCatalogFees(newCatalog);
 		
 		// Get tax<>code mappings for items file
+		// catalog taxes have been assigned Square IDs
 		HashMap<String, Fee> taxesByCode = getActiveTableTaxesByCode();
 		HashMap<String, Fee> catalogTaxesByCode = new HashMap<String, Fee>();
 		for (Fee f : newCatalog.getFees().values()) {
@@ -244,7 +244,7 @@ public class CatalogProcessor implements Callable {
 		// Get tax table of active fees
 		for (Tax tax : taxTable.getTaxes().values()) {			
 			if (!tax.getRate().equals("0")) {
-				Fee f = newTax(tax.getName(), tax.getRate());
+				Fee f = newTax(tax.getId(), tax.getRate());
 				taxTableCodeToFee.put(tax.getCode(), f);
 			}
 		}
@@ -260,12 +260,12 @@ public class CatalogProcessor implements Callable {
 		
 		HashMap<String, Fee> catalogFeeCache = new HashMap<String, Fee>();
 
-		// Get unique catalog fees by name
+		// Get unique catalog taxes by name
 		for (Fee newF : newCatalog.getFees().values()) {
 			catalogFeeCache.put(newF.getName(), newF);
 		}
 
-		// Remove invalid fees from catalog cache
+		// Remove invalid taxes from catalog cache
 		Iterator<Map.Entry<String, Fee>> iter = catalogFeeCache.entrySet().iterator();
 		while (iter.hasNext()) {
 			Map.Entry<String, Fee> entry = iter.next();
@@ -282,26 +282,26 @@ public class CatalogProcessor implements Callable {
 			}
 		}
 
-		// Apply missing valid discounts to cache
+		// Apply missing valid taxes to cache
 		for (Fee defaultF : taxTableFees.values()) {
 			if (!catalogFeeCache.containsKey(defaultF.getName())) {
 				catalogFeeCache.put(defaultF.getName(), defaultF);
 			}
 		}
 
-		// Clear catalog fees
+		// Clear catalog taxes
 		newCatalog.setFees(new HashMap<String, Fee>());
 
-		// Add new fees to catalog
+		// Add new taxes to catalog
 		for (Fee f : catalogFeeCache.values()) {
 			newCatalog.addFee(f);
 		}
 	}
 
-	private Fee newTax(String name, String rate) {
+	private Fee newTax(int id, String rate) {
 		Fee t = new Fee();
 
-		t.setName(name);
+		t.setName("Tax [" + id + "]");
 		t.setRate(rate);
 		t.setCalculationPhase("FEE_SUBTOTAL_PHASE");
 		t.setAdjustmentType("TAX");
@@ -349,10 +349,10 @@ public class CatalogProcessor implements Callable {
 
 		item.setName(entry.getName());
 
-		ItemVariation variation = new ItemVariation(entry.getSku());
+		ItemVariation variation = new ItemVariation(entry.getSku() + entry.getDeptCode());
 		variation.setSku(entry.getUpc());
 		variation.setPriceMoney(new Money(Util.getMoneyAmountFromDecimalString(entry.getPrice())));
-		variation.setUserData(entry.getCost() + "|" + entry.getDeptCode());
+		//variation.setUserData(entry.getCost() + "|" + entry.getDeptCode());
 
 		item.setVariations(new ItemVariation[]{variation});
 		item.setFees(new Fee[]{taxTable.get(entry.getTaxCode())});

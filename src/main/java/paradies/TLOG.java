@@ -1,12 +1,13 @@
 package paradies;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class TLOG {
 	
 	private String storeId;
 	private String deviceId;;
-	private ArrayList<TLOGEntry> entries;
+	private List<TLOGEntry> entries;
 	
 	public TLOG(String storeId, String deviceId) {
 		this.storeId = storeId;
@@ -30,7 +31,7 @@ public class TLOG {
 		this.deviceId = deviceId;
 	}
 
-	public ArrayList<TLOGEntry> getEntries() {
+	public List<TLOGEntry> getEntries() {
 		return entries;
 	}
 
@@ -38,7 +39,7 @@ public class TLOG {
 		entries.add(newEntry);
 	}
 	
-	public void addEntries(ArrayList<TLOGEntry> newEntries) {
+	public void addEntries(List<TLOGEntry> newEntries) {
 		entries.addAll(newEntries);
 	}
 	

@@ -6,30 +6,10 @@ import java.util.Map;
 
 public class TaxTable {
 
-	private static final Map<String, String> CODE_TO_NAME;
 	private static final Map<String, Integer> CODE_TO_ID;
 	private static final Map<String, Integer> NAME_TO_ID;
 
-	static {
-        Map<String, String> cMap = new HashMap<String, String>();
-        cMap.put(Tax.TAX_CODE_1, Tax.TAX_NAME_1);
-        cMap.put(Tax.TAX_CODE_2, Tax.TAX_NAME_2);
-        cMap.put(Tax.TAX_CODE_3, Tax.TAX_NAME_3);
-        cMap.put(Tax.TAX_CODE_4, Tax.TAX_NAME_4);
-        cMap.put(Tax.TAX_CODE_5, Tax.TAX_NAME_5);
-        cMap.put(Tax.TAX_CODE_6, Tax.TAX_NAME_6);
-        cMap.put(Tax.TAX_CODE_7, Tax.TAX_NAME_7);
-        cMap.put(Tax.TAX_CODE_8, Tax.TAX_NAME_8);
-        cMap.put(Tax.TAX_CODE_9, Tax.TAX_NAME_9);
-        cMap.put(Tax.TAX_CODE_10, Tax.TAX_NAME_10);
-        cMap.put(Tax.TAX_CODE_11, Tax.TAX_NAME_11);
-        cMap.put(Tax.TAX_CODE_12, Tax.TAX_NAME_12);
-        cMap.put(Tax.TAX_CODE_13, Tax.TAX_NAME_13);
-        cMap.put(Tax.TAX_CODE_14, Tax.TAX_NAME_14);
-        cMap.put(Tax.TAX_CODE_15, Tax.TAX_NAME_15);
-        cMap.put(Tax.TAX_CODE_16, Tax.TAX_NAME_16);
-        CODE_TO_NAME = Collections.unmodifiableMap(cMap);
-        
+	static {    
         Map<String, Integer> iMap = new HashMap<String, Integer>();
         iMap.put(Tax.TAX_CODE_1, 1);
         iMap.put(Tax.TAX_CODE_2, 2);
@@ -109,6 +89,7 @@ public class TaxTable {
 			taxTable.get(13).setRate(lowerRate);
 			taxTable.get(14).setRate(standardRate);
 			taxTable.get(15).setRate(standardRate);
+			taxTable.get(16).setRate(standardRate);
 		} else if (storeId.equals("3")) {
 			String standardRate = "0.085";
 	
@@ -126,6 +107,7 @@ public class TaxTable {
 			taxTable.get(13).setRate(standardRate);
 			taxTable.get(14).setRate(standardRate);
 			taxTable.get(15).setRate(standardRate);
+			taxTable.get(16).setRate(standardRate);
 		} else if (storeId.equals("2017")) {
 			String standardRate = "0.08";
 	
@@ -143,6 +125,7 @@ public class TaxTable {
 			taxTable.get(13).setRate(standardRate);
 			taxTable.get(14).setRate(standardRate);
 			taxTable.get(15).setRate(standardRate);
+			taxTable.get(16).setRate(standardRate);
 		} else {
 			throw new Exception("Missing tax table for store ID " + storeId);
 		}

@@ -1,18 +1,18 @@
-package util.square.models;
+package paradies.pandora;
 
 import com.squareup.connect.Merchant;
 import com.squareup.connect.diff.Catalog;
 
-public class LocationCatalog {
+public class CatalogCallablePayload {
 	
 	private Merchant location;
 	private Catalog catalog;
 	
-	public LocationCatalog() {
+	public CatalogCallablePayload() {
 		
 	}
 	
-	public LocationCatalog(Merchant location, Catalog catelog) {
+	public CatalogCallablePayload(Merchant location, Catalog catelog) {
 		this.location = location;
 		this.catalog = catelog;
 	}

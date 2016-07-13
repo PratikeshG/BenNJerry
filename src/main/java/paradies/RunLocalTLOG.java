@@ -1,6 +1,5 @@
 package paradies;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import util.TimeManager;
@@ -47,17 +46,16 @@ public class RunLocalTLOG {
         reportPayload.setCatalog(catalog);
 
         // Get payments for location
-        String timeZone = "America/Los_Angeles";
         int offset = 0;
-        int range = 1;;
+        int range = 50;
 
         System.out.println("Getting payments...");
-        Map<String,String>  paymentParams = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Map<String,String>  paymentParams = TimeManager.getPastDayInterval(range, offset, TIMEZONE);
         reportPayload.setPayments(client.payments().list(paymentParams));
 
         TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);
         
-        HashMap<String, TLOG> tlogs = tlogGenerator.getTlogs();
+        Map<String, TLOG> tlogs = tlogGenerator.getTlogs();
 
         for (String deviceName : tlogs.keySet()) {
         	System.out.println("");

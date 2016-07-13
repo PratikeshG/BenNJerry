@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,12 +16,17 @@ import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
 
 import paradies.TLOG;
+import paradies.records.AuthorizationRecord;
+import paradies.records.AuthorizationResponseRecord;
+import paradies.records.ExtendedAuthorizationRecord;
 import paradies.records.HeaderRecord;
+import paradies.records.MerchandiseSalePartFourRecord;
 import paradies.records.MerchandiseSalePartTwoRecord;
 import paradies.records.MerchandiseSaleRecord;
 import paradies.records.MethodOfPaymentRecord;
 import paradies.records.TotalSalePartTwoRecord;
 import paradies.records.TotalSaleRecord;
+import paradies.records.TotalTaxRecord;
 import util.TimeManager;
 
 public class TLOGGenerator {
@@ -31,10 +37,10 @@ public class TLOGGenerator {
 	private String storeId;
 	private String defaultDeviceId;
 	private String timeZone;
-	private HashMap<String, Employee> employees;
+	private Map<String, Employee> employees;
 	private TaxTable taxTable;
 	private TLOGGeneratorPayload tlogPayload;
-	private HashMap<String, TLOG> tlogs;
+	private Map<String, TLOG> tlogs;
 
 	public TLOGGenerator(TLOGGeneratorPayload payload) throws Exception {
 		this.storeId = Util.getStoreIdFromLocationNickname(payload.getLocation().getLocationDetails().getNickname());
@@ -64,7 +70,7 @@ public class TLOGGenerator {
 		this.timeZone = timeZone;
 	}
 	
-	public HashMap<String, TLOG> getTlogs() {
+	public Map<String, TLOG> getTlogs() {
 		return tlogs;
 	}
 
@@ -100,7 +106,7 @@ public class TLOGGenerator {
 	private TLOG generateDeviceTlog(String deviceId, ArrayList<Payment> payments) throws ParseException {
 
 		TLOG deviceTLOG = new TLOG(storeId, deviceId);		
-		int sequentialTransactionNumber = 11;
+		int sequentialTransactionNumber = 16;
 
 		for (Payment payment : payments) {
 			// skip no sale event
@@ -115,7 +121,7 @@ public class TLOGGenerator {
 		return deviceTLOG;
 	}
 	
-	private HashMap<String, Employee> getEmployeeMap(Employee[] employees) {
+	private Map<String, Employee> getEmployeeMap(Employee[] employees) {
 		HashMap<String, Employee> employeeMap = new HashMap<String, Employee>();
 		
 		for (Employee e : employees) {
@@ -125,13 +131,14 @@ public class TLOGGenerator {
 		return employeeMap;
 	}
 
-	private ArrayList<TLOGEntry> processPayment(String deviceId, Payment payment, int transactionNumber) throws ParseException {
+	private List<TLOGEntry> processPayment(String deviceId, Payment payment, int transactionNumber) throws ParseException {
 		AtomicInteger recordSequence = new AtomicInteger(1);
 
 		ArrayList<TLOGEntry> entries = new ArrayList<TLOGEntry>();
 		
 		entries.addAll(createMerchandiseEntriesForPayment(deviceId, transactionNumber, recordSequence, payment));
 		entries.addAll(createTotalSaleEntriesForPayment(deviceId, transactionNumber, recordSequence, payment));
+		entries.addAll(createTotalTaxEntriesForPayment(deviceId, transactionNumber, recordSequence, payment));
 		entries.addAll(createPaymentMethodEntriesForPayment(deviceId, transactionNumber, recordSequence, payment));
 		
 		return entries;
@@ -174,7 +181,7 @@ public class TLOGGenerator {
 		return header;
 	}
 
-	private ArrayList<TLOGEntry> createMerchandiseEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
+	private List<TLOGEntry> createMerchandiseEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
 		
 		ArrayList<TLOGEntry> entries = new ArrayList<TLOGEntry>();
 		
@@ -190,6 +197,12 @@ public class TLOGGenerator {
 			HeaderRecord headerI2 = createHeaderRecord(deviceId, MerchandiseSalePartTwoRecord.ID, transactionNumber, recordSequence, payment);
 			MerchandiseSalePartTwoRecord i2Record = createMerchandiseSalePartTwoRecord(itemization);
 			entries.add(new TLOGEntry(headerI2, i2Record));
+			recordSequence.getAndIncrement();
+			
+			// I6 record
+			HeaderRecord headerI6 = createHeaderRecord(deviceId, MerchandiseSalePartFourRecord.ID, transactionNumber, recordSequence, payment);
+			MerchandiseSalePartFourRecord i6Record = createMerchandiseSalePartFourRecord(itemization);
+			entries.add(new TLOGEntry(headerI6, i6Record));
 			recordSequence.getAndIncrement();
 		}
 
@@ -219,16 +232,14 @@ public class TLOGGenerator {
 			}
 		}
 
-		String sku = itemization.getItemVariationName().replace("-", "");
+		String variationName = itemization.getItemVariationName();
+		String sku = variationName.replace("-", "");
 		sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
 
 		String cost = "";
 		String deptCode = "";
-
-		if (matchingItem != null) {
-			String[] userData = matchingItem.getVariations()[0].getUserData().split("\\|");
-			//cost = (userData.length > 0) ? Integer.toString(Util.getMoneyAmountFromDecimalString(userData[0])) : "";
-			deptCode = (userData.length == 2) ? userData[1] : "";
+		if (variationName.length() > 4) {
+			deptCode = variationName.substring(variationName.length() - 4);
 		}
 		
 		MerchandiseSaleRecord iRecord = new MerchandiseSaleRecord();
@@ -258,7 +269,8 @@ public class TLOGGenerator {
 		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_EXTENDED_REGULAR_PRICE, Integer.toString(itemization.getGrossSalesMoney().getAmount()));
 		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_EXTENDED_PREPROMO_PRICE, Integer.toString(itemization.getGrossSalesMoney().getAmount()));
 		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_EXTENDED_NET_PRICE, Integer.toString(itemization.getNetSalesMoney().getAmount()));
-		
+		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_EXTENDED_TAXABLE_AMOUNT, Integer.toString(itemization.getNetSalesMoney().getAmount()));
+
 		// Apply taxes
 		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_TAX_5, itemizationHasTaxId(itemization.getTaxes(), 5) ? "1" : "0");
 		i2Record.setFieldValue(MerchandiseSalePartTwoRecord.FIELD_TAX_6, itemizationHasTaxId(itemization.getTaxes(), 6) ? "1" : "0");
@@ -276,7 +288,16 @@ public class TLOGGenerator {
 		return i2Record;
 	}
 	
-	private ArrayList<TLOGEntry> createTotalSaleEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
+	private MerchandiseSalePartFourRecord createMerchandiseSalePartFourRecord(PaymentItemization itemization) {
+
+		MerchandiseSalePartFourRecord i6Record = new MerchandiseSalePartFourRecord();
+		i6Record.setFieldValue(MerchandiseSalePartFourRecord.FIELD_STANDARD_UNIT_PRICE, Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
+		i6Record.setFieldValue(MerchandiseSalePartFourRecord.FIELD_EXTENDED_NET_PRICE, Integer.toString(itemization.getNetSalesMoney().getAmount()));
+
+		return i6Record;
+	}
+	
+	private List<TLOGEntry> createTotalSaleEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
 		
 		ArrayList<TLOGEntry> entries = new ArrayList<TLOGEntry>();
 		
@@ -328,6 +349,66 @@ public class TLOGGenerator {
 		return t2Record;
 	}
 
+	private List<TLOGEntry> createTotalTaxEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
+		
+		ArrayList<TLOGEntry> entries = new ArrayList<TLOGEntry>();
+
+		HashMap<String, Integer> taxableTotalsByTaxId = new HashMap<String, Integer>();
+		HashMap<String, Integer> appliedTaxById = new HashMap<String, Integer>();
+
+		// Calculate taxable amounts over each itemization
+		for (PaymentItemization itemization : payment.getItemizations()) {
+			int taxableAmount = itemization.getGrossSalesMoney().getAmount();
+			
+			for (PaymentTax tax : itemization.getTaxes()) {
+				String taxId = getTaxIdFromTaxName(tax.getName());
+				
+				// Increment taxable amount
+				if (taxableTotalsByTaxId.containsKey(taxId)) {
+					taxableTotalsByTaxId.put(taxId, taxableTotalsByTaxId.get(taxId) + taxableAmount);
+				} else {
+					taxableTotalsByTaxId.put(taxId, taxableAmount);
+				}
+
+				// Increment taxed amount
+				int appliedTax = tax.getAppliedMoney().getAmount();
+				if (appliedTaxById.containsKey(taxId)) {
+					appliedTaxById.put(taxId, appliedTaxById.get(taxId) + appliedTax);
+				} else {
+					appliedTaxById.put(taxId, appliedTax);
+				}
+			}
+		}
+
+		// TX record for each tax applied
+		for (String taxId : appliedTaxById.keySet()) {
+			HeaderRecord headerTX = createHeaderRecord(deviceId, TotalTaxRecord.ID, transactionNumber, recordSequence, payment);
+			TotalTaxRecord txRecord = createTotalTaxRecord(taxId, taxableTotalsByTaxId.get(taxId), appliedTaxById.get(taxId));
+			entries.add(new TLOGEntry(headerTX, txRecord));
+			recordSequence.getAndIncrement();
+		}
+
+		return entries;
+	}
+
+	private TotalTaxRecord createTotalTaxRecord(String taxId, int taxableTotal, int appliedTax) {
+		TotalTaxRecord txRecord = new TotalTaxRecord();
+
+		txRecord.setFieldValue(TotalTaxRecord.FIELD_TAX_ID, taxId);
+		txRecord.setFieldValue(TotalTaxRecord.FIELD_TAX_AMOUNT, Integer.toString(appliedTax));
+		txRecord.setFieldValue(TotalTaxRecord.FIELD_TAXABLE_AMOUNT, Integer.toString(taxableTotal));
+
+		return txRecord;
+	}
+	
+	private String getTaxIdFromTaxName(String taxName) {
+		String taxId = "2"; // default
+		if (taxName.indexOf("[") != -1 && taxName.indexOf("]") != -1) {
+			taxId = taxName.substring(taxName.indexOf("[")+1, taxName.indexOf("]"));
+		}
+		return taxId;
+	}
+	
 	private ArrayList<TLOGEntry> createPaymentMethodEntriesForPayment(String deviceId, int transactionNumber, AtomicInteger recordSequence, Payment payment) throws ParseException {
 		
 		ArrayList<TLOGEntry> entries = new ArrayList<TLOGEntry>();
@@ -338,6 +419,27 @@ public class TLOGGenerator {
 			MethodOfPaymentRecord pRecord = createPaymentRecord(tender);
 			entries.add(new TLOGEntry(headerP, pRecord));
 			recordSequence.getAndIncrement();
+
+			// Generate authorization (A, A2, AE) records
+			if (tender.getType().equals("CREDIT_CARD")) {
+				// A record
+				HeaderRecord headerA = createHeaderRecord(deviceId, AuthorizationRecord.ID, transactionNumber, recordSequence, payment);
+				AuthorizationRecord aRecord = createAuthorizationRecord(tender);
+				entries.add(new TLOGEntry(headerA, aRecord));
+				recordSequence.getAndIncrement();
+
+				// A2 record
+				HeaderRecord headerA2 = createHeaderRecord(deviceId, AuthorizationResponseRecord.ID, transactionNumber, recordSequence, payment);
+				AuthorizationResponseRecord a2Record = createAuthorizationResponseRecord(tender);
+				entries.add(new TLOGEntry(headerA2, a2Record));
+				recordSequence.getAndIncrement();
+
+				// AE record
+				HeaderRecord headerAE = createHeaderRecord(deviceId, ExtendedAuthorizationRecord.ID, transactionNumber, recordSequence, payment);
+				ExtendedAuthorizationRecord aeRecord = createExtendedAuthorizationRecord(payment);
+				entries.add(new TLOGEntry(headerAE, aeRecord));
+				recordSequence.getAndIncrement();
+			}
 		}
 
 		return entries;
@@ -363,6 +465,49 @@ public class TLOGGenerator {
 
 		return pRecord;
 	}
+	
+	private AuthorizationRecord createAuthorizationRecord(Tender tender) {
+		AuthorizationRecord aRecord = new AuthorizationRecord();
+
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_TENDER_ID, getTenderId(tender));
+		// aRecord.setFieldValue(AuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TYPE, "01"); // TODO(bhartard): ??
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_HOW_AUTHORIZED, "0"); // online
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_CARD_ENTRY_TYPE, tender.getEntryMethod().equals("SWIPED") ? "0" : "1"); // 0-swipe, 1-keyed
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_CARD_NUMBER, tender.getPanSuffix());
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_REQUEST_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_AUTHORIZED_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TRANSACTION_TYPE, "8"); // 8-Sale
+		aRecord.setFieldValue(AuthorizationRecord.FIELD_A2_PART1_LENGTH, "8"); // "APPROVED"
+
+		return aRecord;
+	}
+	
+	private AuthorizationResponseRecord createAuthorizationResponseRecord(Tender tender) {
+		AuthorizationResponseRecord a2Record = new AuthorizationResponseRecord();
+
+		a2Record.setFieldValue(AuthorizationResponseRecord.FIELD_CREDIT_SERVICE_RESPONSE_1, "APPROVED");
+
+		return a2Record;
+	}
+	
+	private ExtendedAuthorizationRecord createExtendedAuthorizationRecord(Payment payment) throws ParseException {
+		ExtendedAuthorizationRecord aeRecord = new ExtendedAuthorizationRecord();
+
+		String transactionDate = TimeManager.toSimpleDateTimeInTimeZone(payment.getCreatedAt(), timeZone, "yyyyMMdd");
+		String transactionTime = TimeManager.toSimpleDateTimeInTimeZone(payment.getCreatedAt(), timeZone, "HHmmss");
+
+		aeRecord.setFieldValue(ExtendedAuthorizationRecord.FIELD_RESPONSE_CODE, "0001"); // TODO(bhartard): verify?
+		aeRecord.setFieldValue(ExtendedAuthorizationRecord.FIELD_TRANSACTION_DATE, transactionDate);
+		aeRecord.setFieldValue(ExtendedAuthorizationRecord.FIELD_TRANSACTION_TIME, transactionTime);
+		//aeRecord.setFieldValue(ExtendedAuthorizationRecord.FIELD_CUSTOMER_REFERENCE_NUMBER, "");
+
+		// Only provide provide total tax when only tender
+		if (payment.getTender().length == 1) {
+			aeRecord.setFieldValue(ExtendedAuthorizationRecord.FIELD_TAX_AMOUNT, Integer.toString(payment.getTaxMoney().getAmount()));
+		}
+		
+		return aeRecord;
+	}
 
 	/*
 	 * Input: XXX.00000000
@@ -380,29 +525,23 @@ public class TLOGGenerator {
 		}
 
 		for (PaymentTax tax : taxes) {
-			if (taxTableHasTax(taxId, tax)) {
+			int taxIdFromName = Integer.parseInt(getTaxIdFromTaxName(tax.getName()));
+			if (taxIdFromName == taxId) {
 				return true;
 			}
 		}
 
 		return false;
 	}
-	
-	private Boolean taxTableHasTax(int taxId, PaymentTax tax) {
-		String taxName = tax.getName();
-		if (taxName.equals(taxTable.getTax(taxId).getName())) {
-			return true;
-		}
-		return false;
-	}
-	
+
 	private Boolean paymentHasTaxIdOver4(Payment payment) {		
 		ArrayList<PaymentTax> allTaxes = new ArrayList<PaymentTax>(Arrays.asList(payment.getAdditiveTax()));
 		//allTaxes.addAll(Arrays.asList(payment.getInclusiveTax()));
 
 		for (int i = 5; i <= 16; i++) {
 			for (PaymentTax tax : allTaxes) {
-				if (taxTableHasTax(i, tax)) {
+				int taxIdFromName = Integer.parseInt(getTaxIdFromTaxName(tax.getName()));
+				if (taxIdFromName == i) {
 					return true;
 				}
 			}
@@ -415,7 +554,8 @@ public class TLOGGenerator {
 		int taxTotal = 0;
 
 		for (PaymentTax tax : payment.getAdditiveTax()) {
-			if (taxTableHasTax(taxId, tax)) {
+			int taxIdFromName = Integer.parseInt(getTaxIdFromTaxName(tax.getName()));
+			if (taxIdFromName == taxId) {
 				taxTotal += tax.getAppliedMoney().getAmount();
 			}
 		}
@@ -434,7 +574,7 @@ public class TLOGGenerator {
 		case "OTHER":
 			switch(tender.getName()) {
 			case "MERCHANT_GIFT_CARD":
-				tenderId = "22";
+				tenderId = "24";
 				break;
 			case "CUSTOM":
 				tenderId = "30";

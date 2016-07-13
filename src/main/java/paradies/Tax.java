@@ -1,7 +1,7 @@
 package paradies;
 
 public class Tax {
-	
+
 	public static final String TAX_CODE_1 = "NT";
 	public static final String TAX_CODE_2 = "TX";
 	public static final String TAX_CODE_3 = "FAC";
@@ -18,7 +18,7 @@ public class Tax {
 	public static final String TAX_CODE_14 = "T14";
 	public static final String TAX_CODE_15 = "T15";
 	public static final String TAX_CODE_16 = "T16";
-	
+
 	public static final String TAX_NAME_1 = "Non-taxable";
 	public static final String TAX_NAME_2 = "Tax";
 	public static final String TAX_NAME_3 = "Candy Item Tax";
@@ -35,16 +35,16 @@ public class Tax {
 	public static final String TAX_NAME_14 = "Clothing Tax";
 	public static final String TAX_NAME_15 = "Books Tax";
 	public static final String TAX_NAME_16 = "Childrens Clothing Tax";
-	
+
 	private int id;
 	private String code;
 	private String name;
 	private String rate;
-	
+
 	public Tax(int id, String code, String name) {
 		this(id, code, name, "0");
 	}
-	
+
 	public Tax(int id, String code, String name, String rate) {
 		this.id = id;
 		this.code = code;
