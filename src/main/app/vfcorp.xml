@@ -144,6 +144,8 @@ return sp;]]></scripting:script>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" host="${vfcorp.generateTLOG.output.sftp.host}" port="${vfcorp.generateTLOG.output.sftp.port}" path="${vfcorp.generateTLOG.output.sftp.path}" user="${vfcorp.generateTLOG.output.sftp.username}" password="${vfcorp.generateTLOG.output.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
+        <set-attachment attachmentName="#['${vfcorp.generateTLOG.output.namePattern.prefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.generateTLOG.output.namePattern.suffix}']" value="#[payload]" contentType="text/plain" doc:name="Attachment"/>
+        <set-payload value="Attached." doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="VFC:generate-tlogs-for-locations-queue-aggregator" connector-ref="VFC_VM_Config"/>
     </flow>
@@ -365,6 +367,8 @@ return tlogGeneratorPayload;]]></scripting:script>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
+        <set-attachment attachmentName="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" value="#[payload]" contentType="text/plain" doc:name="Copy_of_Attachment"/>
+        <set-payload value="Attached." doc:name="Copy_of_Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-store1">
