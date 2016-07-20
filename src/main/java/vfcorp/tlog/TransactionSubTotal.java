@@ -48,7 +48,7 @@ public class TransactionSubTotal extends Record {
 	}
 	
 	public TransactionSubTotal parse(Payment payment) throws Exception {
-		int subtotal = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
+		int subtotal = payment.getGrossSalesMoney().getAmount();
 		
 		putValue("Amount", "" + subtotal);
 		// TODO(): needs to be refactored for refunds

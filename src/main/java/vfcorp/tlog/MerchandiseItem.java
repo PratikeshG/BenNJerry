@@ -11,7 +11,6 @@ import vfcorp.Record;
 import vfcorp.FieldDetails;
 
 import com.squareup.connect.Item;
-import com.squareup.connect.ItemVariation;
 import com.squareup.connect.PaymentItemization;
 
 public class MerchandiseItem extends Record {
