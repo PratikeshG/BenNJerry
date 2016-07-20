@@ -58,8 +58,28 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
             </otherwise>
         </choice>
     </flow>
-    <sub-flow name="MI:OAuth:retrieve-tokens">
+    <sub-flow name="MI:OAuth:retrieveToken">
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment] LIMIT 1;]]></db:parameterized-query>
+        </db:select>
+        <dw:transform-message metadata:id="4c4f26e2-147b-4d27-848f-efeb8db63fc2" doc:name="Transform Message">
+            <dw:input-payload doc:sample="SquareToken.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	accessToken: payload[0].token as :string,
+	legacy: true when payload[0].legacy == 1 otherwise false,
+	locationId: payload[0].locationId,
+	merchantAlias: payload[0].merchantAlias,
+	merchantId: payload[0].merchantId
+} as :object {
+	class : "util.SquarePayload"
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+    <sub-flow name="MI:OAuth:retrieve-tokens">
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment IDs">
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]></db:parameterized-query>
         </db:select>
     </sub-flow>

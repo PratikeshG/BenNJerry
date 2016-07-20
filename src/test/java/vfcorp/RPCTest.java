@@ -39,7 +39,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 
 		assertTrue("only one catalog exists", result.getCategories().size() == 1);
 		assertTrue("catalog has new name", ((Category) result.getCategories().values().toArray()[0]).getName().equals(expectedName));
@@ -61,7 +61,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains new item", result.getItems().containsKey(expectedSku));
 		assertTrue("catalog doesn't contain any other items", result.getItems().size() == 1);
@@ -90,7 +90,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("item doesn't change", result.getItems().get(expectedSku).equals(item, new HashSet<Object>()));
 		assertTrue("variation doesn't change", result.getItems().get(expectedSku).getVariations()[0].equals(itemVariation, new HashSet<Object>()));
@@ -126,7 +126,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog only contains one item", result.getItems().size() == 1);
 	}
@@ -145,7 +145,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains new item", result.getItems().containsKey(expectedSku));
 		assertTrue("catalog doesn't contain any other items", result.getItems().size() == 1);
@@ -174,7 +174,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("item doesn't change", result.getItems().get(expectedSku).equals(item, new HashSet<Object>()));
 		assertTrue("variation doesn't change", result.getItems().get(expectedSku).getVariations()[0].equals(itemVariation, new HashSet<Object>()));
@@ -211,7 +211,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog only contains one item", result.getItems().size() == 1);
 	}
@@ -236,7 +236,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog still contains item", result.getItems().containsKey("different sku"));
 	}
@@ -263,7 +263,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.SKU);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains no items", result.getItems().size() == 0);
 	}
@@ -278,7 +278,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains new category", result.getCategories().containsKey(expectedName));
 		assertTrue("catalog doesn't contain any other categories", result.getCategories().size() == 1);
@@ -298,7 +298,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains new category", result.getCategories().containsKey(expectedName));
 		assertTrue("catalog contains two categories", result.getCategories().size() == 2);
@@ -318,7 +318,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 
 		assertTrue("catalog contains expected category", result.getCategories().containsKey(expectedName));
 		assertTrue("catalog only contains one category", result.getCategories().size() == 1);
@@ -339,7 +339,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains expected category", result.getCategories().containsKey(expectedName));
 		assertFalse("catalog does not contain old category", result.getCategories().containsKey(currentCategoryName));
@@ -356,7 +356,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains new category", result.getCategories().containsKey(expectedName));
 		assertTrue("catalog doesn't contain any other categories", result.getCategories().size() == 1);
@@ -376,7 +376,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 
 		assertTrue("catalog contains expected category", result.getCategories().containsKey(expectedName));
 		assertTrue("catalog only contains one category", result.getCategories().size() == 1);
@@ -397,7 +397,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog contains expected category", result.getCategories().containsKey(expectedName));
 		assertFalse("catalog does not contain old category", result.getCategories().containsKey(currentCategoryName));
@@ -413,7 +413,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog doesn't have any categories", result.getCategories().size() == 0);
 	}
@@ -432,7 +432,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog result = epicor.rpc().convert(current, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog result = epicor.rpc().convert(current);
 		
 		assertTrue("catalog doesn't have any categories", result.getCategories().size() == 0);
 	}
@@ -446,7 +446,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog catalog = epicor.rpc().convert(empty);
 		
 		assertTrue("catalog contains correctly named item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14 - PLASMATIC JKT W BLU F14 00CC401F7S"));
 	}
@@ -460,7 +460,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog catalog = epicor.rpc().convert(empty);
 		
 		assertTrue("catalog contains correctly named item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14"));
 	}
@@ -474,7 +474,7 @@ public class RPCTest {
 		epicor.rpc().setItemNumberLookupLength(14);
 		epicor.rpc().ingest(new BufferedInputStream(new ByteArrayInputStream(recordString.getBytes(StandardCharsets.UTF_8))));
 		
-		Catalog catalog = epicor.rpc().convert(empty, CatalogChangeRequest.PrimaryKey.NAME);
+		Catalog catalog = epicor.rpc().convert(empty);
 		
 		assertTrue("catalog contains first item", catalog.getItems().keySet().contains("PLASMATIC JKT W BLU F14"));
 		assertTrue("catalog contains second item", catalog.getItems().keySet().contains("FSH KNIT"));

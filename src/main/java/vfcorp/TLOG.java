@@ -10,6 +10,7 @@ import org.mule.api.store.ObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import vfcorp.tlog.Associate;
 import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
@@ -126,15 +127,6 @@ public class TLOG {
 				for (PaymentItemization itemization : payment.getItemizations()) {
 					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemNumberLookupLength));
 					
-					for (PaymentTax tax : itemization.getTaxes()) {
-						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
-					}
-					
-					int i = 1;
-					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
-					}
-					
 					Set<String> employeeIds = new HashSet<String>();
 					boolean employeeIdShouldBePresent = false;
 					for (Tender tender : payment.getTender()) {
@@ -152,6 +144,22 @@ public class TLOG {
 					if (employeeIdShouldBePresent && employeeIds.size() == 0) {
 						logger.error("tender had an employee ID that did not match any existing employee; aborting operation");
 						throw new Exception("tender had an employee ID that did not match any existing employee; aborting operation");
+					}
+
+					// Get first employee
+					// TODO(bhartard): Better track which employee if somehow multiple?
+					if (!employeeIds.isEmpty()) {
+						String employeeId = employeeIds.iterator().next();
+						paymentList.add(new Associate().parse(employeeId));
+					}
+
+					for (PaymentTax tax : itemization.getTaxes()) {
+						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
+					}
+					
+					int i = 1;
+					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
+						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
 					}
 					
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {

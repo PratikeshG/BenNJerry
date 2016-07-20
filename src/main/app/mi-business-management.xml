@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+    <sub-flow name="MI:getLocations" doc:description="returns locations for a given Square Merchant as ArrayList&lt;Merchant&gt;">
+        <scripting:transformer metadata:id="d2007bc2-a85e-4237-964d-7591b551fe26" doc:name="Get Locations for Square Account">
+            <scripting:script engine="Groovy"><![CDATA[import com.squareup.connect.SquareClient;
+
+import com.squareup.connect.Merchant;
+
+if (!payload.isLegacy()) {
+	SquareClient client = new SquareClient(sessionVars['token'], sessionVars['apiUrl'], sessionVars['apiVersion'], sessionVars['merchantId']);
+	return client.businessLocations().list();
+}]]></scripting:script>
+        </scripting:transformer>
+    </sub-flow>
+</mule>

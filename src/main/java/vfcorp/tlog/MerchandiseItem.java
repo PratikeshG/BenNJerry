@@ -4,6 +4,8 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import vfcorp.Record;
 import vfcorp.FieldDetails;
@@ -81,22 +83,17 @@ public class MerchandiseItem extends Record {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
-		
+
 		String departmentNumber = "";
 		String classNumber = "";
-		for (Item item : squareItemsList) {
-			if (item.getId().equals(itemization.getItemDetail().getItemId())) {
-				for (ItemVariation itemVariation : item.getVariations()) {
-					if (itemVariation.getId().equals(itemization.getItemDetail().getItemVariationId())) {
-						if (itemVariation.getUserData() != null && itemVariation.getUserData().length() >= 8) {
-							departmentNumber = itemVariation.getUserData().substring(0, 4);
-							classNumber = itemVariation.getUserData().substring(4, 8);
-						}
-					}
-				}
-			}
+		Matcher m = Pattern.compile("\\((.*?)\\)").matcher(itemization.getItemVariationName());
+		while(m.find()) {
+			String deptClass = m.group(1);
+			departmentNumber = deptClass.substring(0, 4);
+			classNumber = deptClass.substring(4, 8);
+		    break;
 		}
-		
+
 		putValue("Void Indicator", "0"); // no such thing as voided transactions
 		putValue("Exchange Indicator", "0"); // no such thing as exchanged transactions
 		putValue("Item Number", sku); // requires special formating, according to documentation
