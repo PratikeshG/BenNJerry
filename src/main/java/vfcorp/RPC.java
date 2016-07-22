@@ -2,9 +2,12 @@ package vfcorp;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 import vfcorp.rpc.AlternateRecord;
@@ -72,6 +75,68 @@ public class RPC {
 		return clone;
 	}
 	
+	// This method CONSUMES the RPC linked list.
+	public Catalog convertWithFilter(Catalog current, String deploymentId) throws Exception {		
+		Catalog clone = new Catalog(current);
+
+		// Load Filters
+		HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
+		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
+
+		// SKUs
+		String filterSKUPath = "/vfc-plu-filters/" + deploymentId + "-sku.csv";
+		InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"))) {
+		    String line;
+		    while ((line = br.readLine()) != null) {
+		    	skuFilter.put(line.trim(), new Boolean(true));
+		    }
+		}
+
+		// PLUs		
+		String filterPLUPath = "/vfc-plu-filters/" + deploymentId + "-plu.csv";
+		InputStream iPLU = this.getClass().getResourceAsStream(filterPLUPath);
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"))) {
+		    String line;
+		    while ((line = br.readLine()) != null) {
+		    	String[] parts = line.split("\\s+");
+		    	pluFilter.put(parts[0].trim(), new Boolean(true));
+		    }
+		}
+
+		System.out.println("Total SKU filtered: " + skuFilter.size());
+		System.out.println("Total PLU filtered: " + pluFilter.size());
+
+		System.out.println("Consuming PLU file...");
+
+		LinkedList<Record> saleRecords = new LinkedList<Record>();
+		
+		while (rpc.size() > 0) {
+			Record record = rpc.removeFirst();
+
+			if (record != null && record.getId() != null) {
+				if (record.getId().equals(ITEM_RECORD)) {
+					// Process sale records last
+					if (record.getValue("Action Type").equals(ItemRecord.ACTION_TYPE_PLACE_ON_SALE)) {
+						saleRecords.add(record);
+					} else {
+						convertItemWithFilter(clone, record, skuFilter, pluFilter);
+					}
+				} else if (record.getId().equals(DEPARTMENT_CLASS_RECORD)) {
+					convertCategory(clone, record);
+				}
+			}
+		}
+
+		// Process sale records
+		while (saleRecords.size() > 0) {
+			Record saleRecord = saleRecords.removeFirst();
+			convertItemWithFilter(clone, saleRecord, skuFilter, pluFilter);
+		}
+
+		return clone;
+	}
+	
 	private void convertItem(Catalog clone, Record record) {
 		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
 
@@ -105,7 +170,6 @@ public class RPC {
 			// Storing on variation to save to payment record details
 			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
 			matchingVariation.setName(sku + " (" + deptCodeClass + ")");
-			matchingVariation.setUserData(deptCodeClass);
 
 			for (Category category : clone.getCategories().values()) {
 				if (category.getName().subSequence(0, 8).equals(deptCodeClass)) {
@@ -150,6 +214,94 @@ public class RPC {
 		}
 	}
 
+	// TODO(bhartard): Remove this hacky shit!
+	private void convertItemWithFilter(Catalog clone, Record record, HashMap<String, Boolean> skuFilter, HashMap<String, Boolean> pluFilter) {
+		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
+		
+		String matchingKey = null;
+		Item matchingItem = null;
+		ItemVariation matchingVariation = null;
+
+		Item item = clone.getItems().get(sku);
+		if (item != null) {
+			if (sku.equals(item.getVariations()[0].getSku())) {
+				matchingKey = sku;
+				matchingItem = item;
+				matchingVariation = item.getVariations()[0];
+			}
+		}
+		
+		String actionType = record.getValue("Action Type");
+		if (ItemRecord.ACTION_TYPE_ADD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_RECORD.equals(actionType) ||
+				ItemRecord.ACTION_TYPE_CHANGE_FIELD.equals(actionType)) {
+
+			if (matchingItem == null) {
+				matchingItem = new Item();
+				matchingVariation = new ItemVariation("Regular");
+				matchingVariation.setSku(sku);
+				matchingItem.setVariations(new ItemVariation[]{matchingVariation});
+			}
+
+			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Retail Price"))));
+
+			// Storing on variation to save to payment record details
+			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
+			matchingVariation.setName(sku + " (" + deptCodeClass + ")");
+
+			for (Category category : clone.getCategories().values()) {
+				if (category.getName().subSequence(0, 8).equals(deptCodeClass)) {
+					matchingItem.setCategory(category);
+					break;
+				}
+			}
+
+			// Assumes that only one tax exists per catalog. Applies it to all items.
+			if (clone.getFees().values().size() > 0) {
+				matchingItem.setFees(new Fee[]{(Fee) clone.getFees().values().toArray()[0]});
+			}
+
+			matchingItem.setName(record.getValue("Description").replaceFirst("\\s+$", ""));
+
+			// Remove records until an item or category is found
+			if (rpc.size() > 0) {
+				Record nextRecord = rpc.removeFirst();
+				boolean itemOrCategoryRecordFound = false;
+				
+				while (!itemOrCategoryRecordFound && rpc.size() > 0) {
+					if (nextRecord.getId().equals(ITEM_RECORD) || nextRecord.getId().equals(DEPARTMENT_CLASS_RECORD)) {
+						rpc.addFirst(nextRecord);
+						itemOrCategoryRecordFound = true;
+					} else if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
+						if (nextRecord.getValue("Action Type").equals("1")) { // add
+							matchingItem.setName(matchingItem.getName() + " - " + nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", ""));
+						}
+						nextRecord = rpc.removeFirst();
+					} else {
+						nextRecord = rpc.removeFirst();
+					}
+				}
+			}
+
+			String filterShortSku = sku;
+			String filterMedSku = ("000000000000" + filterShortSku).substring(filterShortSku.length());
+			String filterLongSku = ("00000000000000" + filterShortSku).substring(filterShortSku.length());
+			
+			String[] bits = matchingItem.getName().split("\\s+");
+			String plu = bits[bits.length-1];
+			
+			// ONLY APPLU CHANGES FOR FILTERED ITEMS
+			if (skuFilter.containsKey(filterShortSku) || skuFilter.containsKey(filterMedSku) || skuFilter.containsKey(filterLongSku) || pluFilter.containsKey(plu)) {
+				clone.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
+			}
+		} else if (ItemRecord.ACTION_TYPE_PLACE_ON_SALE.equals(actionType) && matchingItem != null && matchingVariation != null) {
+			// TODO(bhartard): Check if date within sale price date or queue for future use?
+			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Sale Price"))));
+		} else if (ItemRecord.ACTION_TYPE_DELETE.equals(actionType) && matchingItem != null) {
+			clone.getItems().remove(matchingKey);
+		}
+	}
+	
 	private void convertCategory(Catalog clone, Record record) {
 		String name = record.getValue("Department Number") + record.getValue("Class Number") + " " + record.getValue("Class Description").trim();
 
@@ -217,6 +369,52 @@ public class RPC {
 
 		int totalRecordsProcessed = 0;
 		System.out.println("Ingesting PLU file...");
+
+		while ((rpcLine = r.readLine()) != null) {
+
+			if (totalRecordsProcessed % 5000 == 0) {
+				System.out.println(totalRecordsProcessed);
+			}
+
+			if (rpcLine.length() < 2) {
+				continue;
+			} else {
+				String line = rpcLine.substring(0, 2);
+
+				switch(line) {
+				case ITEM_RECORD:
+					this.rpc.add(new ItemRecord(rpcLine));
+					break;
+				case ALTERNATE_RECORD:
+					this.rpc.add(new AlternateRecord(rpcLine));
+					break;
+				case DEPARTMENT_RECORD:
+					this.rpc.add(new DepartmentRecord(rpcLine));
+					break;
+				case DEPARTMENT_CLASS_RECORD:
+					this.rpc.add(new DepartmentClassRecord(rpcLine));
+					break;
+				case ITEM_ALTERNATE_DESCRIPTION:
+					this.rpc.add(new ItemAlternateDescription(rpcLine));
+					break;
+				case ITEM_ADDITIONAL_DATA_RECORD:
+					this.rpc.add(new ItemAdditionalDataRecord(rpcLine));
+					break;
+				}
+			}
+
+			totalRecordsProcessed++;
+		}
+	}
+	
+	public void filteredIngest(BufferedInputStream rpc, String filterName) throws IOException {
+		this.rpc = new LinkedList<Record>();
+
+		BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
+		String rpcLine = "";
+
+		int totalRecordsProcessed = 0;
+		System.out.println("Ingesting filtered (" + filterName + ") PLU file...");
 
 		while ((rpcLine = r.readLine()) != null) {
 

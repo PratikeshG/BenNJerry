@@ -352,7 +352,6 @@ public class CatalogGenerator {
 		ItemVariation variation = new ItemVariation(entry.getSku() + entry.getDeptCode());
 		variation.setSku(entry.getUpc());
 		variation.setPriceMoney(new Money(Util.getMoneyAmountFromDecimalString(entry.getPrice())));
-		//variation.setUserData(entry.getCost() + "|" + entry.getDeptCode());
 
 		item.setVariations(new ItemVariation[]{variation});
 		item.setFees(new Fee[]{taxTable.get(entry.getTaxCode())});
