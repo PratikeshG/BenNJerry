@@ -117,18 +117,6 @@ public class CatalogGenerator {
 	}
 
 	private void addNewCatalogItems(Catalog newCatalog, ArrayList<CatalogEntry> newCatalogEntries, HashMap<String, Fee> taxesByCode) {
-		/*
-		Object[] omit = new Object[] {
-				Item.Field.ID, Item.Field.COLOR, Item.Field.DESCRIPTION, Item.Field.TYPE, Item.Field.ABBREVIATION,
-				Item.Field.VISIBILITY, Item.Field.AVAILABLEONLINE, Item.Field.MASTERIMAGE, Item.Field.MODIFIERSLISTS,
-				Item.Field.FEES, Item.Field.MODIFIERSLISTS,
-			
-				ItemVariation.Field.ID, ItemVariation.Field.INVENTORYALERTTHRESHOLD, ItemVariation.Field.INVENTORYALERTTYPE,
-				ItemVariation.Field.ITEMID, ItemVariation.Field.ORDINAL, ItemVariation.Field.TRACKINVENTORY
-		};		
-		HashSet<Object> ignoreFields = new HashSet<Object>(Arrays.asList(omit));
-	*/
-		
 		// Get current unique items by SKU
 		HashMap<String, Item> catalogItemCache = new HashMap<String, Item>();
 		for (Item newI : newCatalog.getItems().values()) {
