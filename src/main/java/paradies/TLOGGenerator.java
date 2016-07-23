@@ -307,13 +307,10 @@ public class TLOGGenerator {
 		entries.add(new TLOGEntry(headerT, tRecord));
 		recordSequence.getAndIncrement();
 
-		// (Optional) T2 record
-		if (paymentHasTaxIdOver4(payment)) {
-			HeaderRecord headerT2 = createHeaderRecord(deviceId, TotalSalePartTwoRecord.ID, transactionNumber, recordSequence, payment);
-			TotalSalePartTwoRecord t2Record = createTotalSalePartTwoRecord(payment);
-			entries.add(new TLOGEntry(headerT2, t2Record));
-			recordSequence.getAndIncrement();
-		}
+		HeaderRecord headerT2 = createHeaderRecord(deviceId, TotalSalePartTwoRecord.ID, transactionNumber, recordSequence, payment);
+		TotalSalePartTwoRecord t2Record = createTotalSalePartTwoRecord(payment);
+		entries.add(new TLOGEntry(headerT2, t2Record));
+		recordSequence.getAndIncrement();
 
 		return entries;
 	}
@@ -326,6 +323,7 @@ public class TLOGGenerator {
 		tRecord.setFieldValue(TotalSaleRecord.FIELD_TAX_2, Integer.toString(getTaxTotalFromPayment(payment, 2)));
 		tRecord.setFieldValue(TotalSaleRecord.FIELD_TAX_3, Integer.toString(getTaxTotalFromPayment(payment, 3)));
 		tRecord.setFieldValue(TotalSaleRecord.FIELD_TAX_4, Integer.toString(getTaxTotalFromPayment(payment, 4)));
+		tRecord.setFieldValue(TotalSaleRecord.FIELD_T2_FLAG, "1"); // always require T2 to follow
 
 		return tRecord;
 	}
@@ -528,22 +526,6 @@ public class TLOGGenerator {
 			int taxIdFromName = Integer.parseInt(getTaxIdFromTaxName(tax.getName()));
 			if (taxIdFromName == taxId) {
 				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private Boolean paymentHasTaxIdOver4(Payment payment) {		
-		ArrayList<PaymentTax> allTaxes = new ArrayList<PaymentTax>(Arrays.asList(payment.getAdditiveTax()));
-		//allTaxes.addAll(Arrays.asList(payment.getInclusiveTax()));
-
-		for (int i = 5; i <= 16; i++) {
-			for (PaymentTax tax : allTaxes) {
-				int taxIdFromName = Integer.parseInt(getTaxIdFromTaxName(tax.getName()));
-				if (taxIdFromName == i) {
-					return true;
-				}
 			}
 		}
 
