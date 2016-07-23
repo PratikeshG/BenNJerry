@@ -11,7 +11,7 @@
     <vm:connector name="Paradies_VM_Worker" validateConnections="true" doc:name="VM"> 
         <vm:queue-profile maxOutstandingMessages="1"></vm:queue-profile>  
     </vm:connector>
-    <queued-asynchronous-processing-strategy name="Paradies_Catalog_Asynch_Processing_Strategy" maxThreads="1" minThreads="1" doc:name="Queued Asynchronous Processing Strategy"></queued-asynchronous-processing-strategy>
+    <queued-asynchronous-processing-strategy name="Paradies_Catalog_Asynch_Processing_Strategy" maxThreads="3" minThreads="1" doc:name="Queued Asynchronous Processing Strategy"></queued-asynchronous-processing-strategy>
     <ftp:connector name="Paradies_FTP_catalog" pollingFrequency="5000" validateConnections="true" moveToDirectory="${paradies.ftp.path.items}${paradies.ftp.path.complete}" moveToPattern="#[sessionVars['originalFilename']]" outputPattern="#[sessionVars['originalFilename']]" doc:name="FTP"></ftp:connector>
     <sub-flow name="Paradies:set-flow-vars"> 
         <set-session-variable variableName="merchantId" value="#[payload.merchantId]" doc:name="Set merchantId"></set-session-variable>  
@@ -19,7 +19,7 @@
     </sub-flow>
     <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
         <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}"> 
-            <file:filename-wildcard-filter pattern="master_1.txt"></file:filename-wildcard-filter>  
+            <file:filename-wildcard-filter pattern="${paradies.ftp.upc.pattern}"></file:filename-wildcard-filter>
         </ftp:inbound-endpoint>  
         <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>  
         <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
