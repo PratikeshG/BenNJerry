@@ -23,8 +23,8 @@ public class TotalTaxRecord extends Record {
 			new Field(15, FIELD_JURISDICTION_ID, 51, "4", Field.Type.NUMERIC),
 			new Field(16, FIELD_TAX_AMOUNT, 55, "6.2", Field.Type.NUMERIC),
 			new Field(17, FIELD_TAXABLE_AMOUNT, 63, "6.2", Field.Type.NUMERIC),
-			new Field(18, FIELD_MANUAL_TAX, 71, "1", Field.Type.ALPHANUMERIC),
-			new Field(18, FIELD_MANUAL_TAX_ITEM_LEVEL, 72, "1", Field.Type.ALPHANUMERIC)
+			new Field(18, FIELD_MANUAL_TAX, 71, "1", Field.Type.NUMERIC), // incorrectly documented as ALPHANUMERIC
+			new Field(18, FIELD_MANUAL_TAX_ITEM_LEVEL, 72, "1", Field.Type.NUMERIC) // incorrectly documented as ALPHANUMERIC
 		};
 
 		fields = new ArrayList<Field>();
