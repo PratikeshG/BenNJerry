@@ -127,49 +127,48 @@ public class TLOG {
 				for (PaymentItemization itemization : payment.getItemizations()) {
 					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemNumberLookupLength));
 					
-					Set<String> employeeIds = new HashSet<String>();
+					String employeeId = "";
 					boolean employeeIdShouldBePresent = false;
+					boolean employeeFound = false;
 					for (Tender tender : payment.getTender()) {
 						if (tender.getEmployeeId() != null) {
 							employeeIdShouldBePresent = true;
 							for (Employee employee : squareEmployeesList) {
 								if (tender.getEmployeeId().equals(employee.getId())) {
-									employeeIds.add(employee.getExternalId());
+									employeeId = employee.getExternalId(); // this assumes external ID has been set
+									employeeFound = true;
 									break;
 								}
 							}
 						}
 					}
-					
-					if (employeeIdShouldBePresent && employeeIds.size() == 0) {
+
+					if (employeeIdShouldBePresent && !employeeFound) {
 						logger.error("tender had an employee ID that did not match any existing employee; aborting operation");
 						throw new Exception("tender had an employee ID that did not match any existing employee; aborting operation");
 					}
 
-					// Get first employee
-					// TODO(bhartard): Better track which employee if somehow multiple?
-					if (!employeeIds.isEmpty()) {
-						String employeeId = employeeIds.iterator().next();
+					if (employeeId.length() > 0) {
 						paymentList.add(new Associate().parse(employeeId));
 					}
 
 					for (PaymentTax tax : itemization.getTaxes()) {
 						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
 					}
-					
+
 					int i = 1;
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
 						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
 					}
-					
+
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						for (String employeeId : employeeIds) {
-							if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
+						if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
+							if (employeeId.length() > 0) {
 								paymentList.add(new AuthorizationCode().parse(employeeId));
 							}
-							
-							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
 						}
+
+						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
 					}
 				}
 				
