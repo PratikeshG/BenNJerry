@@ -433,7 +433,7 @@ return tlogGeneratorPayload;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-work" doc:name="VFC:generate-tlog-work"/>
     </sub-flow>
     <flow name="VFC:TNF:tlog-store-1" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF1" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF1" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
