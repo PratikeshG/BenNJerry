@@ -433,7 +433,7 @@ return tlogGeneratorPayload;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-work" doc:name="VFC:generate-tlog-work"/>
     </sub-flow>
     <flow name="VFC:TNF:tlog-store-1" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF1" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF1-8.3.2016" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
@@ -444,7 +444,7 @@ return tlogGeneratorPayload;]]></scripting:script>
         </sftp:outbound-endpoint>
         <set-attachment attachmentName="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" value="#[payload]" contentType="text/plain" doc:name="Copy_of_Attachment"/>
         <set-payload value="Attached." doc:name="Copy_of_Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, The North Face location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-store1">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tnf-tlogs/jXsEyB.UFz71ZNg" doc:name="/tnf-tlogs"/>
