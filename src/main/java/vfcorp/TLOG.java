@@ -162,12 +162,6 @@ public class TLOG {
 					}
 
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
-							if (employeeId.length() > 0) {
-								paymentList.add(new AuthorizationCode().parse(employeeId));
-							}
-						}
-
 						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
 					}
 				}
