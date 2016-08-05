@@ -181,9 +181,7 @@ public class TLOG {
 						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
 					}
 
-					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
-					}
+					paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId));
 				}
 				
 				for (Tender tender : payment.getTender()) {
