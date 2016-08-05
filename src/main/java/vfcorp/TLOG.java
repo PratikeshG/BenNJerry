@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,10 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import vfcorp.tlog.Associate;
-import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
 import vfcorp.tlog.DiscountTypeIndicator;
+import vfcorp.tlog.EventGiveback;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
@@ -154,6 +155,9 @@ public class TLOG {
 						paymentList.add(new Associate().parse(employeeId));
 					}
 
+					// Add promo records (071) after 056 LineItemAssociateAndDiscountAccountingString records
+					ArrayList<EventGiveback> promoRecords = new ArrayList<EventGiveback>();
+
 					for (PaymentDiscount discount : itemization.getDiscounts()) {
 						String discountType = "";
 						String discountAppyType = "";
@@ -168,6 +172,8 @@ public class TLOG {
 							// Only create 021 record for employee applied discounts
 							if (discountType.equals("0")) {
 								paymentList.add(new DiscountTypeIndicator().parse(itemization, discount, discountCode, discountAppyType));
+							} else if (discountType.equals("1")) {
+								promoRecords.add(new EventGiveback().parse(itemization, discount, itemNumberLookupLength, discountCode, discountAppyType));
 							}
 						}
 					}
@@ -182,16 +188,20 @@ public class TLOG {
 					}
 
 					paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId));
+					
+					for (EventGiveback promo : promoRecords) {
+						paymentList.add(promo);
+					}
 				}
-				
+
 				for (Tender tender : payment.getTender()) {
 					paymentList.add(new vfcorp.tlog.Tender().parse(tender));
-					
+
 					if (tender.getType().equals("CREDIT_CARD")) {
 						paymentList.add(new CreditCardTender().parse(tender));
 					}
 				}
-				
+
 				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment, timeZoneId));
 				
 				transactionLog.addAll(paymentList);

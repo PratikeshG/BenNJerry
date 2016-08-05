@@ -64,7 +64,7 @@ public class EventGiveback extends Record {
 
 		putValue("Item Number", sku);
 		putValue("Amount", "" + -discountTotal);
-		putValue("Event Number", discountCode);
+		putValue("Event Number", "");
 		putValue("Deal Number", "");
 		putValue("Coupon Number", "");
 		putValue("Transaction Discount", discountAppyType);

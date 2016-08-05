@@ -36,6 +36,8 @@ import com.squareup.connect.Tender;
 import com.squareup.connect.diff.CatalogChangeRequest;
 import com.squareup.connect.diff.Catalog;
 
+import org.mule.tck.util.FakeObjectStore;
+
 public class Test {
 
 	public static void main( String[] args ) throws Exception {
@@ -67,7 +69,8 @@ public class Test {
         EpicorParser epicor = new EpicorParser();
         epicor.tlog().setDeployment("deploymentId");
 		epicor.tlog().setTimeZoneId(TIMEZONE);
-        epicor.tlog().setItemNumberLookupLength(16);
+        epicor.tlog().setItemNumberLookupLength(14);
+        epicor.tlog().setObjectStore(new FakeObjectStore<String>());
         epicor.tlog().parse(location, payments, items, employees);
         
         System.out.println("Saving TLOG...");
