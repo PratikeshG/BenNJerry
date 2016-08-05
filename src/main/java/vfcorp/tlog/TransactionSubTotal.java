@@ -48,12 +48,12 @@ public class TransactionSubTotal extends Record {
 	}
 	
 	public TransactionSubTotal parse(Payment payment) throws Exception {
-		int subtotal = payment.getGrossSalesMoney().getAmount();
-		
+		int subtotal = payment.getNetSalesMoney().getAmount();
+
 		putValue("Amount", "" + subtotal);
 		// TODO(): needs to be refactored for refunds
 		putValue("Sign Indicator", "0"); // always positive
-		
+
 		return this;
 	}
 }
