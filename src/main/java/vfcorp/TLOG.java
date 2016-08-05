@@ -14,6 +14,7 @@ import vfcorp.tlog.Associate;
 import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
+import vfcorp.tlog.DiscountTypeIndicator;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
@@ -32,6 +33,7 @@ import com.squareup.connect.Employee;
 import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
@@ -152,6 +154,24 @@ public class TLOG {
 						paymentList.add(new Associate().parse(employeeId));
 					}
 
+					for (PaymentDiscount discount : itemization.getDiscounts()) {
+						String discountType = "";
+						String discountAppyType = "";
+						String discountCode = "";
+						String discountDetails = getValueInBrackets(discount.getName());
+
+						if (discountDetails.length() == 5) {
+							discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
+							discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
+							discountCode = discountDetails.substring(2);
+
+							// Only create 021 record for employee applied discounts
+							if (discountType.equals("0")) {
+								paymentList.add(new DiscountTypeIndicator().parse(itemization, discount, discountCode, discountAppyType));
+							}
+						}
+					}
+
 					for (PaymentTax tax : itemization.getTaxes()) {
 						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
 					}
@@ -240,5 +260,17 @@ public class TLOG {
 			
 			transactionLog.addAll(newRecordList);
 		}
+	}
+
+	private String getValueInBrackets(String input) {
+		String value = "";
+
+		int firstIndex = input.indexOf('[');
+		int lastIndex = input.indexOf(']');
+		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
+			value = input.substring(firstIndex + 1, lastIndex);
+		}
+
+		return value;
 	}
 }
