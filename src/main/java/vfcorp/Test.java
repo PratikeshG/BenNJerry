@@ -41,23 +41,39 @@ public class Test {
 	public static void main( String[] args ) throws Exception {
 		/*
 		 * TLOG testing
-		 *
-		//SquareClient client = new SquareClient("sq0ats-hqRgaU2PkvwxBOqIcdfGYg", "https://connect.squareupstaging.com", "v1", "me", "D67SWP5DZ9AWG");
-		SquareClient client = new SquareClient("sq0atp-eWyKq9VkPuj-ZKuwi6XYew", "https://connect.squareup.com", "v1", "me", "E8V3AF2CWMNWV"); // VF test location
-		Payment[] payments = client.payments().list();
-        Item[] items = client.items().list();
-        Employee[] employees = client.employees().list();
+		 */
+		System.out.println("Running TLOG...");
+		SquareClient client = new SquareClient("sq0ats-0LZJnEzOsjOKcgikzHYjfQ", "https://connect.squareupstaging.com", "v1", "DVKXZBNVFQAGS", "7K2P5XPK2DJ07");        
+        
+        System.out.println("Getting locations...");
         Merchant[] merchants = client.businessLocations().list();
+        Merchant location = merchants[0];
+        
+        System.out.println("Getting employees...");
+        Employee[] employees = client.employees().list();
+
+        System.out.println("Getting catalog...");
+        Item[] items = client.items().list();
+
+        int offset = 0;
+        int range = 3;
+        final String TIMEZONE = "America/Los_Angeles";
+
+        
+        System.out.println("Getting payments...");
+        Map<String,String>  paymentParams = TimeManager.getPastDayInterval(range, offset, TIMEZONE);
+        Payment[] payments = client.payments().list(paymentParams);
         
         EpicorParser epicor = new EpicorParser();
+        epicor.tlog().setDeployment("deploymentId");
+		epicor.tlog().setTimeZoneId(TIMEZONE);
         epicor.tlog().setItemNumberLookupLength(16);
-        epicor.tlog().parse(merchants[1], payments, items, employees);
+        epicor.tlog().parse(location, payments, items, employees);
         
-        //System.out.println(epicor.tlog().toString());
-        PrintWriter writer = new PrintWriter("/Users/colinlam/Desktop/sample.txt", "UTF-8");
+        System.out.println("Saving TLOG...");
+        PrintWriter writer = new PrintWriter("/Users/bhartard/Desktop/sample-tnf.txt", "UTF-8");
         writer.print(epicor.tlog().toString());
         writer.close();
-        */
 		
 		/*
 		 * IM testing
@@ -85,7 +101,8 @@ public class Test {
 		/*
 		 * RPC testing
 		 *
-		SquareClient clientMaster = new SquareClient("sq0ats-hqRgaU2PkvwxBOqIcdfGYg", "https://connect.squareupstaging.com", "v1", "me", "D67SWP5DZ9AWG");
+		 *
+		SquareClient clientMaster = new SquareClient("", "https://connect.squareupstaging.com", "v1", "DVKXZBNVFQAGS", "7K2P5XPK2DJ07");
 		Catalog master = Catalog.getCatalog(clientMaster, CatalogChangeRequest.PrimaryKey.NAME);
 		
 		File f = new File("/Users/colinlam/Desktop/PLU2.RPT");
@@ -104,8 +121,12 @@ public class Test {
 		ccr.call();
 		*/
 		
+		/*
 		SquareClient clientMaster = new SquareClient("sq0atp-R8QA_3XoGz67JNhM1pX7zQ", "https://connect.squareup.com", "v1", "me", "58R606YEZ83T9");
 		Item[] items = clientMaster.items().list();
 		System.out.println(items.length);
+		*/
+        
+        System.out.println("Done.");
     }
 }
