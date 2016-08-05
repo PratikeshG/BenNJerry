@@ -470,6 +470,7 @@ return tlogGeneratorPayload;]]></scripting:script>
     </flow>
     <flow name="VFC:TNF:plu-store-402" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
             <reconnect-forever/>
         </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-tnf-00402" doc:name="Deployment: vfcorp-tnf-00402"/>
