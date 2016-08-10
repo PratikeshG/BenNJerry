@@ -86,7 +86,7 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 		putValue("Tax Rate", "" + taxRate);
 		putValue("Tax Amount", ""); // not supported
 		putValue("Tax Override Code", ""); // not supported
-		putValue("Taxable Amount", "" + itemization.getGrossSalesMoney().getAmount()); // TODO(colinlam): this isn't true if this is an additive tax
+		putValue("Taxable Amount", "" + itemization.getNetSalesMoney().getAmount());
 		putValue("Tax Code", "1"); // not supported, but follows the pattern in the file given
 		
 		return this;
