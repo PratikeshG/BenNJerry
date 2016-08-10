@@ -52,7 +52,14 @@ public class DiscountTypeIndicator extends Record {
 	}
 	
 	public DiscountTypeIndicator parse(PaymentItemization itemization, PaymentDiscount discount, String discountCode, String discountAppyType) throws Exception {
+		// Need to subtract previously applied discounts on this item from beforeTotal
 		int beforeTotal = itemization.getGrossSalesMoney().getAmount();
+		for (PaymentDiscount prevDiscount : itemization.getDiscounts()) {
+			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
+				break;
+			}
+			beforeTotal +=  prevDiscount.getAppliedMoney().getAmount(); // negative value
+		}
 		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
 		int finalTotal = beforeTotal + discountTotal;
 		
