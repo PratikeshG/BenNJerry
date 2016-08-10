@@ -127,9 +127,10 @@ public class TLOG {
 					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
 				}
 				
+				int itemSequence = 1;
 				for (PaymentItemization itemization : payment.getItemizations()) {
-					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemNumberLookupLength));
-					
+					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemSequence++, itemNumberLookupLength));
+
 					String employeeId = "";
 					boolean employeeIdShouldBePresent = false;
 					boolean employeeFound = false;
