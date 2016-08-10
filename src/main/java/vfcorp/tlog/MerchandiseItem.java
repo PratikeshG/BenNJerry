@@ -117,7 +117,7 @@ public class MerchandiseItem extends Record {
 		putValue("Send to Location #", "00"); // not supported
 		putValue("Team Associate Item Ind", "0"); // not supported
 		putValue("Team Number", "000"); // not supported
-		putValue("Return Indicator", "0"); // not supported
+		putValue("Return Indicator", "1"); // 1 can be returned
 		putValue("Item Sequence", "" + itemSequence);
 		
 		return this;
