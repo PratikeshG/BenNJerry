@@ -58,7 +58,7 @@ public class Test {
         Item[] items = client.items().list();
 
         int offset = 0;
-        int range = 3;
+        int range = 2;
         final String TIMEZONE = "America/Los_Angeles";
 
         
