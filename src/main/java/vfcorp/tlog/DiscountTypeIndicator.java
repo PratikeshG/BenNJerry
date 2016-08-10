@@ -58,7 +58,7 @@ public class DiscountTypeIndicator extends Record {
 			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
 				break;
 			}
-			beforeTotal +=  prevDiscount.getAppliedMoney().getAmount(); // negative value
+			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
 		}
 		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
 		int finalTotal = beforeTotal + discountTotal;

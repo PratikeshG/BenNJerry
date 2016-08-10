@@ -56,19 +56,27 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization) throws Exception {
 		String taxType = "01";
 		switch (tax.getName()) {
-			case "Sales Tax": taxType = "01";
+			case "VAT":
+				taxType = "02";
 				break;
-			case "VAT": taxType = "02";
+			case "GST":
+				taxType = "03";
 				break;
-			case "GST": taxType = "03";
+			case "GST/PST":
+				taxType = "04";
 				break;
-			case "GST/PST": taxType = "04";
+			case "PST ON GST":
+				taxType = "05";
 				break;
-			case "PST ON GST": taxType = "05";
+			case "No tax":
+				taxType = "07";
 				break;
-			case "No tax": taxType = "07";
+			case "HST":
+				taxType = "08";
 				break;
-			case "HST": taxType = "08";
+			case "Sales Tax":
+			default:
+				taxType = "01";
 				break;
 		}
 		long taxRate = Math.round(Double.parseDouble(tax.getRate()) * 10000000);
