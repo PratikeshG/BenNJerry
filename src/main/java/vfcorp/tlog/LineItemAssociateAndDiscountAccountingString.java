@@ -70,7 +70,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		return id;
 	}
 	
-	public LineItemAssociateAndDiscountAccountingString parse(Payment payment, PaymentItemization itemization, int itemNumberLookupLength, String employeeId) throws Exception {
+	public LineItemAssociateAndDiscountAccountingString parse(Payment payment, PaymentItemization itemization, int itemNumberLookupLength, int lineItemIndex, String employeeId) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
@@ -80,6 +80,10 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		int lineItemPromoValue = 0;
 		int transactionDiscountValue = 0;
 		int transactionPromoValue = 0;
+
+		// Get line item's applied amount from discounts applied to line item's index
+		int totalLineItemQty =  itemization.getQuantity().intValue();
+		int lineItemAmount = itemization.getSingleQuantityMoney().getAmount();
 
 		for (PaymentDiscount discount : itemization.getDiscounts()) {
 			String discountType = "";
@@ -91,7 +95,10 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 				discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
 			}
 
-			int discountedAmount = -discount.getAppliedMoney().getAmount();
+			int[] discountAmounts = divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
+			int discountedAmount = discountAmounts[lineItemIndex-1];
+
+			lineItemAmount -= discountAmounts[lineItemIndex-1];
 
 			// Line Item Discount
 			if (discountType.equals("0") && discountAppyType.equals("0")) {
@@ -125,7 +132,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
 		putValue("EGC/Gift Certificate Number", "");
 		putValue("Associate Number", employeeId);
-		putValue("Value (per associate)", "" + itemization.getNetSalesMoney().getAmount());
+		putValue("Value (per associate)", "" + lineItemAmount);
 		putValue("Type Indicator", "01"); // "merchandise sale"; no other values supported
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
 		putValue("Price Override Indicator", "0"); // not supported
@@ -148,5 +155,17 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		}
 
 		return value;
+	}
+
+	private int[] divideIntegerEvenly(int amount, int totalPieces) {
+		int quotient = amount / totalPieces;
+		int remainder = amount % totalPieces;
+
+		int [] results = new int[totalPieces];
+		for(int i = 0; i < totalPieces; i++) {
+		    results[i] = i < remainder ? quotient + 1 : quotient;
+		}
+
+		return results;
 	}
 }

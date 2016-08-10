@@ -185,11 +185,11 @@ public class TLOG {
 
 					int i = 1;
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
+						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i));
+						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, i, employeeId));
+						i++;
 					}
 
-					paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId));
-					
 					for (EventGiveback promo : promoRecords) {
 						paymentList.add(promo);
 					}
