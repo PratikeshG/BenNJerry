@@ -16,14 +16,20 @@ public class CatalogCallable implements Callable {
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-
 		MuleMessage message = eventContext.getMessage();
 		CatalogCallablePayload locationCatalog = (CatalogCallablePayload) message.getPayload();
 
 		byte[] ftpPayload = eventContext.getMessage().getProperty("ftpPayload", PropertyScope.SESSION);
 
 		String currencyCode = locationCatalog.getLocation().getCurrencyCode();
-		String storeId = Util.getStoreIdFromLocationNickname(locationCatalog.getLocation().getLocationDetails().getNickname());
+		String storeId = Util.getValueInParenthesis(locationCatalog.getLocation().getLocationDetails().getNickname());
+
+		// TODO(bhartard): Gracefully handle inactive locations
+		// Snub invalid locations for now
+		if (storeId == null || storeId.trim().isEmpty()) {
+			return locationCatalog;
+		}
+
 		CatalogGenerator catalogGenerator = new CatalogGenerator(storeId, currencyCode);
 
 		Catalog currentCatalog = locationCatalog.getCatalog();
