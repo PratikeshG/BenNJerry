@@ -19,12 +19,13 @@
     </sub-flow>
     <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
         <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}"> 
+            <reconnect-forever></reconnect-forever>
             <file:filename-wildcard-filter pattern="${paradies.ftp.upc.pattern}"></file:filename-wildcard-filter>
-        </ftp:inbound-endpoint>  
+        </ftp:inbound-endpoint>
         <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>  
         <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
         <set-session-variable variableName="originalFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Set originalFilename"></set-session-variable>
-        <set-payload value="New ITEMS file ingested by Paradies: #[sessionVars.originalFilename]" doc:name="email payload"></set-payload>
+        <set-payload value="New ITEMS file ingested by Paradies: #[sessionVars.originalFilename]" doc:name="email payload"></set-payload>  
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New ITEMS ingested by Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"></flow-ref>  
         <set-variable variableName="deployment" value="${paradies.pandora.deploymentId}" doc:name="Set Pandora deployment ID" metadata:id="a624d281-c842-4d7c-b77b-e0197dc69705"></set-variable>  
