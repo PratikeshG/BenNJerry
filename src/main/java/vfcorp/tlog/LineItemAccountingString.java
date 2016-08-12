@@ -7,6 +7,7 @@ import java.util.Map;
 import vfcorp.Record;
 import vfcorp.FieldDetails;
 
+import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 
 public class LineItemAccountingString extends Record {
@@ -60,31 +61,54 @@ public class LineItemAccountingString extends Record {
 		return id;
 	}
 	
-	public LineItemAccountingString parse(PaymentItemization itemization, int itemNumberLookupLength, int index, double quantity) throws Exception {
+	public LineItemAccountingString parse(PaymentItemization itemization, int itemNumberLookupLength, int lineItemIndex) throws Exception {
+		// TODO(bhartard): Create helper function to share this logic
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
-		String productivityQuantity = "";
-		if (quantity > 1) {
-			productivityQuantity = String.format( "%.3f", 1.0).replace(".", "");
-		} else {
-			productivityQuantity = String.format( "%.3f", quantity).replace(".", "");
+
+		// Square doesn't support partial quantities
+		String productivityQuantity = String.format( "%.3f", 1.0).replace(".", "");
+
+		// Get line item's applied amount from discounts applied to line item's index
+		int totalLineItemQty =  itemization.getQuantity().intValue();
+		int lineItemAmount = itemization.getSingleQuantityMoney().getAmount();
+		for (PaymentDiscount discount : itemization.getDiscounts()) {
+			int[] discountAmounts = divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
+			lineItemAmount -= discountAmounts[lineItemIndex-1];
 		}
+
+		// Taxable amounts
+		boolean isTaxable = itemization.getTaxes().length > 0;
+		String salesTaxableAmount = isTaxable ? "" + lineItemAmount : "0";
+		String salesNotTaxableAmount = isTaxable ? "0" : "" + lineItemAmount;
 		
 		putValue("Item Number", sku); // requires special formating, according to documentation
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
-		putValue("EGC/Gift Certificate Number", ""); // TODO(colinlam): gift card sales?
-		putValue("Item Value", "" + itemization.getNetSalesMoney().getAmount());
+		putValue("EGC/Gift Certificate Number", "");
+		putValue("Item Value", "" + lineItemAmount); // amount of total + discounts applied to this single quantity
 		putValue("Type Indicator", "01"); // "merchandise sale"
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
-		putValue("Sales Taxable Amount", "" + itemization.getNetSalesMoney().getAmount()); // not supported
-		putValue("Sales Not Taxable Amount", ""); // not supported
+		putValue("Sales Taxable Amount", salesTaxableAmount);
+		putValue("Sales Not Taxable Amount", salesNotTaxableAmount);
 		putValue("Sales Not Taxable Amount 2", ""); // not supported
 		putValue("Sales Taxable Amount 2", ""); // not supported
 		putValue("Return Quantity Indicator", "00"); // rentals are not supported
-		putValue("Productivity Quantity", productivityQuantity); // this string gets repeated until quantity is below 1
-		putValue("Item Index", "" + index);
+		putValue("Productivity Quantity", productivityQuantity); // The value equals 1 except in the case of fractional quantities
+		putValue("Item Index", "" + lineItemIndex);
 		return this;
+	}
+
+	private int[] divideIntegerEvenly(int amount, int totalPieces) {
+		int quotient = amount / totalPieces;
+		int remainder = amount % totalPieces;
+
+		int [] results = new int[totalPieces];
+		for(int i = 0; i < totalPieces; i++) {
+		    results[i] = i < remainder ? quotient + 1 : quotient;
+		}
+
+		return results;
 	}
 }

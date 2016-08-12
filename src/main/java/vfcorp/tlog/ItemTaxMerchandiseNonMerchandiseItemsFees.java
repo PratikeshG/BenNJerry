@@ -56,19 +56,27 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 	public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization) throws Exception {
 		String taxType = "01";
 		switch (tax.getName()) {
-			case "Sales Tax": taxType = "01";
+			case "VAT":
+				taxType = "02";
 				break;
-			case "VAT": taxType = "02";
+			case "GST":
+				taxType = "03";
 				break;
-			case "GST": taxType = "03";
+			case "GST/PST":
+				taxType = "04";
 				break;
-			case "GST/PST": taxType = "04";
+			case "PST ON GST":
+				taxType = "05";
 				break;
-			case "PST ON GST": taxType = "05";
+			case "No tax":
+				taxType = "07";
 				break;
-			case "No tax": taxType = "07";
+			case "HST":
+				taxType = "08";
 				break;
-			case "HST": taxType = "08";
+			case "Sales Tax":
+			default:
+				taxType = "01";
 				break;
 		}
 		long taxRate = Math.round(Double.parseDouble(tax.getRate()) * 10000000);
@@ -78,7 +86,7 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
 		putValue("Tax Rate", "" + taxRate);
 		putValue("Tax Amount", ""); // not supported
 		putValue("Tax Override Code", ""); // not supported
-		putValue("Taxable Amount", "" + itemization.getGrossSalesMoney().getAmount()); // TODO(colinlam): this isn't true if this is an additive tax
+		putValue("Taxable Amount", "" + itemization.getNetSalesMoney().getAmount());
 		putValue("Tax Code", "1"); // not supported, but follows the pattern in the file given
 		
 		return this;

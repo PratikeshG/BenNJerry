@@ -50,7 +50,7 @@ public class MerchandiseItem extends Record {
 		fields.put("Team Associate Item Ind", new FieldDetails(1, 111, "1 = Item in team"));
 		fields.put("Team Number", new FieldDetails(3, 112, "# is 0 if ind = 0"));
 		fields.put("Return Indicator", new FieldDetails(1, 115, "1 = Can be Returned, 0 = Cannot be Returned"));
-		fields.put("Item Sequence", new FieldDetails(7, 116, ""));
+		fields.put("Item Sequence", new FieldDetails(7, 116, "zero filled"));
 	}
 	
 	public MerchandiseItem() {
@@ -76,7 +76,7 @@ public class MerchandiseItem extends Record {
 		return id;
 	}
 	
-	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemNumberLookupLength) throws Exception {
+	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemSequence, int itemNumberLookupLength) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
@@ -117,8 +117,8 @@ public class MerchandiseItem extends Record {
 		putValue("Send to Location #", "00"); // not supported
 		putValue("Team Associate Item Ind", "0"); // not supported
 		putValue("Team Number", "000"); // not supported
-		putValue("Return Indicator", "0"); // not supported
-		putValue("Item Sequence", "0000000"); // not supported
+		putValue("Return Indicator", "1"); // 1 can be returned
+		putValue("Item Sequence", "" + itemSequence);
 		
 		return this;
 	}

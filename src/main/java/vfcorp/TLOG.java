@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,9 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import vfcorp.tlog.Associate;
-import vfcorp.tlog.AuthorizationCode;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
+import vfcorp.tlog.DiscountTypeIndicator;
+import vfcorp.tlog.EventGiveback;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
@@ -32,6 +34,7 @@ import com.squareup.connect.Employee;
 import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
@@ -124,63 +127,82 @@ public class TLOG {
 					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
 				}
 				
+				int itemSequence = 1;
 				for (PaymentItemization itemization : payment.getItemizations()) {
-					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemNumberLookupLength));
-					
-					Set<String> employeeIds = new HashSet<String>();
+					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemSequence++, itemNumberLookupLength));
+
+					String employeeId = "";
 					boolean employeeIdShouldBePresent = false;
+					boolean employeeFound = false;
 					for (Tender tender : payment.getTender()) {
 						if (tender.getEmployeeId() != null) {
 							employeeIdShouldBePresent = true;
 							for (Employee employee : squareEmployeesList) {
 								if (tender.getEmployeeId().equals(employee.getId())) {
-									employeeIds.add(employee.getExternalId());
+									employeeId = employee.getExternalId(); // this assumes external ID has been set
+									employeeFound = true;
 									break;
 								}
 							}
 						}
 					}
-					
-					if (employeeIdShouldBePresent && employeeIds.size() == 0) {
+
+					if (employeeIdShouldBePresent && !employeeFound) {
 						logger.error("tender had an employee ID that did not match any existing employee; aborting operation");
 						throw new Exception("tender had an employee ID that did not match any existing employee; aborting operation");
 					}
 
-					// Get first employee
-					// TODO(bhartard): Better track which employee if somehow multiple?
-					if (!employeeIds.isEmpty()) {
-						String employeeId = employeeIds.iterator().next();
+					if (employeeId.length() > 0) {
 						paymentList.add(new Associate().parse(employeeId));
+					}
+
+					// Add promo records (071) after 056 LineItemAssociateAndDiscountAccountingString records
+					ArrayList<EventGiveback> promoRecords = new ArrayList<EventGiveback>();
+
+					for (PaymentDiscount discount : itemization.getDiscounts()) {
+						String discountType = "";
+						String discountAppyType = "";
+						String discountCode = "";
+						String discountDetails = getValueInBrackets(discount.getName());
+
+						if (discountDetails.length() == 5) {
+							discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
+							discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
+							discountCode = discountDetails.substring(2);
+
+							// Only create 021 record for employee applied discounts
+							if (discountType.equals("0")) {
+								paymentList.add(new DiscountTypeIndicator().parse(itemization, discount, discountCode, discountAppyType));
+							} else if (discountType.equals("1")) {
+								promoRecords.add(new EventGiveback().parse(itemization, discount, itemNumberLookupLength, discountCode, discountAppyType));
+							}
+						}
 					}
 
 					for (PaymentTax tax : itemization.getTaxes()) {
 						paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
 					}
-					
+
 					int i = 1;
 					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i++, q));
+						paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i));
+						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, i, employeeId));
+						i++;
 					}
-					
-					for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
-						for (String employeeId : employeeIds) {
-							if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
-								paymentList.add(new AuthorizationCode().parse(employeeId));
-							}
-							
-							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(payment, itemization, itemNumberLookupLength, employeeId, q));
-						}
+
+					for (EventGiveback promo : promoRecords) {
+						paymentList.add(promo);
 					}
 				}
-				
+
 				for (Tender tender : payment.getTender()) {
 					paymentList.add(new vfcorp.tlog.Tender().parse(tender));
-					
+
 					if (tender.getType().equals("CREDIT_CARD")) {
 						paymentList.add(new CreditCardTender().parse(tender));
 					}
 				}
-				
+
 				paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment, timeZoneId));
 				
 				transactionLog.addAll(paymentList);
@@ -247,5 +269,17 @@ public class TLOG {
 			
 			transactionLog.addAll(newRecordList);
 		}
+	}
+
+	private String getValueInBrackets(String input) {
+		String value = "";
+
+		int firstIndex = input.indexOf('[');
+		int lastIndex = input.indexOf(']');
+		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
+			value = input.substring(firstIndex + 1, lastIndex);
+		}
+
+		return value;
 	}
 }
