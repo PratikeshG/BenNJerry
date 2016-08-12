@@ -2,7 +2,6 @@ package paradies;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,22 +37,22 @@ public class TLOGGenerator {
 	private String defaultDeviceId;
 	private String timeZone;
 	private Map<String, Employee> employees;
-	private TaxTable taxTable;
 	private TLOGGeneratorPayload tlogPayload;
 	private Map<String, TLOG> tlogs;
 
 	public TLOGGenerator(TLOGGeneratorPayload payload) throws Exception {
-		this.storeId = Util.getStoreIdFromLocationNickname(payload.getLocation().getLocationDetails().getNickname());
+		this.storeId = Util.getValueInParenthesis(payload.getLocation().getLocationDetails().getNickname());
 		this.defaultDeviceId = payload.getDefaultDeviceId();
 		this.timeZone = payload.getTimeZone();
 		this.employees = getEmployeeMap(payload.getEmployees());
-		this.taxTable = new TaxTable(storeId);
 		this.tlogPayload = payload;
 		this.tlogs = new HashMap<String, TLOG>();
 
-		run();
+		if (storeId != null && !storeId.trim().isEmpty()) {
+			run();
+		}
 	}
-	
+
 	public String getStoreId() {
 		return storeId;
 	}
@@ -82,7 +81,7 @@ public class TLOGGenerator {
 			if (p.getDevice() == null || p.getDevice().getName() == null) {
 				devicePaymentsCache.get(defaultDeviceId).add(p);
 			} else {
-				String deviceId = Util.getDeviceIdFromDeviceName(p.getDevice().getName());
+				String deviceId = Util.getValueInParenthesis(p.getDevice().getName());
 				if (deviceId.length() == 0 || deviceId.length() > MAX_DEVICE_ID_LENGTH) {
 					devicePaymentsCache.get(defaultDeviceId).add(p);
 				} else {
@@ -105,15 +104,15 @@ public class TLOGGenerator {
 
 	private TLOG generateDeviceTlog(String deviceId, ArrayList<Payment> payments) throws ParseException {
 
-		TLOG deviceTLOG = new TLOG(storeId, deviceId);		
-		int sequentialTransactionNumber = 16;
+		TLOG deviceTLOG = new TLOG(storeId, deviceId);
+		int sequentialTransactionNumber = 1;
 
 		for (Payment payment : payments) {
 			// skip no sale event
 			if (payment.getTender()[0].getType().equals("NO_SALE")) {
 				continue;
 			}
-			
+
 			deviceTLOG.addEntries(processPayment(deviceId, payment, sequentialTransactionNumber));
 			++sequentialTransactionNumber;
 		}
@@ -123,11 +122,11 @@ public class TLOGGenerator {
 	
 	private Map<String, Employee> getEmployeeMap(Employee[] employees) {
 		HashMap<String, Employee> employeeMap = new HashMap<String, Employee>();
-		
+
 		for (Employee e : employees) {
 			employeeMap.put(e.getId(), e);
 		}
-		
+
 		return employeeMap;
 	}
 
