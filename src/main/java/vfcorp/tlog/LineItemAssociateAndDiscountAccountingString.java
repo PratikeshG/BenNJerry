@@ -118,6 +118,14 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 			}
 		}
 
+		// Receipt Presentation Price
+		// NOTE: Can be the full, non-discounted value when there is a transaction-level discount(s)
+		// but must be the discounted total when ONLY applying item-level discounts
+		int rrp = itemization.getGrossSalesMoney().getAmount();
+		if ((lineItemDiscountValue + lineItemPromoValue > 0) && (transactionDiscountValue + transactionPromoValue == 0)) {
+			rrp = itemization.getNetSalesMoney().getAmount();
+		}
+
 		putValue("Line Item Discount Value", "" + lineItemDiscountValue);
 		putValue("Line Item Promo Value", "" + lineItemPromoValue);
 		putValue("Transaction Discount Value", "" + transactionDiscountValue);
@@ -137,7 +145,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
 		putValue("Price Override Indicator", "0"); // not supported
 		putValue("Price Override Value", ""); // not supported
-		putValue("Receipt Presentation Price", "" + itemization.getGrossSalesMoney().getAmount());
+		putValue("Receipt Presentation Price", "" + rrp);
 		putValue("Employee Number", employeeId);
 		putValue("Productivity Quantity", String.format( "%.3f", 1.0).replace(".", "")); // Always qty 1 for non team sales
 		putValue("PLU Sale Price Discount Value", "");
