@@ -166,6 +166,13 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		    results[i] = i < remainder ? quotient + 1 : quotient;
 		}
 
+		// Reverse - provide smallest discounts first
+		for (int i = 0; i < results.length / 2; i++) {
+            int temp = results[i]; // swap numbers
+            results[i] = results[results.length - 1 - i];
+            results[results.length - 1 - i] = temp;
+        }
+
 		return results;
 	}
 }
