@@ -11,6 +11,7 @@ import org.mule.api.store.ObjectStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import vfcorp.Util;
 import vfcorp.tlog.Associate;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
@@ -163,7 +164,7 @@ public class TLOG {
 						String discountType = "";
 						String discountAppyType = "";
 						String discountCode = "";
-						String discountDetails = getValueInBrackets(discount.getName());
+						String discountDetails = Util.getValueInBrackets(discount.getName());
 
 						if (discountDetails.length() == 5) {
 							discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
@@ -269,17 +270,5 @@ public class TLOG {
 			
 			transactionLog.addAll(newRecordList);
 		}
-	}
-
-	private String getValueInBrackets(String input) {
-		String value = "";
-
-		int firstIndex = input.indexOf('[');
-		int lastIndex = input.indexOf(']');
-		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
-			value = input.substring(firstIndex + 1, lastIndex);
-		}
-
-		return value;
 	}
 }

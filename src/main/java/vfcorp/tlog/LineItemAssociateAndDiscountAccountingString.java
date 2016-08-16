@@ -6,6 +6,7 @@ import java.util.Map;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
+import vfcorp.Util;
 
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
@@ -88,14 +89,14 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		for (PaymentDiscount discount : itemization.getDiscounts()) {
 			String discountType = "";
 			String discountAppyType = "";
-			String discountDetails = getValueInBrackets(discount.getName());
+			String discountDetails = Util.getValueInBrackets(discount.getName());
 
 			if (discountDetails.length() == 5) {
 				discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
 				discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
 			}
 
-			int[] discountAmounts = divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
+			int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
 			int discountedAmount = discountAmounts[lineItemIndex-1];
 
 			lineItemAmount -= discountAmounts[lineItemIndex-1];
@@ -151,36 +152,5 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("PLU Sale Price Discount Value", "");
 		
 		return this;
-	}
-
-	private String getValueInBrackets(String input) {
-		String value = "";
-
-		int firstIndex = input.indexOf('[');
-		int lastIndex = input.indexOf(']');
-		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
-			value = input.substring(firstIndex + 1, lastIndex);
-		}
-
-		return value;
-	}
-
-	private int[] divideIntegerEvenly(int amount, int totalPieces) {
-		int quotient = amount / totalPieces;
-		int remainder = amount % totalPieces;
-
-		int [] results = new int[totalPieces];
-		for(int i = 0; i < totalPieces; i++) {
-		    results[i] = i < remainder ? quotient + 1 : quotient;
-		}
-
-		// Reverse - provide smallest discounts first
-		for (int i = 0; i < results.length / 2; i++) {
-            int temp = results[i]; // swap numbers
-            results[i] = results[results.length - 1 - i];
-            results[results.length - 1 - i] = temp;
-        }
-
-		return results;
 	}
 }
