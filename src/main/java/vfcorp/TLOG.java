@@ -16,6 +16,7 @@ import vfcorp.tlog.Associate;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
 import vfcorp.tlog.DiscountTypeIndicator;
+import vfcorp.tlog.EmployeeDiscount;
 import vfcorp.tlog.EventGiveback;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
@@ -167,13 +168,20 @@ public class TLOG {
 						String discountDetails = Util.getValueInBrackets(discount.getName());
 
 						if (discountDetails.length() == 5) {
-							discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
+							String firstChar = discountDetails.substring(0, 1);
+							if (firstChar.equals("1") || firstChar.equals("2")) {
+								discountType = firstChar;
+							} else {
+								discountType = "0";
+							}
 							discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
 							discountCode = discountDetails.substring(2);
 
 							// Only create 021 record for employee applied discounts
 							if (discountType.equals("0")) {
 								paymentList.add(new DiscountTypeIndicator().parse(itemization, discount, discountCode, discountAppyType));
+							} else if (discountType.equals("2")) {
+								paymentList.add(new EmployeeDiscount().parse(itemization, discount));
 							} else if (discountType.equals("1")) {
 								promoRecords.add(new EventGiveback().parse(itemization, discount, itemNumberLookupLength, discountCode, discountAppyType));
 							}

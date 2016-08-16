@@ -81,6 +81,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		int lineItemPromoValue = 0;
 		int transactionDiscountValue = 0;
 		int transactionPromoValue = 0;
+		int employeeDiscountValue = 0;
 
 		// Get line item's applied amount from discounts applied to line item's index
 		int totalLineItemQty =  itemization.getQuantity().intValue();
@@ -92,7 +93,12 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 			String discountDetails = Util.getValueInBrackets(discount.getName());
 
 			if (discountDetails.length() == 5) {
-				discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
+				String firstChar = discountDetails.substring(0, 1);
+				if (firstChar.equals("1") || firstChar.equals("2")) {
+					discountType = firstChar;
+				} else {
+					discountType = "0";
+				}
 				discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
 			}
 
@@ -117,13 +123,17 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 			if (discountType.equals("1") && discountAppyType.equals("1")) {
 				transactionPromoValue += discountedAmount;
 			}
+			// Employee Discount
+			if (discountType.equals("2")) {
+				employeeDiscountValue += discountedAmount;
+			}
 		}
 
 		// Receipt Presentation Price
 		// NOTE: Can be the full, non-discounted value when there is a transaction-level discount(s)
 		// but must be the discounted total when ONLY applying item-level discounts
 		int rrp = itemization.getGrossSalesMoney().getAmount();
-		if ((lineItemDiscountValue + lineItemPromoValue > 0) && (transactionDiscountValue + transactionPromoValue == 0)) {
+		if ((lineItemDiscountValue + lineItemPromoValue + employeeDiscountValue > 0) && (transactionDiscountValue + transactionPromoValue == 0)) {
 			rrp = itemization.getNetSalesMoney().getAmount();
 		}
 
@@ -131,8 +141,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Line Item Promo Value", "" + lineItemPromoValue);
 		putValue("Transaction Discount Value", "" + transactionDiscountValue);
 		putValue("Transaction Promo Value", "" + transactionPromoValue);
-
-		putValue("Emp Discount Value", ""); // TODO(bhartard): Separate employee discounts?
+		putValue("Emp Discount Value", "" + employeeDiscountValue);
 		putValue("PCM Discount Value", ""); // not supported
 
 		putValue("Team Identifier", "0"); // not supported
@@ -150,7 +159,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Employee Number", employeeId);
 		putValue("Productivity Quantity", String.format( "%.3f", 1.0).replace(".", "")); // Always qty 1 for non team sales
 		putValue("PLU Sale Price Discount Value", "");
-		
+
 		return this;
 	}
 }
