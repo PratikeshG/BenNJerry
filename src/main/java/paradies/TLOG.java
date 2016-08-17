@@ -47,11 +47,8 @@ public class TLOG {
 		String output = "";
 
 		for (int i = 0; i < entries.size(); i++) {
-			output += entries.get(i).toString();
-
-			if (i < entries.size() - 1) {
-				output += "\r\n";
-			}
+			// Note: need trailing carriage return on all lines
+			output += entries.get(i).toString() + "\r\n";
 		}
 
 		return output;
