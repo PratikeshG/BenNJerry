@@ -136,19 +136,15 @@ public class CatalogGenerator {
 			ItemVariation newItemVariation = newItem.getVariations()[0];
 			String newItemSku = newItemVariation.getSku();
 
-			// Find an existing matching item
-			for (Item currentItem : catalogItemCache.values()) {
+			// Check for an existing matching item
+			Item currentItem = catalogItemCache.get(newItemSku);
+			if (currentItem != null) {
 				ItemVariation currentItemVariation = currentItem.getVariations()[0];
-				String currentItemSku = currentItemVariation.getSku();
-
-				// Item already exists in the account
-				if (newItemSku.equals(currentItemSku)) {
-					newItem.setId(currentItem.getId());
-					newItemVariation.setItemId(currentItem.getId());
-					newItemVariation.setId(currentItemVariation.getId());
-					break;
-				}
+				newItem.setId(currentItem.getId());
+				newItemVariation.setItemId(currentItem.getId());
+				newItemVariation.setId(currentItemVariation.getId());
 			}
+
 			catalogItemCache.put(newItemSku, newItem);
 		}
 
