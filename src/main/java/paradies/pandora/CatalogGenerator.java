@@ -125,12 +125,13 @@ public class CatalogGenerator {
 			}
 		}
 
+		// Convert file line entries into Items
 		ArrayList<Item> newItems = new ArrayList<Item>();
 		for (CatalogEntry entry : newCatalogEntries) {
 			newItems.add(newItem(entry, taxesByCode));
 		}
 
-		// Apply new items to cache
+		// Apply new Items to cache
 		for (Item newItem : newItems) {
 			ItemVariation newItemVariation = newItem.getVariations()[0];
 			String newItemSku = newItemVariation.getSku();
@@ -335,7 +336,7 @@ public class CatalogGenerator {
 	private Item newItem(CatalogEntry entry, HashMap<String, Fee> taxTable) {
 		Item item = new Item();
 
-		item.setName(entry.getName());
+		item.setName(entry.getName() + " (" + entry.getUpc() + ")");
 
 		ItemVariation variation = new ItemVariation(entry.getSku() + entry.getDeptCode());
 		variation.setSku(entry.getUpc());
