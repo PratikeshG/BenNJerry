@@ -78,19 +78,27 @@ public class MerchandiseItem extends Record {
 	
 	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemSequence, int itemNumberLookupLength) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
-		if (sku.matches("[0-9]+")) {
-			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
-		}
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
-
 		String departmentNumber = "";
 		String classNumber = "";
-		Matcher m = Pattern.compile("\\((.*?)\\)").matcher(itemization.getItemVariationName());
-		while(m.find()) {
-			String deptClass = m.group(1);
-			departmentNumber = deptClass.substring(0, 4);
-			classNumber = deptClass.substring(4, 8);
-		    break;
+		
+		if (itemization.getItemizationType().equals("ITEM")) {
+			Matcher m = Pattern.compile("\\((.*?)\\)").matcher(itemization.getItemVariationName());
+			while(m.find()) {
+				String deptClass = m.group(1);
+				departmentNumber = deptClass.substring(0, 4);
+				classNumber = deptClass.substring(4, 8);
+			    break;
+			}
+		} else if (itemization.getItemizationType().equals("CUSTOM_AMOUNT")) {
+			// Added SKU manually to notes field on custom entry
+			if (itemization.getNotes().matches("[0-9]+")) {
+				sku = itemization.getNotes();
+			}
+		}
+
+		if (sku.matches("[0-9]+")) {
+			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 
 		putValue("Void Indicator", "0"); // no such thing as voided transactions
