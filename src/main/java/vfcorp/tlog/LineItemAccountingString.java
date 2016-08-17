@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import vfcorp.Record;
+import vfcorp.Util;
 import vfcorp.FieldDetails;
 
 import com.squareup.connect.PaymentDiscount;
@@ -75,7 +76,7 @@ public class LineItemAccountingString extends Record {
 		int totalLineItemQty =  itemization.getQuantity().intValue();
 		int lineItemAmount = itemization.getSingleQuantityMoney().getAmount();
 		for (PaymentDiscount discount : itemization.getDiscounts()) {
-			int[] discountAmounts = divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
+			int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
 			lineItemAmount -= discountAmounts[lineItemIndex-1];
 		}
 
@@ -98,17 +99,5 @@ public class LineItemAccountingString extends Record {
 		putValue("Productivity Quantity", productivityQuantity); // The value equals 1 except in the case of fractional quantities
 		putValue("Item Index", "" + lineItemIndex);
 		return this;
-	}
-
-	private int[] divideIntegerEvenly(int amount, int totalPieces) {
-		int quotient = amount / totalPieces;
-		int remainder = amount % totalPieces;
-
-		int [] results = new int[totalPieces];
-		for(int i = 0; i < totalPieces; i++) {
-		    results[i] = i < remainder ? quotient + 1 : quotient;
-		}
-
-		return results;
 	}
 }

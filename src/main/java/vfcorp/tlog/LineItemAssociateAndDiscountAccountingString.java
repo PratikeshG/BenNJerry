@@ -6,6 +6,7 @@ import java.util.Map;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
+import vfcorp.Util;
 
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
@@ -80,6 +81,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		int lineItemPromoValue = 0;
 		int transactionDiscountValue = 0;
 		int transactionPromoValue = 0;
+		int employeeDiscountValue = 0;
 
 		// Get line item's applied amount from discounts applied to line item's index
 		int totalLineItemQty =  itemization.getQuantity().intValue();
@@ -88,14 +90,19 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		for (PaymentDiscount discount : itemization.getDiscounts()) {
 			String discountType = "";
 			String discountAppyType = "";
-			String discountDetails = getValueInBrackets(discount.getName());
+			String discountDetails = Util.getValueInBrackets(discount.getName());
 
 			if (discountDetails.length() == 5) {
-				discountType = discountDetails.substring(0, 1).equals("1") ? "1" : "0";
+				String firstChar = discountDetails.substring(0, 1);
+				if (firstChar.equals("1") || firstChar.equals("2")) {
+					discountType = firstChar;
+				} else {
+					discountType = "0";
+				}
 				discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
 			}
 
-			int[] discountAmounts = divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
+			int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
 			int discountedAmount = discountAmounts[lineItemIndex-1];
 
 			lineItemAmount -= discountAmounts[lineItemIndex-1];
@@ -116,14 +123,25 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 			if (discountType.equals("1") && discountAppyType.equals("1")) {
 				transactionPromoValue += discountedAmount;
 			}
+			// Employee Discount
+			if (discountType.equals("2")) {
+				employeeDiscountValue += discountedAmount;
+			}
+		}
+
+		// Receipt Presentation Price
+		// NOTE: Can be the full, non-discounted value when there is a transaction-level discount(s)
+		// but must be the discounted total when ONLY applying item-level discounts
+		int rrp = itemization.getGrossSalesMoney().getAmount();
+		if ((lineItemDiscountValue + lineItemPromoValue + employeeDiscountValue > 0) && (transactionDiscountValue + transactionPromoValue == 0)) {
+			rrp = itemization.getNetSalesMoney().getAmount();
 		}
 
 		putValue("Line Item Discount Value", "" + lineItemDiscountValue);
 		putValue("Line Item Promo Value", "" + lineItemPromoValue);
 		putValue("Transaction Discount Value", "" + transactionDiscountValue);
 		putValue("Transaction Promo Value", "" + transactionPromoValue);
-
-		putValue("Emp Discount Value", ""); // TODO(bhartard): Separate employee discounts?
+		putValue("Emp Discount Value", "" + employeeDiscountValue);
 		putValue("PCM Discount Value", ""); // not supported
 
 		putValue("Team Identifier", "0"); // not supported
@@ -137,35 +155,11 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		putValue("Adjust Line Item Quantity", "0"); // transactions can't be altered after completion
 		putValue("Price Override Indicator", "0"); // not supported
 		putValue("Price Override Value", ""); // not supported
-		putValue("Receipt Presentation Price", "" + itemization.getGrossSalesMoney().getAmount());
+		putValue("Receipt Presentation Price", "" + rrp);
 		putValue("Employee Number", employeeId);
 		putValue("Productivity Quantity", String.format( "%.3f", 1.0).replace(".", "")); // Always qty 1 for non team sales
 		putValue("PLU Sale Price Discount Value", "");
-		
+
 		return this;
-	}
-
-	private String getValueInBrackets(String input) {
-		String value = "";
-
-		int firstIndex = input.indexOf('[');
-		int lastIndex = input.indexOf(']');
-		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
-			value = input.substring(firstIndex + 1, lastIndex);
-		}
-
-		return value;
-	}
-
-	private int[] divideIntegerEvenly(int amount, int totalPieces) {
-		int quotient = amount / totalPieces;
-		int remainder = amount % totalPieces;
-
-		int [] results = new int[totalPieces];
-		for(int i = 0; i < totalPieces; i++) {
-		    results[i] = i < remainder ? quotient + 1 : quotient;
-		}
-
-		return results;
 	}
 }
