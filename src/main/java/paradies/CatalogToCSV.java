@@ -51,9 +51,13 @@ public class CatalogToCSV {
 			sb.append(","); // no description
 			sb.append(item.getVariations()[0].getName() + ",");
 
-			String price = Integer.toString(item.getVariations()[0].getPriceMoney().getAmount());
-			if (price.length() > 2) {
-				price = price.substring(0, price.length() - 2) + "." + price.substring(price.length() - 2);
+			String price = "";
+			if (item.getVariations()[0].getPriceMoney() != null) {
+				price = Integer.toString(item.getVariations()[0].getPriceMoney().getAmount());
+
+				if (price.length() > 2) {
+					price = price.substring(0, price.length() - 2) + "." + price.substring(price.length() - 2);
+				}
 			}
 
 			sb.append(price + ",");
