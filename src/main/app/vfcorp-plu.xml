@@ -120,7 +120,7 @@ return sp;]]></scripting:script>
             <file:filename-wildcard-filter pattern="plu.chg*"/>
             <reconnect-forever/>
         </sftp:inbound-endpoint>
-        <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00402"/>
+        <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00064"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
         <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
@@ -129,7 +129,7 @@ return sp;]]></scripting:script>
             <file:filename-wildcard-filter pattern="plu.chg*"/>
             <reconnect-forever/>
         </sftp:inbound-endpoint>
-        <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00402"/>
+        <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00073"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
         <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
