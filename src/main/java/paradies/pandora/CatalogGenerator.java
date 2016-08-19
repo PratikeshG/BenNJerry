@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.squareup.connect.Discount;
@@ -31,7 +32,9 @@ public class CatalogGenerator {
 	public static final int INDEX_START_COST = 56;
 	public static final int INDEX_START_PRICE = 64;
 	public static final int INDEX_START_TAX = 72;
-	
+
+	public static final String NO_SCAN_KEY_SKU = "99990430";
+
 	private String currencyCode;
 	private String storeId;
 	private TaxTable taxTable;
@@ -116,7 +119,21 @@ public class CatalogGenerator {
 		return newCatalog;
 	}
 
-	private void addNewCatalogItems(Catalog newCatalog, ArrayList<CatalogEntry> newCatalogEntries, HashMap<String, Fee> taxesByCode) {
+	private void applyItemExemptions(List<Item> items) {
+		for (Item item : items) {
+			ItemVariation itemVariation = item.getVariations()[0];
+
+			// No Scan Item
+			if (itemVariation.getSku().equals(NO_SCAN_KEY_SKU)) {
+				item.setName("NO SCAN");
+				itemVariation.setPricingType("VARIABLE_PRICING");
+				itemVariation.setPriceMoney(null);
+				break;
+			}
+		}
+	}
+
+	private void addNewCatalogItems(Catalog newCatalog, List<CatalogEntry> newCatalogEntries, Map<String, Fee> taxesByCode) {
 		// Get current unique items by SKU
 		HashMap<String, Item> catalogItemCache = new HashMap<String, Item>();
 		for (Item newI : newCatalog.getItems().values()) {
@@ -130,6 +147,9 @@ public class CatalogGenerator {
 		for (CatalogEntry entry : newCatalogEntries) {
 			newItems.add(newItem(entry, taxesByCode));
 		}
+
+		// Apply Pandora nuances (ie: no -can item info)
+		applyItemExemptions(newItems);
 
 		// Apply new Items to cache
 		for (Item newItem : newItems) {
@@ -329,7 +349,7 @@ public class CatalogGenerator {
 		return d;
 	}
 	
-	private Item newItem(CatalogEntry entry, HashMap<String, Fee> taxTable) {
+	private Item newItem(CatalogEntry entry, Map<String, Fee> taxTable) {
 		Item item = new Item();
 
 		item.setName(entry.getName() + " (" + entry.getUpc() + ")");
