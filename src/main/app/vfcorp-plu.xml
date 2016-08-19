@@ -17,11 +17,14 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     <sub-flow name="VFC:TNF:ingest-plu-settings">
         <set-variable variableName="deployment" value="#['vfcorp-tnf-' + flowVars.storeId]" doc:name="Set deployment: vfcorp-tnf-STORE_ID"/>
         <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/PLU/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="filteredPlu" value="true" doc:name="Filtered: true"/>
     </sub-flow>
-    <sub-flow name="VFC:Kipling:ingest-plu-for-location">
+    <sub-flow name="VFC:ingest-plu-for-location">
         <logger message="Initiating PLU (#[message.inboundProperties.originalFilename]) ingestion for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <set-variable variableName="pluFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Save pluFilename"/>
         <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Save PLU stream reader"/>
+        <set-payload value="Started: #[sessionVars.originalFilename]" doc:name="email payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog ingestion for VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" doc:name="Copy to Amazon S3"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
@@ -59,15 +62,30 @@ sp.setFees(fees);
 
 return sp;]]></scripting:script>
         </scripting:transformer>
-        <component doc:name="Ingest PLU">
-            <singleton-object class="vfcorp.RPCIngester">
-                <property key="apiUrl" value="${api.url}"/>
-                <property key="apiVersion" value="${api.version}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-            </singleton-object>
-        </component>
-        <set-payload value="New PLU file ingested by VFCorp: #[flowVars.pluFilename]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp:Kipling - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.filteredPlu == true]">
+                <logger message="FILTERED VERSION" level="INFO" doc:name="Logger"/>
+                <component doc:name="Ingest PLU">
+                    <singleton-object class="vfcorp.RPCIngesterFiltered">
+                        <property key="apiUrl" value="${api.url}"/>
+                        <property key="apiVersion" value="${api.version}"/>
+                        <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                    </singleton-object>
+                </component>
+            </when>
+            <otherwise>
+                <logger message="Not Filtered!" level="INFO" doc:name="Logger"/>
+                <component doc:name="Ingest PLU">
+                    <singleton-object class="vfcorp.RPCIngester">
+                        <property key="apiUrl" value="${api.url}"/>
+                        <property key="apiVersion" value="${api.version}"/>
+                        <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                    </singleton-object>
+                </component>
+            </otherwise>
+        </choice>
+        <set-payload value="Completed: #[flowVars.pluFilename]" doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog ingestion for VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
     <flow name="VFC:Kipling:plu-store-5019" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
@@ -76,59 +94,9 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="deployment" value="vfcorp-kipling-05019" doc:name="Deployment: vfcorp-kipling-05019"/>
         <set-variable variableName="awsFolder" value="Kipling/05019/PLU/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <flow-ref name="VFC:Kipling:ingest-plu-for-location" doc:name="VFC:Kipling:ingest-plu-for-location"/>
+        <set-variable variableName="filteredPlu" value="false" doc:name="Filtered: false"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
-    <sub-flow name="VFC:TNF:ingest-plu-for-location-filtered">
-        <logger message="Initiating PLU (#[message.inboundProperties.originalFilename]) ingestion for deployment #[flowVars.deployment]" level="INFO" doc:name="Copy_of_Logger"/>
-        <set-variable variableName="pluFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Copy_of_Save pluFilename"/>
-        <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Copy_of_Save PLU stream reader"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <s3:create-object config-ref="Amazon_S3__Configuration" doc:name="Copy to Amazon S3" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]"/>
-        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
-        <scripting:transformer doc:name="Create payload object">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-
-RPCIngesterPayload rpcIngesterPayload = new RPCIngesterPayload();
-
-rpcIngesterPayload.setAccessToken(payload.getAccessToken());
-rpcIngesterPayload.setMerchantId(payload.getMerchantId());
-rpcIngesterPayload.setLocationId(payload.getLocationId());
-rpcIngesterPayload.setMerchantAlias(payload.getMerchantAlias());
-rpcIngesterPayload.setLegacy(payload.isLegacy());
-
-return rpcIngesterPayload;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get items+categories+fees for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Category;
-import com.squareup.connect.Fee;
-import com.squareup.connect.Item;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Category[] categories = client.categories().list();
-Item[] items = client.items().list();
-Fee[] fees = client.fees().list();
-
-sp.setCategories(categories);
-sp.setItems(items);
-sp.setFees(fees);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <component doc:name="Ingest PLU">
-            <singleton-object class="vfcorp.RPCIngesterFiltered">
-                <property key="apiUrl" value="${api.url}"/>
-                <property key="apiVersion" value="${api.version}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-            </singleton-object>
-        </component>
-        <set-payload value="New PLU file ingested by VFCorp: #[flowVars.pluFilename]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp:TNF - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-    </sub-flow>
     <flow name="VFC:TNF:plu-store-1" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
             <file:filename-wildcard-filter pattern="plu.chg*"/>
@@ -136,7 +104,7 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="storeId" value="00001" doc:name="Set storeId: 00001"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
-        <flow-ref name="VFC:TNF:ingest-plu-for-location-filtered" doc:name="VFC:TNF:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
     <flow name="VFC:TNF:plu-store-60" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00060}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
@@ -145,7 +113,7 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="storeId" value="00060" doc:name="Set storeId: 00060"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
-        <flow-ref name="VFC:TNF:ingest-plu-for-location-filtered" doc:name="VFC:TNF:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
     <flow name="VFC:TNF:plu-store-64" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
@@ -154,7 +122,7 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00402"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
-        <flow-ref name="VFC:TNF:ingest-plu-for-location-filtered" doc:name="VFC:TNF:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
     <flow name="VFC:TNF:plu-store-73" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
@@ -163,7 +131,7 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00402"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
-        <flow-ref name="VFC:TNF:ingest-plu-for-location-filtered" doc:name="VFC:TNF:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
     <flow name="VFC:TNF:plu-store-402" processingStrategy="synchronous">
         <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
@@ -172,6 +140,6 @@ return sp;]]></scripting:script>
         </sftp:inbound-endpoint>
         <set-variable variableName="storeId" value="00402" doc:name="Set storeId: 00402"/>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
-        <flow-ref name="VFC:TNF:ingest-plu-for-location-filtered" doc:name="VFC:TNF:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
 </mule>
