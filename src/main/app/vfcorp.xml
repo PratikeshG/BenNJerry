@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     	<!-- TODO: this runs in UTC time. It does not account for daylight savings. -->
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="VFC:generate-tlogs-for-locations-set-params" doc:name="VFC:generate-tlogs-for-locations-set-params"/>
-        <flow-ref name="MI:OAuth:retrieve-tokens" doc:name="Get Square OAuth tokens for given deployment ID"/>
+        <flow-ref name="MI:OAuth:retrieve-tokens" doc:name="MI:OAuth:retrieve-tokens"/>
         <scripting:transformer doc:name="Create payload objects">
             <scripting:script engine="Groovy"><![CDATA[import java.util.ArrayList;
 import java.util.List;
@@ -172,247 +172,13 @@ return sp;]]></scripting:script>
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc-tlogs/jXsEyB.UFz71ZNg" doc:name="/vfc-tlogs"/>
         <flow-ref name="VFC:generate-tlogs-for-locations" doc:name="VFC:generate-tlogs-for-locations"/>
     </flow>
-    <sub-flow name="VFC:ingest-plu-work">
-        <scripting:transformer doc:name="Get items for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Item;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Item[] items = client.items().list();
-
-sp.setItems(items);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get categories for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Category;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Category[] categories = client.categories().list();
-
-sp.setCategories(categories);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get fees for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Fee;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Fee[] fees = client.fees().list();
-
-sp.setFees(fees);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <component doc:name="Ingest PLU">
-            <singleton-object class="vfcorp.RPCIngester">
-                <property key="apiUrl" value="${api.url}"/>
-                <property key="apiVersion" value="${api.version}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-            </singleton-object>
-        </component>
-        <set-payload value="New PLU file ingested by VFCorp: #[flowVars.pluFilename]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-    </sub-flow>
-    <sub-flow name="VFC:ingest-plu-for-location">
-        <logger message="Initiating PLU (#[message.inboundProperties.originalFilename]) ingestion for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="pluFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Save pluFilename"/>
-        <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Save PLU stream reader"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" doc:name="Copy to Amazon S3"/>
-        <flow-ref name="MI:OAuth:retrieveToken" doc:name="retrieveToken"/>
-        <scripting:transformer doc:name="Create payload object">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-
-RPCIngesterPayload rpcIngesterPayload = new RPCIngesterPayload();
-
-rpcIngesterPayload.setAccessToken(payload.getAccessToken());
-rpcIngesterPayload.setMerchantId(payload.getMerchantId());
-rpcIngesterPayload.setLocationId(payload.getLocationId());
-rpcIngesterPayload.setMerchantAlias(payload.getMerchantAlias());
-rpcIngesterPayload.setLegacy(payload.isLegacy());
-
-return rpcIngesterPayload;]]></scripting:script>
-        </scripting:transformer>
-        <flow-ref name="VFC:ingest-plu-work" doc:name="VFC:ingest-plu-work"/>
-    </sub-flow>
-    <flow name="VFC:Kipling:plu-store-5019" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
-            <file:filename-wildcard-filter pattern="plu.chg*"/>
-            <reconnect-forever/>
-        </sftp:inbound-endpoint>
-        <set-variable variableName="deployment" value="vfcorp-kipling-05019" doc:name="Deployment: vfcorp-kipling-05019"/>
-        <set-variable variableName="awsFolder" value="Kipling/05019/PLU/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    <flow name="VFC:TNF:trigger-generate-tlogs">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tnf-tlogs/jXsEyB.UFz71ZNg/{storeId}" doc:name="/tnf-tlogs"/>
+        <flow-ref name="#['VFC:TNF:tlog-store-' + message.inboundProperties.'http.uri.params'.storeId]" doc:name="#['VFC:TNF:tlog-store-' + message.inboundProperties.'http.uri.params'.storeId]"/>
     </flow>
-    <sub-flow name="VFC:ingest-plu-work-filtered">
-        <scripting:transformer doc:name="Copy_of_Get items for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Item;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Item[] items = client.items().list();
-
-sp.setItems(items);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Copy_of_Get categories for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Category;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Category[] categories = client.categories().list();
-
-sp.setCategories(categories);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Copy_of_Get fees for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-import com.squareup.connect.Fee;
-import com.squareup.connect.SquareClient;
-
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Fee[] fees = client.fees().list();
-
-sp.setFees(fees);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <component doc:name="Copy_of_Ingest PLU">
-            <singleton-object class="vfcorp.RPCIngesterFiltered">
-                <property key="apiUrl" value="${api.url}"/>
-                <property key="apiVersion" value="${api.version}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-            </singleton-object>
-        </component>
-        <set-payload value="New PLU file ingested by VFCorp: #[flowVars.pluFilename]" doc:name="Copy_of_Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New PLU ingested by VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Copy_of_Email to Sales Eng"/>
-    </sub-flow>
-    <sub-flow name="VFC:ingest-plu-for-location-filtered">
-        <logger message="Initiating PLU (#[message.inboundProperties.originalFilename]) ingestion for deployment #[flowVars.deployment]" level="INFO" doc:name="Copy_of_Logger"/>
-        <set-variable variableName="pluFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Copy_of_Save pluFilename"/>
-        <set-variable variableName="pluStreamReader" value="#[payload]" doc:name="Copy_of_Save PLU stream reader"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="Copy_of_GLOBAL:set-session-vars"/>
-        <s3:create-object config-ref="Amazon_S3__Configuration" doc:name="Copy to Amazon S3" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]"/>
-        <flow-ref name="MI:OAuth:retrieveToken" doc:name="Copy_of_retrieveToken"/>
-        <scripting:transformer doc:name="Copy_of_Create payload object">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-
-RPCIngesterPayload rpcIngesterPayload = new RPCIngesterPayload();
-
-rpcIngesterPayload.setAccessToken(payload.getAccessToken());
-rpcIngesterPayload.setMerchantId(payload.getMerchantId());
-rpcIngesterPayload.setLocationId(payload.getLocationId());
-rpcIngesterPayload.setMerchantAlias(payload.getMerchantAlias());
-rpcIngesterPayload.setLegacy(payload.isLegacy());
-
-return rpcIngesterPayload;]]></scripting:script>
-        </scripting:transformer>
-        <flow-ref name="VFC:ingest-plu-work-filtered" doc:name="Copy_of_VFC:ingest-plu-work"/>
-    </sub-flow>
-    <flow name="VFC:TNF:plu-store-1" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
-            <file:filename-wildcard-filter pattern="plu.chg*"/>
-            <reconnect-forever/>
-        </sftp:inbound-endpoint>
-        <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
-        <set-variable variableName="awsFolder" value="TNF/00001/PLU/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <flow-ref name="VFC:ingest-plu-for-location-filtered" doc:name="VFC:ingest-plu-for-location-filtered"/>
-    </flow>
-    <sub-flow name="VFC:generate-tlog-work">
-        <scripting:transformer doc:name="Get locations for business">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import com.squareup.connect.Merchant;
-import com.squareup.connect.SquareClient;
-
-TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Merchant[] locations = client.businessLocations().list();
-
-sp.setLocations(locations);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get payments for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import com.squareup.connect.Payment;
-import com.squareup.connect.SquareClient;
-
-TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Payment[] payments = client.payments().list(sp.getParams());
-
-sp.setPayments(payments);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get items for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import com.squareup.connect.Item;
-import com.squareup.connect.SquareClient;
-
-TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Item[] items = client.items().list();
-
-sp.setItems(items);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get employees for location">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import com.squareup.connect.Employee;
-import com.squareup.connect.SquareClient;
-
-TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Employee[] employees = client.employees().list();
-
-sp.setEmployees(employees);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <component doc:name="Generate TLOGs">
-            <singleton-object class="vfcorp.TLOGGenerator">
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-                <property key="timeZoneId" value="${vfcorp.generateTLOGparams.timeMethod.timeZone}"/>
-            </singleton-object>
-        </component>
+    <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
+        <set-variable variableName="deployment" value="#['vfcorp-tnf-' + flowVars.storeId]" doc:name="Set deployment: vfcorp-tnf-STORE_ID"/>
+        <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
@@ -420,7 +186,7 @@ return sp;]]></scripting:script>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
         <set-variable variableName="range" value="${vfcorp.generateTLOGparams.timeMethod.range}" doc:name="Set range"/>
         <set-variable variableName="offset" value="${vfcorp.generateTLOGparams.timeMethod.offset}" doc:name="Set offset"/>
-        <flow-ref name="MI:OAuth:retrieveToken" doc:name="Get Square OAuth token for given deployment ID"/>
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <scripting:transformer doc:name="Create payload object">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
 import util.TimeManager;
@@ -439,49 +205,104 @@ tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, flo
 
 return tlogGeneratorPayload;]]></scripting:script>
         </scripting:transformer>
-        <flow-ref name="VFC:generate-tlog-work" doc:name="VFC:generate-tlog-work"/>
+        <scripting:transformer doc:name="Get locations+payments+items+employees for business">
+            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
+import com.squareup.connect.Employee;
+import com.squareup.connect.Item;
+import com.squareup.connect.Merchant;
+import com.squareup.connect.Payment;
+import com.squareup.connect.SquareClient;
+
+TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
+
+SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
+
+Merchant[] locations = client.businessLocations().list();
+Employee[] employees = client.employees().list();
+Item[] items = client.items().list();
+Payment[] payments = client.payments().list(sp.getParams());
+
+sp.setLocations(locations);
+sp.setEmployees(employees);
+sp.setPayments(payments);
+sp.setItems(items);
+
+return sp;]]></scripting:script>
+        </scripting:transformer>
+        <component doc:name="Generate TLOGs">
+            <singleton-object class="vfcorp.TLOGGenerator">
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                <property key="timeZoneId" value="${vfcorp.generateTLOGparams.timeMethod.timeZone}"/>
+            </singleton-object>
+        </component>
+    </sub-flow>
+    <sub-flow name="VFC:TNF:generate-tlog-for-location-finish">
+        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
+        <logger message="#['Finished generating TLOG for VF Corporation, The North Face location ' + flowVars.vfcorpStoreNumber]" level="INFO" doc:name="Logger"/>
     </sub-flow>
     <flow name="VFC:TNF:tlog-store-1" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store1-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deployment" value="vfcorp-tnf-00001" doc:name="Deployment: vfcorp-tnf-00001"/>
-        <set-variable variableName="awsFolder" value="TNF/00001/TLOG/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set time zone"/>
-        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlogs-for-location"/>
+        <set-variable variableName="storeId" value="00001" doc:name="Set storeId: 00001"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
-        <set-payload value="Done." doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, The North Face location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-finish" doc:name="VFC:TNF:generate-tlog-for-location-finish"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-store-60" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store60-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="storeId" value="00060" doc:name="Set storeId: 00060"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlog-for-location"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00060}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-finish" doc:name="VFC:TNF:generate-tlog-for-location-finish"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-store-64" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store64-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00064"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlog-for-location"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-finish" doc:name="VFC:TNF:generate-tlog-for-location-finish"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-store-73" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store73-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00073"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlog-for-location"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-finish" doc:name="VFC:TNF:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-402" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store402-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deployment" value="vfcorp-tnf-00402" doc:name="Deployment: vfcorp-tnf-00402"/>
-        <set-variable variableName="awsFolder" value="TNF/00402/TLOG/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set time zone"/>
-        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlogs-for-location"/>
+        <set-variable variableName="storeId" value="00402" doc:name="Set storeId: 00402"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location" doc:name="VFC:TNF:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
-        <set-payload value="Done." doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New TLOG generated for VF Corporation, The North Face location ' + flowVars.vfcorpStoreNumber]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-    </flow>
-    <flow name="VFC:TNF:trigger-generate-tlogs">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tnf-tlogs/jXsEyB.UFz71ZNg/{storeId}" doc:name="/tnf-tlogs"/>
-        <flow-ref name="#['VFC:TNF:tlog-store-' + message.inboundProperties.'http.uri.params'.storeId]" doc:name="VFC:TNF:tlog-store-[STORE_ID]"/>
-    </flow>
-    <flow name="VFC:TNF:plu-store-402" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
-            <file:filename-wildcard-filter pattern="plu.chg*"/>
-            <reconnect-forever/>
-        </sftp:inbound-endpoint>
-        <set-variable variableName="deployment" value="vfcorp-tnf-00402" doc:name="Deployment: vfcorp-tnf-00402"/>
-        <set-variable variableName="awsFolder" value="TNF/00402/PLU/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
-        <flow-ref name="VFC:ingest-plu-for-location-filtered" doc:name="VFC:ingest-plu-for-location-filtered"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-finish" doc:name="VFC:TNF:generate-tlog-for-location-finish"/>
     </flow>
 </mule>
