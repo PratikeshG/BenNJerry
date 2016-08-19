@@ -14,19 +14,19 @@ public class TLOGGenerator implements Callable {
 
 	private int itemNumberLookupLength;
 	private String timeZoneId;
-	
+
 	public void setItemNumberLookupLength(int itemNumberLookupLength) {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
-	
+
 	public void setTimeZoneId(String timeZoneId) {
 		this.timeZoneId = timeZoneId;
 	}
-	
+
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		TLOGGeneratorPayload tlogGeneratorPayload = (TLOGGeneratorPayload) eventContext.getMessage().getPayload();
-		
+
 		Merchant matchingMerchant = null;
 		for (Merchant merchant : (Merchant[]) tlogGeneratorPayload.getLocations()) {
 			if (merchant.getId().equals(tlogGeneratorPayload.getLocationId())) {
@@ -41,19 +41,19 @@ public class TLOGGenerator implements Callable {
 			epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
 			epicor.tlog().setDeployment(deploymentId);
 			epicor.tlog().setTimeZoneId(timeZoneId);
-			
+
 			// Get Cloudhub default object store
 			ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry().lookupObject("_defaultUserObjectStore");
 			epicor.tlog().setObjectStore(objectStore);
-			
+
 			Payment[] squarePayments = tlogGeneratorPayload.getPayments();
 			Item[] squareItems = tlogGeneratorPayload.getItems();
 			Employee[] squareEmployees = tlogGeneratorPayload.getEmployees();
-			
+
 			epicor.tlog().parse(matchingMerchant, squarePayments, squareItems, squareEmployees);
-			
+
 			eventContext.getMessage().setProperty("vfcorpStoreNumber", getStoreNumber(matchingMerchant), PropertyScope.INVOCATION);
-			
+
 			return epicor.tlog().toString();
 		}
 
