@@ -148,7 +148,7 @@ public class CatalogGenerator {
 			newItems.add(newItem(entry, taxesByCode));
 		}
 
-		// Apply Pandora nuances (ie: no -can item info)
+		// Apply Pandora nuances (ie: no-scan item info)
 		applyItemExemptions(newItems);
 
 		// Apply new Items to cache
@@ -320,7 +320,7 @@ public class CatalogGenerator {
 	private Discount[] getPandoraDiscounts() {
 		Discount[] discounts = new Discount[] {
 			newDiscount("Item % Discount", "VARIABLE_PERCENTAGE", "0", 0),
-			newDiscount("Item $ Discount", "VARIABLE_AMOUNT", null, 0),
+			// newDiscount("Item $ Discount", "VARIABLE_AMOUNT", null, 0),
 			newDiscount("Associate Gift Cert", "FIXED", null, 2500),
 			newDiscount("Airport 10%", "FIXED", "0.1", 0),
 			newDiscount("Paradies 25%","FIXED", "0.25", 0),
