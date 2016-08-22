@@ -36,8 +36,8 @@ public class HealthCheckCallable implements Callable {
 	public static boolean validTender(Tender tender) {
 		if (tender.getType().equals("CREDIT_CARD") ||
 				tender.getType().equals("NO_SALE") ||
-				(tender.getType().equals("OTHER") && tender.getType().equals("MERCHANT_GIFT_CARD")) ||
-				(tender.getType().equals("OTHER") && tender.getType().equals("CUSTOM"))) {
+				(tender.getType().equals("OTHER") && tender.getName().equals("MERCHANT_GIFT_CARD")) ||
+				(tender.getType().equals("OTHER") && tender.getName().equals("CUSTOM"))) {
 			return true;
 		}
 		return false;
