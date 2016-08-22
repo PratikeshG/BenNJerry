@@ -215,22 +215,6 @@ public class TLOGGenerator {
 			itemDiscounted = true;
 		}
 
-		// Get meta details from item
-		Map<String, Item> catalogItems = tlogPayload.getCatalog().getItems();
-		
-		// Default to the item ID, but this could change if items are updated
-		Item matchingItem = catalogItems.get(itemization.getItemDetail().getItemId());
-
-		// We actually want to get the item with matching SKU
-		for (Item item : catalogItems.values()) {
-			String upcToMatch = item.getVariations()[0].getSku();
-			
-			if (upcToMatch.equals(itemization.getItemVariationName())) {
-				matchingItem = item;
-				break;
-			}
-		}
-
 		String variationName = itemization.getItemVariationName();
 		String sku = variationName.replace("-", "");
 		sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
