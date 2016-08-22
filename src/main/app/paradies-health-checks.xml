@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -10,7 +10,8 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
     <sub-flow name="Paradies:health-check-tenders">
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
@@ -44,10 +45,10 @@ hcPayload.setPayments(payments);
 return hcPayload;]]></scripting:script>
             </scripting:component>
             <component class="paradies.health.HealthCheckCallable" doc:name="Perform health check"/>
-            <set-property propertyName="storeName" value="#[payload.getLocation().getLocationDetails().getNickname()]" doc:name="storeName"/>
+            <batch:set-record-variable variableName="storeName" value="#[payload.getLocation().getLocationDetails().getNickname()]" doc:name="storeName"/>
             <foreach collection="#[payload.getPayments()]" counterVariableName="health-check-tender-counter" doc:name="For Each">
                 <set-payload value="#[message.payload.getPaymentUrl()]" doc:name="email payload"/>
-                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase()] - Invalid payment tender at #[flowVars.brand] location: #[flowVars.storeName]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' Invalid payment tender at ' + flowVars.brand + ' location: ' + flowVars.storeName]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
             </foreach>
         </foreach>
     </sub-flow>
@@ -61,7 +62,7 @@ return hcPayload;]]></scripting:script>
             </when>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.pandora.deploymentId}" doc:name="Pandora deployment ID"/>
-                <set-property propertyName="brand" value="Pandora" doc:name="brand: Pandora"/>
+                <batch:set-record-variable variableName="brand" value="Pandora" doc:name="brand: Pandora"/>
                 <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
             </otherwise>
         </choice>
@@ -76,7 +77,7 @@ return hcPayload;]]></scripting:script>
             </when>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.brighton.deploymentId}" doc:name="Brighton deployment ID"/>
-                <set-property propertyName="brand" value="Brighton" doc:name="brand: Brighton"/>
+                <batch:set-record-variable variableName="brand" value="Brighton" doc:name="brand: Brighton"/>
                 <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
             </otherwise>
         </choice>
