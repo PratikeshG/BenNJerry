@@ -45,7 +45,7 @@ hcPayload.setPayments(payments);
 return hcPayload;]]></scripting:script>
             </scripting:component>
             <component class="paradies.health.HealthCheckCallable" doc:name="Perform health check"/>
-            <batch:set-record-variable variableName="storeName" value="#[payload.getLocation().getLocationDetails().getNickname()]" doc:name="storeName"/>
+            <set-variable variableName="storeName" value="#[payload.getLocation().getLocationDetails().getNickname()]" doc:name="storeName"/>
             <foreach collection="#[payload.getPayments()]" counterVariableName="health-check-tender-counter" doc:name="For Each">
                 <set-payload value="#[message.payload.getPaymentUrl()]" doc:name="email payload"/>
                 <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' Invalid payment tender at ' + flowVars.brand + ' location: ' + flowVars.storeName]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
@@ -62,7 +62,7 @@ return hcPayload;]]></scripting:script>
             </when>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.pandora.deploymentId}" doc:name="Pandora deployment ID"/>
-                <batch:set-record-variable variableName="brand" value="Pandora" doc:name="brand: Pandora"/>
+                <set-variable variableName="brand" value="Pandora" doc:name="brand: Pandora"/>
                 <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
             </otherwise>
         </choice>
@@ -77,7 +77,7 @@ return hcPayload;]]></scripting:script>
             </when>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.brighton.deploymentId}" doc:name="Brighton deployment ID"/>
-                <batch:set-record-variable variableName="brand" value="Brighton" doc:name="brand: Brighton"/>
+                <set-variable variableName="brand" value="Brighton" doc:name="brand: Brighton"/>
                 <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
             </otherwise>
         </choice>
