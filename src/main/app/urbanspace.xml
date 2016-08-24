@@ -18,9 +18,6 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
     <queued-asynchronous-processing-strategy name="Urbanspace_Report_Asynch_Processing_Strategy" maxThreads="${urbanspace.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${urbanspace.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
     <vm:connector name="Urbanspace_VM_Config" validateConnections="true" doc:name="VM"/>
     <flow name="Urbanspace:Madison-Square-Eats">
-        <quartz:inbound-endpoint jobName="urbanspaceGenerateReportsCronMSE" cronExpression="0 0 9 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 9am UTC">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
@@ -30,9 +27,6 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
     </flow>
     <flow name="Urbanspace:Broadway-Bites">
-        <quartz:inbound-endpoint jobName="urbanspaceGenerateReportsCronBBites" cronExpression="0 0 9 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 9am UTC">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
