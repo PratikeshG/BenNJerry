@@ -1,6 +1,7 @@
 package vfcorp;
 
 import org.mule.api.MuleEventContext;
+import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
@@ -13,19 +14,15 @@ import com.squareup.connect.Payment;
 public class TLOGGenerator implements Callable {
 
 	private int itemNumberLookupLength;
-	private String timeZoneId;
 
 	public void setItemNumberLookupLength(int itemNumberLookupLength) {
 		this.itemNumberLookupLength = itemNumberLookupLength;
 	}
 
-	public void setTimeZoneId(String timeZoneId) {
-		this.timeZoneId = timeZoneId;
-	}
-
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		TLOGGeneratorPayload tlogGeneratorPayload = (TLOGGeneratorPayload) eventContext.getMessage().getPayload();
+		MuleMessage message = eventContext.getMessage();
+		TLOGGeneratorPayload tlogGeneratorPayload = (TLOGGeneratorPayload) message.getPayload();
 
 		Merchant matchingMerchant = null;
 		for (Merchant merchant : (Merchant[]) tlogGeneratorPayload.getLocations()) {
@@ -35,7 +32,9 @@ public class TLOGGenerator implements Callable {
 		}
 
 		if (matchingMerchant != null) {
-			String deploymentId = (String) eventContext.getMessage().getProperty("deploymentId", PropertyScope.SESSION) + 1;
+
+			String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
+			String timeZoneId = (String) message.getProperty("timeZone", PropertyScope.INVOCATION);
 
 			EpicorParser epicor = new EpicorParser();
 			epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);

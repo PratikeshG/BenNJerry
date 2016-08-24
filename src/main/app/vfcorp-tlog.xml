@@ -86,7 +86,6 @@ return sp;]]></scripting:script>
         <component doc:name="Generate TLOGs">
             <singleton-object class="vfcorp.TLOGGenerator">
                 <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-                <property key="timeZoneId" value="#[flowVars.timeZone]"/>
             </singleton-object>
         </component>
     </sub-flow>
