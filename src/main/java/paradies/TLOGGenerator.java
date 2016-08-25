@@ -17,6 +17,8 @@ import com.squareup.connect.Tender;
 import paradies.TLOG;
 import paradies.records.AuthorizationRecord;
 import paradies.records.AuthorizationResponseRecord;
+import paradies.records.EncryptedAuthorizationRecord;
+import paradies.records.EncryptedMethodOfPaymentRecord;
 import paradies.records.ExtendedAuthorizationRecord;
 import paradies.records.HeaderRecord;
 import paradies.records.MerchandiseSalePartFourRecord;
@@ -215,22 +217,6 @@ public class TLOGGenerator {
 			itemDiscounted = true;
 		}
 
-		// Get meta details from item
-		Map<String, Item> catalogItems = tlogPayload.getCatalog().getItems();
-		
-		// Default to the item ID, but this could change if items are updated
-		Item matchingItem = catalogItems.get(itemization.getItemDetail().getItemId());
-
-		// We actually want to get the item with matching SKU
-		for (Item item : catalogItems.values()) {
-			String upcToMatch = item.getVariations()[0].getSku();
-			
-			if (upcToMatch.equals(itemization.getItemVariationName())) {
-				matchingItem = item;
-				break;
-			}
-		}
-
 		String variationName = itemization.getItemVariationName();
 		String sku = variationName.replace("-", "");
 		sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
@@ -412,16 +398,16 @@ public class TLOGGenerator {
 		
 		// P record(s)
 		for (Tender tender : payment.getTender()) {
-			HeaderRecord headerP = createHeaderRecord(deviceId, MethodOfPaymentRecord.ID, transactionNumber, recordSequence, payment);
-			MethodOfPaymentRecord pRecord = createPaymentRecord(tender);
+			HeaderRecord headerP = createHeaderRecord(deviceId, EncryptedMethodOfPaymentRecord.ID, transactionNumber, recordSequence, payment);
+			EncryptedMethodOfPaymentRecord pRecord = createPaymentRecord(tender);
 			entries.add(new TLOGEntry(headerP, pRecord));
 			recordSequence.getAndIncrement();
 
 			// Generate authorization (A, A2, AE) records
 			if (tender.getType().equals("CREDIT_CARD")) {
 				// A record
-				HeaderRecord headerA = createHeaderRecord(deviceId, AuthorizationRecord.ID, transactionNumber, recordSequence, payment);
-				AuthorizationRecord aRecord = createAuthorizationRecord(tender);
+				HeaderRecord headerA = createHeaderRecord(deviceId, EncryptedAuthorizationRecord.ID, transactionNumber, recordSequence, payment);
+				EncryptedAuthorizationRecord aRecord = createAuthorizationRecord(tender);
 				entries.add(new TLOGEntry(headerA, aRecord));
 				recordSequence.getAndIncrement();
 
@@ -442,39 +428,41 @@ public class TLOGGenerator {
 		return entries;
 	}
 	
-	private MethodOfPaymentRecord createPaymentRecord(Tender tender) {
-		MethodOfPaymentRecord pRecord = new MethodOfPaymentRecord();
+	private EncryptedMethodOfPaymentRecord createPaymentRecord(Tender tender) {
+		EncryptedMethodOfPaymentRecord pRecord = new EncryptedMethodOfPaymentRecord();
 
-		pRecord.setFieldValue(MethodOfPaymentRecord.FIELD_TENDER_ID, getTenderId(tender));
-		pRecord.setFieldValue(MethodOfPaymentRecord.FIELD_REFERENCE_NUMBER_1, tender.getId());
+		pRecord.setFieldValue(EncryptedMethodOfPaymentRecord.FIELD_TENDER_ID, getTenderId(tender));
+		pRecord.setFieldValue(EncryptedMethodOfPaymentRecord.FIELD_REFERENCE_NUMBER_1, tender.getId());
 
 		int tendered = tender.getTotalMoney().getAmount();
 		if (tender.getTenderedMoney() != null) {
 			tendered = tender.getTenderedMoney().getAmount();
 		}
-		pRecord.setFieldValue(MethodOfPaymentRecord.FIELD_TENDER_AMOUNT, Integer.toString(tendered));
+		pRecord.setFieldValue(EncryptedMethodOfPaymentRecord.FIELD_TENDER_AMOUNT, Integer.toString(tendered));
 
 		int changeDue = 0;
 		if (tender.getChangeBackMoney() != null) {
 			changeDue = tender.getChangeBackMoney().getAmount();
 		}
-		pRecord.setFieldValue(MethodOfPaymentRecord.FIELD_CHANGE_DUE, Integer.toString(changeDue));
+		pRecord.setFieldValue(EncryptedMethodOfPaymentRecord.FIELD_CHANGE_DUE, Integer.toString(changeDue));
 
 		return pRecord;
 	}
 	
-	private AuthorizationRecord createAuthorizationRecord(Tender tender) {
-		AuthorizationRecord aRecord = new AuthorizationRecord();
+	private EncryptedAuthorizationRecord createAuthorizationRecord(Tender tender) {
+		EncryptedAuthorizationRecord aRecord = new EncryptedAuthorizationRecord();
 
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_TENDER_ID, getTenderId(tender));
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_TENDER_ID, getTenderId(tender));
 		// aRecord.setFieldValue(AuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TYPE, "01"); // TODO(bhartard): ??
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_HOW_AUTHORIZED, "0"); // online
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_CARD_ENTRY_TYPE, tender.getEntryMethod().equals("SWIPED") ? "0" : "1"); // 0-swipe, 1-keyed
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_CARD_NUMBER, tender.getPanSuffix());
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_REQUEST_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_AUTHORIZED_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TRANSACTION_TYPE, "8"); // 8-Sale
-		aRecord.setFieldValue(AuthorizationRecord.FIELD_A2_PART1_LENGTH, "8"); // "APPROVED"
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_HOW_AUTHORIZED, "0"); // online
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CARD_ENTRY_TYPE, tender.getEntryMethod().equals("SWIPED") ? "0" : "1"); // 0-swipe, 1-keyed
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CARD_NUMBER, tender.getPanSuffix());
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_REQUEST_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_AUTHORIZED_AMOUNT, Integer.toString(tender.getTotalMoney().getAmount()));
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TRANSACTION_TYPE, "8"); // 8-Sale
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_A2_PART1_LENGTH, "8"); // "APPROVED"
+
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_AUTHORIZATION_NUMBER, tender.getId());
 
 		return aRecord;
 	}

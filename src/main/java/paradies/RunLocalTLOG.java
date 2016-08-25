@@ -47,7 +47,7 @@ public class RunLocalTLOG {
 
         // Get payments for location
         int offset = 0;
-        int range = 50;
+        int range = 1;
 
         System.out.println("Getting payments...");
         Map<String,String>  paymentParams = TimeManager.getPastDayInterval(range, offset, TIMEZONE);
