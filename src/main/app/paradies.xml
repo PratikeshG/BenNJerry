@@ -18,7 +18,7 @@
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
     <flow name="Paradies:ftp-inbound-listener" processingStrategy="synchronous"> 
-        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" pollingFrequency="${paradies.ftp.pollingFrequency}" responseTimeout="10000" doc:name="INBOUND"> 
+        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" pollingFrequency="${paradies.ftp.pollingFrequency}" responseTimeout="10000" doc:name="OUTBOUND"> 
             <file:filename-wildcard-filter pattern="${paradies.ftp.pattern.upc}*,${paradies.ftp.pattern.employee}*"></file:filename-wildcard-filter>  
             <reconnect-forever></reconnect-forever>  
         </ftp:inbound-endpoint>  
@@ -181,6 +181,11 @@ return tlogGenerator.getTlogs();]]></scripting:script>
         <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']"></flow-ref>  
     </flow>
     <flow name="Paradies:update-employee-master" processingStrategy="synchronous"> 
+        <set-session-variable variableName="merchantId" value="8ZK3ZBFR828N0" doc:name="merchantId"></set-session-variable>  
+        <db:select config-ref="MySQL_Configuration" doc:name="Get Employee:ID Mappings"> 
+            <db:parameterized-query><![CDATA[SELECT squareId, externalId, firstName, lastName FROM `paradies-employees` WHERE merchantId = #[sessionVars.merchantId];]]></db:parameterized-query>  
+        </db:select>  
+        <set-session-variable variableName="employeeIdMappings" value="#[message.payload]" doc:name="employeeIdMappings" doc:description="payload object is: List&lt;Map&lt;String,Object&gt;&gt;"></set-session-variable>  
         <db:select config-ref="MySQL_Configuration" doc:name="Query for all Paradies brand deployments"> 
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment IN ('paradies-pandora', 'paradies-brighton');]]></db:parameterized-query>  
         </db:select>  
@@ -225,6 +230,15 @@ return squarePayloads;]]></scripting:script>
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesEmployeeWorkerQueue"></vm:inbound-endpoint>  
         <logger message="Started processing employees for: #[payload.getMerchantAlias()] (#[payload.getMerchantId()])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Employee update started for deployment"></logger>  
         <component class="paradies.EmployeeCallable" metadata:id="d5bec1d6-5c9e-4438-b746-6b836e336204" doc:name="Get, Diff, and Process Employee Master"></component>  
+        <foreach collection="#[message.payload]" doc:name="Update database records"> 
+            <db:insert config-ref="MySQL_Configuration" doc:name="Update Employee:ID Mappings"> 
+                <db:parameterized-query><![CDATA[INSERT INTO `paradies-employees` (merchantId, externalId, squareId, firstName, lastName) 
+VALUES (#[sessionVars.merchantId], #[message.payload.getExternalId()], #[message.payload.getId()], #[message.payload.getFirstName()], #[message.payload.getLastName()]) ON DUPLICATE KEY UPDATE
+squareId = #[message.payload.getId()],
+firstName = #[message.payload.getFirstName()],
+lastName = #[message.payload.getLastName()];]]></db:parameterized-query>  
+            </db:insert>  
+        </foreach>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeAggregationQueue"></vm:outbound-endpoint>  
     </flow>
     <flow name="Paradies:employee-update-queue-aggregation"> 

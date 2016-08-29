@@ -52,13 +52,10 @@ public class RunEmployees {
 	    // Create updated employees
         EmployeeGenerator employeeGenerator = new EmployeeGenerator();
 		ArrayList<Employee> updatedEmployees = (ArrayList<Employee>) employeeGenerator.parsePayload(fileInBytes, currentRoles);
-
-		System.out.println("current: " + currentEmployees.size());
-		System.out.println("updated: " + updatedEmployees.size());
 		
 		// Perform diff
 		HashSet<Object> ignoreEmployeeFields = new HashSet<Object>();
-		ignoreEmployeeFields.add(Employee.Field.ID);
+		ignoreEmployeeFields.add(Employee.Field.EXTERNAL_ID);
 		ignoreEmployeeFields.add(Employee.Field.STATUS);
 		ignoreEmployeeFields.add(Employee.Field.CREATED_AT);
 		ignoreEmployeeFields.add(Employee.Field.UPDATED_AT);
