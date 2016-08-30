@@ -8,7 +8,7 @@ import com.squareup.connect.Merchant;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.diff.Catalog;
 
-public class RunLocalTLOG {
+public class RunTLOG {
 
 	public static void main( String[] args ) throws Exception {
 		/*

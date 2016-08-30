@@ -1,19 +1,5 @@
 package util;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * A single payload representing the parameters and results associated with one
- * merchant location.
- * 
- * Because a single payload can go through multiple flows and gather multiple
- * results, all of the results and parameters necessary to execute those flows
- * are congregated into a single payload. This payload traverses nearly the
- * entire execution flow of an integration, from the moment the integration's
- * details are retrieved from the database holding the details, to the moment
- * the results are parsed into the outgoing format.
- */
 public class SquarePayload {
 
 	private String merchantId;
@@ -21,8 +7,6 @@ public class SquarePayload {
 	private String accessToken;
 	private String merchantAlias;
 	private boolean legacy;
-	private Map<String,String> params = new HashMap<String,String>();
-	private Map<String,Object> results = new HashMap<String,Object>();
 	
 	public String getMerchantId() {
 		return merchantId;
@@ -53,17 +37,5 @@ public class SquarePayload {
 	}
 	public void setLegacy(boolean legacy) {
 		this.legacy = legacy;
-	}
-	public Map<String,String> getParams() {
-		return params;
-	}
-	public void setParams(Map<String,String> params) {
-		this.params = params;
-	}
-	public Map<String,Object> getResults() {
-		return results;
-	}
-	public void setResults(Map<String,Object> results) {
-		this.results = results;
 	}
 }

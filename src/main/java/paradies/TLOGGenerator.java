@@ -462,7 +462,8 @@ public class TLOGGenerator {
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TRANSACTION_TYPE, "8"); // 8-Sale
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_A2_PART1_LENGTH, "8"); // "APPROVED"
 
-		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_AUTHORIZATION_NUMBER, tender.getId());
+		String lastFour = tender.getId().length() > 4 ? tender.getId().substring(tender.getId().length() - 4) : "";
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_AUTHORIZATION_NUMBER, lastFour + tender.getPanSuffix());
 
 		return aRecord;
 	}

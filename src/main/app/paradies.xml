@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
-	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:file="http://www.mulesoft.org/schema/mule/file"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd">
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+    xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:spring="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd">
     <vm:connector name="Paradies_VM_Catalog" validateConnections="true" createMultipleTransactedReceivers="true" numberOfConcurrentTransactedReceivers="5" doc:name="VM"></vm:connector>
     <vm:connector name="Paradies_VM_Worker" validateConnections="true" doc:name="VM"> 
         <vm:queue-profile maxOutstandingMessages="1"></vm:queue-profile>  
@@ -17,17 +17,30 @@
         <set-session-variable variableName="merchantId" value="#[payload.merchantId]" doc:name="Set merchantId"></set-session-variable>  
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
-    <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
-        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="FTP" connector-ref="Paradies_FTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.items}" pollingFrequency="${paradies.ftp.pollingFrequency}" user="${paradies.ftp.username}"> 
-            <file:filename-wildcard-filter pattern="${paradies.ftp.upc.pattern}"></file:filename-wildcard-filter>  
+    <flow name="Paradies:ftp-inbound-listener" processingStrategy="synchronous"> 
+        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" pollingFrequency="${paradies.ftp.pollingFrequency}" responseTimeout="10000" doc:name="OUTBOUND"> 
+            <file:filename-wildcard-filter pattern="${paradies.ftp.pattern.upc}*,${paradies.ftp.pattern.employee}*"></file:filename-wildcard-filter>  
             <reconnect-forever></reconnect-forever>  
         </ftp:inbound-endpoint>  
         <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>  
         <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
         <set-session-variable variableName="originalFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Set originalFilename"></set-session-variable>  
-        <set-payload value="New ITEMS file ingested by Paradies: #[sessionVars.originalFilename]" doc:name="email payload"></set-payload>  
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - Started catalog ingestion by Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
+        <set-payload value="New file ingested by Paradies: #[sessionVars.originalFilename]" doc:name="Notify of INBOUND payload"></set-payload>  
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New payload ingested by Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"></flow-ref>  
+        <choice doc:name="Choice"> 
+            <when expression="#[sessionVars.originalFilename.startsWith('${paradies.ftp.pattern.employee}')]"> 
+                <logger message="#['New employee master. Ignore for now: ' + sessionVars.originalFilename]" level="INFO" doc:name="Logger"></logger>  
+            </when>  
+            <when expression="#[sessionVars.originalFilename.startsWith('${paradies.ftp.pattern.upc}')]"> 
+                <flow-ref name="Pandora:update-item-master" doc:name="Pandora:update-item-master"></flow-ref>  
+            </when>  
+            <otherwise> 
+                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - INVALID file type ingested by Paradies: ' + sessionVars.originalFilename]" responseTimeout="10000" doc:name="Error email to Sales Eng"></smtp:outbound-endpoint>  
+            </otherwise>  
+        </choice>  
+    </flow>
+    <flow name="Pandora:update-item-master" processingStrategy="synchronous"> 
         <set-variable variableName="deployment" value="${paradies.pandora.deploymentId}" doc:name="Set Pandora deployment ID" metadata:id="a624d281-c842-4d7c-b77b-e0197dc69705"></set-variable>  
         <flow-ref name="MI:OAuth:retrieveToken" metadata:id="32bd9c86-9edc-4dca-a02d-10d1284a9732" doc:name="MI:OAuth:retrieveToken"></flow-ref>  
         <flow-ref name="Paradies:set-flow-vars" doc:name="Paradies:set-flow-vars"></flow-ref>  
@@ -166,5 +179,72 @@ return tlogGenerator.getTlogs();]]></scripting:script>
     <flow name="Paradies:trigger-generate-TLOGs"> 
         <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/tlogs/jXsEyB.UFz71ZNg/{brand}" doc:name="/paradies-tlogs"></http:listener>  
         <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']"></flow-ref>  
+    </flow>
+    <flow name="Paradies:update-employee-master" processingStrategy="synchronous"> 
+        <set-session-variable variableName="merchantId" value="8ZK3ZBFR828N0" doc:name="merchantId"></set-session-variable>  
+        <db:select config-ref="MySQL_Configuration" doc:name="Get Employee:ID Mappings"> 
+            <db:parameterized-query><![CDATA[SELECT squareId, externalId, firstName, lastName FROM `paradies-employees` WHERE merchantId = #[sessionVars.merchantId];]]></db:parameterized-query>  
+        </db:select>  
+        <set-session-variable variableName="employeeIdMappings" value="#[message.payload]" doc:name="employeeIdMappings" doc:description="payload object is: List&lt;Map&lt;String,Object&gt;&gt;"></set-session-variable>  
+        <db:select config-ref="MySQL_Configuration" doc:name="Query for all Paradies brand deployments"> 
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment IN ('paradies-pandora', 'paradies-brighton');]]></db:parameterized-query>  
+        </db:select>  
+        <scripting:transformer doc:name="Create payload objects"> 
+            <scripting:script engine="Groovy"><![CDATA[import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import util.SquarePayload;
+
+List<Map<String,Object>> merchantDatabaseEntries = (List<Map<String,Object>>) payload;
+List<SquarePayload> squarePayloads = new ArrayList<SquarePayload>();
+
+for (Map<String,Object> merchantDatabaseEntry : merchantDatabaseEntries) {
+    SquarePayload squarePayload = new SquarePayload();
+            
+    squarePayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
+    squarePayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
+    squarePayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
+    squarePayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
+    squarePayload.setLegacy((Boolean) merchantDatabaseEntry.get("legacy"));
+
+    squarePayloads.add(squarePayload);
+}
+
+return squarePayloads;]]></scripting:script>  
+        </scripting:transformer>  
+        <request-reply doc:name="Request-Reply"> 
+            <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeRequestQueue" connector-ref="Paradies_VM_Catalog" doc:name="Employee Update Request Queue"></vm:outbound-endpoint>  
+            <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeResponseQueue" connector-ref="Paradies_VM_Catalog" doc:name="Employee Update Response Queue"></vm:inbound-endpoint>  
+        </request-reply>  
+        <logger message="Done processing: #[sessionVars.originalFilename]" level="INFO" doc:name="Finish"></logger>  
+        <set-payload value="COMPLETED employee file ingestion for Paradies: #[sessionVars.originalFilename]" doc:name="Notify done processing"></set-payload>  
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED EMPLOYEES ingesting for Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
+    </flow>
+    <flow name="Paradies:update-employee-deployment-queue-splitter" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+        <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeRequestQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeRequestQueue"></vm:inbound-endpoint>  
+        <collection-splitter metadata:id="1055750a-fb72-47fc-86e1-d1d24ea958b5" doc:name="Process employee update separately for each deployment/brand"></collection-splitter>  
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesEmployeeWorkerQueue"></vm:outbound-endpoint>  
+    </flow>
+    <flow name="Paradies-async-process-employee-update" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+        <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesEmployeeWorkerQueue"></vm:inbound-endpoint>  
+        <logger message="Started processing employees for: #[payload.getMerchantAlias()] (#[payload.getMerchantId()])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Employee update started for deployment"></logger>  
+        <component class="paradies.EmployeeCallable" metadata:id="d5bec1d6-5c9e-4438-b746-6b836e336204" doc:name="Get, Diff, and Process Employee Master"></component>  
+        <foreach collection="#[message.payload]" doc:name="Update database records"> 
+            <db:insert config-ref="MySQL_Configuration" doc:name="Update Employee:ID Mappings"> 
+                <db:parameterized-query><![CDATA[INSERT INTO `paradies-employees` (merchantId, externalId, squareId, firstName, lastName) 
+VALUES (#[sessionVars.merchantId], #[message.payload.getExternalId()], #[message.payload.getId()], #[message.payload.getFirstName()], #[message.payload.getLastName()]) ON DUPLICATE KEY UPDATE
+squareId = #[message.payload.getId()],
+firstName = #[message.payload.getFirstName()],
+lastName = #[message.payload.getLastName()];]]></db:parameterized-query>  
+            </db:insert>  
+        </foreach>  
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeAggregationQueue"></vm:outbound-endpoint>  
+    </flow>
+    <flow name="Paradies:employee-update-queue-aggregation"> 
+        <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeAggregationQueue"></vm:inbound-endpoint>  
+        <logger message="Done processing brand" level="INFO" metadata:id="d0249f43-340d-4625-b1c1-da8fa3ba6d8e" doc:name="Employee update completed"></logger>  
+        <collection-aggregator timeout="3600000" failOnTimeout="true" storePrefix="pandora_location_catalog_updates" doc:name="Copy_of_Collection Aggregator" doc:description="3,600,000 = 1 hour timeout"></collection-aggregator>  
+        <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeResponseQueue" connector-ref="Paradies_VM_Catalog" doc:name="Submit to Employee Update Response Queue"></vm:outbound-endpoint>  
     </flow>
 </mule>
