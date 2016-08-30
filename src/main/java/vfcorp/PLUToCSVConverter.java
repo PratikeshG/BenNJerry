@@ -21,7 +21,7 @@ public class PLUToCSVConverter {
 		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
 		
 		// SKUs
-		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-80k-sku.csv";
+		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/00060-sku.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterSKUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -30,7 +30,7 @@ public class PLUToCSVConverter {
 		}
 		
 		// PLUs
-		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-80k-plu.csv";
+		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/00060-plu.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterPLUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -44,8 +44,8 @@ public class PLUToCSVConverter {
 				
 		System.out.println("------");
 		
-		String path = "/Users/bhartard/desktop/VFC/North Face/PLUs/save/plu.chg.08042016_full";
-		String donePath = "/Users/bhartard/desktop/VFC/80k_catalog-8-18-2016.csv";
+		String path = "/Users/bhartard/desktop/PLU00060.DTA";
+		String donePath = "/Users/bhartard/desktop/00060-new.csv";
 		int itemNumberLookupLength = 14;
 		
 		RPC rpc = new RPC();
@@ -61,7 +61,7 @@ public class PLUToCSVConverter {
 		
 		StringBuffer sb = new StringBuffer();
 		
-		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (8.75%)\n");
+		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (9.5%)\n");
 		
 		for (Item item : catalog.getItems().values()) {
 			String shortSku = item.getVariations()[0].getSku();

@@ -53,6 +53,7 @@ public class EmployeeCallable implements Callable {
         		updatedEmployee.setId(cachedEmployeeId);
         	} else {
         		// Employee doesn't exist yet, create now
+        		System.out.println("TRYING TO CREATE");
         		Employee createdEmployee = client.employees().create(updatedEmployee);
         		updatedEmployee.setId(createdEmployee.getId());
         	}

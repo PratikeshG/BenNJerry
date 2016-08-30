@@ -30,7 +30,7 @@
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"></flow-ref>  
         <choice doc:name="Choice"> 
             <when expression="#[sessionVars.originalFilename.startsWith('${paradies.ftp.pattern.employee}')]"> 
-                <flow-ref name="Paradies:update-employee-master" doc:name="Paradies:update-employee-master"></flow-ref>  
+                <logger message="#['New employee master. Ignore for now: ' + sessionVars.originalFilename]" level="INFO" doc:name="Logger"></logger>  
             </when>  
             <when expression="#[sessionVars.originalFilename.startsWith('${paradies.ftp.pattern.upc}')]"> 
                 <flow-ref name="Pandora:update-item-master" doc:name="Pandora:update-item-master"></flow-ref>  
