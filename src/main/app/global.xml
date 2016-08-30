@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         </quartz:inbound-endpoint>
         <component doc:name="Initialize flows based on configuration">
             <singleton-object class="util.FlowInitializer">
-                <property key="" value=""/>
+                <property key="inactiveFlows" value="${inactiveFlows}"/>
             </singleton-object>
         </component>
     </flow>
