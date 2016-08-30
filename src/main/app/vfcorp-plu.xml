@@ -142,4 +142,13 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
         <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
     </flow>
+    <flow name="VFC:TNF:plu-store-10" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00010}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP, only getting files that start with &quot;plu.chg&quot; (see XML)" doc:description="The filename filter is defined in the XML; it is not shown in this panel.">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+            <reconnect-forever/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00010" doc:name="Set storeId: 00010"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
 </mule>

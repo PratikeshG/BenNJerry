@@ -21,7 +21,7 @@ public class PLUToCSVConverter {
 		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
 		
 		// SKUs
-		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/00060-sku.csv";
+		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/80k-sku.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterSKUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -30,7 +30,7 @@ public class PLUToCSVConverter {
 		}
 		
 		// PLUs
-		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/00060-plu.csv";
+		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/80k-plu.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterPLUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -44,8 +44,8 @@ public class PLUToCSVConverter {
 				
 		System.out.println("------");
 		
-		String path = "/Users/bhartard/desktop/PLU00060.DTA";
-		String donePath = "/Users/bhartard/desktop/00060-new.csv";
+		String path = "/Users/bhartard/desktop/PLU00010.DTA";
+		String donePath = "/Users/bhartard/desktop/00010-new.csv";
 		int itemNumberLookupLength = 14;
 		
 		RPC rpc = new RPC();
