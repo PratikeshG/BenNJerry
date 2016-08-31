@@ -40,10 +40,9 @@ public class RunTLOG {
         System.out.println("Getting employees...");
         reportPayload.setEmployees(client.employees().list());
         
-        // Get catalog for location
-        System.out.println("Getting catalog...");
-        Catalog catalog = Catalog.getCatalog(client);
-        reportPayload.setCatalog(catalog);
+        // Get discounts for location
+        System.out.println("Getting discounts...");
+        reportPayload.setDiscounts(client.discounts().list());
 
         // Get payments for location
         int offset = 0;

@@ -21,4 +21,16 @@ public class Util {
 		value = value.replace(".", "");
 		return Integer.parseInt(value);
 	}
+
+	public static int[] divideIntegerEvenly(int amount, int totalPieces) {
+		int quotient = amount / totalPieces;
+		int remainder = amount % totalPieces;
+
+		int [] results = new int[totalPieces];
+		for(int i = 0; i < totalPieces; i++) {
+		    results[i] = i < remainder ? quotient + 1 : quotient;
+		}
+
+		return results;
+	}
 }
