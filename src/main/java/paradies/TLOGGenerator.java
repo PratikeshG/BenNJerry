@@ -292,15 +292,20 @@ public class TLOGGenerator {
 		}
 
 		String variationName = itemization.getItemVariationName();
-		String sku = variationName.replace("-", "");
-		sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
-
+		String sku = "";
 		String cost = "";
 		String deptCode = "";
-		if (variationName.length() > 4) {
-			deptCode = variationName.substring(variationName.length() - 4);
-		}
 		
+		// Check for custom amounts
+		if (variationName != null) {
+			sku = variationName.replace("-", "");
+			sku = sku.substring(0, Math.min(sku.length(), SKU_LENGTH));
+
+			if (variationName.length() > 4) {
+				deptCode = variationName.substring(variationName.length() - 4);
+			}
+		}
+
 		MerchandiseSaleRecord iRecord = new MerchandiseSaleRecord();
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_SKU, sku);
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_DEPARTMENT, deptCode);
