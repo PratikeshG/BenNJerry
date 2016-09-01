@@ -4,11 +4,14 @@ import java.util.List;
 
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.Refund;
 
 public class HealthCheckPayload {
 
 	private Merchant location;
 	private List<Payment> payments;
+	private List<Refund> refunds;
+	private List<Payment> refundPayments;
 
 	public HealthCheckPayload() {
 		
@@ -28,5 +31,21 @@ public class HealthCheckPayload {
 
 	public void setPayments(List<Payment> payments) {
 		this.payments = payments;
+	}
+
+	public List<Refund> getRefunds() {
+		return refunds;
+	}
+
+	public void setRefunds(List<Refund> refunds) {
+		this.refunds = refunds;
+	}
+
+	public List<Payment> getRefundPayments() {
+		return refundPayments;
+	}
+
+	public void setRefundPayments(List<Payment> refundPayments) {
+		this.refundPayments = refundPayments;
 	}
 }
