@@ -140,8 +140,10 @@ public class TLOGGenerator {
 	private Map<String, Employee> getEmployeeMap(Employee[] employees) {
 		HashMap<String, Employee> employeeMap = new HashMap<String, Employee>();
 
-		for (Employee e : employees) {
-			employeeMap.put(e.getId(), e);
+		if (employees != null) {
+			for (Employee e : employees) {
+				employeeMap.put(e.getId(), e);
+			}
 		}
 
 		return employeeMap;
@@ -150,8 +152,10 @@ public class TLOGGenerator {
 	private Map<String, Discount> getDiscountMap(Discount[] discounts) {
 		HashMap<String, Discount> discountMap = new HashMap<String, Discount>();
 
-		for (Discount d : discounts) {
-			discountMap.put(d.getId(), d);
+		if (discounts != null) {
+			for (Discount d : discounts) {
+				discountMap.put(d.getId(), d);
+			}
 		}
 
 		return discountMap;
