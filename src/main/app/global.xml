@@ -31,6 +31,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         </component>
     </flow>
     <catch-exception-strategy name="globalExceptionCatchingStrategy">
+        <remove-session-variable variableName="token" doc:name="Redact any token value"/>
         <logger message="#[exception + '\n' + message + '\n' + exception.?cause.?message]" level="ERROR" doc:name="Log error to console"/>
         <set-payload value="#['Exception occurred in ' + app.name + ' for ${mule.env} environment at ' + server.dateTime + '.\n\n===== Exception =====\n' + exception + '\n\n===== Exception Message =====' + message + '\n\n===== Exception Cause =====\n' + exception.?cause.?message + '\n\n===== Exception Stack Trace =====\n' + org.mule.util.ExceptionUtils.getFullStackTrace(exception)]" encoding="UTF-8" mimeType="text/plain" doc:name="Set email payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.exception.sending.email}" password="${email.exception.sending.password}" connector-ref="Gmail" to="${email.exception.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' ALERT - Exception in Mule Application']" responseTimeout="10000" doc:name="Email on-call engineers"/>
