@@ -123,9 +123,8 @@ paymentParams = TimeManager.getPastDayInterval(range, offset, timeZone);
 
 reportPayload.setPayments(client.payments().list(paymentParams));
 
-// Catalog
-Catalog catalog = Catalog.getCatalog(client, CatalogChangeRequest.PrimaryKey.ID, CatalogChangeRequest.PrimaryKey.ID);
-reportPayload.setCatalog(catalog);
+// Get discounts for location
+reportPayload.setDiscounts(client.discounts().list());
 
 TLOGGenerator tlogGenerator = new TLOGGenerator(reportPayload);
 
