@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
-    <sub-flow name="Paradies:health-check-tenders">
+    <sub-flow name="Paradies:health-check-payments">
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <flow-ref name="Paradies:set-flow-vars" doc:name="Paradies:set-flow-vars"/>
@@ -23,6 +23,7 @@ http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/ba
 import paradies.health.HealthCheckPayload;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.Payment;
+import com.squareup.connect.Refund;
 import util.TimeManager;
 
 SquareClient client = new SquareClient(sessionVars['token'], sessionVars['apiUrl'], sessionVars['apiVersion'], sessionVars['merchantId'], payload.id);
@@ -32,27 +33,38 @@ HealthCheckPayload hcPayload = new HealthCheckPayload();
 // Location
 hcPayload.setLocation(payload);
 
-// Payments
-Map<String,String> paymentParams;
+// Internal settings
 int seconds = 60 * 10;
-paymentParams = TimeManager.getPastTimeInterval(seconds, 0, "UTC");
+Map<String,String> intervalParams = TimeManager.getPastTimeInterval(seconds, 0, "UTC");
 
-Payment[] acctPayments = client.payments().list(paymentParams);
+// Payments
+Payment[] acctPayments = client.payments().list(intervalParams);
 ArrayList<Payment> payments = new ArrayList<Payment>(Arrays.asList(acctPayments));
-
 hcPayload.setPayments(payments);
+
+// Refunds
+Refund[] acctRefunds = client.refunds().list(intervalParams);
+ArrayList<Refund> refunds = new ArrayList<Refund>(Arrays.asList(acctRefunds));
+hcPayload.setRefunds(refunds);
+
+// Refund payments
+ArrayList<Payment> refundPayments = new ArrayList<Payment>();
+for (Refund refund : refunds) {
+	refundPayments.add(client.payments().retrieve(refund.getPaymentId()));
+}
+hcPayload.setRefundPayments(refundPayments);
 
 return hcPayload;]]></scripting:script>
             </scripting:component>
-            <component class="paradies.health.HealthCheckCallable" doc:name="Perform health check"/>
-            <set-variable variableName="storeName" value="#[payload.getLocation().getLocationDetails().getNickname()]" doc:name="storeName"/>
-            <foreach collection="#[payload.getPayments()]" counterVariableName="health-check-tender-counter" doc:name="For Each">
-                <set-payload value="#[message.payload.getPaymentUrl()]" doc:name="email payload"/>
-                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${paradies.health.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ': Invalid payment tender at ' + flowVars.brand + ' location: ' + flowVars.storeName]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+            <component class="paradies.health.HealthCheckCallable" doc:name="Perform health checks"/>
+            <foreach collection="#[payload]" counterVariableName="health-check-counter" doc:name="For Each">
+                <set-variable variableName="errorMessage" value="#[message.payload.getError()]" doc:name="errorMessage"/>
+                <set-payload value="#[message.payload.getPayment().getPaymentUrl()]" doc:name="email payload"/>
+                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${paradies.health.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ': ' + flowVars.errorMessage + ' detected at ' + flowVars.brand + ' location: ' + flowVars.storeName]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
             </foreach>
         </foreach>
     </sub-flow>
-    <flow name="Pandora:health-check-tenders" processingStrategy="synchronous">
+    <flow name="Pandora:health-check-payments" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-pandora-hc-tender-1471812551" cronExpression="0 0/10 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every 10 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -63,11 +75,11 @@ return hcPayload;]]></scripting:script>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.pandora.deploymentId}" doc:name="Pandora deployment ID"/>
                 <set-variable variableName="brand" value="Pandora" doc:name="brand: Pandora"/>
-                <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
+                <flow-ref name="Paradies:health-check-payments" doc:name="Paradies:health-check-payments"/>
             </otherwise>
         </choice>
     </flow>
-    <flow name="Brighton:health-check-tenders" processingStrategy="synchronous">
+    <flow name="Brighton:health-check-payments" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-brighton-hc-tender-1471812551" cronExpression="0 0/10 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every 10 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -78,13 +90,13 @@ return hcPayload;]]></scripting:script>
             <otherwise>
                 <set-variable variableName="deployment" value="${paradies.brighton.deploymentId}" doc:name="Brighton deployment ID"/>
                 <set-variable variableName="brand" value="Brighton" doc:name="brand: Brighton"/>
-                <flow-ref name="Paradies:health-check-tenders" doc:name="Paradies:health-check-tenders"/>
+                <flow-ref name="Paradies:health-check-payments" doc:name="Paradies:health-check-payments"/>
             </otherwise>
         </choice>
     </flow>
     <flow name="Paradies:trigger-health-checks">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/health/jXsEyB.UFz71ZNg/{brand}" doc:name="/paradies-health-checks"/>
-        <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-tenders']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-tenders']"/>
+        <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-payments']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-payments']"/>
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
 </mule>

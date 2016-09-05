@@ -1,5 +1,6 @@
 package paradies;
 
+import com.squareup.connect.Discount;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
@@ -13,6 +14,7 @@ public class TLOGGeneratorPayload {
 	private String defaultDeviceId;
 	private Catalog catalog;
 	private Employee[] employees;
+	private Discount[] discounts;
 	private Payment[] payments;
 
 	public TLOGGeneratorPayload() {
@@ -57,6 +59,14 @@ public class TLOGGeneratorPayload {
 
 	public void setEmployees(Employee[] employees) {
 		this.employees = employees;
+	}
+
+	public Discount[] getDiscounts() {
+		return discounts;
+	}
+
+	public void setDiscounts(Discount[] discounts) {
+		this.discounts = discounts;
 	}
 
 	public Payment[] getPayments() {

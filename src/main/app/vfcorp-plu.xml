@@ -26,7 +26,9 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-payload value="Started: #[flowVars.pluFilename]" doc:name="email payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog ingestion for VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" doc:name="Copy to Amazon S3" content-ref="#[flowVars.pluStreamReader]"/>
+        <logger message="File saved to S3. Beginning processing..." level="INFO" doc:name="Logger"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <scripting:transformer doc:name="Create payload object">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;

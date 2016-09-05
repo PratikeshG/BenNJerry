@@ -22,6 +22,7 @@ public class MerchandiseSaleRecord extends Record {
 	public static final String FIELD_PRICE_OVERRIDE = "Price Override";
 	public static final String FIELD_EMPLOYEE_SALE_FLAG = "Employee Sale Flag";
 	public static final String FIELD_ADDITIONAL_AMOUNT = "Additional Amount";
+	public static final String FIELD_POSITIVE_FLAG_ADDITIONAL_AMOUNT = "Positive Flag Additional Amt";
 	public static final String FIELD_PLU_FLAG = "PLU Flag";
 	public static final String FIELD_DISCOUNT_FLAG = "Discount Flag";
 	public static final String FIELD_PROFILE_PROMPT_FLAG = "Profile Prompt Flag";
@@ -57,8 +58,8 @@ public class MerchandiseSaleRecord extends Record {
 			new Field(24, FIELD_COST, 99, "6", Field.Type.ALPHANUMERIC),
 			new Field(25, FIELD_PRICE_OVERRIDE, 105, "1", Field.Type.NUMERIC),
 			new Field(26, FIELD_EMPLOYEE_SALE_FLAG, 106, "1", Field.Type.NUMERIC),
-			new Field(27, FIELD_EMPLOYEE_SALE_FLAG, 107, "3.2", Field.Type.NUMERIC),
-			new Field(28, FIELD_POSITIVE_FLAG, 112, "1", Field.Type.ALPHANUMERIC),
+			new Field(27, FIELD_ADDITIONAL_AMOUNT, 107, "3.2", Field.Type.NUMERIC),
+			new Field(28, FIELD_POSITIVE_FLAG_ADDITIONAL_AMOUNT, 112, "1", Field.Type.ALPHANUMERIC),
 			new Field(29, FIELD_PLU_FLAG, 113, "1", Field.Type.NUMERIC),
 			new Field(30, FIELD_DISCOUNT_FLAG, 114, "1", Field.Type.NUMERIC),
 			new Field(31, FIELD_PROFILE_PROMPT_FLAG, 115, "1", Field.Type.NUMERIC),

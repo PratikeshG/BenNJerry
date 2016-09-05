@@ -68,13 +68,26 @@ public class RPCIngesterFiltered implements Callable {
 		// TODO(bhartard): Remove this HACK to filter PLUs with a SKU/PLU whitelist
 		Catalog proposed = epicor.rpc().convertWithFilter(current, deploymentId);
 
+		System.out.println("performing diff");
 		CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU, CatalogChangeRequest.PrimaryKey.NAME);
-
+		System.out.println("diff done");
 		SquareClient client = new SquareClient(rpcIngesterPayload.getAccessToken(), apiUrl, apiVersion, rpcIngesterPayload.getMerchantId(), rpcIngesterPayload.getLocationId());
 		ccr.setSquareClient(client);
+		
+		System.out.println("current categories: " + current.getCategories().size());
+		System.out.println("current fees: " + current.getFees().size());
+		System.out.println("current items: " + current.getItems().size());
+		
+		System.out.println("proposed categories: " + proposed.getCategories().size());
+		System.out.println("proposed fees: " + proposed.getFees().size());
+		System.out.println("proposed items: " + proposed.getItems().size());
 
+		System.out.println("mappings: " + ccr.getMappingsToApply().keySet().size());
+		System.out.println("create: " + ccr.getObjectsToCreate().size());
+		System.out.println("update: " + ccr.getObjectsToUpdate().size());
+		
 		ccr.call();
-
+		System.out.println("updating account");
 		sis.close();
 
 		return null;

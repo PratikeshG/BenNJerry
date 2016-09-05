@@ -2,12 +2,12 @@ package paradies.records;
 
 import java.util.ArrayList;
 
-public class DiscountRecord extends Record {
+public class DiscountProratedRecord extends Record {
 
 	static final int TOTAL_FIELDS = 32;
 	static final int SIZE = 105;
 
-	public static final String ID = "D";
+	public static final String ID = "D1";
 	public static final String FIELD_DISCOUNT_TYPE = "Discount Type";
 	public static final String FIELD_REASON = "Reason";
 	public static final String FIELD_DISCOUNT_PERCENTAGE = "Discount Percentage";
@@ -51,7 +51,7 @@ public class DiscountRecord extends Record {
 	public static final String FIELD_CODED_COUPON_FLAG = "Coded Coupon Flag";
 	public static final String FIELD_AUTO_DISCOUNT_FLAG = "Auto Discount Flag";	
 
-	public DiscountRecord() {
+	public DiscountProratedRecord() {
 		super(TOTAL_FIELDS, SIZE);
 
 		Field[] createFields = {

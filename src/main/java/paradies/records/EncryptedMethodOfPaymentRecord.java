@@ -15,9 +15,11 @@ public class EncryptedMethodOfPaymentRecord extends Record {
 	public static final String ID = "PN";
 	public static final String FIELD_TENDER_ID = "Tender Id";
 	public static final String FIELD_TENDER_AMOUNT = "Tender Amount";
-	public static final String FIELD_POSITIVE_FLAG = "Positive Flag";
+	public static final String FIELD_POSITIVE_FLAG_TENDER = "Positive Flag Tender";
 	public static final String FIELD_EXCHANGE_AMOUNT = "Exchange Amount";
+	public static final String FIELD_POSITIVE_FLAG_EXCHANGE = "Positive Flag Exchange";
 	public static final String FIELD_CHANGE_DUE = "Change Due";
+	public static final String FIELD_POSITIVE_FLAG_CHANGE = "Positive Flag Change";
 	public static final String FIELD_REISSUE_FLAG = "Re-issue Flag";
 	public static final String FIELD_REFERENCE_NUMBER_1 = "Reference Number 1";
 	public static final String FIELD_FUTURE = "Future";
@@ -31,11 +33,11 @@ public class EncryptedMethodOfPaymentRecord extends Record {
 		Field[] createFields = {
 			new Field(14, FIELD_TENDER_ID, 49, "2", Field.Type.NUMERIC),
 			new Field(15, FIELD_TENDER_AMOUNT, 51, "6.2", Field.Type.NUMERIC),
-			new Field(16, FIELD_POSITIVE_FLAG, 59, "1", Field.Type.ALPHANUMERIC),
+			new Field(16, FIELD_POSITIVE_FLAG_TENDER, 59, "1", Field.Type.ALPHANUMERIC),
 			new Field(17, FIELD_EXCHANGE_AMOUNT, 60, "6.2", Field.Type.NUMERIC),
-			new Field(18, FIELD_POSITIVE_FLAG, 68, "1", Field.Type.ALPHANUMERIC),
+			new Field(18, FIELD_POSITIVE_FLAG_EXCHANGE, 68, "1", Field.Type.ALPHANUMERIC),
 			new Field(19, FIELD_CHANGE_DUE, 69, "6.2", Field.Type.NUMERIC),
-			new Field(20, FIELD_POSITIVE_FLAG, 77, "1", Field.Type.ALPHANUMERIC),
+			new Field(20, FIELD_POSITIVE_FLAG_CHANGE, 77, "1", Field.Type.ALPHANUMERIC),
 			new Field(21, FIELD_REISSUE_FLAG, 78, "1", Field.Type.NUMERIC),
 			new Field(22, FIELD_REFERENCE_NUMBER_1, 79, "89", Field.Type.ALPHANUMERIC),
 			new Field(23, FIELD_FUTURE, 168, "10", Field.Type.ALPHANUMERIC),
