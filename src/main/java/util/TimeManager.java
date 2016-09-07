@@ -15,7 +15,7 @@ public class TimeManager {
 		// timeZoneId is expected to be "GMT-08:00", or something similar, as
 		// outlined at https://docs.oracle.com/javase/7/docs/api/java/util/TimeZone.html.
 		Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZoneId));
-		
+
 		String beginTime = "";
 		String endTime = "";
 		
