@@ -92,7 +92,10 @@ return new CatalogCallablePayload(payload, catalog);]]></scripting:script>
         <flow-ref name="MI:getLocations" metadata:id="023b028f-25a2-48ff-aa6c-c181ef7f3259" doc:name="MI:getLocations"></flow-ref>  
         <foreach counterVariableName="paradies-location-counter" doc:name="For Each Location"> 
             <scripting:component doc:name="Run TLOGGenerator"> 
-                <scripting:script engine="Groovy"><![CDATA[import paradies.TLOGGenerator;
+                <scripting:script engine="Groovy"><![CDATA[import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.TimeZone;
+import paradies.TLOGGenerator;
 import paradies.TLOGGeneratorPayload;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.diff.Catalog;
@@ -107,6 +110,11 @@ TLOGGeneratorPayload reportPayload = new TLOGGeneratorPayload();
 String timeZone = flowVars['timeZone'];
 reportPayload.setDefaultDeviceId(flowVars['defaultDeviceId']);
 reportPayload.setTimeZone(timeZone);
+
+// Output file dates
+SimpleDateFormat dateFormat = new SimpleDateFormat("MMddyyyy");
+Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
+message.setInvocationProperty('filenameDateStamp', dateFormat.format(cal.getTime()));
 
 // Location
 reportPayload.setLocation(payload);
@@ -136,7 +144,7 @@ return tlogGenerator.getTlogs();]]></scripting:script>
                 </when>  
                 <otherwise> 
                     <foreach collection="#[payload.values()]" counterVariableName="deviceTLOGsCounter" doc:name="For Each Device TLOG"> 
-                        <ftp:outbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.reports}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" outputPattern="#['str' + payload.getStoreId() + payload.getDeviceIdCharacter() + '.asc']" responseTimeout="10000" doc:name="FTP"></ftp:outbound-endpoint>  
+                        <ftp:outbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.reports}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" outputPattern="#[flowVars.filenameDateStamp + '_str' + payload.getStoreId() + payload.getDeviceIdCharacter() + '.asc']" responseTimeout="10000" doc:name="FTP"></ftp:outbound-endpoint>  
                     </foreach>  
                 </otherwise>  
             </choice>  
