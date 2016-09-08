@@ -20,6 +20,8 @@ public class ExtendedAuthorizationRecord extends Record {
 	public static final String FIELD_TAX_AMOUNT = "Tax Amount";
 	public static final String FIELD_CUSTOMER_REFERENCE_NUMBER = "Customer Reference Number";
 
+	// Documented as AE: Encrypted extended authorization record, but actually
+	// Record type A5: Extended authorization record
 	public ExtendedAuthorizationRecord() {
 		super(TOTAL_FIELDS, SIZE);
 

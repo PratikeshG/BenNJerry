@@ -686,18 +686,21 @@ public class TLOGGenerator {
 			recordSequence.getAndIncrement();
 
 			// Generate authorization (A, A2, AE) records
-			if (tender.getType().equals("CREDIT_CARD") && !isRefund) {
-				// A record
+			if (tender.getType().equals("CREDIT_CARD")) {
+				// AA record
 				HeaderRecord headerA = createHeaderRecord(deviceId, EncryptedAuthorizationRecord.ID, transactionNumber, recordSequence, payment, isRefund);
-				EncryptedAuthorizationRecord aRecord = createAuthorizationRecord(tender);
+				EncryptedAuthorizationRecord aRecord = createAuthorizationRecord(tender, isRefund);
 				entries.add(new TLOGEntry(headerA, aRecord));
 				recordSequence.getAndIncrement();
 
 				// A2 record
-				HeaderRecord headerA2 = createHeaderRecord(deviceId, AuthorizationResponseRecord.ID, transactionNumber, recordSequence, payment, isRefund);
-				AuthorizationResponseRecord a2Record = createAuthorizationResponseRecord(tender);
-				entries.add(new TLOGEntry(headerA2, a2Record));
-				recordSequence.getAndIncrement();
+				// Omit on refunds
+				if (!isRefund) {
+					HeaderRecord headerA2 = createHeaderRecord(deviceId, AuthorizationResponseRecord.ID, transactionNumber, recordSequence, payment, isRefund);
+					AuthorizationResponseRecord a2Record = createAuthorizationResponseRecord(tender);
+					entries.add(new TLOGEntry(headerA2, a2Record));
+					recordSequence.getAndIncrement();
+				}
 
 				// AE record
 				HeaderRecord headerAE = createHeaderRecord(deviceId, ExtendedAuthorizationRecord.ID, transactionNumber, recordSequence, payment, isRefund);
@@ -732,11 +735,11 @@ public class TLOGGenerator {
 		return pRecord;
 	}
 	
-	private EncryptedAuthorizationRecord createAuthorizationRecord(Tender tender) {
+	private EncryptedAuthorizationRecord createAuthorizationRecord(Tender tender, boolean isRefund) {
 		EncryptedAuthorizationRecord aRecord = new EncryptedAuthorizationRecord();
 
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_TENDER_ID, getTenderId(tender));
-		// aRecord.setFieldValue(AuthorizationRecord.FIELD_CREDIT_OR_DEBIT_TYPE, "01"); // TODO(bhartard): ??
+		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_POSITIVE_FLAG, isRefund ? "-" : "");
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_HOW_AUTHORIZED, "0"); // online
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CARD_ENTRY_TYPE, tender.getEntryMethod().equals("SWIPED") ? "0" : "1"); // 0-swipe, 1-keyed
 		aRecord.setFieldValue(EncryptedAuthorizationRecord.FIELD_CARD_NUMBER, tender.getPanSuffix());
