@@ -56,8 +56,14 @@ public class HealthCheckCallable implements Callable {
 
 		// Partial and stale (not initiated on same day) refunds
 		for (Refund refund : healthCheckPayload.getRefunds()) {
+			Payment refundPayment = getRefundPayment(healthCheckPayload.getRefundPayments(), refund.getPaymentId());
+
+			// For some reason we don't have the payment
+			if (refundPayment == null) {
+				continue;
+			}
+
 			if (!refund.getType().equals("FULL")) {
-				Payment refundPayment = getRefundPayment(healthCheckPayload.getRefundPayments(), refund.getPaymentId());
 				errors.add(new HealthCheckErrorPayload(healthCheckPayload.getLocation(), refundPayment, ERROR_PARTIAL_REFUND));
 			}
 
@@ -65,8 +71,7 @@ public class HealthCheckCallable implements Callable {
 			 * timezone of the location, but for simplicity's sake, just going to
 			 * check that day matches on PST time.
 			 */
-			if (dateBeforeToday(refund.getCreatedAt())) {
-				Payment refundPayment = getRefundPayment(healthCheckPayload.getRefundPayments(), refund.getPaymentId());
+			if (dateBeforeToday(refundPayment.getCreatedAt())) {
 				errors.add(new HealthCheckErrorPayload(healthCheckPayload.getLocation(), refundPayment, ERROR_REFUND_DATE));
 			}
 		}
@@ -96,6 +101,7 @@ public class HealthCheckCallable implements Callable {
 		calToday.set(Calendar.HOUR_OF_DAY, 0);
 
 		Calendar calRefund = TimeManager.toCalendar(iso8601string);
+
 		return calRefund.before(calToday);
 	}
 
