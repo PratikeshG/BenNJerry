@@ -263,10 +263,11 @@ public class TLOGGenerator {
 				dRecord.setFieldValue(DiscountRecord.FIELD_POSITIVE_FLAG_ORIGINAL_PRICE, isRefund ? "-" : "");
 				dRecord.setFieldValue(DiscountRecord.FIELD_DISCOUNT_ID, discountId(discount.getName()));			
 				dRecord.setFieldValue(DiscountRecord.FIELD_AFFECT_NET_SALES, "1");
-				dRecord.setFieldValue(DiscountRecord.FIELD_DISCOUNT_QUANTITY, getItemQuantity(1.0));
+				dRecord.setFieldValue(DiscountRecord.FIELD_DISCOUNT_QUANTITY, getItemQuantity(itemization.getQuantity()));
+				dRecord.setFieldValue(DiscountRecord.FIELD_PROFILE_ID, "03"); // static value, reason unknown
 				dRecord.setFieldValue(DiscountRecord.FIELD_TXN_DISCOUNT_ON_ITEM_FLAG, "1");
 				dRecord.setFieldValue(DiscountRecord.FIELD_TXN_DISCOUNT_ON_TXN_FLAG, "1");
-				
+
 				entries.add(new TLOGEntry(headerD, dRecord));
 				recordSequence.getAndIncrement();
 			}
