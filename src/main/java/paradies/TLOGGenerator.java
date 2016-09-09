@@ -264,7 +264,7 @@ public class TLOGGenerator {
 				dRecord.setFieldValue(DiscountRecord.FIELD_DISCOUNT_ID, discountId(discount.getName()));			
 				dRecord.setFieldValue(DiscountRecord.FIELD_AFFECT_NET_SALES, "1");
 				dRecord.setFieldValue(DiscountRecord.FIELD_DISCOUNT_QUANTITY, getItemQuantity(itemization.getQuantity()));
-				dRecord.setFieldValue(DiscountRecord.FIELD_PROFILE_ID, "03"); // static value, reason unknown
+				dRecord.setFieldValue(DiscountRecord.FIELD_PROFILE_ID, ""); // TODO(bhartard): what value do they want?
 				dRecord.setFieldValue(DiscountRecord.FIELD_TXN_DISCOUNT_ON_ITEM_FLAG, "1");
 				dRecord.setFieldValue(DiscountRecord.FIELD_TXN_DISCOUNT_ON_TXN_FLAG, "1");
 
@@ -313,8 +313,13 @@ public class TLOGGenerator {
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_QUANTITY, getItemQuantity(itemization.getQuantity()));
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXTENDED_SELLING_PRICE, Integer.toString(itemization.getNetSalesMoney().getAmount()));
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_POSITIVE_FLAG, isRefund ? "-" : "");
-		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXTENDED_ORIGINAL_PRICE, Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
-		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXT_ORIG_PRICE_OVR, Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
+
+		// Spec says these should be: (Price before cluster/qty and price level pricing, promos, price overrides & discounts)
+		// But all sample output shows this same as FIELD_EXTENDED_REGULAR_PRICE
+		//iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXTENDED_ORIGINAL_PRICE, Integer.toString(itemization.getSingleQuantityMoney().getAmount()));
+		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXTENDED_ORIGINAL_PRICE, Integer.toString(itemization.getGrossSalesMoney().getAmount()));
+		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_EXT_ORIG_PRICE_OVR, Integer.toString(itemization.getGrossSalesMoney().getAmount()));
+
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_COST, cost);
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_PLU_FLAG, "1"); // if not equal to the unknown code
 		iRecord.setFieldValue(MerchandiseSaleRecord.FIELD_DISCOUNT_FLAG, itemDiscounted ? "1" : "0");
