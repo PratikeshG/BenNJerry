@@ -182,12 +182,9 @@ return sp;]]></scripting:script>
         <set-payload value="Attached." doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail"  from="Square Bridge" subject="#[('${mule.env}'.equals(&quot;production&quot;) ? '' : '${mule.env}'.toUpperCase() + ' - ') + 'Urbanspace - ' + sessionVars.deploymentName + ' - Daily Aggregate Report']" responseTimeout="10000" doc:name="Email results" bcc="${urbanspace.results.email}"/>
     </sub-flow>
-    <flow name="Urbanspace:trigger-reports-MSE">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace-mse/jXsEyB.UFz71ZNg" doc:name="/urbanspace-mse"/>
-        <flow-ref name="Urbanspace:Madison-Square-Eats" doc:name="Urbanspace:MSE"/>
-    </flow>
-    <flow name="Urbanspace:trigger-reports-BBites">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace-bbites/jXsEyB.UFz71ZNg" doc:name="/urbanspace-bbites"/>
-        <flow-ref name="Urbanspace:Broadway-Bites" doc:name="Urbanspace:BBites"/>
+    <flow name="Urbanspace:trigger-reports">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace/reports/jXsEyB.UFz71ZNg/{deployment}" doc:name="/urbanspace/reports"/>
+        <flow-ref name="#['Urbanspace:' + message.inboundProperties.'http.uri.params'.deployment]" doc:name="#['Urbanspace:' + message.inboundProperties.'http.uri.params'.deployment]"/>
+        <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
 </mule>
