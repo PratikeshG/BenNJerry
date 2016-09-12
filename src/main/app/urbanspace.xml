@@ -192,11 +192,29 @@ return sp;]]></scripting:script>
     </flow>
     <flow name="Urbanspace:Vanderbilt">
         <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID: urbanspace-vanderbilt"/>
+        <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
         <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
         <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
         <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Garment-District">
+        <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Bryant-Park">
+        <logger message="Starting Urbanspace: Bryant Park" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.bryantpark.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.bryantpark.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
         <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
     </flow>
 </mule>
