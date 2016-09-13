@@ -17,24 +17,6 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <queued-asynchronous-processing-strategy name="Urbanspace_Report_Asynch_Processing_Strategy" maxThreads="${urbanspace.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${urbanspace.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
     <vm:connector name="Urbanspace_VM_Config" validateConnections="true" doc:name="VM"/>
-    <flow name="Urbanspace:Madison-Square-Eats">
-        <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-    </flow>
-    <flow name="Urbanspace:Broadway-Bites">
-        <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-    </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports">
         <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports (#[flowVars.deployment])" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -81,7 +63,7 @@ return reportGeneratorPayloads;]]></scripting:script>
         <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
     </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports-async-worker" processingStrategy="Urbanspace_Report_Asynch_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
         <scripting:transformer doc:name="Get payments for location">
             <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
 import com.squareup.connect.Payment;
@@ -166,7 +148,7 @@ sp.setDiscounts(discounts);
 
 return sp;]]></scripting:script>
         </scripting:transformer>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
     </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator">
         <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
@@ -182,12 +164,57 @@ return sp;]]></scripting:script>
         <set-payload value="Attached." doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail"  from="Square Bridge" subject="#[('${mule.env}'.equals(&quot;production&quot;) ? '' : '${mule.env}'.toUpperCase() + ' - ') + 'Urbanspace - ' + sessionVars.deploymentName + ' - Daily Aggregate Report']" responseTimeout="10000" doc:name="Email results" bcc="${urbanspace.results.email}"/>
     </sub-flow>
-    <flow name="Urbanspace:trigger-reports-MSE">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace-mse/jXsEyB.UFz71ZNg" doc:name="/urbanspace-mse"/>
-        <flow-ref name="Urbanspace:Madison-Square-Eats" doc:name="Urbanspace:MSE"/>
+    <flow name="Urbanspace:trigger-reports">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace/reports/jXsEyB.UFz71ZNg/{deployment}" doc:name="/urbanspace/reports"/>
+        <flow-ref name="#['Urbanspace:' + message.inboundProperties.'http.uri.params'.deployment]" doc:name="#['Urbanspace:' + message.inboundProperties.'http.uri.params'.deployment]"/>
+        <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
-    <flow name="Urbanspace:trigger-reports-BBites">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace-bbites/jXsEyB.UFz71ZNg" doc:name="/urbanspace-bbites"/>
-        <flow-ref name="Urbanspace:Broadway-Bites" doc:name="Urbanspace:BBites"/>
+    <flow name="Urbanspace:Broadway-Bites">
+        <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Madison-Square-Eats">
+        <quartz:inbound-endpoint jobName="urbanspace-mse-1473715395" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Vanderbilt">
+        <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Garment-District">
+        <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+    </flow>
+    <flow name="Urbanspace:Bryant-Park">
+        <logger message="Starting Urbanspace: Bryant Park" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deployment" value="${urbanspace.bryantpark.deploymentId}" doc:name="Deployment ID"/>
+        <set-session-variable variableName="deploymentName" value="${urbanspace.bryantpark.deploymentName}" doc:name="Deployment Name"/>
+        <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
+        <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
+        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
     </flow>
 </mule>
