@@ -17,7 +17,6 @@ public class TLOGGeneratorPayload {
 	private boolean legacy;
 	private Merchant[] locations;
 	private Payment[] payments;
-	private Item[] items;
 	private Employee[] employees;
 	private Map<String,String> params = new HashMap<String,String>();
 	
@@ -62,12 +61,6 @@ public class TLOGGeneratorPayload {
 	}
 	public void setPayments(Payment[] payments) {
 		this.payments = payments;
-	}
-	public Item[] getItems() {
-		return items;
-	}
-	public void setItems(Item[] items) {
-		this.items = items;
 	}
 	public Employee[] getEmployees() {
 		return employees;

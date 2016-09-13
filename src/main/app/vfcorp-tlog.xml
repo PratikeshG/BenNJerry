@@ -60,7 +60,6 @@ return tlogGeneratorPayload;]]></scripting:script>
         <scripting:transformer doc:name="Get locations+payments+items+employees for business">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
 import com.squareup.connect.Employee;
-import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
@@ -71,13 +70,11 @@ SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'
 
 Merchant[] locations = client.businessLocations().list();
 Employee[] employees = client.employees().list();
-Item[] items = client.items().list();
 Payment[] payments = client.payments().list(sp.getParams());
 
 sp.setLocations(locations);
 sp.setEmployees(employees);
 sp.setPayments(payments);
-sp.setItems(items);
 
 return sp;]]></scripting:script>
         </scripting:transformer>

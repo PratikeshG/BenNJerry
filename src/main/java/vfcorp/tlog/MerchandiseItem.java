@@ -2,7 +2,6 @@ package vfcorp.tlog;
 
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -10,7 +9,6 @@ import java.util.regex.Matcher;
 import vfcorp.Record;
 import vfcorp.FieldDetails;
 
-import com.squareup.connect.Item;
 import com.squareup.connect.PaymentItemization;
 
 public class MerchandiseItem extends Record {
@@ -76,7 +74,7 @@ public class MerchandiseItem extends Record {
 		return id;
 	}
 	
-	public MerchandiseItem parse(PaymentItemization itemization, List<Item> squareItemsList, int itemSequence, int itemNumberLookupLength) throws Exception {
+	public MerchandiseItem parse(PaymentItemization itemization, int itemSequence, int itemNumberLookupLength) throws Exception {
 		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
 		String quantity = String.format( "%.3f", itemization.getQuantity()).replace(".", ""); // requires special formating - check docs
 		String departmentNumber = "";

@@ -33,7 +33,6 @@ import vfcorp.tlog.TransactionTaxExtended;
 import vfcorp.tlog.TransactionTotal;
 
 import com.squareup.connect.Employee;
-import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
@@ -71,9 +70,8 @@ public class TLOG {
 		this.objectStore = objectStore;
 	}
 
-	public void parse(Merchant location, Payment[] squarePayments, Item[] squareItems, Employee[] squareEmployees) throws Exception {
+	public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees) throws Exception {
 		List<Payment> squarePaymentsList = Arrays.asList(squarePayments);
-		List<Item> squareItemsList = Arrays.asList(squareItems);
 		List<Employee> squareEmployeesList = Arrays.asList(squareEmployees);
 		
 		/*
@@ -84,7 +82,7 @@ public class TLOG {
 		 * Tender counts (034) can be done for credit cards and others (they will be counting DisneyCard purchases this way).
 		 */
 		
-		createSaleRecords(location, squarePaymentsList, squareItemsList, squareEmployeesList);
+		createSaleRecords(location, squarePaymentsList, squareEmployeesList);
 		createStoreCloseRecords(location, squarePaymentsList, squareEmployeesList);
 	}
 
@@ -98,7 +96,7 @@ public class TLOG {
 		return sb.toString();
 	}
 	
-	private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList, List<Item> squareItemsList, List<Employee> squareEmployeesList) throws Exception {
+	private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList, List<Employee> squareEmployeesList) throws Exception {
 		
 		for (Payment payment : squarePaymentsList) {
 			
@@ -118,20 +116,20 @@ public class TLOG {
 				paymentList.add(new TransactionSubTotal().parse(payment));
 				
 				paymentList.add(new TransactionTax().parse(payment));
-				
+
 				paymentList.add(new TransactionTotal().parse(payment));
-				
+
 				for (PaymentTax tax : payment.getAdditiveTax()) {
 					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
 				}
-				
+
 				for (PaymentTax tax : payment.getInclusiveTax()) {
 					paymentList.add(new TransactionTaxExtended().parse(payment, tax));
 				}
-				
+
 				int itemSequence = 1;
 				for (PaymentItemization itemization : payment.getItemizations()) {
-					paymentList.add(new MerchandiseItem().parse(itemization, squareItemsList, itemSequence++, itemNumberLookupLength));
+					paymentList.add(new MerchandiseItem().parse(itemization, itemSequence++, itemNumberLookupLength));
 
 					String employeeId = "";
 					boolean employeeIdShouldBePresent = false;

@@ -7,7 +7,6 @@ import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
 
 import com.squareup.connect.Employee;
-import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 
@@ -46,10 +45,9 @@ public class TLOGGenerator implements Callable {
 			epicor.tlog().setObjectStore(objectStore);
 
 			Payment[] squarePayments = tlogGeneratorPayload.getPayments();
-			Item[] squareItems = tlogGeneratorPayload.getItems();
 			Employee[] squareEmployees = tlogGeneratorPayload.getEmployees();
 
-			epicor.tlog().parse(matchingMerchant, squarePayments, squareItems, squareEmployees);
+			epicor.tlog().parse(matchingMerchant, squarePayments, squareEmployees);
 
 			eventContext.getMessage().setProperty("vfcorpStoreNumber", getStoreNumber(matchingMerchant), PropertyScope.INVOCATION);
 

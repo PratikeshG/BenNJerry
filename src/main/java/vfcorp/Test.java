@@ -26,7 +26,6 @@ import com.squareup.connect.CashDrawerShift;
 import com.squareup.connect.Category;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Fee;
-import com.squareup.connect.Item;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.ModifierList;
 import com.squareup.connect.Payment;
@@ -54,9 +53,6 @@ public class Test {
         System.out.println("Getting employees...");
         Employee[] employees = client.employees().list();
 
-        System.out.println("Getting catalog...");
-        Item[] items = client.items().list();
-
         int offset = 0;
         int range = 1;
         final String TIMEZONE = "America/Los_Angeles";
@@ -71,7 +67,7 @@ public class Test {
 		epicor.tlog().setTimeZoneId(TIMEZONE);
         epicor.tlog().setItemNumberLookupLength(14);
         epicor.tlog().setObjectStore(new FakeObjectStore<String>());
-        epicor.tlog().parse(location, payments, items, employees);
+        epicor.tlog().parse(location, payments, employees);
         
         System.out.println("Saving TLOG...");
         PrintWriter writer = new PrintWriter("/Users/bhartard/Desktop/sample-tnf.txt", "UTF-8");
