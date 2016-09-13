@@ -244,9 +244,9 @@ public class TransactionHeader extends Record {
 		putValue("Transaction Error Code", ""); // Doesn't exist in Square
 		putValue("Number of Records", params.getOrDefault("Number of Records", "")); // A count that needs to be adjusted after the fact
 		putValue("Business Date", params.getOrDefault("Business Date", "")); // not supported
-		putValue("RetailStore Product Generation", ""); // Not using RetailStore
-		putValue("RetailStore Major Version", ""); // Not using RetailStore
-		putValue("RetailStore Minor Version", ""); // Not using RetailStore
+		putValue("RetailStore Product Generation", "3");
+		putValue("RetailStore Major Version", "2");
+		putValue("RetailStore Minor Version", "05");
 		putValue("RetailStore Service Pack", ""); // Not using RetailStore
 		putValue("RetailStore Hot Fix", ""); // Not using RetailStore
 		putValue("(Customer) Code Release Number", ""); // Not using customer software
