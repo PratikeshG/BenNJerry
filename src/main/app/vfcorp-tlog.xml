@@ -38,8 +38,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
-        <set-variable variableName="range" value="${vfcorp.tlog.timeMethod.range}" doc:name="Set range"/>
-        <set-variable variableName="offset" value="${vfcorp.tlog.timeMethod.offset}" doc:name="Set offset"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <scripting:transformer doc:name="Create payload object">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
@@ -98,7 +96,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00001" doc:name="Set storeId: 00001"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -111,7 +111,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00060" doc:name="Set storeId: 00060"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00060}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -124,7 +126,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00064"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -137,7 +141,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00073"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -150,7 +156,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00402" doc:name="Set storeId: 00402"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -159,14 +167,31 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-10" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store10-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store10-1473742274" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am UTC (11:00pm CST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00010" doc:name="Set storeId: 00010"/>
-        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/Chicago" doc:name="Set timeZone: America/Chicago"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00010}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
+        <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-store-517" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store517-1470289523" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="storeId" value="00517" doc:name="Set storeId: 00517"/>
+        <set-variable variableName="timeZone" value="America/Los_Angeles" doc:name="Set timeZone: America/Los_Angeles"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
+        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+        <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00517}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -176,7 +201,9 @@ return sp;]]></scripting:script>
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="05019" doc:name="storeId: 05019"/>
-        <set-variable variableName="timeZone" value="America/New_York" doc:name="Set timeZone"/>
+        <set-variable variableName="timeZone" value="America/New_York" doc:name="Set timeZone: America/New_York"/>
+        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
+        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:Kipling:generate-tlog-for-location-settings" doc:name="VFC:Kipling:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.tlog.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
