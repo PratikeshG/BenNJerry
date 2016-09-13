@@ -92,11 +92,16 @@ public class MerchandiseItem extends Record {
 			}
 		} else if (itemization.getItemizationType().equals("CUSTOM_AMOUNT")) {
 			// Added SKU manually to notes field on custom entry
-			if (itemization.getNotes().matches("[0-9]+")) {
-				sku = itemization.getNotes();
+			if (itemization.getNotes() != null) {
+				Matcher m = Pattern.compile("([0-9]){12,14}").matcher(itemization.getNotes());
+				while(m.find()) {
+					sku = m.group(0);
+				    break;
+				}
 			}
 		}
 
+		// requires special formating - check docs
 		if (sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
