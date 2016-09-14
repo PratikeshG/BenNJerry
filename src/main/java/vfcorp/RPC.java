@@ -2,7 +2,6 @@ package vfcorp;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -363,7 +362,7 @@ public class RPC {
 		}
 	}
 
-	public void ingest(BufferedInputStream rpc) throws IOException {
+	public void ingest(BufferedInputStream rpc) throws Exception {
 		this.rpc = new LinkedList<Record>();
 
 		BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
@@ -375,7 +374,7 @@ public class RPC {
 		while ((rpcLine = r.readLine()) != null) {
 
 			if (totalRecordsProcessed % 5000 == 0) {
-				System.out.println(totalRecordsProcessed);
+				logger.info("Processed: " + totalRecordsProcessed);
 			}
 
 			if (rpcLine.length() < 2) {
@@ -406,6 +405,12 @@ public class RPC {
 			}
 
 			totalRecordsProcessed++;
+		}
+
+		logger.info("Total records processed: " + totalRecordsProcessed);
+
+		if (totalRecordsProcessed == 0) {
+			throw new Exception("No records processed. Invalid input stream.");
 		}
 	}
 }

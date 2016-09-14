@@ -1,9 +1,11 @@
 package vfcorp;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
-import org.mule.transport.sftp.SftpInputStream;
 
 import com.squareup.connect.Category;
 import com.squareup.connect.Fee;
@@ -33,11 +35,12 @@ public class RPCIngester implements Callable {
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) eventContext.getMessage().getPayload();
-		
-		SftpInputStream sis = eventContext.getMessage().getProperty("pluStreamReader", PropertyScope.INVOCATION);
-		
+
+		InputStream is = eventContext.getMessage().getProperty("pluInputStream", PropertyScope.INVOCATION);
+		BufferedInputStream bis = new BufferedInputStream(is);
+
 		Catalog current = new Catalog();
-		
+
 		Item[] squareItems = rpcIngesterPayload.getItems();
 		Category[] squareCategories = rpcIngesterPayload.getCategories();
 		Fee[] squareFees = rpcIngesterPayload.getFees();
@@ -62,7 +65,8 @@ public class RPCIngester implements Callable {
 
 		EpicorParser epicor = new EpicorParser();
 		epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
-		epicor.rpc().ingest(sis);
+		epicor.rpc().ingest(bis);
+		bis.close();
 
 		Catalog proposed = epicor.rpc().convert(current);
 
@@ -72,8 +76,6 @@ public class RPCIngester implements Callable {
 		ccr.setSquareClient(client);
 
 		ccr.call();
-
-		sis.close();
 
 		return null;
 	}

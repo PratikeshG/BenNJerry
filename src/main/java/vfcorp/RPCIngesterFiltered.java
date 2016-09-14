@@ -1,9 +1,11 @@
 package vfcorp;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
-import org.mule.transport.sftp.SftpInputStream;
 
 import com.squareup.connect.Category;
 import com.squareup.connect.Fee;
@@ -38,7 +40,8 @@ public class RPCIngesterFiltered implements Callable {
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) eventContext.getMessage().getPayload();
 		
-		SftpInputStream sis = eventContext.getMessage().getProperty("pluStreamReader", PropertyScope.INVOCATION);
+		InputStream is = eventContext.getMessage().getProperty("pluInputStream", PropertyScope.INVOCATION);
+		BufferedInputStream bis = new BufferedInputStream(is);
 		String deploymentId = eventContext.getMessage().getProperty("deployment", PropertyScope.INVOCATION);
 		
 		Catalog current = new Catalog();
@@ -67,13 +70,13 @@ public class RPCIngesterFiltered implements Callable {
 
 		EpicorParser epicor = new EpicorParser();
 		epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
-		epicor.rpc().ingest(sis);
-		sis.close();
-		
+		epicor.rpc().ingest(bis);
+		bis.close();
+
 		// TODO(bhartard): Remove this HACK to filter PLUs with a SKU/PLU whitelist
 		Catalog proposed = epicor.rpc().convertWithFilter(current, deploymentId);
 
-		logger.info("Performing diff (RPCIngesterFiltered)");
+		logger.info("Performing diff");
 		CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU, CatalogChangeRequest.PrimaryKey.NAME);
 
 		logger.info("Diff complete");
