@@ -37,6 +37,7 @@ public class RPC {
 	public static final String ITEM_ADDITIONAL_DATA_RECORD = "36";
 	
 	private LinkedList<Record> rpc;
+	private String deploymentId;
 	private int itemNumberLookupLength;
 	
 	void setItemNumberLookupLength(int itemNumberLookupLength) {
@@ -79,6 +80,7 @@ public class RPC {
 	
 	// This method CONSUMES the RPC linked list.
 	public Catalog convertWithFilter(Catalog current, String deploymentId) throws Exception {		
+		this.deploymentId = deploymentId;
 		Catalog clone = new Catalog(current);
 
 		// Load Filters
@@ -244,7 +246,8 @@ public class RPC {
 				matchingItem.setVariations(new ItemVariation[]{matchingVariation});
 			}
 
-			matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Retail Price"))));
+			int price = Integer.parseInt(record.getValue("Retail Price"));
+			matchingVariation.setPriceMoney(new Money(price));
 
 			// Storing on variation to save to payment record details
 			String deptCodeClass = record.getValue("Department Number") + record.getValue("Class Number");
@@ -257,8 +260,18 @@ public class RPC {
 				}
 			}
 
-			// Assumes that only one tax exists per catalog. Applies it to all items.
-			if (clone.getFees().values().size() > 0) {
+			String WOODBURY = "vfcorp-tnf-00064";
+			// NYS unique taxation of items
+			if (deploymentId.equals(WOODBURY) && clone.getFees().values().size() > 1) {
+				Fee lowTax = getLowerTax((Fee) clone.getFees().values().toArray()[0], (Fee) clone.getFees().values().toArray()[1]);
+				Fee highTax = getHigherTax((Fee) clone.getFees().values().toArray()[0], (Fee) clone.getFees().values().toArray()[1]);
+				if (price < 11000) {
+					matchingItem.setFees(new Fee[]{lowTax});
+				} else {
+					matchingItem.setFees(new Fee[]{highTax});
+				}
+			} else if (clone.getFees().values().size() > 0) {
+				// Assumes that only one tax exists per normal location catalog. Applies it to all items.
 				matchingItem.setFees(new Fee[]{(Fee) clone.getFees().values().toArray()[0]});
 			}
 
@@ -303,6 +316,20 @@ public class RPC {
 		}
 	}
 	
+	private Fee getLowerTax(Fee fee1, Fee fee2) {
+		if (Float.parseFloat(fee1.getRate()) < Float.parseFloat(fee2.getRate())) {
+			return fee1;
+		}
+		return fee2;
+	}
+
+	private Fee getHigherTax(Fee fee1, Fee fee2) {
+		if (Float.parseFloat(fee1.getRate()) >= Float.parseFloat(fee2.getRate())) {
+			return fee1;
+		}
+		return fee2;
+	}
+
 	private void convertCategory(Catalog clone, Record record) {
 		String name = record.getValue("Department Number") + record.getValue("Class Number") + " " + record.getValue("Class Description").trim();
 
