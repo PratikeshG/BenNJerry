@@ -2,7 +2,6 @@ package vfcorp;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,7 +24,11 @@ import com.squareup.connect.Money;
 import com.squareup.connect.diff.Catalog;
 import com.squareup.connect.diff.CatalogChangeRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class RPC {
+	private static Logger logger = LoggerFactory.getLogger(RPC.class);
 
 	public static final String ITEM_RECORD = "01";
 	public static final String ALTERNATE_RECORD = "02";
@@ -45,7 +48,7 @@ public class RPC {
 	public Catalog convert(Catalog current) throws Exception {
 		Catalog clone = new Catalog(current);
 
-		System.out.println("Consuming PLU file...");
+		logger.info("Consuming PLU file..");
 
 		LinkedList<Record> saleRecords = new LinkedList<Record>();
 		
@@ -104,10 +107,9 @@ public class RPC {
 		    }
 		}
 
-		System.out.println("Total SKU filtered: " + skuFilter.size());
-		System.out.println("Total PLU filtered: " + pluFilter.size());
-
-		System.out.println("Consuming PLU file...");
+		logger.info("Total SKU filtered: " + skuFilter.size());
+		logger.info("Total PLU filtered: " + pluFilter.size());
+		logger.info("Consuming PLU file..");
 
 		LinkedList<Record> saleRecords = new LinkedList<Record>();
 		
@@ -368,7 +370,7 @@ public class RPC {
 		String rpcLine = "";
 
 		int totalRecordsProcessed = 0;
-		System.out.println("Ingesting PLU file...");
+		logger.info("Ingesting PLU file...");
 
 		while ((rpcLine = r.readLine()) != null) {
 
