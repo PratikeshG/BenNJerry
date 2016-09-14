@@ -15,13 +15,15 @@ public class PLUToCSVConverter {
 
 	public static void main(String[] args) throws Exception {
 		
+		boolean taxNYLocation = true;
+
 		System.out.println("Starting PLU to CSV converter...");
 		
 		HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
 		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
 		
 		// SKUs
-		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/80k-sku.csv";
+		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-tnf-00064-sku.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterSKUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -30,7 +32,7 @@ public class PLUToCSVConverter {
 		}
 		
 		// PLUs
-		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/80k-plu.csv";
+		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-tnf-00064-plu.csv";
 		try (BufferedReader br = new BufferedReader(new FileReader(filterPLUPath))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -44,8 +46,8 @@ public class PLUToCSVConverter {
 				
 		System.out.println("------");
 		
-		String path = "/Users/bhartard/desktop/PLU00010.DTA";
-		String donePath = "/Users/bhartard/desktop/00010-new.csv";
+		String path = "/Users/bhartard/desktop/PLU00060.DTA";
+		String donePath = "/Users/bhartard/desktop/00064-new.csv";
 		int itemNumberLookupLength = 14;
 		
 		RPC rpc = new RPC();
@@ -61,7 +63,7 @@ public class PLUToCSVConverter {
 		
 		StringBuffer sb = new StringBuffer();
 		
-		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (9.5%)\n");
+		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (8.125%), Tax - Sales Tax (4.125%)\n");
 		
 		for (Item item : catalog.getItems().values()) {
 			String shortSku = item.getVariations()[0].getSku();
@@ -80,14 +82,24 @@ public class PLUToCSVConverter {
 				sb.append(",");
 				sb.append(item.getVariations()[0].getName() + ",");
 
-				String price = Integer.toString(item.getVariations()[0].getPriceMoney().getAmount());
-				if (price.length() > 2) {
-					price = price.substring(0, price.length() - 2) + "." + price.substring(price.length() - 2);
+				int priceInt = item.getVariations()[0].getPriceMoney().getAmount();
+				String priceString = Integer.toString(priceInt);
+				if (priceString.length() > 2) {
+					priceString = priceString.substring(0, priceString.length() - 2) + "." + priceString.substring(priceString.length() - 2);
 				}
 
-				sb.append(price + ",");
+				sb.append(priceString + ",");
 				sb.append(item.getVariations()[0].getSku() + ",");
-				sb.append("Y\n"); // Apply the default tax: "Tax"
+				
+				if (!taxNYLocation) {
+					sb.append("Y,"); // Apply the default tax: "Sales Tax"
+					sb.append("N\n"); // No special NY taxes
+				} else {
+					String higherTax = priceInt >= 11000 ? "Y" : "N";
+					String lowerTax = priceInt < 11000 ? "Y" : "N";
+					sb.append(higherTax + ",");
+					sb.append(lowerTax + "\n");
+				}
 			}
 		}
 		
