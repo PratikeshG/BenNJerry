@@ -200,6 +200,9 @@ return sp;]]></scripting:script>
         <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
     </flow>
     <flow name="Urbanspace:Garment-District">
+        <quartz:inbound-endpoint jobName="urbanspace-garment-1473715395" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
