@@ -3,11 +3,9 @@ package vfcorp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.mule.api.store.ObjectStore;
 import org.slf4j.Logger;
@@ -257,7 +255,12 @@ public class TLOG {
 			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE, registerPayments));
 			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerPayments));
 			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD, registerPayments));
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments));
+
+			// Catch all for "other" - only used by Kipling?
+			if (deployment.contains("kipling")) {
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments));
+			}
+
 			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments));
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
 			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
