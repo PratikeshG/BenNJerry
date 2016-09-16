@@ -10,6 +10,7 @@ import org.mule.api.store.ObjectStoreException;
 import util.TimeManager;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
+import vfcorp.Util;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
@@ -173,9 +174,9 @@ public class TransactionHeader extends Record {
 		return id;
 	}
 	
-	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String deviceName, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String timeZoneId) throws Exception {
+	public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String registerNumber, String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment, String timeZoneId) throws Exception {
 		Map<String,String> params = new HashMap<String,String>();
-		
+
 		String lastDate = "";
 		for (Payment squarePayment : squarePaymentsList) {
 			if (squarePayment.getCreatedAt().compareTo(lastDate) > 0) {
@@ -187,10 +188,9 @@ public class TransactionHeader extends Record {
 			params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
 			params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "HHmm"));
 		}
-		
-		String registerNumber = getRegisterNumber(deviceName);
+
 		params.put("Register Number", registerNumber);
-		
+
 		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
 	}
 	
@@ -213,7 +213,7 @@ public class TransactionHeader extends Record {
 		params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
 		params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
 		
-		String registerNumber = getRegisterNumber(squarePayment.getDevice().getName());
+		String registerNumber = Util.getRegisterNumber(squarePayment.getDevice().getName());
 		params.put("Register Number", registerNumber);
 		
 		return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
@@ -288,20 +288,6 @@ public class TransactionHeader extends Record {
 		} catch (ObjectStoreException e) {
 			return 1;
 		}
-	}
-
-	private String getRegisterNumber(String deviceName) {
-		String registerNumber = "099"; // default
-		
-		if (deviceName != null) {
-			int registerNumberFirstIndex = deviceName.indexOf('(');
-			int registerNumberLastIndex = deviceName.indexOf(')');
-			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1) {
-				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
-			}
-		}
-		
-		return registerNumber;
 	}
 
 	private String getStoreNumber(Merchant location) {

@@ -2,9 +2,11 @@ package vfcorp;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.mule.api.store.ObjectStore;
@@ -217,63 +219,51 @@ public class TLOG {
 		}
 	}
 
-	private void createStoreCloseRecords(Merchant location, List<Payment> squarePaymentsList, List<Employee> squareEmployeesList) throws Exception {
-		
-		Set<String> deviceNames = new HashSet<String>();
-		for (Payment squarePayment : squarePaymentsList) {
-			if (squarePayment.getDevice() != null && squarePayment.getDevice().getName() != null && !squarePayment.getDevice().getName().equals("")) {
-				deviceNames.add(squarePayment.getDevice().getName());
+	private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments, List<Employee> squareEmployeesList) throws Exception {
+		Map<String, List<Payment>> devicePaymentsList = new HashMap<String, List<Payment>>();
+
+		for (Payment payment : locationPayments) {
+			String regNumber = Util.getRegisterNumber(null); // get default #
+			if (payment.getDevice() != null) {
+				regNumber = Util.getRegisterNumber(payment.getDevice().getName());
 			}
+
+			// Add payment to device-specific payment list
+			List<Payment> devicePayments = devicePaymentsList.get(regNumber);
+			if (devicePayments == null) {
+				devicePayments = new ArrayList<Payment>();
+				devicePaymentsList.put(regNumber, devicePayments);
+			}
+			devicePayments.add(payment);
 		}
-		
-		for (String deviceName : deviceNames) {
-		
+
+		for (String registerNumber : devicePaymentsList.keySet()) {
+			List<Payment> registerPayments = devicePaymentsList.get(registerNumber);
 			LinkedList<Record> newRecordList = new LinkedList<Record>();
-			
+
 			newRecordList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
-			
-			newRecordList.add(new CashierRegisterIdentification().parse(deviceName));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CHEQUE, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, squarePaymentsList));
-			
-			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, squarePaymentsList));
-			
-			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, squarePaymentsList));
-			
-			newRecordList.addFirst(new TransactionHeader().parse(location, squarePaymentsList, deviceName, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore, deployment, timeZoneId));
-			
+			newRecordList.add(new CashierRegisterIdentification().parse(registerNumber));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CHEQUE, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments));
+			newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments));
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
+			newRecordList.add(new ForInStoreReportingUseOnly().parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
+			newRecordList.addFirst(new TransactionHeader().parse(location, registerPayments, registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore, deployment, timeZoneId));
+
 			transactionLog.addAll(newRecordList);
 		}
 	}

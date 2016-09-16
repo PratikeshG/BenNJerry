@@ -46,16 +46,7 @@ public class CashierRegisterIdentification extends Record {
 		return id;
 	}
 	
-	public CashierRegisterIdentification parse(String deviceName) throws Exception {
-		String registerNumber = "099"; // default
-		
-		if (deviceName != null) {
-			int registerNumberFirstIndex = deviceName.indexOf('(');
-			int registerNumberLastIndex = deviceName.indexOf(')');
-			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1)
-				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
-		}
-		
+	public CashierRegisterIdentification parse(String registerNumber) throws Exception {
 		putValue("Cashier/Register Number", registerNumber);
 		putValue("Number Type", "0"); // 0 is "register"
 		putValue("Currency Indicator", "0"); // 0 is "primary"; other currencies not supported

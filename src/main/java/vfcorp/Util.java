@@ -13,6 +13,20 @@ public class Util {
 		return value;
 	}
 
+	public static String getRegisterNumber(String deviceName) {
+		String registerNumber = "099"; // default
+
+		if (deviceName != null) {
+			int registerNumberFirstIndex = deviceName.indexOf('(');
+			int registerNumberLastIndex = deviceName.indexOf(')');
+			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1) {
+				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
+			}
+		}
+
+		return registerNumber;
+	}
+
 	public static int[] divideIntegerEvenly(int amount, int totalPieces) {
 		int quotient = amount / totalPieces;
 		int remainder = amount % totalPieces;
