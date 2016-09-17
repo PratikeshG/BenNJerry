@@ -28,10 +28,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" content-ref="#[flowVars.pluStreamReaderAWS]" doc:name="Copy to Amazon S3"/>
-        <logger message="File saved to S3. Retrieving new inputStream from S3..." level="INFO" doc:name="Logger"/>
-        <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" doc:name="Read new stream from S3"/>
-        <logger message="Retrieved new inputStream from S3. Beginning processing..." level="INFO" doc:name="Logger"/>
-        <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
+        <logger message="File saved to S3." level="INFO" doc:name="Logger"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <scripting:transformer doc:name="Get items+categories+fees for location">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
@@ -58,8 +55,14 @@ sp.setCategories(categories);
 sp.setItems(items);
 sp.setFees(fees);
 
+message.setInvocationProperty("rpcPayload", sp);
+
 return sp;]]></scripting:script>
         </scripting:transformer>
+        <logger message="Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
+        <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + flowVars.pluFilename]" doc:name="Read new stream from S3"/>
+        <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
+        <logger message="Retrieved new inputStream from S3. Beginning processing..." level="INFO" doc:name="Logger"/>
         <choice doc:name="Choice">
             <when expression="#[flowVars.filteredPlu == true]">
                 <logger message="FILTERED VERSION" level="INFO" doc:name="Logger"/>

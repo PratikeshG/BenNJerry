@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 
 import org.mule.api.MuleEventContext;
+import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
@@ -34,9 +35,10 @@ public class RPCIngester implements Callable {
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) eventContext.getMessage().getPayload();
+		MuleMessage message = eventContext.getMessage();
 
-		InputStream is = eventContext.getMessage().getProperty("pluInputStream", PropertyScope.INVOCATION);
+		RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) message.getProperty("rpcPayload", PropertyScope.INVOCATION);
+		InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
 		BufferedInputStream bis = new BufferedInputStream(is);
 
 		Catalog current = new Catalog();
