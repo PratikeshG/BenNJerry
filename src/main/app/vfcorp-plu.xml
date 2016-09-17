@@ -33,19 +33,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <logger message="Retrieved new inputStream from S3. Beginning processing..." level="INFO" doc:name="Logger"/>
         <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
-        <scripting:transformer doc:name="Create payload object">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
-
-RPCIngesterPayload rpcIngesterPayload = new RPCIngesterPayload();
-
-rpcIngesterPayload.setAccessToken(payload.getAccessToken());
-rpcIngesterPayload.setMerchantId(payload.getMerchantId());
-rpcIngesterPayload.setLocationId(payload.getLocationId());
-rpcIngesterPayload.setMerchantAlias(payload.getMerchantAlias());
-rpcIngesterPayload.setLegacy(payload.isLegacy());
-
-return rpcIngesterPayload;]]></scripting:script>
-        </scripting:transformer>
         <scripting:transformer doc:name="Get items+categories+fees for location">
             <scripting:script engine="Groovy"><![CDATA[import vfcorp.RPCIngesterPayload;
 import com.squareup.connect.Category;
@@ -53,7 +40,13 @@ import com.squareup.connect.Fee;
 import com.squareup.connect.Item;
 import com.squareup.connect.SquareClient;
 
-RPCIngesterPayload sp = (RPCIngesterPayload) payload;
+RPCIngesterPayload sp = new RPCIngesterPayload();
+
+sp.setAccessToken(payload.getAccessToken());
+sp.setMerchantId(payload.getMerchantId());
+sp.setLocationId(payload.getLocationId());
+sp.setMerchantAlias(payload.getMerchantAlias());
+sp.setLegacy(payload.isLegacy());
 
 SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
 
