@@ -57,6 +57,7 @@ public class PLUToCSVConverter {
 		FileInputStream fis = new FileInputStream(file);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 		rpc.ingest(bis);
+		bis.close();
 		
 		Catalog empty = new Catalog();
 		Catalog catalog = rpc.convert(empty);
