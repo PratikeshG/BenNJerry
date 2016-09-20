@@ -90,22 +90,28 @@ public class RPC {
 		// SKUs
 		String filterSKUPath = "/vfc-plu-filters/" + deploymentId + "-sku.csv";
 		InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"))) {
+		BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
+		try {
 		    String line;
-		    while ((line = br.readLine()) != null) {
+		    while ((line = brSKU.readLine()) != null) {
 		    	skuFilter.put(line.trim(), new Boolean(true));
 		    }
+		} finally {
+			brSKU.close();
 		}
 
 		// PLUs		
 		String filterPLUPath = "/vfc-plu-filters/" + deploymentId + "-plu.csv";
 		InputStream iPLU = this.getClass().getResourceAsStream(filterPLUPath);
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"))) {
+		BufferedReader brPLU = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"));
+		try {
 		    String line;
-		    while ((line = br.readLine()) != null) {
+		    while ((line = brPLU.readLine()) != null) {
 		    	String[] parts = line.split("\\s+");
 		    	pluFilter.put(parts[0].trim(), new Boolean(true));
 		    }
+		} finally {
+			brPLU.close();
 		}
 
 		logger.info("Total SKU filtered: " + skuFilter.size());
