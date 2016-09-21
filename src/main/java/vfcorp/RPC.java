@@ -209,7 +209,10 @@ public class RPC {
 						itemOrCategoryRecordFound = true;
 					} else if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
 						if (nextRecord.getValue("Action Type").equals("1")) { // add
-							matchingItem.setName(matchingItem.getName() + " - " + nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", ""));
+							String itemSuffix = nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", "");
+							if (!matchingItem.getName().endsWith(itemSuffix)) {
+								matchingItem.setName(matchingItem.getName() + " - " + itemSuffix);
+							}
 						}
 						nextRecord = rpc.removeFirst();
 					} else {
@@ -302,7 +305,10 @@ public class RPC {
 						itemOrCategoryRecordFound = true;
 					} else if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
 						if (nextRecord.getValue("Action Type").equals("1")) { // add
-							matchingItem.setName(matchingItem.getName() + " - " + nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", ""));
+							String itemSuffix = nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$", "");
+							if (!matchingItem.getName().endsWith(itemSuffix)) {
+								matchingItem.setName(matchingItem.getName() + " - " + itemSuffix);
+							}
 						}
 						nextRecord = rpc.removeFirst();
 					} else {
