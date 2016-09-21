@@ -285,7 +285,11 @@ public class RPC {
 				matchingItem.setFees(new Fee[]{(Fee) clone.getFees().values().toArray()[0]});
 			}
 
-			matchingItem.setName(record.getValue("Description").replaceFirst("\\s+$", ""));
+			// Only update name if it looks like it has changed
+			String itemName = record.getValue("Description").replaceFirst("\\s+$", "");
+			if (!matchingItem.getName().startsWith(itemName)) {
+				matchingItem.setName(itemName);
+			}
 
 			// Remove records until an item or category is found
 			if (rpc.size() > 0) {
