@@ -71,65 +71,61 @@ public class TaxTable {
 		taxTable.put(15, new Tax(15, Tax.TAX_CODE_15, Tax.TAX_NAME_15));
 		taxTable.put(16, new Tax(16, Tax.TAX_CODE_16, Tax.TAX_NAME_16));
 
-		if (storeId.equals("2")) {
-			String standardRate = "0.08";
-			String lowerRate = "0.045";
+		String ZERO_RATE = "0";
 
-			taxTable.get(2).setRate(standardRate);
-			taxTable.get(3).setRate(standardRate);
-			taxTable.get(4).setRate(standardRate);
-			taxTable.get(5).setRate(standardRate);
+		switch (storeId) {
+        case "2":
+        case "3": // Test locations
+        	String testRate = "0.08";
+			String lowerRate = "0.045";
+			taxTable.get(2).setRate(testRate);
+			taxTable.get(3).setRate(testRate);
+			taxTable.get(4).setRate(testRate);
+			taxTable.get(5).setRate(testRate);
 			taxTable.get(6).setRate(lowerRate);
-			taxTable.get(7).setRate(standardRate);
-			taxTable.get(8).setRate(standardRate);
+			taxTable.get(7).setRate(testRate);
+			taxTable.get(8).setRate(testRate);
 			taxTable.get(9).setRate(lowerRate);
-			taxTable.get(10).setRate(standardRate);
-			taxTable.get(11).setRate(standardRate);
+			taxTable.get(10).setRate(testRate);
+			taxTable.get(11).setRate(testRate);
 			taxTable.get(12).setRate(lowerRate);
 			taxTable.get(13).setRate(lowerRate);
-			taxTable.get(14).setRate(standardRate);
-			taxTable.get(15).setRate(standardRate);
-			taxTable.get(16).setRate(standardRate);
-		} else if (storeId.equals("3")) {
-			String standardRate = "0.085";
-	
-			taxTable.get(2).setRate(standardRate);
-			taxTable.get(3).setRate(standardRate);
-			taxTable.get(4).setRate(standardRate);
-			taxTable.get(5).setRate(standardRate);
-			taxTable.get(6).setRate(standardRate);
-			taxTable.get(7).setRate(standardRate);
-			taxTable.get(8).setRate(standardRate);
-			taxTable.get(9).setRate(standardRate);
-			taxTable.get(10).setRate(standardRate);
-			taxTable.get(11).setRate(standardRate);
-			taxTable.get(12).setRate(standardRate);
-			taxTable.get(13).setRate(standardRate);
-			taxTable.get(14).setRate(standardRate);
-			taxTable.get(15).setRate(standardRate);
-			taxTable.get(16).setRate(standardRate);
-		} else if (storeId.equals("2017")) {
-			String standardRate = "0.08";
-	
-			taxTable.get(2).setRate(standardRate);
-			taxTable.get(3).setRate(standardRate);
-			taxTable.get(4).setRate(standardRate);
-			taxTable.get(5).setRate(standardRate);
-			taxTable.get(6).setRate(standardRate);
-			taxTable.get(7).setRate(standardRate);
-			taxTable.get(8).setRate(standardRate);
-			taxTable.get(9).setRate(standardRate);
-			taxTable.get(10).setRate(standardRate);
-			taxTable.get(11).setRate(standardRate);
-			taxTable.get(12).setRate(standardRate);
-			taxTable.get(13).setRate(standardRate);
-			taxTable.get(14).setRate(standardRate);
-			taxTable.get(15).setRate(standardRate);
-			taxTable.get(16).setRate(standardRate);
-		} else {
-			throw new Exception("Missing tax table for store ID " + storeId);
+			taxTable.get(14).setRate(testRate);
+			taxTable.get(15).setRate(testRate);
+			taxTable.get(16).setRate(testRate);
+            break;
+        case "2011": // Atlanta - 9706
+        	String atlRate = "0.08";
+        	for (int i = 2; i <= 16; i++) {
+        		taxTable.get(i).setRate(atlRate);
+        	}
+            break;
+        case "2017": // NYC JFK - 9212
+        	String jfkRate = "0.08875";
+			taxTable.get(2).setRate(jfkRate);
+			taxTable.get(3).setRate(jfkRate);
+			taxTable.get(6).setRate(jfkRate);
+			taxTable.get(9).setRate(jfkRate);
+			taxTable.get(11).setRate(jfkRate);
+			taxTable.get(12).setRate(jfkRate);
+			taxTable.get(15).setRate(jfkRate);
+
+			taxTable.get(4).setRate(ZERO_RATE);
+			taxTable.get(5).setRate(ZERO_RATE);
+			taxTable.get(7).setRate(ZERO_RATE);
+			taxTable.get(8).setRate(ZERO_RATE);
+			taxTable.get(10).setRate(ZERO_RATE);
+			taxTable.get(13).setRate(ZERO_RATE);
+
+			String jfkClothingRate = "0.04875";
+			taxTable.get(14).setRate(jfkClothingRate);
+			taxTable.get(16).setRate(jfkClothingRate);
+
+            break;
+        default:
+        	throw new Exception("Missing tax table for store ID " + storeId);
 		}
-		
+
 		this.table = taxTable;
 	}
 	
