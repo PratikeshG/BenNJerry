@@ -46,8 +46,8 @@ public class PLUToCSVConverter {
 				
 		System.out.println("------");
 		
-		String path = "/Users/bhartard/desktop/PLU00517.DTA";
-		String donePath = "/Users/bhartard/desktop/00517-new.csv";
+		String path = "/Users/bhartard/desktop/plu.chg.09212016";
+		String donePath = "/Users/bhartard/desktop/test.csv";
 		int itemNumberLookupLength = 14;
 		
 		RPC rpc = new RPC();

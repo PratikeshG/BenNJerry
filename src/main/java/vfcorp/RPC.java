@@ -149,6 +149,11 @@ public class RPC {
 	private void convertItem(Catalog clone, Record record) {
 		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
 
+		// SKU is primary key
+		if (sku.length() < 1) {
+			return;
+		}
+
 		String matchingKey = null;
 		Item matchingItem = null;
 		ItemVariation matchingVariation = null;
@@ -233,7 +238,12 @@ public class RPC {
 	// TODO(bhartard): Remove this hacky shit!
 	private void convertItemWithFilter(Catalog clone, Record record, HashMap<String, Boolean> skuFilter, HashMap<String, Boolean> pluFilter) {
 		String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
-		
+
+		// SKU is primary key
+		if (sku.length() < 1) {
+			return;
+		}
+
 		String matchingKey = null;
 		Item matchingItem = null;
 		ItemVariation matchingVariation = null;
