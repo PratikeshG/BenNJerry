@@ -134,7 +134,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-12" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store12-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store12-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00012" doc:name="Set storeId: 00012"/>
@@ -149,7 +149,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-14" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store14-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store14-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00014" doc:name="Set storeId: 00014"/>
@@ -164,7 +164,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-20" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store20-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store20-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00020" doc:name="Set storeId: 00020"/>
@@ -194,7 +194,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-64" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store64-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store64-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00064"/>
@@ -209,7 +209,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-68" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store68-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store68-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00068" doc:name="Set storeId: 00068"/>
@@ -224,7 +224,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-69" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store69-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store69-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00069" doc:name="Set storeId: 00069"/>
@@ -239,7 +239,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-73" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store73-1474843839" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store73-1474843839" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am UTC (9:00pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00073"/>
@@ -269,7 +269,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-77" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store77-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store77-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00077" doc:name="Set storeId: 00077"/>
@@ -299,7 +299,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-301" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store301-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store301-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00301" doc:name="Set storeId: 00301"/>
@@ -359,7 +359,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-321" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store321-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store321-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00321" doc:name="Set storeId: 00321"/>
@@ -389,7 +389,7 @@ return sp;]]></scripting:script>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <flow name="VFC:TNF:tlog-store-516" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store516-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:00am UTC (10:00pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store516-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="00516" doc:name="Set storeId: 00516"/>
