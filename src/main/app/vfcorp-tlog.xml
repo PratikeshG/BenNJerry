@@ -143,7 +143,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00012}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -158,7 +158,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00014}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -173,7 +173,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00020}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -218,7 +218,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00068}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -233,7 +233,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00069}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -263,7 +263,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00074}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -278,7 +278,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00077}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -293,7 +293,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00078}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -308,7 +308,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00301}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -323,7 +323,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00313}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -338,7 +338,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00314}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -353,7 +353,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00318}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -368,7 +368,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00321}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
@@ -398,7 +398,7 @@ return sp;]]></scripting:script>
         <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
         <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00516}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
