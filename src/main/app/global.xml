@@ -15,7 +15,6 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
     <configuration defaultExceptionStrategy-ref="globalExceptionCatchingStrategy" doc:name="Configuration">
         <http:config useTransportForUris="false"/>
     </configuration>
-    <sftp:connector name="VFCorpSFTP" validateConnections="true" doc:name="SFTP"/>
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>
