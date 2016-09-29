@@ -88,7 +88,7 @@ public class RPC {
 		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
 
 		// SKUs
-		String filterSKUPath = "/vfc-plu-filters/" + deploymentId + "-sku.csv";
+		String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
 		InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
 		BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
 		try {
@@ -101,7 +101,7 @@ public class RPC {
 		}
 
 		// PLUs		
-		String filterPLUPath = "/vfc-plu-filters/" + deploymentId + "-plu.csv";
+		String filterPLUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-plu.csv";
 		InputStream iPLU = this.getClass().getResourceAsStream(filterPLUPath);
 		BufferedReader brPLU = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"));
 		try {
