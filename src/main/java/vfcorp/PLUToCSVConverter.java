@@ -13,14 +13,14 @@ import com.squareup.connect.diff.Catalog;
 public class PLUToCSVConverter {
 
 	public static void main(String[] args) throws Exception {
-		String DEPLOYMENT = "vfcorp-tnf-00012";
-		String PATH = "/Users/bhartard/desktop/NEW-locations/12/plu.chg_20160928151431901.00012";
-		String DONE_PATH = "/Users/bhartard/desktop/NEW-locations/12/initial-load.csv";
+		String DEPLOYMENT = "vfcorp-tnf-00313";
+		String PATH = "/Users/bhartard/desktop/NEW-locations/313/plu.chg_20160928180623165.00313";
+		String DONE_PATH = "/Users/bhartard/desktop/NEW-locations/313/initial-load.csv";
 
-		// Set the appropriate for this location, seto to null when there is no tax
+		// Set the appropriate for this location, set to to null when there is no tax
 		Fee tax1 = new Fee();
 		Fee tax2 = null;
-		tax1.setRate("0.08875");
+		tax1.setRate("0.095");
 		//tax2.setRate("0.025");
  
 		// DO NOT EDIT BELOW THIS LINE
@@ -44,8 +44,13 @@ public class PLUToCSVConverter {
 		}
 
 		String tax1Rate = (tax1 != null) ? String.valueOf(Double.parseDouble(tax1.getRate()) * 100) : "0";
+		if (tax1Rate.endsWith(".0")) {
+			tax1Rate = tax1Rate.split("\\.")[0];
+		}
 		String tax2Rate = (tax2 != null) ? String.valueOf(Double.parseDouble(tax2.getRate()) * 100) : "0";
-
+		if (tax2Rate.endsWith(".0")) {
+			tax2Rate = tax2Rate.split("\\.")[0];
+		}
 		Catalog catalog = rpc.convertWithFilter(empty, DEPLOYMENT);
 
 		StringBuffer sb = new StringBuffer();
