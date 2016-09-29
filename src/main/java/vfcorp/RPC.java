@@ -328,7 +328,7 @@ public class RPC {
 				} else {
 					matchingItem.setFees(new Fee[]{nycTax});
 				}
-			} if (clone.getFees().values().size() == 1 && deploymentId.equals(BOSTON)) {
+			} else if (clone.getFees().values().size() == 1 && deploymentId.equals(BOSTON)) {
 				// Don't appl y any taxes for now, since we can't correctly apply MA tax rules
 				Fee maTax = (Fee) clone.getFees().values().toArray()[0];
 				if (price < 17500) {

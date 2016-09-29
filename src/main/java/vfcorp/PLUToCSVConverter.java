@@ -1,110 +1,92 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
-import java.util.HashMap;
+
+import com.squareup.connect.Fee;
 import com.squareup.connect.Item;
 import com.squareup.connect.diff.Catalog;
 
 public class PLUToCSVConverter {
 
 	public static void main(String[] args) throws Exception {
-		
-		boolean taxNYLocation = false;
+		String DEPLOYMENT = "vfcorp-tnf-00012";
+		String PATH = "/Users/bhartard/desktop/NEW-locations/12/plu.chg_20160928151431901.00012";
+		String DONE_PATH = "/Users/bhartard/desktop/NEW-locations/12/initial-load.csv";
 
+		// Set the appropriate for this location, seto to null when there is no tax
+		Fee tax1 = new Fee();
+		Fee tax2 = null;
+		tax1.setRate("0.08875");
+		//tax2.setRate("0.025");
+ 
+		// DO NOT EDIT BELOW THIS LINE
 		System.out.println("Starting PLU to CSV converter...");
-		
-		HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
-		HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
-		
-		// SKUs
-		String filterSKUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-tnf-00402-sku.csv";
-		try (BufferedReader br = new BufferedReader(new FileReader(filterSKUPath))) {
-		    String line;
-		    while ((line = br.readLine()) != null) {
-		    	skuFilter.put(line.trim(), new Boolean(true));
-		    }
-		}
-		
-		// PLUs
-		String filterPLUPath = "/Users/bhartard/desktop/VFC/Filters/vfcorp-tnf-00402-plu.csv";
-		try (BufferedReader br = new BufferedReader(new FileReader(filterPLUPath))) {
-		    String line;
-		    while ((line = br.readLine()) != null) {
-		    	String[] parts = line.split("\\s+");
-		    	pluFilter.put(parts[0].trim(), new Boolean(true));
-		    }
-		}
 
-		System.out.println("Total SKU filtered: " + skuFilter.size());
-		System.out.println("Total PLU filtered: " + pluFilter.size());
-				
-		System.out.println("------");
-		
-		String path = "/Users/bhartard/desktop/402-files/20160831080255_plu.chg.00402-reload";
-		String donePath = "/Users/bhartard/desktop/new402.csv";
-		int itemNumberLookupLength = 14;
-		
 		RPC rpc = new RPC();
-		rpc.setItemNumberLookupLength(itemNumberLookupLength);
+		rpc.setItemNumberLookupLength(14);
 		
-		File file = new File(path);
+		File file = new File(PATH);
 		FileInputStream fis = new FileInputStream(file);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 		rpc.ingest(bis);
 		bis.close();
-		
+
 		Catalog empty = new Catalog();
-		Catalog catalog = rpc.convert(empty);
-		
+		if (tax1 != null) {
+			empty.addFee(tax1);
+		}
+		if (tax2 != null) {
+			empty.addFee(tax2);
+		}
+
+		String tax1Rate = (tax1 != null) ? String.valueOf(Double.parseDouble(tax1.getRate()) * 100) : "0";
+		String tax2Rate = (tax2 != null) ? String.valueOf(Double.parseDouble(tax2.getRate()) * 100) : "0";
+
+		Catalog catalog = rpc.convertWithFilter(empty, DEPLOYMENT);
+
 		StringBuffer sb = new StringBuffer();
-		
-		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (8.75%), Tax - Sales Tax (4.125%)\n");
+
+		sb.append("Item ID,Name,Category,Description,Variant 1 - Name,Variant 1 - Price,Variant 1 - SKU,Tax - Sales Tax (" + tax1Rate + "%), Tax - Sales Tax (" + tax2Rate + "%)\n");
 		
 		for (Item item : catalog.getItems().values()) {
-			String shortSku = item.getVariations()[0].getSku();
-			String medSku = ("000000000000" + shortSku).substring(shortSku.length());
-			String longSku = ("00000000000000" + shortSku).substring(shortSku.length());
+			sb.append(",");
+			sb.append("\"" + item.getName().replaceAll("\"","\"\"") + "\",");
+			sb.append("\"" + item.getCategory().getName().replaceAll("\"","\"\"") + "\",");
+			sb.append(",");
+			sb.append(item.getVariations()[0].getName() + ",");
 
-			//System.out.println(longSku);
-			
-			String[] bits = item.getName().split("\\s+");
-			String plu = bits[bits.length-1];
-			
-			if (skuFilter.containsKey(shortSku) || skuFilter.containsKey(medSku) || skuFilter.containsKey(longSku) || pluFilter.containsKey(plu)) {
-				sb.append(",");
-				sb.append("\"" + item.getName().replaceAll("\"","\"\"") + "\",");
-				sb.append("\"" + item.getCategory().getName().replaceAll("\"","\"\"") + "\",");
-				sb.append(",");
-				sb.append(item.getVariations()[0].getName() + ",");
+			int priceInt = item.getVariations()[0].getPriceMoney().getAmount();
+			String priceString = Integer.toString(priceInt);
+			if (priceString.length() > 2) {
+				priceString = priceString.substring(0, priceString.length() - 2) + "." + priceString.substring(priceString.length() - 2);
+			}
 
-				int priceInt = item.getVariations()[0].getPriceMoney().getAmount();
-				String priceString = Integer.toString(priceInt);
-				if (priceString.length() > 2) {
-					priceString = priceString.substring(0, priceString.length() - 2) + "." + priceString.substring(priceString.length() - 2);
+			sb.append(priceString + ",");
+			sb.append(item.getVariations()[0].getSku() + ",");
+
+			// Figure out taxes
+			String applyFirstTax = "N";
+			String applySecondTax = "N";
+
+			if (item.getFees().length == 1) {
+				Fee itemTax = (Fee) item.getFees()[0];
+				if (tax1 != null) {
+					applyFirstTax = (tax1.getRate().equals(itemTax.getRate())) ? "Y" : "N";
 				}
-
-				sb.append(priceString + ",");
-				sb.append(item.getVariations()[0].getSku() + ",");
-				
-				if (!taxNYLocation) {
-					sb.append("Y,"); // Apply the default tax: "Sales Tax"
-					sb.append("N\n"); // No special NY taxes
-				} else {
-					String higherTax = priceInt >= 11000 ? "Y" : "N";
-					String lowerTax = priceInt < 11000 ? "Y" : "N";
-					sb.append(higherTax + ",");
-					sb.append(lowerTax + "\n");
+				if (tax2 != null) {
+					applySecondTax = (tax2.getRate().equals(itemTax.getRate())) ? "Y" : "N";
 				}
 			}
+
+			sb.append(applyFirstTax + ",");
+			sb.append(applySecondTax + "\n");
 		}
-		
-		BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(donePath)));
+
+		BufferedWriter bwr = new BufferedWriter(new FileWriter(new File(DONE_PATH)));
 		bwr.write(sb.toString());
 		bwr.flush();
 		bwr.close();
