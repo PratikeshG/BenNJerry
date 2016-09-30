@@ -13,14 +13,14 @@ import com.squareup.connect.diff.Catalog;
 public class PLUToCSVConverter {
 
 	public static void main(String[] args) throws Exception {
-		String DEPLOYMENT = "vfcorp-tnf-00313";
-		String PATH = "/Users/bhartard/desktop/NEW-locations/313/plu.chg_20160928180623165.00313";
-		String DONE_PATH = "/Users/bhartard/desktop/NEW-locations/313/initial-load.csv";
+		String DEPLOYMENT = "vfcorp-tnf-00321";
+		String PATH = "/Users/bhartard/desktop/NEW-locations-9-28/321/plu.chg_20160930001750169.00321";
+		String DONE_PATH = "/Users/bhartard/desktop/NEW-locations-9-28/321/initial-load.csv";
 
 		// Set the appropriate for this location, set to to null when there is no tax
-		Fee tax1 = new Fee();
+		Fee tax1 = null;
 		Fee tax2 = null;
-		tax1.setRate("0.095");
+		//tax1.setRate("0.0815");
 		//tax2.setRate("0.025");
  
 		// DO NOT EDIT BELOW THIS LINE
