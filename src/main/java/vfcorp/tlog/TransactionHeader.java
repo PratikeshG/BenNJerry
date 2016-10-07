@@ -255,32 +255,18 @@ public class TransactionHeader extends Record {
 	putValue("Post Void Indicator", "0"); // Doesn't exist in Square
 	putValue("Tax Exempt Indicator", "0"); // Doesn't exist in Square
 	putValue("Training Indicator", "0"); // Doesn't exist in Square
-	putValue("Transaction Processor Attempts", "01"); // Will always be only
-							  // 1
+	putValue("Transaction Processor Attempts", "01"); // always 1
 	putValue("Transaction Error Code", ""); // Doesn't exist in Square
-	putValue("Number of Records", params.getOrDefault("Number of Records", "")); // A
-										     // count
-										     // that
-										     // needs
-										     // to
-										     // be
-										     // adjusted
-										     // after
-										     // the
-										     // fact
-	putValue("Business Date", params.getOrDefault("Business Date", "")); // not
-									     // supported
+	putValue("Number of Records", params.getOrDefault("Number of Records", ""));
+	putValue("Business Date", params.getOrDefault("Business Date", ""));
 	putValue("RetailStore Product Generation", "3");
 	putValue("RetailStore Major Version", "2");
 	putValue("RetailStore Minor Version", "05");
 	putValue("RetailStore Service Pack", ""); // Not using RetailStore
 	putValue("RetailStore Hot Fix", ""); // Not using RetailStore
-	putValue("(Customer) Code Release Number", ""); // Not using customer
-							// software
-	putValue("(Customer) Code Release EFix", ""); // Not using customer
-						      // software
-	putValue("(Customer) Release Additional Data", ""); // Not using
-							    // customer software
+	putValue("(Customer) Code Release Number", "");
+	putValue("(Customer) Code Release EFix", "");
+	putValue("(Customer) Release Additional Data", "");
 	putValue("Tax Calculator", "0"); // ?? Neither RetailStore nor
 					 // TaxConnect calculated taxes
 
