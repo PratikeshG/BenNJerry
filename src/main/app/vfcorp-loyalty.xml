@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
+    <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
+    <asynchronous-processing-strategy name="VFC_Loyalty_Asynch_Processing_Strategy" maxThreads="2" doc:name="Asynchronous Processing Strategy"/>
+    <flow name="VFC:TNF:generate-loyalty-file">
+        <logger message="Starting VFC:generate-loyalty-file" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for all TNF deployment IDs">
+            <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment LIKE 'vfcorp-tnf-%';]]></db:parameterized-query>
+        </db:select>
+        <component doc:name="Create deployment payloads">
+            <singleton-object class="vfcorp.loyalty.DeploymentsCallable">
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+            </singleton-object>
+        </component>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-queue-splitter" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-queue-splitter"/>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-reply" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-reply"/>
+        </request-reply>
+        <component doc:name="Process all locations">
+            <singleton-object class="vfcorp.loyalty.CustomersAggregationCallable">
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+            </singleton-object>
+        </component>
+        <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+            <reconnect-forever/>
+        </sftp:outbound-endpoint>
+        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
+        <set-payload value="Done processing all locations!" doc:name="Set Payload"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="VFC:generate-loyalty-file-queue-splitter">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-queue-splitter" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-queue-splitter"/>
+        <collection-splitter doc:name="Collection Splitter"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-async-worker"/>
+    </flow>
+    <flow name="VFC:generate-loyalty-file-async-worker" processingStrategy="VFC_Loyalty_Asynch_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-async-worker"/>
+        <logger message="#[&quot;Running for location: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Retrieve payments and associated customers">
+            <singleton-object class="vfcorp.loyalty.CustomersByDeploymentCallable">
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+            </singleton-object>
+        </component>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-queue-aggregator" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-queue-aggregator"/>
+    </flow>
+    <flow name="VFC:generate-loyalty-file-queue-aggregator">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-queue-aggregator" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-queue-aggregator"/>
+        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-reply" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-reply"/>
+    </flow>
+    <flow name="VFC:trigger-generate-loyalty-file">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/loyalty/jXsEyB.UFz71ZNg/{brand}" doc:name="/loyalty"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
+    </flow>
+    <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1475820915" cronExpression="0 0 9 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 2:00am (PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Loyalty Enabled?">
+            <when expression="#['${vfcorp.tlog.tnf.loyalty.enabled}' == false]">
+                <logger message="TNF loyalty disabled. Not generating loyalty file." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
+                <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
+                <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

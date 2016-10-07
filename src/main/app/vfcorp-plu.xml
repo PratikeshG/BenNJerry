@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
-    <sftp:connector name="VFCorpSFTP" validateConnections="true" doc:name="SFTP" pollingFrequency="${vfcorp.sftp.pollingFrequency}" sizeCheckWaitTime="7500">
+    <sftp:connector name="VFCorpSFTP" validateConnections="true" doc:name="SFTP" pollingFrequency="${vfcorp.sftp.pollingFrequency}" sizeCheckWaitTime="7500" autoDelete="false">
         <reconnect-forever/>
     </sftp:connector>
     <sub-flow name="VFC:TNF:ingest-plu-settings">

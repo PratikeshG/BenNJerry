@@ -1,48 +1,67 @@
 package vfcorp;
 
 public class Util {
-	public static String getValueInBrackets(String input) {
-		String value = "";
 
-		int firstIndex = input.indexOf('[');
-		int lastIndex = input.indexOf(']');
-		if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
-			value = input.substring(firstIndex + 1, lastIndex);
-		}
+    public static String getValueBetweenChars(String input, char c, char d) {
+	String value = "";
 
-		return value;
+	if (input != null) {
+	    int firstIndex = input.indexOf(c);
+	    int lastIndex = input.indexOf(d);
+	    if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
+		value = input.substring(firstIndex + 1, lastIndex);
+	    }
 	}
 
-	public static String getRegisterNumber(String deviceName) {
-		String registerNumber = "099"; // default
+	return value;
+    }
 
-		if (deviceName != null) {
-			int registerNumberFirstIndex = deviceName.indexOf('(');
-			int registerNumberLastIndex = deviceName.indexOf(')');
-			if (registerNumberFirstIndex > -1 && registerNumberLastIndex > -1) {
-				registerNumber = deviceName.substring(registerNumberFirstIndex + 1, registerNumberLastIndex);
-			}
-		}
+    public static String getValueInBrackets(String input) {
+	return getValueBetweenChars(input, '[', ']');
+    }
 
-		return registerNumber;
+    public static String getValueInParenthesis(String input) {
+	return getValueBetweenChars(input, '(', ')');
+    }
+
+    public static String getRegisterNumber(String deviceName) {
+	String registerNumber = "99"; // default
+
+	if (deviceName != null) {
+	    String n = getValueInParenthesis(deviceName).replaceAll("[^\\d]", "");
+	    if (n.length() > 0) {
+		registerNumber = n;
+	    }
 	}
 
-	public static int[] divideIntegerEvenly(int amount, int totalPieces) {
-		int quotient = amount / totalPieces;
-		int remainder = amount % totalPieces;
+	// Pad to three characters with left zeros
+	return String.format("%03d", Integer.parseInt(registerNumber));
+    }
 
-		int [] results = new int[totalPieces];
-		for(int i = 0; i < totalPieces; i++) {
-		    results[i] = i < remainder ? quotient + 1 : quotient;
-		}
+    public static String getStoreNumber(String input) {
+	String n = getValueInParenthesis(input).replaceAll("[^\\d]", "");
+	String storeNumber = n.length() > 0 ? n : "0";
 
-		// Reverse - provide smallest discounts first
-		for (int i = 0; i < results.length / 2; i++) {
-            int temp = results[i]; // swap numbers
-            results[i] = results[results.length - 1 - i];
-            results[results.length - 1 - i] = temp;
-        }
+	// Pad to five characters with left zeros
+	return String.format("%05d", Integer.parseInt(storeNumber));
+    }
 
-		return results;
+    public static int[] divideIntegerEvenly(int amount, int totalPieces) {
+	int quotient = amount / totalPieces;
+	int remainder = amount % totalPieces;
+
+	int[] results = new int[totalPieces];
+	for (int i = 0; i < totalPieces; i++) {
+	    results[i] = i < remainder ? quotient + 1 : quotient;
 	}
+
+	// Reverse - provide smallest discounts first
+	for (int i = 0; i < results.length / 2; i++) {
+	    int temp = results[i]; // swap numbers
+	    results[i] = results[results.length - 1 - i];
+	    results[results.length - 1 - i] = temp;
+	}
+
+	return results;
+    }
 }

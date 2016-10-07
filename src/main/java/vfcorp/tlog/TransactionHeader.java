@@ -127,7 +127,7 @@ public class TransactionHeader extends Record {
 	fields.put("Employee Number", new FieldDetails(11, 18, "zero filled"));
 	fields.put("Transaction Number", new FieldDetails(6, 29, ""));
 	fields.put("Transaction Date", new FieldDetails(8, 35, "MMDDYYYY, zero filled"));
-	fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM – Military, zero filled"));
+	fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM â€“ Military, zero filled"));
 	fields.put("Transaction Type", new FieldDetails(3, 47, ""));
 	fields.put("Transaction Status", new FieldDetails(2, 50, ""));
 	fields.put("Cancel Indicator", new FieldDetails(1, 52, "1 = Cancelled"));
@@ -178,7 +178,6 @@ public class TransactionHeader extends Record {
     public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String registerNumber,
 	    String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
 	    String timeZoneId) throws Exception {
-
 	Map<String, String> params = new HashMap<String, String>();
 
 	String lastDate = "";
@@ -201,10 +200,10 @@ public class TransactionHeader extends Record {
     public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees,
 	    String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
 	    String timeZoneId) throws Exception {
-
 	Map<String, String> params = new HashMap<String, String>();
 
-	// TODO(colinlam): refactor to only include a single employee ID
+	// TODO(colinlam): refactor to only include a single employee ID passed
+	// in
 	for (Tender tender : squarePayment.getTender()) {
 	    if (tender.getEmployeeId() != null) {
 		for (Employee employee : squareEmployees) {
@@ -235,9 +234,8 @@ public class TransactionHeader extends Record {
 	    ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params)
 	    throws Exception {
 
-	String storeNumber = getStoreNumber(location);
+	String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
 	params.put("Store Number", storeNumber);
-
 	params.put("Transaction Number",
 		String.format("%06d", getTransactionNumber(objectStore, storeNumber, registerNumber, deployment)));
 	params.put("Number of Records", "" + numberOfRecords);
@@ -252,23 +250,40 @@ public class TransactionHeader extends Record {
 										   // supported
 	putValue("Transaction Time", params.getOrDefault("Transaction Time", "")); // not
 										   // supported
-	putValue("Transaction Type", params.getOrDefault("Transaction Type", ""));
+	putValue("Transaction Type", params.getOrDefault("Transaction Type", "")); // There
+										   // are
+										   // many
+										   // possible
+										   // kinds
+										   // of
+										   // these
+										   // things
 	putValue("Transaction Status", "01"); // There are many possible kinds
 					      // of these things
 	putValue("Cancel Indicator", "0"); // Doesn't exist in Square
 	putValue("Post Void Indicator", "0"); // Doesn't exist in Square
 	putValue("Tax Exempt Indicator", "0"); // Doesn't exist in Square
 	putValue("Training Indicator", "0"); // Doesn't exist in Square
-	putValue("Transaction Processor Attempts", "01"); // Always 1
+	putValue("Transaction Processor Attempts", "01"); // Will always be only
+							  // 1
 	putValue("Transaction Error Code", ""); // Doesn't exist in Square
-	putValue("Number of Records", params.getOrDefault("Number of Records", ""));
+	putValue("Number of Records", params.getOrDefault("Number of Records", "")); // A
+										     // count
+										     // that
+										     // needs
+										     // to
+										     // be
+										     // adjusted
+										     // after
+										     // the
+										     // fact
 	putValue("Business Date", params.getOrDefault("Business Date", "")); // not
 									     // supported
 	putValue("RetailStore Product Generation", "3");
 	putValue("RetailStore Major Version", "2");
 	putValue("RetailStore Minor Version", "05");
-	putValue("RetailStore Service Pack", "");
-	putValue("RetailStore Hot Fix", "");
+	putValue("RetailStore Service Pack", ""); // Not using RetailStore
+	putValue("RetailStore Hot Fix", ""); // Not using RetailStore
 	putValue("(Customer) Code Release Number", ""); // Not using customer
 							// software
 	putValue("(Customer) Code Release EFix", ""); // Not using customer
@@ -314,21 +329,5 @@ public class TransactionHeader extends Record {
 	} catch (ObjectStoreException e) {
 	    return 1;
 	}
-    }
-
-    private String getStoreNumber(Merchant location) {
-	String storeNumber = "";
-
-	if (location.getLocationDetails().getNickname() != null) {
-	    int storeNumberFirstIndex = location.getLocationDetails().getNickname().indexOf('(');
-	    int storeNumberLastIndex = location.getLocationDetails().getNickname().indexOf(')');
-	    if (storeNumberFirstIndex > -1 && storeNumberLastIndex > -1) {
-		storeNumber = location.getLocationDetails().getNickname().substring(storeNumberFirstIndex + 1,
-			storeNumberLastIndex);
-		storeNumber = storeNumber.replaceAll("[^\\d]", "");
-	    }
-	}
-
-	return storeNumber;
     }
 }
