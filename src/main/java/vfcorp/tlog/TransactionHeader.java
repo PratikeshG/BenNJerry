@@ -127,7 +127,7 @@ public class TransactionHeader extends Record {
 	fields.put("Employee Number", new FieldDetails(11, 18, "zero filled"));
 	fields.put("Transaction Number", new FieldDetails(6, 29, ""));
 	fields.put("Transaction Date", new FieldDetails(8, 35, "MMDDYYYY, zero filled"));
-	fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM â€“ Military, zero filled"));
+	fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM - Military, zero filled"));
 	fields.put("Transaction Type", new FieldDetails(3, 47, ""));
 	fields.put("Transaction Status", new FieldDetails(2, 50, ""));
 	fields.put("Cancel Indicator", new FieldDetails(1, 52, "1 = Cancelled"));
@@ -246,18 +246,9 @@ public class TransactionHeader extends Record {
 	putValue("Cashier Number", "");
 	putValue("Employee Number", params.getOrDefault("Employee Number", ""));
 	putValue("Transaction Number", params.getOrDefault("Transaction Number", "000000"));
-	putValue("Transaction Date", params.getOrDefault("Transaction Date", "")); // not
-										   // supported
-	putValue("Transaction Time", params.getOrDefault("Transaction Time", "")); // not
-										   // supported
-	putValue("Transaction Type", params.getOrDefault("Transaction Type", "")); // There
-										   // are
-										   // many
-										   // possible
-										   // kinds
-										   // of
-										   // these
-										   // things
+	putValue("Transaction Date", params.getOrDefault("Transaction Date", ""));
+	putValue("Transaction Time", params.getOrDefault("Transaction Time", ""));
+	putValue("Transaction Type", params.getOrDefault("Transaction Type", ""));
 	putValue("Transaction Status", "01"); // There are many possible kinds
 					      // of these things
 	putValue("Cancel Indicator", "0"); // Doesn't exist in Square
