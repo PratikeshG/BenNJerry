@@ -15,6 +15,7 @@ public class CustomersAggregationCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
 	MuleMessage message = eventContext.getMessage();
 
+	@SuppressWarnings("unchecked")
 	List<List<LoyaltyCustomerPayload>> locationCustomerPayloads = (List<List<LoyaltyCustomerPayload>>) message
 		.getPayload();
 

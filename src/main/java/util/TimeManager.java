@@ -11,10 +11,6 @@ import java.util.TimeZone;
 
 public class TimeManager {
 
-    public static Calendar currentCalendar(String timeZoneId) {
-	return Calendar.getInstance(TimeZone.getTimeZone(timeZoneId));
-    }
-
     public static Map<String, String> getPastDayInterval(int range, int offset, String timeZoneId) {
 	// timeZoneId is expected to be "GMT-08:00", or something similar, as
 	// outlined at

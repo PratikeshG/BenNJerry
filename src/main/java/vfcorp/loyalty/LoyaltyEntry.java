@@ -1,6 +1,8 @@
 package vfcorp.loyalty;
 
 import java.text.ParseException;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import com.squareup.connect.v2.Customer;
 
@@ -77,8 +79,16 @@ public class LoyaltyEntry {
     private String membershipDate;
 
     public LoyaltyEntry(String storeId, Customer customer, String associateId) throws ParseException {
-	String customerCreateDate = TimeManager.dateFormatFromRFC3339(customer.getCreatedAt(), "America/Los_Angeles",
-		"MM/dd/yy");
+	String tz = "America/Los_Angeles";
+	String dateFormat = "MM/dd/yy";
+
+	// Customer createdAt date has unique RFC3339 ms .XXXZ format
+	String customerCreateDate = TimeManager.dateFormatFromRFC3339(customer.getCreatedAt(), tz, dateFormat);
+
+	// Get yesterday's date for "last updated" date
+	Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
+	cal.add(Calendar.DAY_OF_YEAR, -1);
+	String updateDate = TimeManager.toSimpleDateTimeInTimeZone(cal, tz, dateFormat);
 
 	brandString = "4";
 	storeNumber = storeId != null ? storeId : "";
@@ -128,8 +138,7 @@ public class LoyaltyEntry {
 		? customer.getAddress().getPostalCode() : "";
 	telephoneExtNumber = "";
 	sourceDatabaseId = "48888";
-	sourceLastUpdateDate = TimeManager.toSimpleDateTimeInTimeZone(
-		TimeManager.currentCalendar("America/Los_Angeles"), "America/Los_Angeles", "MM/dd/yy");
+	sourceLastUpdateDate = updateDate;
 	sourceAssociateNumber = associateId != null ? associateId : "";
 	addressLongitude = "";
 	addressLatitude = "";
