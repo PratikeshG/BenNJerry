@@ -23,7 +23,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         </db:select>
         <component doc:name="Create deployment payloads">
             <singleton-object class="vfcorp.loyalty.DeploymentsCallable">
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
             </singleton-object>
         </component>
         <request-reply doc:name="Request-Reply">
@@ -32,7 +31,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         </request-reply>
         <component doc:name="Process all locations">
             <singleton-object class="vfcorp.loyalty.CustomersAggregationCallable">
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
             </singleton-object>
         </component>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
@@ -53,7 +51,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <logger message="#[&quot;Running for location: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Retrieve payments and associated customers">
             <singleton-object class="vfcorp.loyalty.CustomersByDeploymentCallable">
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
             </singleton-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:generate-loyalty-file-queue-aggregator" connector-ref="VFC_VM_Loyalty" doc:name="VFC:generate-loyalty-file-queue-aggregator"/>
