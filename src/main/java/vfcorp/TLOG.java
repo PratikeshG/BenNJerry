@@ -18,8 +18,11 @@ import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
+import com.squareup.connect.v2.Customer;
 
+import vfcorp.tlog.Address;
 import vfcorp.tlog.Associate;
+import vfcorp.tlog.CRMLoyaltyIndicator;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
 import vfcorp.tlog.DiscountTypeIndicator;
@@ -30,6 +33,9 @@ import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
 import vfcorp.tlog.LineItemAssociateAndDiscountAccountingString;
 import vfcorp.tlog.MerchandiseItem;
+import vfcorp.tlog.Name;
+import vfcorp.tlog.PhoneNumber;
+import vfcorp.tlog.PreferredCustomer;
 import vfcorp.tlog.ReasonCode;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
@@ -69,23 +75,13 @@ public class TLOG {
 	this.objectStore = objectStore;
     }
 
-    public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees) throws Exception {
-	List<Payment> squarePaymentsList = Arrays.asList(squarePayments);
-	List<Employee> squareEmployeesList = Arrays.asList(squareEmployees);
+    public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees,
+	    Map<String, Customer> customerPaymentCache) throws Exception {
+	List<Payment> payments = Arrays.asList(squarePayments);
+	List<Employee> employees = Arrays.asList(squareEmployees);
 
-	/*
-	 * Changes:
-	 * 
-	 * If restricted functionality is being requested, the TLOG should
-	 * record when a manager authorizes that behavior. This is necessary for
-	 * when sales get audited.
-	 * 
-	 * Tender counts (034) can be done for credit cards and others (they
-	 * will be counting DisneyCard purchases this way).
-	 */
-
-	createSaleRecords(location, squarePaymentsList, squareEmployeesList);
-	createStoreCloseRecords(location, squarePaymentsList, squareEmployeesList);
+	createSaleRecords(location, payments, employees, customerPaymentCache);
+	createStoreCloseRecords(location, payments);
     }
 
     @Override
@@ -100,9 +96,11 @@ public class TLOG {
     }
 
     private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList,
-	    List<Employee> squareEmployeesList) throws Exception {
+	    List<Employee> squareEmployeesList, Map<String, Customer> customerPaymentCache) throws Exception {
 
 	for (Payment payment : squarePaymentsList) {
+
+	    Customer loyaltyCustomer = customerPaymentCache.get(payment.getId());
 
 	    if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
 
@@ -118,6 +116,11 @@ public class TLOG {
 
 		paymentList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
 
+		// 010 - CRM
+		if (loyaltyCustomer != null) {
+		    paymentList.add(new PreferredCustomer().parse(loyaltyCustomer.getReferenceId()));
+		}
+
 		paymentList.add(new TransactionSubTotal().parse(payment));
 
 		paymentList.add(new TransactionTax().parse(payment));
@@ -130,6 +133,39 @@ public class TLOG {
 
 		for (PaymentTax tax : payment.getInclusiveTax()) {
 		    paymentList.add(new TransactionTaxExtended().parse(payment, tax));
+		}
+
+		if (loyaltyCustomer != null) {
+		    // 029 - CRM
+		    String firstName = loyaltyCustomer.getGivenName() != null ? loyaltyCustomer.getGivenName() : "";
+		    String lastName = loyaltyCustomer.getFamilyName() != null ? loyaltyCustomer.getFamilyName() : "";
+		    paymentList.add(new Name().parse(lastName, firstName));
+
+		    // 030 - CRM
+		    String addressLine1 = (loyaltyCustomer.getAddress() != null
+			    && loyaltyCustomer.getAddress().getAddressLine1() != null)
+				    ? loyaltyCustomer.getAddress().getAddressLine1() : "";
+		    String addressLine2 = (loyaltyCustomer.getAddress() != null
+			    && loyaltyCustomer.getAddress().getAddressLine2() != null)
+				    ? loyaltyCustomer.getAddress().getAddressLine2() : "";
+		    String city = (loyaltyCustomer.getAddress() != null
+			    && loyaltyCustomer.getAddress().getLocality() != null)
+				    ? loyaltyCustomer.getAddress().getLocality() : "";
+		    String state = (loyaltyCustomer.getAddress() != null
+			    && loyaltyCustomer.getAddress().getAdministrativeDistrictLevel1() != null)
+				    ? loyaltyCustomer.getAddress().getAdministrativeDistrictLevel1() : "";
+		    String zip = (loyaltyCustomer.getAddress() != null
+			    && loyaltyCustomer.getAddress().getPostalCode() != null)
+				    ? loyaltyCustomer.getAddress().getPostalCode() : "";
+		    String email = loyaltyCustomer.getEmailAddress() != null ? loyaltyCustomer.getEmailAddress() : "";
+		    paymentList.add(new Address().parse(addressLine1, addressLine2, city, state, zip, email));
+
+		    // 031 - CRM
+		    String phone = loyaltyCustomer.getPhoneNumber() != null
+			    ? loyaltyCustomer.getPhoneNumber().replaceAll("[^\\d]", "") : "";
+		    paymentList.add(new PhoneNumber().parse("1", phone)); // home
+		    paymentList.add(new PhoneNumber().parse("2", "")); // work
+		    paymentList.add(new PhoneNumber().parse("3", "")); // cell
 		}
 
 		int itemSequence = 1;
@@ -224,6 +260,16 @@ public class TLOG {
 		    }
 		}
 
+		// 099010 - CRM
+		if (loyaltyCustomer != null) {
+		    // As part of TLOG generation, we have temporarily
+		    // overridden company name (an unused field) to hold loyalty
+		    // status).
+		    boolean isLoyalty = (loyaltyCustomer.getCompanyName() != null
+			    && loyaltyCustomer.getCompanyName().equals("loyalty")) ? true : false;
+		    paymentList.add(new CRMLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
+		}
+
 		paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList,
 			TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment,
 			timeZoneId));
@@ -233,15 +279,12 @@ public class TLOG {
 	}
     }
 
-    private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments,
-	    List<Employee> squareEmployeesList) throws Exception {
+    private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments) throws Exception {
 	Map<String, List<Payment>> devicePaymentsList = new HashMap<String, List<Payment>>();
 
 	for (Payment payment : locationPayments) {
-	    String regNumber = Util.getRegisterNumber(null); // get default #
-	    if (payment.getDevice() != null) {
-		regNumber = Util.getRegisterNumber(payment.getDevice().getName());
-	    }
+	    String deviceName = payment.getDevice() != null ? payment.getDevice().getName() : null;
+	    String regNumber = Util.getRegisterNumber(deviceName);
 
 	    // Add payment to device-specific payment list
 	    List<Payment> devicePayments = devicePaymentsList.get(regNumber);

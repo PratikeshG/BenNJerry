@@ -29,55 +29,26 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
         <set-variable variableName="deployment" value="#['vfcorp-kipling-' + flowVars.storeId]" doc:name="Set deployment: vfcorp-kipling-STORE_ID"/>
         <set-variable variableName="awsFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.kipling.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.kipling.loyalty.group.existing}" doc:name="customerGroupExisting"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="deployment" value="#['vfcorp-tnf-' + flowVars.storeId]" doc:name="Set deployment: vfcorp-tnf-STORE_ID"/>
         <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.tnf.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.tnf.loyalty.group.existing}" doc:name="customerGroupExisting"/>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query preferredCustomerCounters">
+            <db:parameterized-query><![CDATA[SELECT * FROM vfcorp_preferred_customer_counter WHERE deployment = #[flowVars.deployment] AND storeId = #[flowVars.storeId];]]></db:parameterized-query>
+        </db:select>
+        <set-session-variable variableName="preferredCustomerCounters" value="#[message.payload]" doc:name="preferredCustomerCounters"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
-        <scripting:transformer doc:name="Create payload object">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import util.TimeManager;
-
-TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
-
-tlogGeneratorPayload.setAccessToken(payload.getAccessToken());
-tlogGeneratorPayload.setMerchantId(payload.getMerchantId());
-tlogGeneratorPayload.setLocationId(payload.getLocationId());
-tlogGeneratorPayload.setMerchantAlias(payload.getMerchantAlias());
-tlogGeneratorPayload.setLegacy(payload.isLegacy());
-
-int offset = Integer.parseInt(flowVars["offset"]);
-int range = Integer.parseInt(flowVars["range"]);
-tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, flowVars["timeZone"]));
-
-return tlogGeneratorPayload;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get locations+payments+items+employees for business">
-            <scripting:script engine="Groovy"><![CDATA[import vfcorp.TLOGGeneratorPayload;
-import com.squareup.connect.Employee;
-import com.squareup.connect.Merchant;
-import com.squareup.connect.Payment;
-import com.squareup.connect.SquareClient;
-
-TLOGGeneratorPayload sp = (TLOGGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Merchant[] locations = client.businessLocations().list();
-Employee[] employees = client.employees().list();
-Payment[] payments = client.payments().list(sp.getParams());
-
-sp.setLocations(locations);
-sp.setEmployees(employees);
-sp.setPayments(payments);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
         <component doc:name="Generate TLOGs">
             <singleton-object class="vfcorp.TLOGGenerator">
                 <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
@@ -86,6 +57,16 @@ return sp;]]></scripting:script>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location-finish">
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
+        <choice doc:name="Update PCM">
+            <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
+                <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
+                    <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
+                </db:insert>
+            </when>
+            <otherwise>
+                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
         <logger message="#['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
     </sub-flow>
     <flow name="VFC:Kipling:tlog-store-5019" processingStrategy="synchronous">

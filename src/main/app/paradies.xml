@@ -1,29 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
     xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:file="http://www.mulesoft.org/schema/mule/file"
     xmlns:http="http://www.mulesoft.org/schema/mule/http"
     xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
     xmlns:spring="http://www.springframework.org/schema/beans" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd">
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
     <vm:connector name="Paradies_VM_Catalog" validateConnections="true" createMultipleTransactedReceivers="true" numberOfConcurrentTransactedReceivers="5" doc:name="VM"></vm:connector>
     <vm:connector name="Paradies_VM_Worker" validateConnections="true" doc:name="VM"> 
         <vm:queue-profile maxOutstandingMessages="1"></vm:queue-profile>  
     </vm:connector>
     <queued-asynchronous-processing-strategy name="Paradies_Catalog_Asynch_Processing_Strategy" maxThreads="3" minThreads="1" doc:name="Queued Asynchronous Processing Strategy"></queued-asynchronous-processing-strategy>
-    <ftp:connector name="Paradies_FTP_catalog" pollingFrequency="5000" validateConnections="true" moveToDirectory="${paradies.ftp.path.items}${paradies.ftp.path.complete}" moveToPattern="#[server.dateTime.format('YYYYMMddhhmmss') + '_' + sessionVars['originalFilename']]" doc:name="FTP"></ftp:connector>
+    <sftp:connector name="Paradies_SFTP_catalog" validateConnections="true" sizeCheckWaitTime="7500" doc:name="SFTP" pollingFrequency="${paradies.ftp.pollingFrequency}" autoDelete="false" tempDirInbound="${paradies.ftp.path.complete}" outputPattern="#[server.dateTime.format('YYYYMMddhhmmss') + '_' + sessionVars['originalFilename']]" useTempFileTimestampSuffix="true">
+        <reconnect count="25" frequency="10000"></reconnect>  
+    </sftp:connector>
     <sub-flow name="Paradies:set-flow-vars"> 
         <set-session-variable variableName="merchantId" value="#[payload.merchantId]" doc:name="Set merchantId"></set-session-variable>  
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
-    <flow name="Paradies:ftp-inbound-listener" processingStrategy="synchronous"> 
-        <ftp:inbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" pollingFrequency="${paradies.ftp.pollingFrequency}" responseTimeout="10000" doc:name="OUTBOUND"> 
-            <file:filename-wildcard-filter pattern="${paradies.ftp.pattern.upc}*,${paradies.ftp.pattern.employee}*"></file:filename-wildcard-filter>  
-            <reconnect-forever></reconnect-forever>  
-        </ftp:inbound-endpoint>  
-        <file:file-to-byte-array-transformer doc:name="File to Byte Array"></file:file-to-byte-array-transformer>  
-        <set-session-variable variableName="ftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
+    <flow name="Paradies:ftp-inbound-listener" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="Paradies_SFTP_catalog" host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" responseTimeout="10000" pollingFrequency="${paradies.ftp.pollingFrequency}" sizeCheckWaitTime="7500" doc:name="/Outbound">
+  			<file:filename-wildcard-filter pattern="${paradies.ftp.pattern.upc}*,${paradies.ftp.pattern.employee}*"></file:filename-wildcard-filter>
+        </sftp:inbound-endpoint>
+        <object-to-byte-array-transformer doc:name="Object to Byte Array"/>
+  
+        <set-session-variable variableName="sftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
         <set-session-variable variableName="originalFilename" value="#[message.inboundProperties.originalFilename]" doc:name="Set originalFilename"></set-session-variable>  
         <set-payload value="New file ingested by Paradies: #[sessionVars.originalFilename]" doc:name="Notify of INBOUND payload"></set-payload>  
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - New payload ingested by Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
@@ -143,8 +156,11 @@ return tlogGenerator.getTlogs();]]></scripting:script>
                     <logger message="No TLOGs for location" level="INFO" doc:name="Logger"></logger>  
                 </when>  
                 <otherwise> 
-                    <foreach collection="#[payload.values()]" counterVariableName="deviceTLOGsCounter" doc:name="For Each Device TLOG"> 
-                        <ftp:outbound-endpoint host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.reports}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" connector-ref="Paradies_FTP_catalog" outputPattern="#[flowVars.filenameDateStamp + '_str' + payload.getStoreId() + payload.getDeviceIdCharacter() + '.asc']" responseTimeout="10000" doc:name="FTP"></ftp:outbound-endpoint>  
+                    <foreach collection="#[payload.values()]" counterVariableName="deviceTLOGsCounter" doc:name="For Each Device TLOG">
+                        <sftp:outbound-endpoint exchange-pattern="one-way" outputPattern="#[flowVars.filenameDateStamp + '_str' + payload.getStoreId() + payload.getDeviceIdCharacter() + '.asc']" host="${paradies.ftp.host}" port="${paradies.ftp.port}" responseTimeout="10000" doc:name="/Inbound" connector-ref="Paradies_SFTP_catalog" password="${paradies.ftp.password}" path="${paradies.ftp.path.reports}" user="${paradies.ftp.username}">
+                            <reconnect-forever/>
+                        </sftp:outbound-endpoint>
+  
                     </foreach>  
                 </otherwise>  
             </choice>  
