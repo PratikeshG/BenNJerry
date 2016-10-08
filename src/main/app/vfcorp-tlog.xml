@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <reconnect/>
     </s3:config>
     <flow name="VFC:trigger-generate-tlogs">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs/jXsEyB.UFz71ZNg/{brand}/{storeId}" doc:name="/tlogs"/>
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs/${urlKey}/{brand}/{storeId}" doc:name="/tlogs"/>
         <flow-ref name="#['VFC:' + message.inboundProperties.'http.uri.params'.brand + ':tlog-store-' + message.inboundProperties.'http.uri.params'.storeId]" doc:name="#['VFC:' + message.inboundProperties.'http.uri.params'.brand + ':tlog-store-' + message.inboundProperties.'http.uri.params'.storeId]"/>
     </flow>
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
