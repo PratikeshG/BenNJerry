@@ -11,7 +11,9 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
     <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
     <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail"/>
     <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.paradies.properties" doc:name="Secure Property Placeholder"/>
-    <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration"/>
+    <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration">
+        <reconnect frequency="5000" count="10"/>
+    </db:mysql-config>
     <configuration defaultExceptionStrategy-ref="globalExceptionCatchingStrategy" doc:name="Configuration">
         <http:config useTransportForUris="false"/>
     </configuration>
