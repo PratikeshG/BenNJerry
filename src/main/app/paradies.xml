@@ -200,7 +200,7 @@ return tlogGenerator.getTlogs();]]></scripting:script>
         </choice>  
     </flow>
     <flow name="Paradies:trigger-generate-TLOGs"> 
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/tlogs/jXsEyB.UFz71ZNg/{brand}" doc:name="/paradies-tlogs"></http:listener>  
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/tlogs/${urlKey}/{brand}" doc:name="/paradies-tlogs"></http:listener>  
         <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':generate-TLOGs']"></flow-ref>  
     </flow>
     <flow name="Paradies:update-employee-master" processingStrategy="synchronous"> 

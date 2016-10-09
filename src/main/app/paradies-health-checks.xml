@@ -95,7 +95,7 @@ return hcPayload;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Paradies:trigger-health-checks">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/health/jXsEyB.UFz71ZNg/{brand}" doc:name="/paradies-health-checks"/>
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/paradies/health/${urlKey}/{brand}" doc:name="/paradies-health-checks"/>
         <flow-ref name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-payments']" doc:name="#[message.inboundProperties.'http.uri.params'.brand + ':health-check-payments']"/>
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
