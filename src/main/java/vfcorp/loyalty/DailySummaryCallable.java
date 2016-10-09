@@ -32,12 +32,12 @@ public class DailySummaryCallable implements Callable {
         builder.append("<!DOCTYPE html>");
         builder.append("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
         builder.append("<body><table><tr>");
-        builder.append("<td><b>Store</b><td>");
-        builder.append("<td><b>Total Transactions</b><td>");
-        builder.append("<td><b>Gross Sales</b><td>");
-        builder.append("<td><b>Unique Devices</b><td>");
-        builder.append("<td><b>Unique Employees</b><td>");
-        builder.append("<td><b>Loyalty Customers</b></b><td>");
+        builder.append("<td><b>Store</b></td>");
+        builder.append("<td><b>Total Transactions</b></td>");
+        builder.append("<td><b>Gross Sales</b></td>");
+        builder.append("<td><b>Unique Devices</b></td>");
+        builder.append("<td><b>Unique Employees</b></td>");
+        builder.append("<td><b>Loyalty Customers</b></td>");
         builder.append("</tr>");
 
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
@@ -92,8 +92,8 @@ public class DailySummaryCallable implements Callable {
 
     private String appendRow(String store, int numTransactions, int gpvTotal, int numDevices, int numEmployees,
             int numCustomers) {
-        return String.format("<tr><td>%s<td><td>%d<td><td>%s<td><td>%d<td><td>%d<td></tr>", store, numTransactions,
-                formatTotal(gpvTotal), numDevices, numEmployees, numCustomers);
+        return String.format("<tr><td>%s</td><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td></tr>", store,
+                numTransactions, formatTotal(gpvTotal), numDevices, numEmployees, numCustomers);
     }
 
     private String formatTotal(int gpv) {
