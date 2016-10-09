@@ -179,7 +179,10 @@ public class RPC {
                 matchingItem.setVariations(new ItemVariation[] { matchingVariation });
             }
 
-            matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Retail Price"))));
+            int price = Integer.parseInt(record.getValue("Retail Price"));
+            if (price > 0) {
+                matchingVariation.setPriceMoney(new Money(price));
+            }
 
             if (ItemRecord.ACTION_TYPE_PLACE_ON_SALE.equals(actionType)) {
                 matchingVariation.setPriceMoney(new Money(Integer.parseInt(record.getValue("Sale Price"))));
@@ -274,8 +277,9 @@ public class RPC {
             }
 
             int price = Integer.parseInt(record.getValue("Retail Price"));
-            matchingVariation.setPriceMoney(new Money(price));
-
+            if (price > 0) {
+                matchingVariation.setPriceMoney(new Money(price));
+            }
             if (ItemRecord.ACTION_TYPE_PLACE_ON_SALE.equals(actionType)) {
                 price = Integer.parseInt(record.getValue("Sale Price"));
                 matchingVariation.setPriceMoney(new Money(price));
