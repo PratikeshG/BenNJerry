@@ -6,6 +6,7 @@ public class LoyaltyEntryPayload {
     private String storeId;
     private String associateId;
     private Customer customer;
+    private boolean emailOptIn;
 
     public String getStoreId() {
         return storeId;
@@ -29,5 +30,13 @@ public class LoyaltyEntryPayload {
 
     public void setCustomer(Customer customer) {
         this.customer = customer;
+    }
+
+    public boolean isEmailOptIn() {
+        return emailOptIn;
+    }
+
+    public void setEmailOptIn(boolean emailOptIn) {
+        this.emailOptIn = emailOptIn;
     }
 }

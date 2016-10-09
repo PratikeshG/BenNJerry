@@ -53,6 +53,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
     <sub-flow name="VFC:TNF:generate-loyalty-file">
         <set-variable variableName="deploymentPattern" value="vfcorp-tnf-%" doc:name="deploymentPattern vfcorp-tnf-%"/>
         <flow-ref name="VFC:generate-aggregate-transactions-report" doc:name="VFC:generate-aggregate-transactions-report"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
         <component doc:name="Aggregate and process all locations">
             <singleton-object class="vfcorp.loyalty.LoyaltyAggregationCallable"/>
         </component>

@@ -13,6 +13,7 @@ import org.mule.api.transport.PropertyScope;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.CustomerGroup;
 import com.squareup.connect.v2.Transaction;
 
 import vfcorp.Util;
@@ -28,6 +29,8 @@ public class LoyaltyAggregationCallable implements Callable {
         @SuppressWarnings("unchecked")
         List<LocationTransactionDetails> transactionDetailsByLocation = (List<LocationTransactionDetails>) message
                 .getPayload();
+
+        String CUSTOMER_GROUP_EMAIL = (String) message.getProperty("customerGroupEmail", PropertyScope.INVOCATION);
 
         // Temporary use this loyalty process to generate daily email summaries
         // TODO(bhartard): Remove once emails are no longer required by VFC
@@ -67,6 +70,13 @@ public class LoyaltyAggregationCallable implements Callable {
                             loyaltyPayload.setAssociateId(associateId);
                             loyaltyPayload.setCustomer(customer);
 
+                            for (CustomerGroup group : customer.getGroups()) {
+                                if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
+                                    loyaltyPayload.setEmailOptIn(true);
+                                    break;
+                                }
+                            }
+
                             loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
                         } else {
                             if (customer != null && customer.getReferenceId() == null) {
@@ -94,8 +104,8 @@ public class LoyaltyAggregationCallable implements Callable {
         StringBuilder builder = new StringBuilder();
         for (String key : loyaltyPayloadSet.keySet()) {
             LoyaltyEntryPayload loyaltyPayload = loyaltyPayloadSet.get(key);
-            LoyaltyEntry entry = new LoyaltyEntry(loyaltyPayload.getStoreId(), cal, loyaltyPayload.getAssociateId(),
-                    loyaltyPayload.getCustomer());
+            LoyaltyEntry entry = new LoyaltyEntry(cal, loyaltyPayload.getStoreId(), loyaltyPayload.getAssociateId(),
+                    loyaltyPayload.getCustomer(), loyaltyPayload.isEmailOptIn());
             builder.append(entry.toString() + "\r\n");
         }
 

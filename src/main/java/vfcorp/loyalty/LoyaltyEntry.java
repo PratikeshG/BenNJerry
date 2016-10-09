@@ -77,7 +77,8 @@ public class LoyaltyEntry {
     private String membershipTypeCode;
     private String membershipDate;
 
-    public LoyaltyEntry(String storeId, Calendar date, String associateId, Customer customer) throws ParseException {
+    public LoyaltyEntry(Calendar date, String storeId, String associateId, Customer customer, boolean optIn)
+            throws ParseException {
         String tz = "America/Los_Angeles";
         String dateFormat = "MM/dd/yy";
 
@@ -150,12 +151,12 @@ public class LoyaltyEntry {
         addressRecurringFlag = "0";
         addressId = "1";
         headOfHouseholdFlag = "1";
-        emailOptIn = customer.getEmailAddress() != null ? "1" : "0";
+        emailOptIn = (customer.getEmailAddress() == null) ? "0" : (optIn ? "1" : "2");
         emailOptInDate = customerCreateDate;
         extra18 = "u";
-        mailOptIn = customer.getPhoneNumber() != null ? "1" : "0";
+        mailOptIn = (customer.getPhoneNumber() == null) ? "0" : (optIn ? "1" : "2");
         mailOptInDate = customerCreateDate;
-        phoneOptIn = customer.getPhoneNumber() != null ? "1" : "0";
+        phoneOptIn = (customer.getPhoneNumber() == null) ? "0" : (optIn ? "1" : "2");
         phoneOptInDate = customerCreateDate;
         phoneIndicator = "9";
         membershipTypeCode = "REGL";
