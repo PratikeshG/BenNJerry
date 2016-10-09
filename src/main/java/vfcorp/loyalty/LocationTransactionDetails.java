@@ -6,61 +6,45 @@ import java.util.Map;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Transaction;
 
 public class LocationTransactionDetails {
-    private String storeId;
-    private String timeZone;
+    private Location location;
     private Transaction[] transactions;
     private Payment[] payments;
     private Map<String, Employee> employees;
     private Map<String, Customer> customers;
 
-    public LocationTransactionDetails(String storeId) {
-        this(storeId, "America/Los_Angeles", new Transaction[0], new Payment[0], new HashMap<String, Employee>(),
+    public LocationTransactionDetails(Location location) {
+        this(location, new Transaction[0], new Payment[0], new HashMap<String, Employee>(),
                 new HashMap<String, Customer>());
     }
 
-    public LocationTransactionDetails(String storeId, Transaction[] transactions) {
-        this(storeId, "America/Los_Angeles", transactions, new Payment[0], new HashMap<String, Employee>(),
-                new HashMap<String, Customer>());
+    public LocationTransactionDetails(Location location, Transaction[] transactions) {
+        this(location, transactions, new Payment[0], new HashMap<String, Employee>(), new HashMap<String, Customer>());
 
     }
 
-    public LocationTransactionDetails(String storeId, String timeZone, Transaction[] transactions) {
-        this(storeId, timeZone, transactions, new Payment[0], new HashMap<String, Employee>(),
-                new HashMap<String, Customer>());
+    public LocationTransactionDetails(Location location, Transaction[] transactions, Payment[] payments) {
+        this(location, transactions, payments, new HashMap<String, Employee>(), new HashMap<String, Customer>());
     }
 
-    public LocationTransactionDetails(String storeId, String timeZone, Transaction[] transactions, Payment[] payments) {
-        this(storeId, timeZone, transactions, payments, new HashMap<String, Employee>(),
-                new HashMap<String, Customer>());
-    }
-
-    public LocationTransactionDetails(String storeId, String timeZone, Transaction[] transactions, Payment[] payments,
+    public LocationTransactionDetails(Location location, Transaction[] transactions, Payment[] payments,
             Map<String, Employee> employees, Map<String, Customer> customers) {
-        this.storeId = storeId;
-        this.timeZone = timeZone;
+        this.setLocation(location);
         this.transactions = transactions;
         this.payments = payments;
         this.employees = employees;
         this.customers = customers;
     }
 
-    public String getStoreId() {
-        return storeId;
+    public Location getLocation() {
+        return location;
     }
 
-    public void setStoreId(String storeId) {
-        this.storeId = storeId;
-    }
-
-    public String getTimeZone() {
-        return timeZone;
-    }
-
-    public void setTimeZone(String timeZone) {
-        this.timeZone = timeZone;
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     public Transaction[] getTransactions() {

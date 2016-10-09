@@ -19,7 +19,6 @@ import com.squareup.connect.v2.Transaction;
 
 import util.SquarePayload;
 import util.TimeManager;
-import vfcorp.Util;
 
 public class DetailsByDeploymentCallable implements Callable {
 
@@ -36,29 +35,25 @@ public class DetailsByDeploymentCallable implements Callable {
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
                 deployment.getLocationId());
 
-        String storeId = "0000";
-        String timeZone = "America/New_York";
+        Location location = null;
 
         // We want to get the location store ID and time zone
         // There is currently no retrieveLocation endpoint in V2
         // Need to list locations then find the correct location
         Location[] deploymentLocations = squareV2Client.locations().list();
-        boolean locationFound = false;
         for (Location loc : deploymentLocations) {
             if (loc.getId().equals(deployment.getLocationId())) {
-                locationFound = true;
-                storeId = Util.getStoreNumber(loc.getName());
-                timeZone = loc.getTimezone();
+                location = loc;
                 break;
             }
         }
-        if (!locationFound) {
+        if (location == null) {
             throw new Exception("No matching location ID found in loyalty calculation!");
         }
 
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
-        Map<String, String> params = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
         // V1 Payments
         Payment[] payments = squareV1Client.payments().list(params);
@@ -86,8 +81,8 @@ public class DetailsByDeploymentCallable implements Callable {
             }
         }
 
-        LocationTransactionDetails details = new LocationTransactionDetails(storeId, timeZone, transactions, payments,
-                employees, customers);
+        LocationTransactionDetails details = new LocationTransactionDetails(location, transactions, payments, employees,
+                customers);
 
         return details;
     }

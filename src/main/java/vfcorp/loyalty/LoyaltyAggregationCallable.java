@@ -15,6 +15,8 @@ import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Transaction;
 
+import vfcorp.Util;
+
 public class LoyaltyAggregationCallable implements Callable {
 
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
@@ -35,7 +37,7 @@ public class LoyaltyAggregationCallable implements Callable {
         HashMap<String, LoyaltyEntryPayload> loyaltyPayloadSet = new HashMap<String, LoyaltyEntryPayload>();
 
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
-            String storeId = locationTransactionDetails.getStoreId();
+            String storeId = Util.getStoreNumber(locationTransactionDetails.getLocation().getName());
 
             // Create a tender_id:employee_id mapping
             HashMap<String, String> tenderEmployeeMapping = new HashMap<String, String>();
