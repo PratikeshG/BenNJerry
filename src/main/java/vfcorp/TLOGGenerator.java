@@ -15,8 +15,10 @@ import org.mule.api.transport.PropertyScope;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
+import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
@@ -67,11 +69,10 @@ public class TLOGGenerator implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
-        com.squareup.connect.SquareClient squareV1Client = new com.squareup.connect.SquareClient(
-                tlogGeneratorPayload.getAccessToken(), apiUrl, apiVersion, tlogGeneratorPayload.getMerchantId(),
+        SquareClient squareV1Client = new SquareClient(tlogGeneratorPayload.getAccessToken(), apiUrl, apiVersion,
+                tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
+        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, tlogGeneratorPayload.getAccessToken(),
                 tlogGeneratorPayload.getLocationId());
-        com.squareup.connect.v2.SquareClient squareV2Client = new com.squareup.connect.v2.SquareClient(apiUrl,
-                tlogGeneratorPayload.getAccessToken(), tlogGeneratorPayload.getLocationId());
 
         // Locations
         Merchant[] locations = squareV1Client.businessLocations().list();
