@@ -32,6 +32,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.kipling.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.kipling.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="deployment" value="#['vfcorp-tnf-' + flowVars.storeId]" doc:name="Set deployment: vfcorp-tnf-STORE_ID"/>
@@ -39,6 +40,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.tnf.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.tnf.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>

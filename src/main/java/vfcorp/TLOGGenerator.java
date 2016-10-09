@@ -25,204 +25,223 @@ import util.TimeManager;
 
 public class TLOGGenerator implements Callable {
 
+    private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
+
     private int itemNumberLookupLength;
 
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
-	this.itemNumberLookupLength = itemNumberLookupLength;
+        this.itemNumberLookupLength = itemNumberLookupLength;
     }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-	MuleMessage message = eventContext.getMessage();
+        MuleMessage message = eventContext.getMessage();
 
-	// TODO(bhartard): Refactor these into separate, testable functions
-	SquarePayload squarePayload = (SquarePayload) message.getPayload();
+        // TODO(bhartard): Refactor these into separate, testable functions
+        SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
-	TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
+        TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
 
-	tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
-	tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
-	tlogGeneratorPayload.setLocationId(squarePayload.getLocationId());
-	tlogGeneratorPayload.setMerchantAlias(squarePayload.getMerchantAlias());
-	tlogGeneratorPayload.setLegacy(squarePayload.isLegacy());
+        tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
+        tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
+        tlogGeneratorPayload.setLocationId(squarePayload.getLocationId());
+        tlogGeneratorPayload.setMerchantAlias(squarePayload.getMerchantAlias());
+        tlogGeneratorPayload.setLegacy(squarePayload.isLegacy());
 
-	String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
+        String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
 
-	// Loyalty settings
-	boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
-		.equals("true") ? true : false;
-	String CUSTOMER_GROUP_NEW = (String) message.getProperty("customerGroupNew", PropertyScope.INVOCATION);
-	String CUSTOMER_GROUP_EXISTING = (String) message.getProperty("customerGroupExisting",
-		PropertyScope.INVOCATION);
-	String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
+        // Loyalty settings
+        boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
+        String CUSTOMER_GROUP_EMAIL = (String) message.getProperty("customerGroupEmail", PropertyScope.INVOCATION);
+        String CUSTOMER_GROUP_NEW = (String) message.getProperty("customerGroupNew", PropertyScope.INVOCATION);
+        String CUSTOMER_GROUP_EXISTING = (String) message.getProperty("customerGroupExisting",
+                PropertyScope.INVOCATION);
 
-	String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
-	int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.INVOCATION));
-	int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
-	tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
+        String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
+        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
+        String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
+        String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
-	String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
-	String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
+        int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.INVOCATION));
+        int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
+        tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
-	com.squareup.connect.SquareClient squareV1Client = new com.squareup.connect.SquareClient(
-		tlogGeneratorPayload.getAccessToken(), apiUrl, apiVersion, tlogGeneratorPayload.getMerchantId(),
-		tlogGeneratorPayload.getLocationId());
-	com.squareup.connect.v2.SquareClient squareV2Client = new com.squareup.connect.v2.SquareClient(apiUrl,
-		tlogGeneratorPayload.getAccessToken(), tlogGeneratorPayload.getLocationId());
+        com.squareup.connect.SquareClient squareV1Client = new com.squareup.connect.SquareClient(
+                tlogGeneratorPayload.getAccessToken(), apiUrl, apiVersion, tlogGeneratorPayload.getMerchantId(),
+                tlogGeneratorPayload.getLocationId());
+        com.squareup.connect.v2.SquareClient squareV2Client = new com.squareup.connect.v2.SquareClient(apiUrl,
+                tlogGeneratorPayload.getAccessToken(), tlogGeneratorPayload.getLocationId());
 
-	// Locations
-	Merchant[] locations = squareV1Client.businessLocations().list();
-	tlogGeneratorPayload.setLocations(locations);
+        // Locations
+        Merchant[] locations = squareV1Client.businessLocations().list();
+        tlogGeneratorPayload.setLocations(locations);
 
-	// Employees
-	Employee[] employees = squareV1Client.employees().list();
-	tlogGeneratorPayload.setEmployees(employees);
+        // Employees
+        Employee[] employees = squareV1Client.employees().list();
+        tlogGeneratorPayload.setEmployees(employees);
 
-	// Payments
-	Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
-	Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
-	for (Payment payment : payments) {
-	    paymentsCache.put(payment.getId(), payment);
-	    for (com.squareup.connect.Tender tender : payment.getTender()) {
-		paymentsCache.put(tender.getId(), payment);
-	    }
-	}
-	tlogGeneratorPayload.setPayments(payments);
+        // Payments
+        Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
+        Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
+        for (Payment payment : payments) {
+            paymentsCache.put(payment.getId(), payment);
+            for (com.squareup.connect.Tender tender : payment.getTender()) {
+                paymentsCache.put(tender.getId(), payment);
+            }
+        }
+        tlogGeneratorPayload.setPayments(payments);
 
-	// Get PCM counters
-	Map<String, Integer> nextPreferredCustomerNumbers = new HashMap<String, Integer>();
-	@SuppressWarnings("unchecked")
-	List<Map<String, Object>> preferredCustomerCounters = (List<Map<String, Object>>) message
-		.getProperty("preferredCustomerCounters", PropertyScope.SESSION);
-	for (Map<String, Object> customerCounter : preferredCustomerCounters) {
-	    String registerId = (String) customerCounter.get("registerId");
-	    int nextNumber = (int) customerCounter.get("nextPreferredCustomerNumber");
-	    nextPreferredCustomerNumbers.put(registerId, nextNumber);
-	}
+        // Get PCM counters
+        Map<String, Integer> nextPreferredCustomerNumbers = new HashMap<String, Integer>();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> preferredCustomerCounters = (List<Map<String, Object>>) message
+                .getProperty("preferredCustomerCounters", PropertyScope.SESSION);
+        for (Map<String, Object> customerCounter : preferredCustomerCounters) {
+            String registerId = (String) customerCounter.get("registerId");
+            int nextNumber = (int) customerCounter.get("nextPreferredCustomerNumber");
+            nextPreferredCustomerNumbers.put(registerId, nextNumber);
+        }
 
-	// Get V2 transactions/customers
-	Map<String, Customer> customerPaymentCache = new HashMap<String, Customer>();
-	if (customerLoyaltyEnabled) {
-	    // Get customer transactions
-	    Map<String, String> v2Params = tlogGeneratorPayload.getParams();
-	    v2Params.put("sort_order", "ASC"); // v2 default is DESC
-	    Transaction[] transactions = squareV2Client.transactions().list(v2Params);
-	    for (Transaction transaction : transactions) {
-		for (Tender tender : transaction.getTenders()) {
-		    if (tender.getCustomerId() != null) {
-			Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
+        // Get V2 transactions/customers
+        Map<String, Customer> customerPaymentCache = new HashMap<String, Customer>();
+        if (customerLoyaltyEnabled) {
+            // Get customer transactions
+            Map<String, String> v2Params = tlogGeneratorPayload.getParams();
+            v2Params.put("sort_order", "ASC"); // v2 default is DESC
+            Transaction[] transactions = squareV2Client.transactions().list(v2Params);
+            for (Transaction transaction : transactions) {
+                for (Tender tender : transaction.getTenders()) {
+                    if (tender.getCustomerId() != null) {
+                        Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
 
-			// Set preferredCustomerId (if necessary)
-			if (customer.getReferenceId() == null || customer.getReferenceId().length() != 17) {
-			    String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
-				    paymentsCache.get(tender.getId()), storeId);
+                        // Get customer's loyalty group status
+                        boolean loyaltyCustomer = false;
+                        boolean emailOptIn = false;
+                        if (customer.getGroups() != null) {
+                            for (CustomerGroup group : customer.getGroups()) {
+                                if (group.getId().equals(CUSTOMER_GROUP_NEW)
+                                        || group.getId().equals(CUSTOMER_GROUP_EXISTING)) {
+                                    loyaltyCustomer = true;
+                                }
+                                if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
+                                    emailOptIn = true;
+                                }
+                            }
+                        }
 
-			    customer.setReferenceId(newId);
-			    customer = squareV2Client.customers().update(customer);
+                        /*
+                         * Set preferredCustomerId (if necessary)
+                         *
+                         * Square currently only returns a customer record when
+                         * the merchant adds the customer to the sale. This
+                         * could possible change in the future, so we need to
+                         * verify they are on the transactions as a loyalty
+                         * customer.
+                         */
+                        if ((loyaltyCustomer || emailOptIn) && (customer.getReferenceId() == null
+                                || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
+                            String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
+                                    paymentsCache.get(tender.getId()), storeId);
 
-			    System.out.println("New Customer ID: " + customer.getReferenceId());
-			}
+                            customer.setReferenceId(newId);
+                            customer = squareV2Client.customers().update(customer);
 
-			// Get customer's loyalty group status
-			String loyaltyStatus = "";
-			if (customer.getGroups() != null) {
-			    for (CustomerGroup group : customer.getGroups()) {
-				if (group.getId().equals(CUSTOMER_GROUP_NEW)
-					|| group.getId().equals(CUSTOMER_GROUP_EXISTING)) {
-				    loyaltyStatus = "loyalty";
-				}
-			    }
-			}
-			// For now, override unused companyName field to hold
-			// this
-			// data to be used in TLOG logic
-			customer.setCompanyName(loyaltyStatus);
+                            System.out.println("New Customer ID: " + customer.getReferenceId());
+                        }
 
-			customerPaymentCache.put(tender.getId(), customer);
-			customerPaymentCache.put(tender.getTransactionId(), customer);
-		    }
-		}
-	    }
-	}
-	tlogGeneratorPayload.setCustomers(customerPaymentCache);
+                        // For now, we only track the customer if they have
+                        // selected one of the customer groups
+                        if (loyaltyCustomer || emailOptIn) {
+                            customer.setCompanyName(loyaltyCustomer ? "1" : "0");
 
-	String sqlUpdate = generatePreferredCustomerSQLUpdate(nextPreferredCustomerNumbers, deployment, storeId);
-	message.setProperty("preferredCustomerSQLUpdate", sqlUpdate.length() > 0 ? true : false,
-		PropertyScope.INVOCATION);
-	message.setProperty("preferredCustomerSQLStatement", sqlUpdate, PropertyScope.INVOCATION);
+                            customerPaymentCache.put(tender.getId(), customer);
+                            customerPaymentCache.put(tender.getTransactionId(), customer);
+                        }
+                    }
+                }
+            }
+        }
+        tlogGeneratorPayload.setCustomers(customerPaymentCache);
 
-	Merchant matchingMerchant = null;
-	for (Merchant merchant : tlogGeneratorPayload.getLocations()) {
-	    if (merchant.getId().equals(tlogGeneratorPayload.getLocationId())) {
-		matchingMerchant = merchant;
-	    }
-	}
+        String sqlUpdate = generatePreferredCustomerSQLUpdate(nextPreferredCustomerNumbers, deployment, storeId);
+        message.setProperty("preferredCustomerSQLUpdate", sqlUpdate.length() > 0 ? true : false,
+                PropertyScope.INVOCATION);
+        message.setProperty("preferredCustomerSQLStatement", sqlUpdate, PropertyScope.INVOCATION);
 
-	if (matchingMerchant != null) {
+        Merchant matchingMerchant = null;
+        for (Merchant merchant : tlogGeneratorPayload.getLocations()) {
+            if (merchant.getId().equals(tlogGeneratorPayload.getLocationId())) {
+                matchingMerchant = merchant;
+            }
+        }
 
-	    String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
+        if (matchingMerchant != null) {
 
-	    EpicorParser epicor = new EpicorParser();
-	    epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
-	    epicor.tlog().setDeployment(deploymentId);
-	    epicor.tlog().setTimeZoneId(timeZone);
+            String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
 
-	    // Get Cloudhub default object store
-	    ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
-		    .lookupObject("_defaultUserObjectStore");
-	    epicor.tlog().setObjectStore(objectStore);
-	    epicor.tlog().parse(matchingMerchant, tlogGeneratorPayload.getPayments(),
-		    tlogGeneratorPayload.getEmployees(), tlogGeneratorPayload.getCustomers());
+            EpicorParser epicor = new EpicorParser();
+            epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
+            epicor.tlog().setDeployment(deploymentId);
+            epicor.tlog().setTimeZoneId(timeZone);
 
-	    message.setProperty("vfcorpStoreNumber",
-		    Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
+            // Get Cloudhub default object store
+            ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
+                    .lookupObject("_defaultUserObjectStore");
+            epicor.tlog().setObjectStore(objectStore);
+            epicor.tlog().parse(matchingMerchant, tlogGeneratorPayload.getPayments(),
+                    tlogGeneratorPayload.getEmployees(), tlogGeneratorPayload.getCustomers());
 
-	    return epicor.tlog().toString();
-	}
+            message.setProperty("vfcorpStoreNumber",
+                    Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
 
-	return null;
+            return epicor.tlog().toString();
+        }
+
+        return null;
     }
 
     private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
-	    Payment customerPayment, String storeId) {
+            Payment customerPayment, String storeId) {
 
-	String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
-		? customerPayment.getDevice().getName() : null;
-	String registerNumber = Util.getRegisterNumber(deviceName);
+        String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
+                ? customerPayment.getDevice().getName() : null;
+        String registerNumber = Util.getRegisterNumber(deviceName);
 
-	int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);
-	int mod = 0; // Not currently performing any modulus operation
+        int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);
+        int mod = 0; // Not currently performing any modulus operation
 
-	// Update for next customer
-	int updatedCounter = (nextCustomerNumber + 1 > 9999999) ? 1 : nextCustomerNumber + 1;
-	nextPreferredCustomerIds.put(registerNumber, updatedCounter);
+        // Update for next customer
+        int updatedCounter = (nextCustomerNumber + 1 > 9999999) ? 1 : nextCustomerNumber + 1;
+        nextPreferredCustomerIds.put(registerNumber, updatedCounter);
 
-	return String.format("%s%s5%s%s", storeId, registerNumber, String.format("%07d", nextCustomerNumber), mod);
+        return String.format("%s%s5%s%s", storeId, registerNumber, String.format("%07d", nextCustomerNumber), mod);
     }
 
     private String generatePreferredCustomerSQLUpdate(Map<String, Integer> nextPreferredCustomerIds, String deployment,
-	    String storeId) {
-	String updateStatement = "";
+            String storeId) {
+        String updateStatement = "";
 
-	if (nextPreferredCustomerIds.size() > 0) {
-	    updateStatement = "INSERT INTO vfcorp_preferred_customer_counter (deployment, storeId, registerId, nextPreferredCustomerNumber) VALUES ";
+        if (nextPreferredCustomerIds.size() > 0) {
+            updateStatement = "INSERT INTO vfcorp_preferred_customer_counter (deployment, storeId, registerId, nextPreferredCustomerNumber) VALUES ";
 
-	    ArrayList<String> updates = new ArrayList<String>();
-	    for (Map.Entry<String, Integer> entry : nextPreferredCustomerIds.entrySet()) {
-		updates.add(
-			String.format("('%s', '%s', '%s', %d)", deployment, storeId, entry.getKey(), entry.getValue()));
-	    }
+            ArrayList<String> updates = new ArrayList<String>();
+            for (Map.Entry<String, Integer> entry : nextPreferredCustomerIds.entrySet()) {
+                updates.add(
+                        String.format("('%s', '%s', '%s', %d)", deployment, storeId, entry.getKey(), entry.getValue()));
+            }
 
-	    Iterator<String> i = updates.iterator();
-	    if (i.hasNext()) {
-		updateStatement += i.next();
-		while (i.hasNext())
-		    updateStatement += ", " + i.next();
-	    }
+            Iterator<String> i = updates.iterator();
+            if (i.hasNext()) {
+                updateStatement += i.next();
+                while (i.hasNext()) {
+                    updateStatement += ", " + i.next();
+                }
+            }
 
-	    updateStatement += " ON DUPLICATE KEY UPDATE nextPreferredCustomerNumber=VALUES(nextPreferredCustomerNumber);";
-	}
+            updateStatement += " ON DUPLICATE KEY UPDATE nextPreferredCustomerNumber=VALUES(nextPreferredCustomerNumber);";
+        }
 
-	return updateStatement;
+        return updateStatement;
     }
 }
