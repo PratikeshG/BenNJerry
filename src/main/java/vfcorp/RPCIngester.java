@@ -16,69 +16,72 @@ import com.squareup.connect.diff.Catalog;
 import com.squareup.connect.diff.CatalogChangeRequest;
 
 public class RPCIngester implements Callable {
-	
-	private String apiUrl;
-	private String apiVersion;
-	private int itemNumberLookupLength;
 
-	public void setApiUrl(String apiUrl) {
-		this.apiUrl = apiUrl;
-	}
+    private String apiUrl;
+    private String apiVersion;
+    private int itemNumberLookupLength;
 
-	public void setApiVersion(String apiVersion) {
-		this.apiVersion = apiVersion;
-	}
+    public void setApiUrl(String apiUrl) {
+        this.apiUrl = apiUrl;
+    }
 
-	public void setItemNumberLookupLength(int itemNumberLookupLength) {
-		this.itemNumberLookupLength = itemNumberLookupLength;
-	}
+    public void setApiVersion(String apiVersion) {
+        this.apiVersion = apiVersion;
+    }
 
-	@Override
-	public Object onCall(MuleEventContext eventContext) throws Exception {
-		MuleMessage message = eventContext.getMessage();
+    public void setItemNumberLookupLength(int itemNumberLookupLength) {
+        this.itemNumberLookupLength = itemNumberLookupLength;
+    }
 
-		RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) message.getProperty("rpcPayload", PropertyScope.INVOCATION);
-		InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
-		BufferedInputStream bis = new BufferedInputStream(is);
+    @Override
+    public Object onCall(MuleEventContext eventContext) throws Exception {
+        MuleMessage message = eventContext.getMessage();
 
-		Catalog current = new Catalog();
+        RPCIngesterPayload rpcIngesterPayload = (RPCIngesterPayload) message.getProperty("rpcPayload",
+                PropertyScope.INVOCATION);
+        InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
+        BufferedInputStream bis = new BufferedInputStream(is);
 
-		Item[] squareItems = rpcIngesterPayload.getItems();
-		Category[] squareCategories = rpcIngesterPayload.getCategories();
-		Fee[] squareFees = rpcIngesterPayload.getFees();
+        Catalog current = new Catalog();
 
-		if (squareItems != null) {
-			for (Item item : squareItems) {
-				current.addItem(item, CatalogChangeRequest.PrimaryKey.SKU);
-			}
-		}
+        Item[] squareItems = rpcIngesterPayload.getItems();
+        Category[] squareCategories = rpcIngesterPayload.getCategories();
+        Fee[] squareFees = rpcIngesterPayload.getFees();
 
-		if (squareCategories != null) {
-			for (Category category : squareCategories) {
-				current.addCategory(category, CatalogChangeRequest.PrimaryKey.NAME);
-			}
-		}
+        if (squareItems != null) {
+            for (Item item : squareItems) {
+                current.addItem(item, CatalogChangeRequest.PrimaryKey.SKU);
+            }
+        }
 
-		if (squareFees != null) {
-			for (Fee fee : squareFees) {
-				current.addFee(fee, CatalogChangeRequest.PrimaryKey.NAME);
-			}
-		}
+        if (squareCategories != null) {
+            for (Category category : squareCategories) {
+                current.addCategory(category, CatalogChangeRequest.PrimaryKey.NAME);
+            }
+        }
 
-		EpicorParser epicor = new EpicorParser();
-		epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
-		epicor.rpc().ingest(bis);
-		bis.close();
+        if (squareFees != null) {
+            for (Fee fee : squareFees) {
+                current.addFee(fee, CatalogChangeRequest.PrimaryKey.NAME);
+            }
+        }
 
-		Catalog proposed = epicor.rpc().convert(current);
+        EpicorParser epicor = new EpicorParser();
+        epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
+        epicor.rpc().ingest(bis);
+        bis.close();
 
-		CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU, CatalogChangeRequest.PrimaryKey.NAME);
+        Catalog proposed = epicor.rpc().convert(current);
 
-		SquareClient client = new SquareClient(rpcIngesterPayload.getAccessToken(), apiUrl, apiVersion, rpcIngesterPayload.getMerchantId(), rpcIngesterPayload.getLocationId());
-		ccr.setSquareClient(client);
+        CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU,
+                CatalogChangeRequest.PrimaryKey.NAME);
 
-		ccr.call();
+        SquareClient client = new SquareClient(rpcIngesterPayload.getAccessToken(), apiUrl, apiVersion,
+                rpcIngesterPayload.getMerchantId(), rpcIngesterPayload.getLocationId());
+        ccr.setSquareClient(client);
 
-		return null;
-	}
+        ccr.call();
+
+        return null;
+    }
 }
