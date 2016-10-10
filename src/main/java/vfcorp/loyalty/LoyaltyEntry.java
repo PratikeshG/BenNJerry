@@ -119,7 +119,7 @@ public class LoyaltyEntry {
         createDate = customerCreateDate;
         associateNumber = associateId != null ? associateId : "";
         addressFormatCode = "USA";
-        telephoneNumber = customer.getPhoneNumber() != null ? customer.getPhoneNumber() : "";
+        telephoneNumber = customer.getPhoneNumber() != null ? customer.getPhoneNumber().replaceAll("[^\\d]", "") : "";
         addressTypeCode = "HOME";
         mailIndicator = "9";
         streetAddress = (customer.getAddress() != null && customer.getAddress().getAddressLine1() != null)
