@@ -213,14 +213,13 @@ public class RPC {
             // Remove records until an item or category is found
             if (rpc.size() > 0) {
                 Record nextRecord = rpc.removeFirst();
-                boolean itemOrCategoryRecordFound = false;
-
-                while (!itemOrCategoryRecordFound && rpc.size() > 0) {
+                while (true) {
                     if (nextRecord.getId().equals(ITEM_RECORD) || nextRecord.getId().equals(DEPARTMENT_CLASS_RECORD)) {
                         rpc.addFirst(nextRecord);
-                        itemOrCategoryRecordFound = true;
                         break;
-                    } else if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
+                    }
+
+                    if (nextRecord.getId().equals(ITEM_ALTERNATE_DESCRIPTION)) {
                         if (nextRecord.getValue("Action Type").equals("1")) { // add
                             String itemSuffix = nextRecord.getValue("Item Alternate Description").replaceFirst("\\s+$",
                                     "");
@@ -228,10 +227,12 @@ public class RPC {
                                 matchingItem.setName(matchingItem.getName() + " - " + itemSuffix);
                             }
                         }
-                        nextRecord = rpc.removeFirst();
-                    } else {
-                        nextRecord = rpc.removeFirst();
                     }
+
+                    if (rpc.size() == 0) {
+                        break;
+                    }
+                    nextRecord = rpc.removeFirst();
                 }
             }
 
