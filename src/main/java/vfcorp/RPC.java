@@ -199,16 +199,16 @@ public class RPC {
                 }
             }
 
-            // Assumes that only one tax exists per catalog. Applies it to all
-            // items.
-            if (clone.getFees().values().size() > 0) {
-                matchingItem.setFees(new Fee[] { (Fee) clone.getFees().values().toArray()[0] });
-            }
-
             // Only update name if it looks like it has changed
             String itemName = record.getValue("Description").replaceFirst("\\s+$", "");
             if (!matchingItem.getName().startsWith(itemName)) {
                 matchingItem.setName(itemName);
+            }
+
+            // Assumes that only one tax exists per catalog. Applies it to all
+            // items.
+            if (clone.getFees().values().size() > 0) {
+                matchingItem.setFees(new Fee[] { (Fee) clone.getFees().values().toArray()[0] });
             }
 
             // Remove records until an item or category is found
@@ -243,7 +243,7 @@ public class RPC {
 
     // TODO(bhartard): Remove this hacky shit!
     private void convertItemWithFilter(Catalog clone, Record record, HashMap<String, Boolean> skuFilter,
-            HashMap<String, Boolean> pluFilter) {
+            HashMap<String, Boolean> pluFilter) throws Exception {
         String sku = convertItemNumberIntoSku(record.getValue("Item Number"));
 
         // SKU is primary key
@@ -296,82 +296,16 @@ public class RPC {
                 }
             }
 
-            // New York, NY - TNF Stores #12, 18, 516
-            // 0% on clothing & footwear below $110 per item
-            // 8.875% on clothing & footwear $110 and above per item
-            // 8.875% on all other items (non- clothing/footwear)
-            String NYC_BROADWAY = "vfcorp-tnf-00012";
-            String NYC_WOOSTER = "vfcorp-tnf-00018";
-            String NYC_FIFTH = "vfcorp-tnf-00516";
-
-            // White Plains, NY - Westchester Co. - TNF Store #28
-            // 4.375% on clothing & footwear below $110 per item
-            // 8.375% on clothing & footwear $110 and above per item
-            // 8.375% on all other items (non-clothing/footwear)
-            String NY_WHITEPLAINS = "vfcorp-tnf-00028";
-
-            // Victor, NY - Ontario Co. - TNF Store #58
-            // 3.5% on clothing & footwear below $110 per item
-            // 7.5% on clothing & footwear $110 and above per item
-            // 7.5% on all other items (non-clothing/footwear)
-            String NY_ONTARIO = "vfcorp-tnf-00058";
-
-            // Central Valley, NY - Orange, Co. - TNF Store #64
-            // 4.125% on clothing & footwear below $110 per item
-            // 8.125% on clothing & footwear $110 and above per item
-            // 8.125% on all other items (non-clothing/footwear)
-            String NY_WOODBURY = "vfcorp-tnf-00064";
-
-            // Riverhead, NY  - Suffolk Co. - TNF Store #319
-            // 4.625% on clothing & footwear below $110 per item
-            // 8.625% on clothing & footwear $110 and above per item
-            // 8.625% on all other items (non-clothing/footwear)
-            String NY_RIVERHEAD = "vfcorp-tnf-00319";
-
-            // Boston
-            // No sales tax on clothing (and shoes) that costs less than $175.
-            // It it costs more than $175, you pay 6.25% on the amount over 175
-            String BOSTON = "vfcorp-tnf-00014";
-
-            // Apply unique taxation of items
-            if (clone.getFees().values().size() == 1 && (deploymentId.equals(NYC_BROADWAY)
-                    || deploymentId.equals(NYC_WOOSTER) || deploymentId.equals(NYC_FIFTH))) {
-                Fee nycTax = (Fee) clone.getFees().values().toArray()[0];
-                if (price < 11000) {
-                    // TODO(bhartard): Apply tax to items not in mentioned
-                    // categories
-                } else {
-                    matchingItem.setFees(new Fee[] { nycTax });
-                }
-            } else if (clone.getFees().values().size() == 1 && deploymentId.equals(BOSTON)) {
-                // Don't appl y any taxes for now, since we can't correctly
-                // apply MA tax rules
-                Fee maTax = (Fee) clone.getFees().values().toArray()[0];
-                if (price < 17500) {
-                } else {
-                }
-            } else if (clone.getFees().values().size() == 2
-                    && (deploymentId.equals(NY_WHITEPLAINS) || deploymentId.equals(NY_ONTARIO)
-                            || deploymentId.equals(NY_WOODBURY) || deploymentId.equals(NY_RIVERHEAD))) {
-                Fee lowTax = getLowerTax((Fee) clone.getFees().values().toArray()[0],
-                        (Fee) clone.getFees().values().toArray()[1]);
-                Fee highTax = getHigherTax((Fee) clone.getFees().values().toArray()[0],
-                        (Fee) clone.getFees().values().toArray()[1]);
-                if (price < 11000) {
-                    matchingItem.setFees(new Fee[] { lowTax });
-                } else {
-                    matchingItem.setFees(new Fee[] { highTax });
-                }
-            } else if (clone.getFees().values().size() > 0) {
-                // Assumes that only one tax exists per normal location catalog.
-                // Applies it to all items.
-                matchingItem.setFees(new Fee[] { (Fee) clone.getFees().values().toArray()[0] });
-            }
-
             // Only update name if it looks like it has changed
             String itemName = record.getValue("Description").replaceFirst("\\s+$", "");
             if (!matchingItem.getName().startsWith(itemName)) {
                 matchingItem.setName(itemName);
+            }
+
+            // Apply item-specific taxes
+            if (clone.getFees().values().size() > 0) {
+                matchingItem.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
+                        (Fee[]) clone.getFees().values().toArray(), price, deptCodeClass));
             }
 
             // Remove records until an item or category is found
@@ -413,20 +347,6 @@ public class RPC {
         } else if (ItemRecord.ACTION_TYPE_DELETE.equals(actionType) && matchingItem != null) {
             clone.getItems().remove(matchingKey);
         }
-    }
-
-    private Fee getLowerTax(Fee fee1, Fee fee2) {
-        if (Float.parseFloat(fee1.getRate()) < Float.parseFloat(fee2.getRate())) {
-            return fee1;
-        }
-        return fee2;
-    }
-
-    private Fee getHigherTax(Fee fee1, Fee fee2) {
-        if (Float.parseFloat(fee1.getRate()) >= Float.parseFloat(fee2.getRate())) {
-            return fee1;
-        }
-        return fee2;
     }
 
     private void convertCategory(Catalog clone, Record record) {
