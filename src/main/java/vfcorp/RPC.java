@@ -305,7 +305,7 @@ public class RPC {
             // Apply item-specific taxes
             if (clone.getFees().values().size() > 0) {
                 matchingItem.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
-                        (Fee[]) clone.getFees().values().toArray(), price, deptCodeClass));
+                        clone.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
             }
 
             // Remove records until an item or category is found
