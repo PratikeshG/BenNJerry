@@ -66,7 +66,7 @@ public class RPCIngesterFiltered implements Callable {
 
         if (squareFees != null) {
             for (Fee fee : squareFees) {
-                current.addFee(fee, CatalogChangeRequest.PrimaryKey.NAME);
+                current.addFee(fee); // default primary is ID
             }
         }
 
