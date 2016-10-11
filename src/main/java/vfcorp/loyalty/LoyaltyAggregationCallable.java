@@ -57,6 +57,10 @@ public class LoyaltyAggregationCallable implements Callable {
                     if (tender.getCustomerId() != null) {
                         Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
 
+                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
+                                && customer.getEmailAddress().length() > 0)
+                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
+
                         if (customer != null && customer.getReferenceId() != null
                                 && customer.getReferenceId().length() == LOYALTY_CUSTOMER_ID_LENGTH) {
 
@@ -79,10 +83,10 @@ public class LoyaltyAggregationCallable implements Callable {
 
                             loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
                         } else {
-                            if (customer != null && customer.getReferenceId() == null) {
+                            if (customer != null && customerHasContactInfo && customer.getReferenceId() == null) {
                                 throw new Exception("Loyalty customer missing generated reference ID. Customer: "
                                         + customer.getId());
-                            } else if (customer != null
+                            } else if (customer != null && customerHasContactInfo
                                     && customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH) {
                                 // Square might start returning customer objects
                                 // on transactions without merchant adding them

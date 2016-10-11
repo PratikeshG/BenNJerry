@@ -131,16 +131,22 @@ public class TLOGGenerator implements Callable {
                             }
                         }
 
+                        boolean customerProvidedEmail = customer.getEmailAddress() != null
+                                && customer.getEmailAddress().length() > 0;
+                        boolean customerProvidedPhone = customer.getPhoneNumber() != null
+                                && customer.getPhoneNumber().length() > 0;
+
                         /*
                          * Set preferredCustomerId (if necessary)
                          *
                          * Square currently only returns a customer record when
                          * the merchant adds the customer to the sale. This
-                         * could possible change in the future, so we need to
+                         * could possible change in the future, so may need to
                          * verify they are on the transactions as a loyalty
-                         * customer.
+                         * customer. For now, we are just going to verify the
+                         * customer has provided an email
                          */
-                        if ((loyaltyCustomer || emailOptIn) && (customer.getReferenceId() == null
+                        if ((customerProvidedEmail || customerProvidedPhone) && (customer.getReferenceId() == null
                                 || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
                             String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
                                     paymentsCache.get(tender.getId()), storeId);
@@ -152,8 +158,8 @@ public class TLOGGenerator implements Callable {
                         }
 
                         // For now, we only track the customer if they have
-                        // selected one of the customer groups
-                        if (loyaltyCustomer || emailOptIn) {
+                        // provided an email address or phone number
+                        if (customerProvidedEmail || customerProvidedPhone) {
                             customer.setCompanyName(loyaltyCustomer ? "1" : "0");
 
                             customerPaymentCache.put(tender.getId(), customer);
