@@ -170,6 +170,9 @@ return sp;]]></scripting:script>
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
     <flow name="Urbanspace:Broadway-Bites">
+        <quartz:inbound-endpoint jobName="urbanspace-bbites-1476247906" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
