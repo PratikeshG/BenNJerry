@@ -70,7 +70,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <component doc:name="Daily Summary Logic">
             <singleton-object class="vfcorp.loyalty.DailySummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${vfcorp.tnf.summary.email}" from="Square Managed Integrations" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML"  from="Square Bridge" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" bcc="${vfcorp.tnf.summary.email}"/>
     </sub-flow>
     <flow name="VFC:TNF:trigger-generate-loyalty-file">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
