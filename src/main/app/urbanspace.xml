@@ -194,6 +194,9 @@ return sp;]]></scripting:script>
         <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
     </flow>
     <flow name="Urbanspace:Vanderbilt">
+        <quartz:inbound-endpoint jobName="urbanspace-vanderbilt-1476828065" cronExpression="0 0 6 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Run every Sunday at 6:00am UTC (2:00am EST) for sales prev Sunday - Saturday">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
