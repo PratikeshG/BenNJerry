@@ -92,7 +92,7 @@ return new CatalogCallablePayload(payload, catalog);]]></scripting:script>
     <flow name="Pandora:location-catalog-update-queue-aggregation"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogAggregationQueue" doc:name="paradiesLocationCatalogAggregationQueue" connector-ref="Paradies_VM_Catalog"></vm:inbound-endpoint>  
         <logger message="Done processing location: #[payload.location.id]" level="INFO" metadata:id="d0249f43-340d-4625-b1c1-da8fa3ba6d8e" doc:name="Location catelog update completed"></logger>  
-        <collection-aggregator timeout="10800000" failOnTimeout="true" storePrefix="pandora_location_catalog_updates" doc:name="Collection Aggregator" doc:description="3,600,000 = 1 hour timeout"></collection-aggregator>  
+        <collection-aggregator timeout="18000000" failOnTimeout="true" storePrefix="pandora_location_catalog_updates" doc:name="Collection Aggregator" doc:description="3,600,000 = 1 hour timeout"></collection-aggregator>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogResponseQueue" doc:name="Submit to Catalog Update Response Queue" connector-ref="Paradies_VM_Catalog"></vm:outbound-endpoint>  
     </flow>
     <sub-flow name="Paradies:generate-tlog"> 
@@ -267,7 +267,7 @@ lastName = #[message.payload.getLastName()];]]></db:parameterized-query>
     <flow name="Paradies:employee-update-queue-aggregation"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeAggregationQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeAggregationQueue"></vm:inbound-endpoint>  
         <logger message="Done processing brand" level="INFO" metadata:id="d0249f43-340d-4625-b1c1-da8fa3ba6d8e" doc:name="Employee update completed"></logger>  
-        <collection-aggregator timeout="10800000" failOnTimeout="true" storePrefix="pandora_location_employee_updates" doc:name="Collection Aggregator" ></collection-aggregator>  
+        <collection-aggregator timeout="18000000" failOnTimeout="true" storePrefix="pandora_location_employee_updates" doc:name="Collection Aggregator" ></collection-aggregator>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeResponseQueue" connector-ref="Paradies_VM_Catalog" doc:name="Submit to Employee Update Response Queue"></vm:outbound-endpoint>  
     </flow>
 </mule>
