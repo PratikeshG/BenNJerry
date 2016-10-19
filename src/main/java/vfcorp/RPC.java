@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +46,7 @@ public class RPC {
     }
 
     // This method CONSUMES the RPC linked list.
-    public Catalog convert(Catalog current) throws Exception {
-        Catalog clone = new Catalog(current);
-
+    public Catalog convert(Catalog clone) throws Exception {
         logger.info("Consuming PLU file..");
 
         LinkedList<Record> saleRecords = new LinkedList<Record>();
@@ -79,9 +78,8 @@ public class RPC {
     }
 
     // This method CONSUMES the RPC linked list.
-    public Catalog convertWithFilter(Catalog current, String deploymentId) throws Exception {
+    public Catalog convertWithFilter(Catalog clone, String deploymentId) throws Exception {
         this.deploymentId = deploymentId;
-        Catalog clone = new Catalog(current);
 
         // Load Filters
         HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
@@ -407,10 +405,84 @@ public class RPC {
             return shortItemNumber.replaceFirst("\\s+$", "");
         }
     }
+    
+    /* 
+     * Overloaded ingest method for batch ingestion
+     *     - added Catalog return type
+     *     - requires both BufferedInputStream, Catalog params, String deploymentId (used only for filtered)
+     *     
+     *     
+     * TO-DO: move all calls to ingest() to batch version 
+     */
+    public Catalog ingest(BufferedInputStream rpc, Catalog current, String deploymentId) throws Exception {
+        this.rpc = new LinkedList<Record>();
+        Catalog clone = new Catalog(current);
 
+        BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
+        String rpcLine = "";
+
+        int totalRecordsProcessed = 0;
+        logger.info("Ingesting PLU file...");
+
+        while ((rpcLine = r.readLine()) != null) {
+
+            if (rpcLine.length() < 2) {
+                continue;
+            } else {
+                String line = rpcLine.substring(0, 2);
+
+                switch (line) {
+                    case ITEM_RECORD:
+                        this.rpc.add(new ItemRecord(rpcLine));
+                        break;
+                    case ALTERNATE_RECORD:
+                        this.rpc.add(new AlternateRecord(rpcLine));
+                        break;
+                    case DEPARTMENT_RECORD:
+                        this.rpc.add(new DepartmentRecord(rpcLine));
+                        break;
+                    case DEPARTMENT_CLASS_RECORD:
+                        this.rpc.add(new DepartmentClassRecord(rpcLine));
+                        break;
+                    case ITEM_ALTERNATE_DESCRIPTION:
+                        this.rpc.add(new ItemAlternateDescription(rpcLine));
+                        break;
+                    case ITEM_ADDITIONAL_DATA_RECORD:
+                        this.rpc.add(new ItemAdditionalDataRecord(rpcLine));
+                        break;
+                }
+            }
+
+            totalRecordsProcessed++;
+            
+            // TO-DO: By ingesting batches of 5000 records, some ITEM_ALTERNATE_DESCRIPTION records 
+            // 		  may be ignored.
+            if (totalRecordsProcessed % 5000 == 0) {
+                logger.info("Processed: " + totalRecordsProcessed + ". Updating batch of records to cloned catalog.");
+                
+                if (deploymentId.equals("NOFILTER")) {
+                	// NOTE: may not need to set "clone=<return value>" since it is the same ref object
+                	// but capture return of cloned Catalog since other methods are using Catalog = convert()
+                	clone = this.convert(clone); 
+                } else {
+                	clone = this.convertWithFilter(clone, deploymentId);
+                }
+                this.rpc.clear();
+            }
+        }
+
+        logger.info("Total records processed: " + totalRecordsProcessed);
+
+        if (totalRecordsProcessed == 0) {
+            throw new Exception("No records processed. Invalid input stream.");
+        }
+        
+        return clone;
+    }
+    
     public void ingest(BufferedInputStream rpc) throws Exception {
         this.rpc = new LinkedList<Record>();
-
+        
         BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
         String rpcLine = "";
 
