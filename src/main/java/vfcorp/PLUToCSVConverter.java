@@ -30,12 +30,7 @@ public class PLUToCSVConverter {
         RPC rpc = new RPC();
         rpc.setItemNumberLookupLength(14);
 
-        File file = new File(PATH);
-        FileInputStream fis = new FileInputStream(file);
-        BufferedInputStream bis = new BufferedInputStream(fis);
-        rpc.ingest(bis);
-        bis.close();
-
+        // create empty Catalog object and add taxes/fees
         Catalog empty = new Catalog();
         if (tax1 != null) {
             empty.addFee(tax1);
@@ -52,7 +47,12 @@ public class PLUToCSVConverter {
         if (tax2Rate.endsWith(".0")) {
             tax2Rate = tax2Rate.split("\\.")[0];
         }
-        Catalog catalog = rpc.convertWithFilter(empty, DEPLOYMENT);
+        
+        File file = new File(PATH);
+        FileInputStream fis = new FileInputStream(file);
+        BufferedInputStream bis = new BufferedInputStream(fis);
+        Catalog catalog = rpc.ingest(bis, empty, DEPLOYMENT);
+        bis.close();
 
         StringBuffer sb = new StringBuffer();
 
