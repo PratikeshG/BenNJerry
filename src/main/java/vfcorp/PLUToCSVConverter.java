@@ -14,14 +14,14 @@ public class PLUToCSVConverter {
 
     public static void main(String[] args) throws Exception {
         String DEPLOYMENT = "vfcorp-tnf-00001";
-        String PATH = "/Users/bhartard/desktop/test/PLU.test";
-        String DONE_PATH = "/Users/bhartard/desktop/test/initial-load.csv";
+        String PATH = "/Users/bhartard/desktop/VFC/516/PLU.516";
+        String DONE_PATH = "/Users/bhartard/desktop/missing-516.csv";
 
         // Set the appropriate for this location, set to to null when there is
         // no tax
         Fee tax1 = new Fee();
         Fee tax2 = null;
-        tax1.setRate("0.08875");
+        tax1.setRate("0.0875");
         // tax2.setRate("0.025");
 
         // DO NOT EDIT BELOW THIS LINE

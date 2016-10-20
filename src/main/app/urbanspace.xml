@@ -173,54 +173,95 @@ return sp;]]></scripting:script>
         <quartz:inbound-endpoint jobName="urbanspace-bbites-1476247906" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.bbites.active}' == false]">
+                <logger message="Urbanspace:Broadway-Bites disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="Urbanspace:Madison-Square-Eats">
         <quartz:inbound-endpoint jobName="urbanspace-mse-1473715395" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.mse.active}' == false]">
+                <logger message="Urbanspace:Madison-Square-Eats disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="Urbanspace:Vanderbilt">
-        <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        <quartz:inbound-endpoint jobName="urbanspace-vanderbilt-1476828065" cronExpression="0 0 6 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Run every Sunday at 6:00am UTC (2:00am EST) for sales prev Sunday - Saturday">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.vanderbilt.active}' == false]">
+                <logger message="Urbanspace:Vanderbilt disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="Urbanspace:Garment-District">
         <quartz:inbound-endpoint jobName="urbanspace-garment-1473715395" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.garment.active}' == false]">
+                <logger message="Urbanspace:Garment-Distric disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="Urbanspace:Bryant-Park">
-        <logger message="Starting Urbanspace: Bryant Park" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="${urbanspace.bryantpark.deploymentId}" doc:name="Deployment ID"/>
-        <set-session-variable variableName="deploymentName" value="${urbanspace.bryantpark.deploymentName}" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        <quartz:inbound-endpoint jobName="urbanspace-bryantpark-1476829232" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.bryantpark.active}' == false]">
+                <logger message="Urbanspace:Bryant-Park disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Bryant Park" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.bryantpark.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.bryantpark.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
     </flow>
 </mule>
