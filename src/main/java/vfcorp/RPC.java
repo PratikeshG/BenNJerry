@@ -407,10 +407,10 @@ public class RPC {
     }
     
     /* 
-     * Overloaded ingest method for batch ingestion
-     *     - added Catalog return type
-     *     - requires both BufferedInputStream, Catalog params, String deploymentId (used only for filtered)    
-     *
+     * Ingest by batches of 5000 records
+     *    - added Catalog return type
+     *    - requires both BufferedInputStream, Catalog params, String deploymentId (used only for filtered), 
+     *      deploymentId = "NOFILTER" for non-filtered ingestion/conversion 
      */
     public Catalog ingest(BufferedInputStream rpc, Catalog current, String deploymentId) throws Exception {
         this.rpc = new LinkedList<Record>();
@@ -459,8 +459,7 @@ public class RPC {
                 logger.info("Processed: " + totalRecordsProcessed + ". Updating batch of records to cloned catalog.");
                 
                 if (deploymentId.equals("NOFILTER")) {
-                	// NOTE: may not need to set "clone=<return value>" since it is the same ref object
-                	// but capture return of cloned Catalog anyways since other methods are using Catalog = convert()
+                	// NOTE: may not need to set "clone=this.convert(clone)" since it is the same ref object
                 	clone = this.convert(clone); 
                 } else {
                 	clone = this.convertWithFilter(clone, deploymentId);
