@@ -67,7 +67,7 @@ public class PLUToCSVFromDiffConverter {
         File file = new File(PATH);
         FileInputStream fis = new FileInputStream(file);
         BufferedInputStream bis = new BufferedInputStream(fis);
-        Catalog proposed = rpc.ingest(bis, current, DEPLOYMENT);
+        Catalog proposed = rpc.ingest(bis, current, DEPLOYMENT, RPC.Filter.ACTIVE);
         bis.close();
 
         System.out.println("Performing diff");

@@ -68,7 +68,7 @@ public class RPCIngester implements Callable {
 
         EpicorParser epicor = new EpicorParser();
         epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
-        Catalog proposed = epicor.rpc().ingest(bis, current, "NOFILTER"); // "NOFILTER" to be ignored
+        Catalog proposed = epicor.rpc().ingest(bis, current, null, RPC.Filter.INACTIVE); 
         bis.close();
 
         CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU,
