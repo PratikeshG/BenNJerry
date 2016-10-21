@@ -71,13 +71,11 @@ public class RPCIngesterFiltered implements Callable {
         }
 
         EpicorParser epicor = new EpicorParser();
-        epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);
-        epicor.rpc().ingest(bis);
-        bis.close();
-
+        epicor.rpc().setItemNumberLookupLength(itemNumberLookupLength);        
         // TODO(bhartard): Remove this HACK to filter PLUs with a SKU/PLU
         // whitelist
-        Catalog proposed = epicor.rpc().convertWithFilter(current, deploymentId);
+        Catalog proposed = epicor.rpc().ingest(bis, current, deploymentId, RPC.Filter.ACTIVE);
+        bis.close();
 
         logger.info("Performing diff");
         CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU,

@@ -39,17 +39,17 @@ public class RPC {
     private LinkedList<Record> rpc;
     private String deploymentId;
     private int itemNumberLookupLength;
+    
+    public static enum Filter {
+        INACTIVE, ACTIVE
+    }
 
     void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
     }
 
     // This method CONSUMES the RPC linked list.
-    public Catalog convert(Catalog current) throws Exception {
-        Catalog clone = new Catalog(current);
-
-        logger.info("Consuming PLU file..");
-
+    public Catalog convert(Catalog clone) throws Exception {
         LinkedList<Record> saleRecords = new LinkedList<Record>();
 
         while (rpc.size() > 0) {
@@ -79,44 +79,8 @@ public class RPC {
     }
 
     // This method CONSUMES the RPC linked list.
-    public Catalog convertWithFilter(Catalog current, String deploymentId) throws Exception {
+    public Catalog convertWithFilter(Catalog clone, String deploymentId, HashMap<String, Boolean> skuFilter, HashMap<String, Boolean> pluFilter) throws Exception {
         this.deploymentId = deploymentId;
-        Catalog clone = new Catalog(current);
-
-        // Load Filters
-        HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
-        HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
-
-        // SKUs
-        String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
-        InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
-        BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
-        try {
-            String line;
-            while ((line = brSKU.readLine()) != null) {
-                skuFilter.put(line.trim(), new Boolean(true));
-            }
-        } finally {
-            brSKU.close();
-        }
-
-        // PLUs
-        String filterPLUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-plu.csv";
-        InputStream iPLU = this.getClass().getResourceAsStream(filterPLUPath);
-        BufferedReader brPLU = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"));
-        try {
-            String line;
-            while ((line = brPLU.readLine()) != null) {
-                String[] parts = line.split("\\s+");
-                pluFilter.put(parts[0].trim(), new Boolean(true));
-            }
-        } finally {
-            brPLU.close();
-        }
-
-        logger.info("Total SKU filtered: " + skuFilter.size());
-        logger.info("Total PLU filtered: " + pluFilter.size());
-        logger.info("Consuming PLU file..");
 
         LinkedList<Record> saleRecords = new LinkedList<Record>();
 
@@ -407,22 +371,60 @@ public class RPC {
             return shortItemNumber.replaceFirst("\\s+$", "");
         }
     }
-
-    public void ingest(BufferedInputStream rpc) throws Exception {
-        this.rpc = new LinkedList<Record>();
-
+    
+    /* 
+     * Ingest by batches of 5000 records
+     *    - Catalog return type with updated Catalog
+     *    - requires PLU BufferedInputStream, Catalog to modify, String deploymentId (used only for filtered),  
+     *      Filter(ACTIVE/INACTIVE) 
+     */
+    public Catalog ingest(BufferedInputStream rpc, Catalog current, String deploymentId, Filter status) throws Exception {
+    	this.rpc = new LinkedList<Record>();
+        Catalog clone = new Catalog(current);
         BufferedReader r = new BufferedReader(new InputStreamReader(rpc, StandardCharsets.UTF_8));
         String rpcLine = "";
-
+        
+        HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
+        HashMap<String, Boolean> pluFilter = new HashMap<String, Boolean>();
+        if (status == RPC.Filter.ACTIVE) {
+	    	// Load Filters, then call convertWithFilter() after ingestion  
+	    	// SKUs
+	        String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
+	        InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
+	        BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
+	        try {
+	            String line;
+	            while ((line = brSKU.readLine()) != null) {
+	                skuFilter.put(line.trim(), new Boolean(true));
+	            }
+	        } finally {
+	            brSKU.close();
+	        }
+	        
+	        // PLUs
+	        String filterPLUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-plu.csv";
+	        InputStream iPLU = this.getClass().getResourceAsStream(filterPLUPath);
+	        BufferedReader brPLU = new BufferedReader(new InputStreamReader(iPLU, "UTF-8"));
+	        try {
+	            String line;
+	            while ((line = brPLU.readLine()) != null) {
+	                String[] parts = line.split("\\s+");
+	                pluFilter.put(parts[0].trim(), new Boolean(true));
+	            }
+	        } finally {
+            	brPLU.close();
+        	}
+        
+	        logger.info("Total SKU filtered: " + skuFilter.size());
+	        logger.info("Total PLU filtered: " + pluFilter.size());
+        }
+        
         int totalRecordsProcessed = 0;
         logger.info("Ingesting PLU file...");
 
-        while ((rpcLine = r.readLine()) != null) {
-
-            if (totalRecordsProcessed % 5000 == 0) {
-                logger.info("Processed: " + totalRecordsProcessed);
-            }
-
+        rpcLine = r.readLine();
+        while (rpcLine != null) {
+        	
             if (rpcLine.length() < 2) {
                 continue;
             } else {
@@ -449,14 +451,31 @@ public class RPC {
                         break;
                 }
             }
-
+            
             totalRecordsProcessed++;
+            
+            // Read next line here to check for null case and read final set of N < 5000 records
+            //
+            // TODO (wtsang): By ingesting batches of 5000 records, some ITEM_ALTERNATE_DESCRIPTION records 
+            // 		  may be ignored.
+            if ((rpcLine = r.readLine()) == null || totalRecordsProcessed % 5000 == 0) {
+                logger.info("Processed: " + totalRecordsProcessed + ". Updating batch of records to cloned catalog.");
+                
+                if (status == RPC.Filter.INACTIVE) {
+                	clone = this.convert(clone);
+                } else {
+                	clone = this.convertWithFilter(clone, deploymentId, skuFilter, pluFilter);
+                }
+                this.rpc.clear();
+            }
         }
 
         logger.info("Total records processed: " + totalRecordsProcessed);
-
         if (totalRecordsProcessed == 0) {
             throw new Exception("No records processed. Invalid input stream.");
         }
+        
+        return clone;
     }
+
 }

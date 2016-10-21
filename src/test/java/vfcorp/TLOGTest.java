@@ -92,7 +92,7 @@ public class TLOGTest {
 		tlog.setItemNumberLookupLength(1);
 		tlog.setObjectStore(new FakeObjectStore<String>());
 		tlog.setTimeZoneId("UTC");
-		tlog.parse(merchant, payments, employees);
+		//tlog.parse(merchant, payments, employees);
 		
 		List<String> tlogStrings = Arrays.asList(tlog.toString().split("\\r?\\n"));
 		List<String> authorizationCodeStrings = tlogStrings.stream().filter(s -> s.startsWith(AUTHORIZATION_CODE) == true).collect(Collectors.toList());
