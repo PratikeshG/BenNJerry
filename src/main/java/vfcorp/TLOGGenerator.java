@@ -85,13 +85,26 @@ public class TLOGGenerator implements Callable {
         // Payments
         Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
         Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
+        List<Payment> nonCashPayments = new ArrayList<Payment>();
         for (Payment payment : payments) {
+            boolean hasValidPaymentTender = false;
+
+            // Save payment object for customer lookups
             paymentsCache.put(payment.getId(), payment);
             for (com.squareup.connect.Tender tender : payment.getTender()) {
                 paymentsCache.put(tender.getId(), payment);
+
+                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                    hasValidPaymentTender = true;
+                }
+            }
+
+            // Don't process cash-only payments for TLOGs
+            if (hasValidPaymentTender) {
+                nonCashPayments.add(payment);
             }
         }
-        tlogGeneratorPayload.setPayments(payments);
+        tlogGeneratorPayload.setPayments(nonCashPayments.toArray(new Payment[0]));
 
         // Get PCM counters
         Map<String, Integer> nextPreferredCustomerNumbers = new HashMap<String, Integer>();

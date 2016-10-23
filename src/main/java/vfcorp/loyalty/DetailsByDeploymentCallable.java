@@ -1,6 +1,8 @@
 package vfcorp.loyalty;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.mule.api.MuleEventContext;
@@ -55,8 +57,20 @@ public class DetailsByDeploymentCallable implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
-        // V1 Payments
-        Payment[] payments = squareV1Client.payments().list(params);
+        // V1 Payments - ignore no-sale and cash-only payments
+        Payment[] allPayments = squareV1Client.payments().list(params);
+        List<Payment> validPayments = new ArrayList<Payment>();
+        for (Payment payment : allPayments) {
+            boolean hasValidPaymentTender = false;
+            for (com.squareup.connect.Tender tender : payment.getTender()) {
+                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                    hasValidPaymentTender = true;
+                }
+            }
+            if (hasValidPaymentTender) {
+                validPayments.add(payment);
+            }
+        }
 
         // V1 Employees
         HashMap<String, Employee> employees = new HashMap<String, Employee>();
@@ -65,14 +79,25 @@ public class DetailsByDeploymentCallable implements Callable {
             employees.put(employee.getId(), employee);
         }
 
-        // V2 Transactions
+        // V2 Transactions - ignore no-sales and cash-only transactions
         params.put("sort_order", "ASC"); // v2 default is DESC
-        Transaction[] transactions = squareV2Client.transactions().list(params);
+        Transaction[] allTransactions = squareV2Client.transactions().list(params);
+        List<Transaction> validTransactions = new ArrayList<Transaction>();
+        for (Transaction transaction : allTransactions) {
+            boolean hasValidTransactionTender = false;
+            for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
+                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                    hasValidTransactionTender = true;
+                }
+            }
+            if (hasValidTransactionTender) {
+                validTransactions.add(transaction);
+            }
+        }
 
         // V2 Customers
         HashMap<String, Customer> customers = new HashMap<String, Customer>();
-
-        for (Transaction transaction : transactions) {
+        for (Transaction transaction : validTransactions) {
             for (Tender tender : transaction.getTenders()) {
                 if (tender.getCustomerId() != null) {
                     Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
@@ -81,7 +106,8 @@ public class DetailsByDeploymentCallable implements Callable {
             }
         }
 
-        LocationTransactionDetails details = new LocationTransactionDetails(location, transactions, payments, employees,
+        LocationTransactionDetails details = new LocationTransactionDetails(location,
+                validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), employees,
                 customers);
 
         return details;

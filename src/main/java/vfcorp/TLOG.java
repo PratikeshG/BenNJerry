@@ -36,7 +36,6 @@ import vfcorp.tlog.MerchandiseItem;
 import vfcorp.tlog.Name;
 import vfcorp.tlog.PhoneNumber;
 import vfcorp.tlog.PreferredCustomer;
-import vfcorp.tlog.ReasonCode;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
 import vfcorp.tlog.TransactionHeader;
@@ -102,14 +101,10 @@ public class TLOG {
 
             Customer loyaltyCustomer = customerPaymentCache.get(payment.getId());
 
-            if (payment.getTender() != null && "NO_SALE".equals(payment.getTender()[0].getType())) {
-
-                transactionLog.add(new TransactionHeader().parse(location, payment, squareEmployeesList,
-                        TransactionHeader.TRANSACTION_TYPE_NO_SALE, 3, objectStore, deployment, timeZoneId));
-
-                transactionLog.add(new SubHeaderStoreSystemLocalizationInformation().parse());
-
-                transactionLog.add(new ReasonCode().parse(ReasonCode.FUNCTION_INDICATOR_NO_SALE));
+            String tenderType = payment.getTender()[0].getType();
+            if (payment.getTender() != null && tenderType.equals("NO_SALE")) {
+                // No longer report $0 transactions or single cash transactions
+                continue;
             } else {
 
                 LinkedList<Record> paymentList = new LinkedList<Record>();
