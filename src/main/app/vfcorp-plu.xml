@@ -91,5 +91,181 @@ return sp;]]></scripting:script>
         <set-payload value="Completed: #[flowVars.pluFilename]" doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog ingestion for VFCorp - ' + flowVars.deployment]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
-    
+    <flow name="VFC:Kipling:plu-store-5019" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.kipling}${vfcorp.sftp.path.kipling.rpc.store05019}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="deployment" value="vfcorp-kipling-05019" doc:name="Deployment: vfcorp-kipling-05019"/>
+        <set-variable variableName="awsFolder" value="Kipling/05019/PLU/#[server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="filteredPlu" value="false" doc:name="Filtered: false"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-1" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00001}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00001" doc:name="Set storeId: 00001"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-10" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00010}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00010" doc:name="Set storeId: 00010"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-12" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00012}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00012" doc:name="Set storeId: 00012"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-14" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00014}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00014" doc:name="Set storeId: 00014"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-20" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00020}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00020" doc:name="Set storeId: 00020"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-60" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00060}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00060" doc:name="Set storeId: 00060"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-64" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00064}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00064" doc:name="Set storeId: 00064"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-68" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00068}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00068" doc:name="Set storeId: 00068"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-69" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00069}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00069" doc:name="Set storeId: 00069"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-73" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00073}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00073" doc:name="Set storeId: 00073"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-74" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00074}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00074" doc:name="Set storeId: 00074"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-77" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00077}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00077" doc:name="Set storeId: 00077"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-78" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00078}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00078" doc:name="Set storeId: 00078"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-301" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00301}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00301" doc:name="Set storeId: 00301"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-313" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00313}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00313" doc:name="Set storeId: 00313"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-314" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00314}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00314" doc:name="Set storeId: 00314"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-318" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00318}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00318" doc:name="Set storeId: 00318"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-321" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00321}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00321" doc:name="Set storeId: 00321"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-402" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00402}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00402" doc:name="Set storeId: 00402"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-516" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00516}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00516" doc:name="Set storeId: 00516"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
+    <flow name="VFC:TNF:plu-store-517" processingStrategy="synchronous">
+        <sftp:inbound-endpoint connector-ref="VFCorpSFTP" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.rpc.store00517}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="${vfcorp.sftp.timeout}" pollingFrequency="${vfcorp.sftp.pollingFrequency}" tempDir="processing" useTempFileTimestampSuffix="true" doc:name="SFTP">
+            <file:filename-wildcard-filter pattern="plu.chg*"/>
+        </sftp:inbound-endpoint>
+        <set-variable variableName="storeId" value="00517" doc:name="Set storeId: 00517"/>
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
+        <flow-ref name="VFC:ingest-plu-for-location" doc:name="VFC:ingest-plu-for-location"/>
+    </flow>
 </mule>
