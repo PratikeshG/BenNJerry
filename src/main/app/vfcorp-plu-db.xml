@@ -12,6 +12,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
     <flow name="VFC:TNF:run-api-updates-from-database">
+        <flow-ref name="VFC:TNF:ingest-plu-settings" doc:name="VFC:TNF:ingest-plu-settings"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <component doc:name="Database to Catalog Update">
             <singleton-object class="vfcorp.PLUApiUpdatesCallable">

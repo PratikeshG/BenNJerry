@@ -195,7 +195,8 @@ public class PLUApiUpdatesCallable implements Callable {
             convertCategory(catalog, dbCategoryCursor);
         }
 
-        // Discounts
+        // Clear existing discounts and use defaults
+        catalog.setDiscounts(new HashMap<String, Discount>());
         for (Discount discount : getDefaultDiscounts()) {
             catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
         }
