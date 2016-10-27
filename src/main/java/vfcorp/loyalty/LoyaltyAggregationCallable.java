@@ -74,10 +74,12 @@ public class LoyaltyAggregationCallable implements Callable {
                             loyaltyPayload.setAssociateId(associateId);
                             loyaltyPayload.setCustomer(customer);
 
-                            for (CustomerGroup group : customer.getGroups()) {
-                                if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
-                                    loyaltyPayload.setEmailOptIn(true);
-                                    break;
+                            if (customer.getGroups() != null) {
+                                for (CustomerGroup group : customer.getGroups()) {
+                                    if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
+                                        loyaltyPayload.setEmailOptIn(true);
+                                        break;
+                                    }
                                 }
                             }
 
