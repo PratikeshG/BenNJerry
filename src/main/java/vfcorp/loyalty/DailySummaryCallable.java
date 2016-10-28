@@ -38,18 +38,20 @@ public class DailySummaryCallable implements Callable {
         builder.append("<td><b>Unique Devices</b></td>");
         builder.append("<td><b>Unique Employees</b></td>");
         builder.append("<td><b>Loyalty Customers</b></td>");
+        builder.append("<td><b>Cumulative Transactions</b></td>");
+        builder.append("<td><b>Cumulative Sales</b></td>");
         builder.append("</tr>");
 
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
             int numTransactions = 0;
-            int gpvTotal = 0;
+            int totalGPV = 0;
 
             // Find unique devices and employees
             HashMap<String, Boolean> deviceCache = new HashMap<String, Boolean>();
             HashMap<String, Boolean> employeeCache = new HashMap<String, Boolean>();
             for (Payment payment : locationTransactionDetails.getPayments()) {
                 numTransactions += 1;
-                gpvTotal += payment.getGrossSalesMoney().getAmount();
+                totalGPV += payment.getGrossSalesMoney().getAmount();
 
                 // Device
                 if (payment.getDevice() != null && payment.getDevice().getName() != null) {
@@ -82,18 +84,27 @@ public class DailySummaryCallable implements Callable {
             }
             int numCustomers = customerCache.size();
 
-            builder.append(appendRow(locationTransactionDetails.getLocation().getName(), numTransactions, gpvTotal,
-                    numDevices, numEmployees, numCustomers));
+            int cumulativeTransactions = 0;
+            int cumulativeGPV = 0;
+            for (Payment cumulativePayment : locationTransactionDetails.getCumulativePayments()) {
+                cumulativeTransactions += 1;
+                cumulativeGPV += cumulativePayment.getGrossSalesMoney().getAmount();
+            }
+
+            builder.append(appendRow(locationTransactionDetails.getLocation().getName(), numTransactions, totalGPV,
+                    numDevices, numEmployees, numCustomers, cumulativeTransactions, cumulativeGPV));
         }
 
         builder.append("</table></body></html>");
         return builder.toString();
     }
 
-    private String appendRow(String store, int numTransactions, int gpvTotal, int numDevices, int numEmployees,
-            int numCustomers) {
-        return String.format("<tr><td>%s</td><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td></tr>", store,
-                numTransactions, formatTotal(gpvTotal), numDevices, numEmployees, numCustomers);
+    private String appendRow(String store, int numTransactions, int totalGPV, int numDevices, int numEmployees,
+            int numCustomers, int cumulativeTransactions, int cumulativeGPV) {
+        return String.format(
+                "<tr><td>%s</td><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%s</td></tr>",
+                store, numTransactions, formatTotal(totalGPV), numDevices, numEmployees, numCustomers,
+                cumulativeTransactions, formatTotal(cumulativeGPV));
     }
 
     private String formatTotal(int gpv) {
