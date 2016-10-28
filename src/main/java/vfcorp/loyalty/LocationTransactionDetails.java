@@ -13,6 +13,7 @@ public class LocationTransactionDetails {
     private Location location;
     private Transaction[] transactions;
     private Payment[] payments;
+    private Payment[] cumulativePayments;
     private Map<String, Employee> employees;
     private Map<String, Customer> customers;
 
@@ -61,6 +62,14 @@ public class LocationTransactionDetails {
 
     public void setPayments(Payment[] payments) {
         this.payments = payments;
+    }
+
+    public Payment[] getCumulativePayments() {
+        return cumulativePayments;
+    }
+
+    public void setCumulativePayments(Payment[] cumulativePayments) {
+        this.cumulativePayments = cumulativePayments;
     }
 
     public Map<String, Employee> getEmployees() {
