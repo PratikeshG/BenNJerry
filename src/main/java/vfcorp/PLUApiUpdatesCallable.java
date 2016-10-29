@@ -12,7 +12,6 @@ import java.text.ParseException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TimeZone;
 
@@ -196,7 +195,7 @@ public class PLUApiUpdatesCallable implements Callable {
         Catalog catalog = new Catalog(current);
 
         // Categories
-        ResultSet dbCategoryCursor = getDBCategories(conn, locationId);
+        ResultSet dbCategoryCursor = getDBDeptClass(conn, locationId);
         while (dbCategoryCursor.next()) {
             convertCategory(catalog, dbCategoryCursor);
         }
@@ -327,7 +326,7 @@ public class PLUApiUpdatesCallable implements Callable {
         return result;
     }
 
-    private ResultSet getDBCategories(Connection conn, String locationId) throws SQLException {
+    private ResultSet getDBDeptClass(Connection conn, String locationId) throws SQLException {
         String query = String.format("SELECT * FROM vfcorp_plu_dept_class WHERE locationId = '%s'", locationId);
         return executeQuery(conn, query);
     }
@@ -338,7 +337,7 @@ public class PLUApiUpdatesCallable implements Callable {
 
         if (filtered) {
             logger.info("Applying SKU filter... ");
-            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUList());
+            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString());
         }
 
         return executeQuery(conn, query);
@@ -359,7 +358,7 @@ public class PLUApiUpdatesCallable implements Callable {
         return executeQuery(conn, query);
     }
 
-    private Set<String> getFilterSKUs() throws IOException {
+    private String getFilteredSKUQueryString() throws IOException {
         HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
 
         String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
@@ -376,12 +375,8 @@ public class PLUApiUpdatesCallable implements Callable {
 
         logger.info("Total SKU filtered: " + skuFilter.size());
 
-        return skuFilter.keySet();
-    }
-
-    private String getFilteredSKUList() throws IOException {
         StringJoiner sj = new StringJoiner(",");
-        for (String sku : getFilterSKUs()) {
+        for (String sku : skuFilter.keySet()) {
             sj.add(String.format("'%s'", sku));
         }
         return sj.toString();
@@ -391,8 +386,17 @@ public class PLUApiUpdatesCallable implements Callable {
      * They provide 14 digit SKUs, padded with 0s, but SKUs can also start with
      * 0... ugh SKUs that start with 0 are 12 or less characters
      *
-     * Examples: 12345678901234 => 12345678901234 123456789012 => 123456789012
-     * 00012345678901 => 012345678901 012345678901 => 01234567890
+     * 14 digit SKU examples:
+     *
+     * 12345678901234 => 12345678901234 (stays the same, fulfills 14-digit
+     * criteria) 123456789012 => 00123456789012 (0-pad this one)
+     *
+     * 12 digit SKU examples:
+     *
+     * 00012345678901 => 012345678901 (remove 2 0's, need's to fit 12 or less
+     * criteria)
+     *
+     * 012345678901 => 01234567890 (stays the same, <=12)
      *
      */
     private String convertItemNumberIntoSku(String itemNumber) {
