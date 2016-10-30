@@ -44,7 +44,6 @@ public class PLUApiUpdatesCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
-    private String deploymentId;
     private int itemNumberLookupLength;
 
     public void setDatabaseUrl(String databaseUrl) {
@@ -59,10 +58,6 @@ public class PLUApiUpdatesCallable implements Callable {
         this.databasePassword = databasePassword;
     }
 
-    public void setDeploymentId(String deploymentId) {
-        this.deploymentId = deploymentId;
-    }
-
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
     }
@@ -71,7 +66,7 @@ public class PLUApiUpdatesCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        deploymentId = message.getProperty("deployment", PropertyScope.INVOCATION);
+        String deploymentId = message.getProperty("deployment", PropertyScope.INVOCATION);
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
         boolean filteredPlu = message.getProperty("filteredPlu", PropertyScope.INVOCATION).equals("true") ? true
@@ -84,11 +79,11 @@ public class PLUApiUpdatesCallable implements Callable {
         Catalog currentCatalog = getCurrentCatalog(client);
 
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        Catalog proposedCatalog = getProposedCatalog(conn, currentCatalog, payload.getLocationId(), timeZone,
-                filteredPlu);
+        Catalog proposedCatalog = getProposedCatalog(conn, currentCatalog, deploymentId, payload.getLocationId(),
+                timeZone, filteredPlu);
         conn.close();
 
-        CatalogChangeRequest ccr = diffAndLogChanges(currentCatalog, proposedCatalog);
+        CatalogChangeRequest ccr = diffAndLogChanges(currentCatalog, proposedCatalog, deploymentId);
 
         logger.info(String.format("(%s) Updating account...", deploymentId));
         ccr.setSquareClient(client);
@@ -103,7 +98,7 @@ public class PLUApiUpdatesCallable implements Callable {
         return null;
     }
 
-    private CatalogChangeRequest diffAndLogChanges(Catalog current, Catalog proposed) {
+    private CatalogChangeRequest diffAndLogChanges(Catalog current, Catalog proposed, String deploymentId) {
         logger.info(String.format("(%s) Current categories total: %d", deploymentId, current.getCategories().size()));
         logger.info(String.format("(%s) Current discounts total: %d", deploymentId, current.getDiscounts().size()));
         logger.info(String.format("(%s) Current fees total: %d", deploymentId, current.getFees().size()));
@@ -150,7 +145,7 @@ public class PLUApiUpdatesCallable implements Callable {
         }
 
         if (pageId.length() > 0 && (currentCell == null || !currentCell.equals(discountCell, ignoreFields))) {
-            logger.info(String.format("(%s) Updating discount favorites cell...", deploymentId));
+            logger.info("Updating discount favorites cell...");
             client.cells().update(pageId, discountCell);
         }
     }
@@ -190,8 +185,8 @@ public class PLUApiUpdatesCallable implements Callable {
         return catalog;
     }
 
-    private Catalog getProposedCatalog(Connection conn, Catalog current, String locationId, String timeZone,
-            boolean filtered) throws Exception {
+    private Catalog getProposedCatalog(Connection conn, Catalog current, String deploymentId, String locationId,
+            String timeZone, boolean filtered) throws Exception {
         Catalog catalog = new Catalog(current);
 
         // Categories
@@ -214,7 +209,7 @@ public class PLUApiUpdatesCallable implements Callable {
         }
         logger.info(String.format("(%s) Total items from DB: %d", deploymentId, rowcount));
         while (dbItemCursor.next()) {
-            convertItem(catalog, dbItemCursor);
+            convertItem(catalog, dbItemCursor, deploymentId);
         }
 
         // Sale Events
@@ -260,7 +255,7 @@ public class PLUApiUpdatesCallable implements Callable {
         return matchingItem;
     }
 
-    private void convertItem(Catalog catalog, ResultSet record) throws Exception {
+    private void convertItem(Catalog catalog, ResultSet record, String deploymentId) throws Exception {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
         Item matchingItem = getMatchingOrNewItem(catalog, sku);
