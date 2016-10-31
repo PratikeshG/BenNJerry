@@ -39,7 +39,6 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.diff.Catalog;
 import com.squareup.connect.diff.CatalogChangeRequest;
 
-import util.SquarePayload;
 import util.TimeManager;
 
 public class PLUDatabaseToSquareCallable implements Callable {
@@ -95,15 +94,10 @@ public class PLUDatabaseToSquareCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
-        String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
-        boolean filteredPlu = message.getProperty("filteredPlu", PropertyScope.INVOCATION).equals("true") ? true
-                : false;
-        SquarePayload payload = (SquarePayload) message.getPayload();
-
         PLUDatabaseToSquareRequest updateRequest = (PLUDatabaseToSquareRequest) message.getPayload();
         message.setProperty("pluDatabaseToSquareRequest", updateRequest, PropertyScope.INVOCATION);
 
+        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String deploymentId = updateRequest.getDeployment().getDeployment();
 
         SquareClient client = new SquareClient(updateRequest.getDeployment().getAccessToken(), apiUrl, "v1",
