@@ -114,7 +114,8 @@ public class PLUPollSyncToDatabaseCallable implements Callable {
                     logger.info(String.format("%s not ready for processing.", fileName));
                 } else {
                     // Check for existing processing
-                    Vector<LsEntry> processingFiles = channel.ls(String.format("./%s/*", PROCESSING_DIRECTORY));
+                    Vector<LsEntry> processingFiles = channel
+                            .ls(String.format("./%s/*_plu.chg.*", PROCESSING_DIRECTORY));
                     if (processingFiles.size() > 0) {
                         logger.info(
                                 String.format("Can't begin processing %s. Already processing another file.", fileName));
