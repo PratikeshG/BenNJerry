@@ -30,9 +30,14 @@ public class TLOGGenerator implements Callable {
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
     private int itemNumberLookupLength;
+    private String apiUrl;
 
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
+    }
+
+    public void setApiUrl(String apiUrl) {
+        this.apiUrl = apiUrl;
     }
 
     @Override
@@ -61,15 +66,13 @@ public class TLOGGenerator implements Callable {
                 PropertyScope.INVOCATION);
 
         String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
-        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
-        String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.INVOCATION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
-        SquareClient squareV1Client = new SquareClient(tlogGeneratorPayload.getAccessToken(), apiUrl, apiVersion,
+        SquareClient squareV1Client = new SquareClient(tlogGeneratorPayload.getAccessToken(), apiUrl, "v1",
                 tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, tlogGeneratorPayload.getAccessToken(),
                 tlogGeneratorPayload.getLocationId());

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <vm:connector name="VFC_VM_TLOG" validateConnections="true" doc:name="VM"/>
+    <asynchronous-processing-strategy name="VFC_TLOG_Asynch_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Asynchronous Processing Strategy"/>
+    <flow name="VFC:tlog-generate-for-deployment" processingStrategy="VFC_TLOG_Asynch_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
+        <logger level="INFO" doc:name="Logger" message="Initiating TLOG (VM) for deployment #[payload.getDeployment()]"/>
+        <set-variable variableName="tlogVFCDeployment" value="#[payload]" doc:name="Set tlogVFCDeployment"/>
+        <set-variable variableName="storeId" value="#[payload.getStoreId()]" doc:name="Set storeId"/>
+        <set-variable variableName="timeZone" value="#[payload.getTimeZone()]" doc:name="Set timeZone"/>
+        <set-variable variableName="range" value="#[String.valueOf(payload.getTlogRange())]" doc:name="Set range"/>
+        <set-variable variableName="offset" value="#[String.valueOf(payload.getTlogOffset())]" doc:name="Set offset"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
+                <flow-ref name="VFC:Kipling:generate-tlog-for-location-settings" doc:name="VFC:Kipling:generate-tlog-for-location-settings"/>
+            </when>
+            <otherwise>
+                <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
+            </otherwise>
+        </choice>
+        <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
+        <component doc:name="Upload TLOG to SFTP">
+            <singleton-object class="vfcorp.TLOGUploadToSFTPCallable">
+                <property key="sftpHost" value="${vfcorp.sftp.host}"/>
+                <property key="sftpPort" value="${vfcorp.sftp.port}"/>
+                <property key="sftpUser" value="${vfcorp.sftp.username}"/>
+                <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
+            </singleton-object>
+        </component>
+        <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
+    </flow>
+    <sub-flow name="VFC:tlog-generate-for-deploymentGroup">
+        <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Get deployments for deploymentGroup">
+            <singleton-object class="vfcorp.TLOGQueryDatabaseDeploymentGroupCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+            </singleton-object>
+        </component>
+        <foreach doc:name="For Each VFCDeployment">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
+        </foreach>
+    </sub-flow>
+    <sub-flow name="VFC:tlog-generate-for-single-deployment">
+        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Get deployment">
+            <singleton-object class="vfcorp.TLOGQueryDatabaseDeploymentCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+            </singleton-object>
+        </component>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
+    </sub-flow>
+    <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1474843446" cronExpression="0 30 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:30am UTC (10:30pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-trigger-CENTRAL" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-central-1474843445" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am UTC (9:00pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:TNF:tlog-trigger-EAST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-east-1474843444" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:trigger-generate-tlogs-for-deploymentGroup">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs-group/${urlKey}/{deploymentGroup}" doc:name="/tlogs-group"/>
+        <set-variable variableName="deploymentGroup" value="#[message.inboundProperties.'http.uri.params'.deploymentGroup]" doc:name="Set deploymentGroup"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+        <set-payload value="TLOG generation triggered for deploymentGroup" doc:name="Set Payload"/>
+    </flow>
+    <flow name="VFC:trigger-generate-tlogs-for-deployment">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs-deployment/${urlKey}/{deployment}" doc:name="/tlogs-deployment"/>
+        <set-variable variableName="deployment" value="#[message.inboundProperties.'http.uri.params'.deployment]" doc:name="Set deployment"/>
+        <flow-ref name="VFC:tlog-generate-for-single-deployment" doc:name="VFC:tlog-generate-for-single-deployment"/>
+        <set-payload value="TLOG generation triggered." doc:name="Set Payload"/>
+    </flow>
+</mule>

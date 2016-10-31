@@ -47,7 +47,7 @@ public class PLUToCSVConverter {
         if (tax2Rate.endsWith(".0")) {
             tax2Rate = tax2Rate.split("\\.")[0];
         }
-        
+
         File file = new File(PATH);
         FileInputStream fis = new FileInputStream(file);
         BufferedInputStream bis = new BufferedInputStream(fis);

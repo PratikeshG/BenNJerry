@@ -44,7 +44,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Query preferredCustomerCounters">
             <db:parameterized-query><![CDATA[SELECT * FROM vfcorp_preferred_customer_counter WHERE deployment = #[flowVars.deployment] AND storeId = #[flowVars.storeId];]]></db:parameterized-query>
@@ -54,6 +53,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <component doc:name="Generate TLOGs">
             <singleton-object class="vfcorp.TLOGGenerator">
                 <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                <property key="apiUrl" value="${api.url}"/>                
             </singleton-object>
         </component>
     </sub-flow>

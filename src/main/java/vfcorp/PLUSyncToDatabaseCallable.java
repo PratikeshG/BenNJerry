@@ -8,8 +8,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-public class PLUSyncDBCallable implements Callable {
-
+public class PLUSyncToDatabaseCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -30,9 +29,12 @@ public class PLUSyncDBCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        String deploymentId = message.getProperty("deployment", PropertyScope.INVOCATION);
-        String merchantId = message.getProperty("merchantId", PropertyScope.INVOCATION);
-        String locationId = message.getProperty("locationId", PropertyScope.INVOCATION);
+        PLUSyncToDatabaseRequest pluSyncToDatabaseRequest = (PLUSyncToDatabaseRequest) message
+                .getProperty("pluSyncToDatabaseRequest", PropertyScope.INVOCATION);
+
+        String deploymentId = pluSyncToDatabaseRequest.getDeployment().getDeployment();
+        String merchantId = pluSyncToDatabaseRequest.getDeployment().getMerchantId();
+        String locationId = pluSyncToDatabaseRequest.getDeployment().getLocationId();
 
         InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
@@ -46,6 +48,12 @@ public class PLUSyncDBCallable implements Callable {
         parser.syncToDatabase(bis, merchantId, locationId);
         bis.close();
 
-        return null;
+        // Submit new request to VM for API updates
+        PLUDatabaseToSquareRequest updateRequest = new PLUDatabaseToSquareRequest();
+        updateRequest.setDeployment(pluSyncToDatabaseRequest.getDeployment());
+        updateRequest.setProcessingFileName(pluSyncToDatabaseRequest.getProcessingFileName());
+        updateRequest.setProcessingPluFile(true);
+
+        return updateRequest;
     }
 }

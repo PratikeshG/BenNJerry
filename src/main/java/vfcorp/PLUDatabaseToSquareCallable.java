@@ -22,6 +22,10 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.Category;
 import com.squareup.connect.Discount;
@@ -38,12 +42,17 @@ import com.squareup.connect.diff.CatalogChangeRequest;
 import util.SquarePayload;
 import util.TimeManager;
 
-public class PLUApiUpdatesCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(PLUApiUpdatesCallable.class);
+public class PLUDatabaseToSquareCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(PLUDatabaseToSquareCallable.class);
 
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+    private String sftpHost;
+    private int sftpPort;
+    private String sftpUser;
+    private String sftpPassword;
+    private String apiUrl;
     private int itemNumberLookupLength;
 
     public void setDatabaseUrl(String databaseUrl) {
@@ -58,6 +67,26 @@ public class PLUApiUpdatesCallable implements Callable {
         this.databasePassword = databasePassword;
     }
 
+    public void setSftpHost(String sftpHost) {
+        this.sftpHost = sftpHost;
+    }
+
+    public void setSftpPort(int sftpPort) {
+        this.sftpPort = sftpPort;
+    }
+
+    public void setSftpUser(String sftpUser) {
+        this.sftpUser = sftpUser;
+    }
+
+    public void setSftpPassword(String sftpPassword) {
+        this.sftpPassword = sftpPassword;
+    }
+
+    public void setApiUrl(String apiUrl) {
+        this.apiUrl = apiUrl;
+    }
+
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
     }
@@ -66,21 +95,26 @@ public class PLUApiUpdatesCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        String deploymentId = message.getProperty("deployment", PropertyScope.INVOCATION);
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
         boolean filteredPlu = message.getProperty("filteredPlu", PropertyScope.INVOCATION).equals("true") ? true
                 : false;
         SquarePayload payload = (SquarePayload) message.getPayload();
 
-        SquareClient client = new SquareClient(payload.getAccessToken(), apiUrl, "v1", payload.getMerchantId(),
-                payload.getLocationId());
+        PLUDatabaseToSquareRequest updateRequest = (PLUDatabaseToSquareRequest) message.getPayload();
+        message.setProperty("pluDatabaseToSquareRequest", updateRequest, PropertyScope.INVOCATION);
+
+        String deploymentId = updateRequest.getDeployment().getDeployment();
+
+        SquareClient client = new SquareClient(updateRequest.getDeployment().getAccessToken(), apiUrl, "v1",
+                updateRequest.getDeployment().getMerchantId(), updateRequest.getDeployment().getLocationId());
 
         Catalog currentCatalog = getCurrentCatalog(client);
 
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        Catalog proposedCatalog = getProposedCatalog(conn, currentCatalog, deploymentId, payload.getLocationId(),
-                timeZone, filteredPlu);
+        Catalog proposedCatalog = getProposedCatalog(conn, currentCatalog, deploymentId,
+                updateRequest.getDeployment().getLocationId(), updateRequest.getDeployment().getTimeZone(),
+                updateRequest.getDeployment().isPluFiltered());
         conn.close();
 
         CatalogChangeRequest ccr = diffAndLogChanges(currentCatalog, proposedCatalog, deploymentId);
@@ -95,7 +129,25 @@ public class PLUApiUpdatesCallable implements Callable {
 
         logger.info(String.format("(%s) Done updating account.", deploymentId));
 
+        // This request originated from an SFTP PLU file update
+        // Need to move it to archive from processing
+        if (updateRequest.isProcessingPluFile() && updateRequest.getProcessingFileName() != null) {
+            archiveProcessingFile(updateRequest.getProcessingFileName(), updateRequest.getDeployment().getPluPath());
+        }
         return null;
+    }
+
+    private void archiveProcessingFile(String fileName, String filePath)
+            throws JSchException, IOException, SftpException {
+        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+
+        sftpChannel.cd(filePath + "/processing");
+        sftpChannel.rename(fileName, "../archive/" + fileName);
+
+        sftpChannel.disconnect();
+        session.disconnect();
     }
 
     private CatalogChangeRequest diffAndLogChanges(Catalog current, Catalog proposed, String deploymentId) {
@@ -190,12 +242,12 @@ public class PLUApiUpdatesCallable implements Callable {
         Catalog catalog = new Catalog(current);
 
         // Categories
-        ResultSet dbCategoryCursor = getDBDeptClass(conn, locationId);
-        while (dbCategoryCursor.next()) {
-            convertCategory(catalog, dbCategoryCursor);
+        ResultSet dbDeptClassCursor = getDBDeptClass(conn, locationId);
+        while (dbDeptClassCursor.next()) {
+            convertCategory(catalog, dbDeptClassCursor);
         }
 
-        // Clear existing discounts and use defaults
+        // Ignore existing discounts and only load expected defaults
         catalog.setDiscounts(new HashMap<String, Discount>());
         for (Discount discount : getDefaultDiscounts()) {
             catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
