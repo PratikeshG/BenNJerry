@@ -13,7 +13,7 @@ import com.jcraft.jsch.Session;
 
 public class TLOGUploadToSFTPCallable implements Callable {
     private static final String TLOG_PREFIX = "SA";
-    private static final String TLOG_SUFFIX = ".NEWXXX";
+    private static final String TLOG_SUFFIX = ".NEW";
 
     private String sftpHost;
     private int sftpPort;
