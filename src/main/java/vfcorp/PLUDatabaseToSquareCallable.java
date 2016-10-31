@@ -136,8 +136,7 @@ public class PLUDatabaseToSquareCallable implements Callable {
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
-        sftpChannel.cd(filePath + "/processing");
-        sftpChannel.rename(fileName, "../archive/" + fileName);
+        sftpChannel.rename(filePath + "/processing/" + fileName, filePath + "/archive/" + fileName);
 
         sftpChannel.disconnect();
         session.disconnect();
