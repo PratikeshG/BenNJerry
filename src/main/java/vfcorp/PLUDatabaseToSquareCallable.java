@@ -97,7 +97,6 @@ public class PLUDatabaseToSquareCallable implements Callable {
         PLUDatabaseToSquareRequest updateRequest = (PLUDatabaseToSquareRequest) message.getPayload();
         message.setProperty("pluDatabaseToSquareRequest", updateRequest, PropertyScope.INVOCATION);
 
-        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String deploymentId = updateRequest.getDeployment().getDeployment();
 
         SquareClient client = new SquareClient(updateRequest.getDeployment().getAccessToken(), apiUrl, "v1",
