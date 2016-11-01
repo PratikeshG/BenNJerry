@@ -23,16 +23,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">
-            <singleton-object class="vfcorp.PLUPollSyncToDatabaseCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+		    <prototype-object class="vfcorp.PLUPollSyncToDatabaseCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
                 <property key="sftpHost" value="${vfcorp.sftp.host}"/>
                 <property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-            </singleton-object>
-        </component>
+		    </prototype-object>
+		</component>
         <foreach doc:name="For Each PluSyncDatabaseRequest">
             <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-sync-to-db"/>
         </foreach>
@@ -46,12 +46,12 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
         <component doc:name="Prepare stream to move PLU from SFTP To AWS">
-            <singleton-object class="vfcorp.PLUSyncToAwsPrepareCallable">
-				<property key="sftpHost" value="${vfcorp.sftp.host}"/>
+            <prototype-object class="vfcorp.PLUSyncToAwsPrepareCallable">
+		    	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
 				<property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-            </singleton-object>
+		    </prototype-object>
         </component>
         <set-payload value="Started: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="email payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
@@ -65,11 +65,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync PLU To Database">
-            <singleton-object class="vfcorp.PLUSyncToDatabaseCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.PLUSyncToDatabaseCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-            </singleton-object>
+		    </prototype-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
         <set-payload value="Completed database sync: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
@@ -79,8 +79,8 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" name="vfcPLUUpdateVM" doc:name="vm://vfc-plu-db-to-square"/>
         <logger message="Initiating PLU API update for deployment #[payload.getDeployment().getDeployment()] -- from database" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square Catalog Update">
-            <singleton-object class="vfcorp.PLUDatabaseToSquareCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.PLUDatabaseToSquareCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
                 <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
@@ -89,7 +89,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-            </singleton-object>
+		    </prototype-object>
         </component>
         <set-payload value="Completed api updates: #[flowVars.pluDatabaseToSquareRequest.getProcessingFileName() != null ? flowVars.pluDatabaseToSquareRequest.getProcessingFileName() : &quot;No file processing.&quot;]" doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog api updates - ' + flowVars.pluDatabaseToSquareRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
@@ -97,11 +97,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <sub-flow name="VFC:plu-database-to-square-for-deploymentGroup">
         <logger message="Initiating PLU Database to Square update for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
         <component doc:name="Get deployments for deploymentGroup">
-            <singleton-object class="vfcorp.PLUQueryDatabaseDeploymentGroupToSquareCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentGroupToSquareCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-            </singleton-object>
+		    </prototype-object>
         </component>
         <foreach doc:name="For Each PLUDatabaseToSquareRequest">
             <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
@@ -110,11 +110,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <sub-flow name="VFC:plu-database-to-square-for-deployment">
         <logger message="Initiating PLU Database to Square update for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <component doc:name="Get deployment">
-            <singleton-object class="vfcorp.PLUQueryDatabaseDeploymentToSquareCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentToSquareCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-            </singleton-object>
+		    </prototype-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
     </sub-flow>

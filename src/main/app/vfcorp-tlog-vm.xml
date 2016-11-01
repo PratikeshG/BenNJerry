@@ -29,23 +29,23 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         </choice>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
         <component doc:name="Upload TLOG to SFTP">
-            <singleton-object class="vfcorp.TLOGUploadToSFTPCallable">
-                <property key="sftpHost" value="${vfcorp.sftp.host}"/>
+            <prototype-object class="vfcorp.TLOGUploadToSFTPCallable">
+            	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
                 <property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-            </singleton-object>
+            </prototype-object>
         </component>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
     <sub-flow name="VFC:tlog-generate-for-deploymentGroup">
         <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
         <component doc:name="Get deployments for deploymentGroup">
-            <singleton-object class="vfcorp.TLOGQueryDatabaseDeploymentGroupCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.TLOGQueryDatabaseDeploymentGroupCallable">
+            	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-            </singleton-object>
+            </prototype-object>
         </component>
         <foreach doc:name="For Each VFCDeployment">
             <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
@@ -54,11 +54,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <sub-flow name="VFC:tlog-generate-for-single-deployment">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <component doc:name="Get deployment">
-            <singleton-object class="vfcorp.TLOGQueryDatabaseDeploymentCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+            <prototype-object class="vfcorp.TLOGQueryDatabaseDeploymentCallable">
+            	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-            </singleton-object>
+            </prototype-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
     </sub-flow>
