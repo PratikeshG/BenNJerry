@@ -51,16 +51,17 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="preferredCustomerCounters" value="#[message.payload]" doc:name="preferredCustomerCounters"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <component doc:name="Generate TLOGs">
-            <singleton-object class="vfcorp.TLOGGenerator">
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-                <property key="apiUrl" value="${api.url}"/>                
-            </singleton-object>
+            <prototype-object class="vfcorp.TLOGGenerator">
+            	<property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                <property key="apiUrl" value="${api.url}"/>     
+            </prototype-object>
         </component>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location-finish">
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
         <choice doc:name="Update PCM">
             <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
+                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
                     <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
                 </db:insert>
