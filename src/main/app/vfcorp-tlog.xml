@@ -102,21 +102,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </sftp:outbound-endpoint>
         <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
     </flow>
-    <flow name="VFC:TNF:tlog-store-10" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store10-1473742274" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am UTC (11:00pm CST)">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <set-variable variableName="storeId" value="00010" doc:name="Set storeId: 00010"/>
-        <set-variable variableName="timeZone" value="America/Chicago" doc:name="Set timeZone: America/Chicago"/>
-        <set-variable variableName="range" value="1" doc:name="Set range: 1"/>
-        <set-variable variableName="offset" value="0" doc:name="Set offset: 0"/>
-        <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
-        <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#['${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.tlog.store00010}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
-            <reconnect-forever/>
-        </sftp:outbound-endpoint>
-        <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
-    </flow>
     <flow name="VFC:TNF:tlog-store-12" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronTNF-store12-1474843454" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
