@@ -392,7 +392,7 @@ public class PLUDatabaseToSquareCallable implements Callable {
                 + "FROM vfcorp_plu_sale_events as events " + "JOIN " + "     (SELECT itemNumber, MAX(id) as id "
                 + "     FROM vfcorp_plu_sale_events " + "     WHERE locationId = '" + locationId + "' AND "
                 + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') >= STR_TO_DATE(dateSaleBegins, '%m%d%Y') AND "
-                + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') < STR_TO_DATE(dateSaleEnds, '%m%d%Y') "
+                + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') <= STR_TO_DATE(dateSaleEnds, '%m%d%Y') "
                 + "     GROUP BY itemNumber) as newest ON events.id = newest.id";
 
         return executeQuery(conn, query);
