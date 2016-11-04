@@ -113,7 +113,7 @@ public class SmartWoolReportLinks implements Callable {
     		
     		// TODO(wtsang): fix this hack to get the correct timestamps for the report URL
     		beginTime = "begin_time=" + TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("begin_time");
-    		endTime = "end_time=" + TimeManager.getPastDayInterval(0, 0, "GMT-07:00").get("begin_time");
+    		endTime = "end_time=" + TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("end_time");
     		
     		// hard-code values for now; update code in the future if necessary
     		eventBased = "event_based=true"; 
