@@ -1,9 +1,6 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -12,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,11 +70,11 @@ public class PLUParser {
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
-        BufferedReader r = new BufferedReader(new InputStreamReader(pluStream, StandardCharsets.UTF_8));
-        String rpcLine = "";
-
-        rpcLine = r.readLine();
-        while (rpcLine != null) {
+        // Using less efficient Scanner because BufferedReader hangs
+        // indefinitely on sporadic NUL characters near input PLU EoF
+        Scanner scanner = new Scanner(pluStream, "UTF-8");
+        while (scanner.hasNextLine()) {
+            String rpcLine = scanner.nextLine();
             totalRecordsProcessed++;
 
             if (rpcLine.length() < 2) {
@@ -109,7 +107,7 @@ public class PLUParser {
                 }
             }
 
-            if ((rpcLine = r.readLine()) == null || totalRecordsProcessed % syncGroupSize == 0) {
+            if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
                 submitQuery(conn, generateDeptClassSQLUpsert(merchantId, locationId, deptClassRecords));
                 submitQuery(conn, generateItemSQLUpsert(merchantId, locationId, itemRecords));
                 submitQuery(conn,
@@ -124,6 +122,13 @@ public class PLUParser {
 
                 logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
             }
+        }
+
+        scanner.close();
+
+        // Scanner suppresses exceptions
+        if (scanner.ioException() != null) {
+            throw scanner.ioException();
         }
 
         conn.close();
