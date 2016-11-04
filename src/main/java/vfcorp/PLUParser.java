@@ -128,11 +128,12 @@ public class PLUParser {
         }
     }
 
-    private void submitQuery(String query) throws SQLException {
+    private void submitQuery(String query) throws SQLException, ClassNotFoundException {
         if (query.isEmpty()) {
             return;
         }
 
+        Class.forName("com.mysql.jdbc.Driver");
         Connection con = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
         Statement stmt = con.createStatement();
