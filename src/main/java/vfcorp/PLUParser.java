@@ -69,6 +69,9 @@ public class PLUParser {
         int totalRecordsProcessed = 0;
         logger.info(String.format("(%s) Ingesting PLU file...", deploymentId));
 
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+
         BufferedReader r = new BufferedReader(new InputStreamReader(pluStream, StandardCharsets.UTF_8));
         String rpcLine = "";
 
@@ -107,20 +110,23 @@ public class PLUParser {
             }
 
             if ((rpcLine = r.readLine()) == null || totalRecordsProcessed % syncGroupSize == 0) {
-                logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
-
-                submitQuery(generateDeptClassSQLUpsert(merchantId, locationId, deptClassRecords));
-                submitQuery(generateItemSQLUpsert(merchantId, locationId, itemRecords));
-                submitQuery(generateItemAltDescriptionSQLUpsert(merchantId, locationId, itemAltDescriptionRecords));
-                submitQuery(generateItemSalesSQLUpsert(merchantId, locationId, itemSaleRecords));
-                submitQuery(generateItemSaleEventsSQLUpsert(merchantId, locationId, itemSaleRecords));
+                submitQuery(conn, generateDeptClassSQLUpsert(merchantId, locationId, deptClassRecords));
+                submitQuery(conn, generateItemSQLUpsert(merchantId, locationId, itemRecords));
+                submitQuery(conn,
+                        generateItemAltDescriptionSQLUpsert(merchantId, locationId, itemAltDescriptionRecords));
+                submitQuery(conn, generateItemSalesSQLUpsert(merchantId, locationId, itemSaleRecords));
+                submitQuery(conn, generateItemSaleEventsSQLUpsert(merchantId, locationId, itemSaleRecords));
 
                 deptClassRecords.clear();
                 itemRecords.clear();
                 itemSaleRecords.clear();
                 itemAltDescriptionRecords.clear();
+
+                logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
             }
         }
+
+        conn.close();
 
         logger.info(String.format("(%s) Total records processed: %d", deploymentId, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
@@ -128,18 +134,13 @@ public class PLUParser {
         }
     }
 
-    private void submitQuery(String query) throws SQLException, ClassNotFoundException {
+    private void submitQuery(Connection conn, String query) throws SQLException, ClassNotFoundException {
         if (query.isEmpty()) {
             return;
         }
 
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection con = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
-        Statement stmt = con.createStatement();
+        Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
-        con.close();
-
     }
 
     private String generateDeptClassSQLUpsert(String merchantId, String locationId,
