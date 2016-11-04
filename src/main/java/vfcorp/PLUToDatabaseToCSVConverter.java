@@ -10,25 +10,47 @@ import com.squareup.connect.Fee;
 import com.squareup.connect.Item;
 import com.squareup.connect.diff.Catalog;
 
-public class PLUToCSVConverter {
+public class PLUToDatabaseToCSVConverter {
 
     public static void main(String[] args) throws Exception {
-        String DEPLOYMENT = "vfcorp-tnf-00315";
-        String PATH = "/Users/bhartard/desktop/load-315/PLU00315.DTA_10_25_2016";
-        String DONE_PATH = "/Users/bhartard/desktop/load-315/load-315.csv";
+        String MERCHANT_ID = "DSEAH44TJ9CF6";
+        String LOCATION_ID = "DD7QBE0XXRYT4";
+        String DEPLOYMENT_ID = "vfcorp-tnf-00320";
+        String TIMEZONE = "America/New_York";
+        boolean FILTERED = true;
+        String PATH = "/Users/bhartard/desktop/load-320/PLU00320.DTA_10_25_2016";
+        String DONE_PATH = "/Users/bhartard/desktop/load-320/load-320.csv";
 
         // Set the appropriate for this location, set to to null when there is
         // no tax
         Fee tax1 = new Fee();
         Fee tax2 = null;
-        tax1.setRate("0.06875");
-        // tax2.setRate("0.025");
+        tax1.setRate("0.07");
+        // tax2.setRate("0.04625");
 
-        // DO NOT EDIT BELOW THIS LINE
-        System.out.println("Starting PLU to CSV converter...");
+        // TODO(bhartard): load these from properties file
+        String DATABASE_URL = "jdbc:mysql://104.197.244.109:3306/development_bhartard";
+        String DATABASE_USERNAME = "root";
+        String DATABASE_PASSWORD = "";
 
-        RPC rpc = new RPC();
-        rpc.setItemNumberLookupLength(14);
+        // -----------------------------------------------------------------
+        // ------------- DO NOT EDIT BELOW THIS LINE -----------------------
+        // -----------------------------------------------------------------
+        System.out.println("Starting PLU to Database to CSV converter...");
+
+        // Load to database
+        File file = new File(PATH);
+        FileInputStream fis = new FileInputStream(file);
+        BufferedInputStream bis = new BufferedInputStream(fis);
+
+        PLUParser parser = new PLUParser();
+        parser.setDeploymentId(DEPLOYMENT_ID);
+        parser.setSyncGroupSize(2500);
+        parser.setDatabaseUrl(DATABASE_URL);
+        parser.setDatabaseUser(DATABASE_USERNAME);
+        parser.setDatabasePassword(DATABASE_PASSWORD);
+        parser.syncToDatabase(bis, MERCHANT_ID, LOCATION_ID);
+        bis.close();
 
         // create empty Catalog object and add taxes/fees
         Catalog empty = new Catalog();
@@ -48,11 +70,10 @@ public class PLUToCSVConverter {
             tax2Rate = tax2Rate.split("\\.")[0];
         }
 
-        File file = new File(PATH);
-        FileInputStream fis = new FileInputStream(file);
-        BufferedInputStream bis = new BufferedInputStream(fis);
-        Catalog catalog = rpc.ingest(bis, empty, DEPLOYMENT, RPC.Filter.ACTIVE);
-        bis.close();
+        PLUCatalogBuilder catalogBuilder = new PLUCatalogBuilder(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
+        catalogBuilder.setItemNumberLookupLength(14);
+
+        Catalog catalog = catalogBuilder.newCatalogFromDatabase(empty, DEPLOYMENT_ID, LOCATION_ID, TIMEZONE, FILTERED);
 
         StringBuffer sb = new StringBuffer();
 
