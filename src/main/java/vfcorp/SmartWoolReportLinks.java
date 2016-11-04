@@ -107,9 +107,9 @@ public class SmartWoolReportLinks implements Callable {
     	
     	public ReportLinks(Location location) {
     		// initialize all component values
-    		transactionUrl = "https://squareupstaging.com/v2/reports/transactions.csv?";
-    		itemDetailUrl = "https://squareupstaging.com/v2/reports/items.csv?";
-    		depositUrl = "https://squareupstaging.com/v2/reports/deposit-details.csv?";
+    		transactionUrl = "https://squareup.com/v2/reports/transactions.csv?";
+    		itemDetailUrl = "https://squareup.com/v2/reports/items.csv?";
+    		depositUrl = "https://squareup.com/v2/reports/deposit-details.csv?";
     		
     		// TODO(wtsang): fix this hack to get the correct timestamps for the report URL
     		beginTime = "begin_time=" + TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("begin_time");
