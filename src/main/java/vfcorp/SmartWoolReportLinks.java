@@ -78,7 +78,7 @@ public class SmartWoolReportLinks implements Callable {
     	private String domainUrl;
     	private String locationName;
     	
-    	public ReportLinks(String domainUrl, Location location) {   	
+    	public ReportLinks(String domainUrl, Location location) {
     		// initialize all component values
     		this.domainUrl = domainUrl;
     		
@@ -94,7 +94,7 @@ public class SmartWoolReportLinks implements Callable {
     		urlParams.put("subunit_merchant_token[]", location.getId());
     		urlParams.put("Time-Zone", location.getTimezone());
 
-    		locationName = location.getName();		 		
+    		locationName = location.getName();
     	}
     	
     	public String getTransactionUrl() {
@@ -115,7 +115,7 @@ public class SmartWoolReportLinks implements Callable {
     	
     	// construct parameters for URL
     	//     begin_time=2016-11-02T00:00:00-07:00&end_time=2016-11-03T00:00:00-07:00&Time-Zone=America/Los_Angeles&event_based=true&locale=en&subunit_merchant_token[]=FXQFKY6YHS7FM
-    	private String buildParams() {    		
+    	private String buildParams() {	
     		String params = "";
     		String delim = "&";
     		

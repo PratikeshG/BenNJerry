@@ -11,6 +11,32 @@ import java.util.TimeZone;
 
 public class TimeManager {
 
+    /*
+     * Example output for getPastDayInterval()
+     *     Assuming current time is: 11/03, Time: ~2:50pm
+     *
+     *     TimeManager.getPastDayInterval(0, 0, "GMT-00:00").get("begin_time") = 2016-11-03T00:00:00Z 
+     *     TimeManager.getPastDayInterval(0, 0, "GMT-00:00").get("end_time") = 2016-11-03T21:45:00Z
+     *
+     *     TimeManager.getPastDayInterval(0, 0, "GMT-07:00").get("begin_time") = 2016-11-03T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(0, 0, "GMT-07:00").get("end_time") = 2016-11-03T14:53:12-07:00
+     *
+     *     TimeManager.getPastDayInterval(1, 0, "GMT-07:00").get("begin_time") = 2016-11-03T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(1, 0, "GMT-07:00").get("end_time") = 2016-11-03T14:56:28-07:00
+     *
+     *     TimeManager.getPastDayInterval(0, -1, "GMT-07:00").get("begin_time") = 2016-11-04T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(0, -1, "GMT-07:00").get("end_time") = 2016-11-04T14:58:41-07:00 
+     *
+     *     TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("begin_time") = 2016-11-02T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("end_time") = 2016-11-02T23:59:59-07:00
+     *
+     *     NOTE: this produces the same result as above with different parameters!!
+     *     TimeManager.getPastDayInterval(1, 1, "GMT-07:00").get("begin_time") = 2016-11-02T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(1, 1, "GMT-07:00").get("end_time") = 2016-11-02T23:59:59-07:00
+     *
+     *     TimeManager.getPastDayInterval(0, 1, "GMT-07:00").get("begin_time") = 2016-11-02T00:00:00-07:00
+     *     TimeManager.getPastDayInterval(0, 0, "GMT-07:00").get("begin_time") = 2016-11-03T00:00:00-07:00
+	 */
     public static Map<String, String> getPastDayInterval(int range, int offset, String timeZoneId) {
 	// timeZoneId is expected to be "GMT-08:00", or something similar, as
 	// outlined at

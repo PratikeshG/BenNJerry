@@ -21,6 +21,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>
+        <set-session-variable variableName="domainUrl" value="${domain.url}" doc:name="Set Domain URL"/>
     </sub-flow>
     <flow name="flowInitializer" initialState="started">
         <quartz:inbound-endpoint jobName="flowInitializer" repeatInterval="0" repeatCount="0" responseTimeout="10000" doc:name="Quartz">

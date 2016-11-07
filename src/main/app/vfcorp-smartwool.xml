@@ -9,29 +9,33 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
-    <http:listener-config name="HTTP_Listener_Configuration1" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration"/>
-    <flow name="VFC:email-report-links" processingStrategy="synchronous">
-        <quartz:inbound-endpoint cronExpression="0 0 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:00 UTC (7:00am EST)" jobName="email-smartwool-report-links">
+    <flow name="VFC:SmartWool:email-report-links-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (7:00am EST)" jobName="email-smartwool-report-links-cron-1478536627">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Active?">
             <when expression="#['${vfcorp.smartwool.active}'==false]">
-                <logger level="INFO" doc:name="Logger" message="Not starting VFC:SmartWool"/>
+                <logger level="INFO" doc:name="Logger" message="Not starting VFC:SmartWool:email-report-links-cron"/>
             </when>
             <otherwise>
-                <logger message="Starting VFC:SmartWool" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
-                <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-                <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
-                <component doc:name="Generate and Send Links">
-                    <singleton-object class="vfcorp.SmartWoolReportLinks">
-                        <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                        <property key="databaseUser" value="${mysql.user}"/>
-                        <property key="databasePassword" value="${mysql.password}"/>
-                    </singleton-object>
-                </component>
-                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${vfcorp.smartwool.sender.email}" password="${vfcorp.smartwool.sender.password}" connector-ref="Gmail_HTML" from="Square Reports" subject="#['Square Daily SmartWool Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.smartwool.recipients}" responseTimeout="10000" doc:name="Email SmartWool Cohort"/>
+                <logger message="Starting VFC:SmartWool:email-report-links-cron" level="INFO" doc:name="Logger"/>
+                <flow-ref name="VFC:SmartWool:email-report-links" doc:name="VFC:SmartWool:email-report-links"/>
             </otherwise>
         </choice>
+    </flow>
+    <sub-flow name="VFC:SmartWool:email-report-links">
+        <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
+        <component doc:name="Generate and Send Links">
+            <singleton-object class="vfcorp.SmartWoolReportLinks"/>
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Reports" subject="#['Square Daily SmartWool Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.smartwool.recipients}" responseTimeout="10000" doc:name="Email SmartWool Cohort"/>
+    </sub-flow>
+    <flow name="VFC:SmartWool:email-report-links-trigger">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc-smartwool-email-report-links" doc:name="HTTP"/>
+        <logger message="Triggered VFC:SmartWool:email-report-links-trigger" level="INFO" doc:name="Logger"/>
+        <flow-ref name="VFC:SmartWool:email-report-links" doc:name="VFC:SmartWool:email-report-links"/>
+        <set-payload value="Triggered VFC:SmartWool:email-report-links flow" doc:name="Set Payload"/>
     </flow>
 </mule>
