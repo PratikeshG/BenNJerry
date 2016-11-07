@@ -33,7 +33,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Reports" subject="#['Square Daily SmartWool Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.smartwool.recipients}" responseTimeout="10000" doc:name="Email SmartWool Cohort"/>
     </sub-flow>
     <flow name="VFC:SmartWool:email-report-links-trigger">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc-smartwool-email-report-links" doc:name="HTTP"/>
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/${urlKey}/vfc-smartwool-email-report-links" doc:name="HTTP"/>
         <logger message="Triggered VFC:SmartWool:email-report-links-trigger" level="INFO" doc:name="Logger"/>
         <flow-ref name="VFC:SmartWool:email-report-links" doc:name="VFC:SmartWool:email-report-links"/>
         <set-payload value="Triggered VFC:SmartWool:email-report-links flow" doc:name="Set Payload"/>

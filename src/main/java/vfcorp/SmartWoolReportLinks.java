@@ -31,11 +31,8 @@ public class SmartWoolReportLinks implements Callable {
         // final payload as emailBody in html
         StringBuilder emailBody = new StringBuilder();
         
-        // connect.V2 location objects
-        Location[] locations = null;
-        
         // get list of SmartWool locations using SquareClientV2
-        locations = client.locations().list();
+        Location[] locations = client.locations().list();
         
         // set email html tags
         emailBody.append("<!DOCTYPE html>");
@@ -120,10 +117,7 @@ public class SmartWoolReportLinks implements Callable {
     		String delim = "&";
     		
     		for (String key: urlParams.keySet()) {
-    			params += delim;
-    			params += key;
-    			params += "=";
-    			params += urlParams.get(key);
+    			params += String.format("%s%s=%s", delim, key, urlParams.get(key));
     		}
     		params = params.replaceFirst(delim, "");
     		
