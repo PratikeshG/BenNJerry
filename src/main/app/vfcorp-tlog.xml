@@ -73,7 +73,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <logger message="#['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
     </sub-flow>
     <flow name="VFC:Kipling:tlog-store-5019" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronKipling-store5019-1470289523" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC (8:30pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGsForLocationsCronKipling-store5019-1470289528" cronExpression="0 30 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:30am UTC (8:30pm PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="storeId" value="05019" doc:name="storeId: 05019"/>

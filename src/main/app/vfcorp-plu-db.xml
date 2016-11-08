@@ -125,21 +125,21 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <set-payload value="Ran PLU Database to Square for deployment #[flowVars.deployment]" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:TNF:plu-trigger-database-to-square-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-west-1470289523" cronExpression="0 0 16 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 16:00 UTC (9:00am PST)">
+        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-west-1470289528" cronExpression="0 0 16 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 16:00 UTC (8:00am PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
         <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:plu-trigger-database-to-square-CENTRAL" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-central-1470289534" cronExpression="0 0 14 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 14:00 UTC (9:00am CST)">
+        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-central-1470289538" cronExpression="0 0 14 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 14:00 UTC (8:00am CST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
         <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:plu-trigger-database-to-square-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-east-1470289132" cronExpression="0 0 13 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 13:00 UTC (9:00am EST)">
+        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-east-1470289138" cronExpression="0 0 13 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 13:00 UTC (8:00am EST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
