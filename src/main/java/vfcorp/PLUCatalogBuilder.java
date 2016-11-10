@@ -109,7 +109,7 @@ public class PLUCatalogBuilder {
         // Sale Events
         ResultSet dbItemSaleCursor = getDBItemSaleEvents(conn, locationId, timeZone);
         while (dbItemSaleCursor.next()) {
-            applySalePrice(catalog, dbItemSaleCursor);
+            applySalePrice(catalog, dbItemSaleCursor, deploymentId);
         }
 
         conn.close();
@@ -117,7 +117,7 @@ public class PLUCatalogBuilder {
         return catalog;
     }
 
-    private void applySalePrice(Catalog catalog, ResultSet record) throws Exception {
+    private void applySalePrice(Catalog catalog, ResultSet record, String deploymentId) throws Exception {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
         Item item = catalog.getItems().get(sku);
@@ -127,6 +127,13 @@ public class PLUCatalogBuilder {
             int price = Integer.parseInt(record.getString("salePrice"));
             if (price > 0) {
                 variation.setPriceMoney(new Money(price));
+
+                // re-calculate item-specific taxes
+                if (catalog.getFees().values().size() > 0) {
+                    String deptCodeClass = Util.getValueInParenthesis(variation.getName());
+                    item.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
+                            catalog.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
+                }
             }
         }
     }
