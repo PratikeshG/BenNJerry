@@ -176,7 +176,8 @@ public class PLUCatalogBuilder {
         // Only update name if it looks like it has changed
         String itemName = record.getString("description").replaceFirst("\\s+$", "");
         if (!matchingItem.getName().startsWith(itemName)) {
-            String altDescription = record.getString("alternateDescription").trim();
+            String altDescription = (record.getString("alternateDescription") != null)
+                    ? record.getString("alternateDescription").trim() : "";
             itemName = (altDescription.length() > itemName.length()) ? altDescription : itemName;
             matchingItem.setName(itemName);
         }
