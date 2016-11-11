@@ -170,7 +170,7 @@ return tlogGenerator.getTlogs();]]></scripting:script>
         <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>  
     </sub-flow>
     <flow name="Pandora:generate-TLOGs" processingStrategy="synchronous"> 
-        <quartz:inbound-endpoint jobName="quartz-pandora-generate-tlog-1471812551" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
+        <quartz:inbound-endpoint jobName="quartz-pandora-generate-tlog-1471812555" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
             <quartz:event-generator-job></quartz:event-generator-job>  
         </quartz:inbound-endpoint>  
         <choice doc:name="Choice"> 
@@ -185,7 +185,7 @@ return tlogGenerator.getTlogs();]]></scripting:script>
         </choice>  
     </flow>
     <flow name="Brighton:generate-TLOGs" processingStrategy="synchronous"> 
-        <quartz:inbound-endpoint jobName="quartz-brighton-generate-tlog-1471812551" cronExpression="0 0 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
+        <quartz:inbound-endpoint jobName="quartz-brighton-generate-tlog-1471812555" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
             <quartz:event-generator-job></quartz:event-generator-job>  
         </quartz:inbound-endpoint>  
         <choice doc:name="Choice"> 

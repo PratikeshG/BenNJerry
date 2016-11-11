@@ -1,9 +1,6 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -12,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,11 +67,14 @@ public class PLUParser {
         int totalRecordsProcessed = 0;
         logger.info(String.format("(%s) Ingesting PLU file...", deploymentId));
 
-        BufferedReader r = new BufferedReader(new InputStreamReader(pluStream, StandardCharsets.UTF_8));
-        String rpcLine = "";
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
-        rpcLine = r.readLine();
-        while (rpcLine != null) {
+        // Using less efficient Scanner because BufferedReader hangs
+        // indefinitely on sporadic NUL characters near input PLU EoF
+        Scanner scanner = new Scanner(pluStream, "UTF-8");
+        while (scanner.hasNextLine()) {
+            String rpcLine = scanner.nextLine();
             totalRecordsProcessed++;
 
             if (rpcLine.length() < 2) {
@@ -106,21 +107,31 @@ public class PLUParser {
                 }
             }
 
-            if ((rpcLine = r.readLine()) == null || totalRecordsProcessed % syncGroupSize == 0) {
-                logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
-
-                submitQuery(generateDeptClassSQLUpsert(merchantId, locationId, deptClassRecords));
-                submitQuery(generateItemSQLUpsert(merchantId, locationId, itemRecords));
-                submitQuery(generateItemAltDescriptionSQLUpsert(merchantId, locationId, itemAltDescriptionRecords));
-                submitQuery(generateItemSalesSQLUpsert(merchantId, locationId, itemSaleRecords));
-                submitQuery(generateItemSaleEventsSQLUpsert(merchantId, locationId, itemSaleRecords));
+            if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
+                submitQuery(conn, generateDeptClassSQLUpsert(merchantId, locationId, deptClassRecords));
+                submitQuery(conn, generateItemSQLUpsert(merchantId, locationId, itemRecords));
+                submitQuery(conn,
+                        generateItemAltDescriptionSQLUpsert(merchantId, locationId, itemAltDescriptionRecords));
+                submitQuery(conn, generateItemSalesSQLUpsert(merchantId, locationId, itemSaleRecords));
+                submitQuery(conn, generateItemSaleEventsSQLUpsert(merchantId, locationId, itemSaleRecords));
 
                 deptClassRecords.clear();
                 itemRecords.clear();
                 itemSaleRecords.clear();
                 itemAltDescriptionRecords.clear();
+
+                logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
             }
         }
+
+        scanner.close();
+
+        // Scanner suppresses exceptions
+        if (scanner.ioException() != null) {
+            throw scanner.ioException();
+        }
+
+        conn.close();
 
         logger.info(String.format("(%s) Total records processed: %d", deploymentId, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
@@ -128,17 +139,13 @@ public class PLUParser {
         }
     }
 
-    private void submitQuery(String query) throws SQLException {
+    private void submitQuery(Connection conn, String query) throws SQLException, ClassNotFoundException {
         if (query.isEmpty()) {
             return;
         }
 
-        Connection con = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
-        Statement stmt = con.createStatement();
+        Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
-        con.close();
-
     }
 
     private String generateDeptClassSQLUpsert(String merchantId, String locationId,
