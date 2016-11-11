@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
-    <asynchronous-processing-strategy name="VFC_Loyalty_Asynch_Processing_Strategy" maxThreads="1" doc:name="Asynchronous Processing Strategy"/>
+    <asynchronous-processing-strategy name="VFC_Loyalty_Asynch_Processing_Strategy" maxThreads="10" doc:name="Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT"/>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>

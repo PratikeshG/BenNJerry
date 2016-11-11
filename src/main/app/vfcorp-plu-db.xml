@@ -16,8 +16,8 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <vm:connector name="VFC_VM_PLU" validateConnections="true" doc:name="VM"/>
-    <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy"/>
-    <asynchronous-processing-strategy name="VFC_PLU_DatabaseToSquare_Async_Strategy" maxThreads="${vfcorp.plu.databaseToSquare.maxThreads}" minThreads="1" doc:name="Asynchronous Processing Strategy"/>
+    <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT"/>
+    <asynchronous-processing-strategy name="VFC_PLU_DatabaseToSquare_Async_Strategy" maxThreads="${vfcorp.plu.databaseToSquare.maxThreads}" minThreads="1" doc:name="Asynchronous Processing Strategy" poolExhaustedAction="WAIT"/>
     <flow name="VFC:TNF:plu-sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfc-PLU-SFTP-cron-1470289552" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
             <quartz:event-generator-job/>

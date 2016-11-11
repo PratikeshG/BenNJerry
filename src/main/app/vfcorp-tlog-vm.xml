@@ -10,7 +10,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <vm:connector name="VFC_VM_TLOG" validateConnections="true" doc:name="VM"/>
-    <asynchronous-processing-strategy name="VFC_TLOG_Asynch_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Asynchronous Processing Strategy"/>
+    <asynchronous-processing-strategy name="VFC_TLOG_Asynch_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT"/>
     <flow name="VFC:tlog-generate-for-deployment" processingStrategy="VFC_TLOG_Asynch_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
         <logger level="INFO" doc:name="Logger" message="Initiating TLOG (VM) for deployment #[payload.getDeployment()]"/>
