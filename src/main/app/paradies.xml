@@ -22,7 +22,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
     <vm:connector name="Paradies_VM_Worker" validateConnections="true" doc:name="VM"> 
         <vm:queue-profile maxOutstandingMessages="1"></vm:queue-profile>  
     </vm:connector>
-    <queued-asynchronous-processing-strategy name="Paradies_Catalog_Asynch_Processing_Strategy" maxThreads="5" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT"></queued-asynchronous-processing-strategy>
+    <queued-asynchronous-processing-strategy name="Paradies_Catalog_Async_Processing_Strategy" maxThreads="${paradies.pandora.catalog.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT"></queued-asynchronous-processing-strategy>
     <sftp:connector name="Paradies_SFTP_catalog" validateConnections="true" sizeCheckWaitTime="7500" doc:name="SFTP" pollingFrequency="${paradies.ftp.pollingFrequency}" autoDelete="false" tempDirInbound="${paradies.ftp.path.complete}" outputPattern="#[server.dateTime.format('YYYYMMddhhmmss') + '_' + sessionVars['originalFilename']]" useTempFileTimestampSuffix="true">
         <reconnect count="25" frequency="10000"></reconnect>  
     </sftp:connector>
@@ -66,12 +66,12 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
         <set-payload value="COMPLETED items file ingestion for Paradies: #[sessionVars.originalFilename]" doc:name="email payload"></set-payload>  
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED ITEMS ingesting for Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
     </flow>
-    <flow name="Pandora:location-update-catalog-queue-splitter" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+    <flow name="Pandora:location-update-catalog-queue-splitter"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="pandoraLocationCatalogRequestQueue" connector-ref="Paradies_VM_Catalog" doc:name="VM"></vm:inbound-endpoint>  
         <collection-splitter metadata:id="1055750a-fb72-47fc-86e1-d1d24ea958b5" doc:name="Process catalog update separately for each location"></collection-splitter>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:outbound-endpoint>  
     </flow>
-    <flow name="Pandora:async-process-location-update-catalog" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+    <flow name="Pandora:async-process-location-update-catalog" processingStrategy="Paradies_Catalog_Async_Processing_Strategy"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesAsyncWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesAsyncWorkerQueue"></vm:inbound-endpoint>  
         <logger message="Started processing location: #[payload.locationDetails.nickname] (#[payload.id])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Location X catelog update started"></logger>  
         <scripting:transformer metadata:id="d2007bc2-a85e-4237-964d-7591b551fe26" doc:name="Create CatalogCallablePayload for Location"> 
@@ -244,12 +244,12 @@ return squarePayloads;]]></scripting:script>
         <set-payload value="COMPLETED employee file ingestion for Paradies: #[sessionVars.originalFilename]" doc:name="Notify done processing"></set-payload>  
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED EMPLOYEES ingesting for Paradies']" responseTimeout="10000" doc:name="Email to Sales Eng"></smtp:outbound-endpoint>  
     </flow>
-    <flow name="Paradies:update-employee-deployment-queue-splitter" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+    <flow name="Paradies:update-employee-deployment-queue-splitter"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeRequestQueue" connector-ref="Paradies_VM_Catalog" doc:name="paradiesEmployeeRequestQueue"></vm:inbound-endpoint>  
         <collection-splitter metadata:id="1055750a-fb72-47fc-86e1-d1d24ea958b5" doc:name="Process employee update separately for each deployment/brand"></collection-splitter>  
         <vm:outbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesEmployeeWorkerQueue"></vm:outbound-endpoint>  
     </flow>
-    <flow name="Paradies-async-process-employee-update" processingStrategy="Paradies_Catalog_Asynch_Processing_Strategy"> 
+    <flow name="Paradies-async-process-employee-update" processingStrategy="Paradies_Catalog_Async_Processing_Strategy"> 
         <vm:inbound-endpoint exchange-pattern="one-way" path="paradiesEmployeeWorkerQueue" connector-ref="Paradies_VM_Worker" doc:name="paradiesEmployeeWorkerQueue"></vm:inbound-endpoint>  
         <logger message="Started processing employees for: #[payload.getMerchantAlias()] (#[payload.getMerchantId()])" level="INFO" metadata:id="dcd5315c-f6eb-4a7e-9ffd-4d37d9f9ad91" doc:name="Employee update started for deployment"></logger>  
         <component class="paradies.EmployeeCallable" metadata:id="d5bec1d6-5c9e-4438-b746-6b836e336204" doc:name="Get, Diff, and Process Employee Master"></component>  
