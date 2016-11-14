@@ -17,7 +17,6 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
-    <queued-asynchronous-processing-strategy name="VFC_Report_Asynch_Processing_Strategy" maxThreads="${vfcorp.queuedAsynchronousProcessingStrategy.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" threadWaitTimeout="${vfcorp.queuedAsynchronousProcessingStrategy.threadWaitTimeout}"></queued-asynchronous-processing-strategy>
     <vm:connector name="VFC_VM_Config" validateConnections="true" doc:name="VM"/>
     <s3:config name="Amazon_S3__Configuration" accessKey="${aws.accesskey}" secretKey="${aws.secretkey}" doc:name="Amazon S3: Configuration" connectionTimeout="1800000" maxConnections="150" socketTimeout="1800000">
         <reconnect/>

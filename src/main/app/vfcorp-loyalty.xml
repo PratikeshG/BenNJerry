@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
-    <asynchronous-processing-strategy name="VFC_Loyalty_Asynch_Processing_Strategy" maxThreads="1" doc:name="Asynchronous Processing Strategy"/>
+    <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT"/>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -37,7 +37,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <collection-splitter doc:name="Collection Splitter"/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-async-worker"/>
     </flow>
-    <flow name="VFC:generate-aggregate-transactions-report-async-worker" processingStrategy="VFC_Loyalty_Asynch_Processing_Strategy">
+    <flow name="VFC:generate-aggregate-transactions-report-async-worker" processingStrategy="VFC_Loyalty_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-async-worker"/>
         <logger message="#[&quot;Obtaining transactions for location: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Retrieve Transaction Details By Deployment">
