@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
-    <queued-asynchronous-processing-strategy name="Urbanspace_Report_Async_Processing_Strategy" maxThreads="${urbanspace.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT"></queued-asynchronous-processing-strategy>
+    <queued-asynchronous-processing-strategy name="Urbanspace_Report_Async_Processing_Strategy" maxThreads="${urbanspace.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="1800000"></queued-asynchronous-processing-strategy>
     <vm:connector name="Urbanspace_VM_Config" validateConnections="true" doc:name="VM"/>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports">
         <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports (#[flowVars.deployment])" level="INFO" doc:name="Logger"/>
