@@ -109,15 +109,33 @@ public class PLUCatalogBuilder {
         // Sale Events
         ResultSet dbItemSaleCursor = getDBItemSaleEvents(conn, locationId, timeZone);
         while (dbItemSaleCursor.next()) {
-            applySalePrice(catalog, dbItemSaleCursor, deploymentId);
+            applySalePrice(catalog, dbItemSaleCursor);
         }
 
         conn.close();
 
+        // Apply item-specific taxes
+        applyItemTaxes(catalog, deploymentId);
+
         return catalog;
     }
 
-    private void applySalePrice(Catalog catalog, ResultSet record, String deploymentId) throws Exception {
+    private void applyItemTaxes(Catalog catalog, String deploymentId) throws Exception {
+        if (catalog.getFees().values().size() > 0) {
+            for (String itemSku : catalog.getItems().keySet()) {
+                Item item = catalog.getItems().get(itemSku);
+                ItemVariation itemVariation = item.getVariations()[0];
+
+                int price = itemVariation.getPriceMoney().getAmount();
+                String deptCodeClass = Util.getValueInParenthesis(itemVariation.getName());
+
+                item.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
+                        catalog.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
+            }
+        }
+    }
+
+    private void applySalePrice(Catalog catalog, ResultSet record) throws Exception {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
         Item item = catalog.getItems().get(sku);
@@ -127,13 +145,6 @@ public class PLUCatalogBuilder {
             int price = Integer.parseInt(record.getString("salePrice"));
             if (price > 0) {
                 variation.setPriceMoney(new Money(price));
-
-                // re-calculate item-specific taxes
-                if (catalog.getFees().values().size() > 0) {
-                    String deptCodeClass = Util.getValueInParenthesis(variation.getName());
-                    item.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
-                            catalog.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
-                }
             }
         }
     }
@@ -187,12 +198,6 @@ public class PLUCatalogBuilder {
                     ? record.getString("alternateDescription").trim() : "";
             itemName = (altDescription.length() > itemName.length()) ? altDescription : itemName;
             matchingItem.setName(itemName);
-        }
-
-        // Apply item-specific taxes
-        if (catalog.getFees().values().size() > 0) {
-            matchingItem.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
-                    catalog.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
         }
 
         catalog.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
