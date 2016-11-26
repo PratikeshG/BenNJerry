@@ -169,7 +169,7 @@ public class TimeManager {
             throw new ParseException("time zone is necessary", 0);
         }
 
-        String parseFormat = RFC3339.endsWith("Z") ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" : "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+        String parseFormat = RFC3339.contains(".") ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" : "yyyy-MM-dd'T'HH:mm:ss";
         SimpleDateFormat sdf = new SimpleDateFormat(parseFormat);
         Date d = sdf.parse(RFC3339);
         sdf.setTimeZone(TimeZone.getTimeZone(timeZoneId));
