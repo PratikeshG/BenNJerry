@@ -209,7 +209,7 @@ public class TaxRules {
     // TODO(bhartard): MA clothing tax is actually rate*(N-$175)
     // Need to treat these differently
     private static boolean isSpecialTaxCategoryBoston(int price, String deptClass) {
-        if (price < MA_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
+        if (price <= MA_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }
         return false;

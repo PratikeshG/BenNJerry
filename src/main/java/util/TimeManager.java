@@ -169,7 +169,13 @@ public class TimeManager {
             throw new ParseException("time zone is necessary", 0);
         }
 
-        String parseFormat = RFC3339.endsWith("Z") ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" : "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+        // Customer objects can return any of the following values:
+        // 2016-03-23T20:21:54Z
+        // 2016-03-23T20:21:54.8Z
+        // 2016-03-23T20:21:54.85Z
+        // 2016-03-23T20:21:54.859Z
+        String parseFormat = RFC3339.contains(".") ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" : "yyyy-MM-dd'T'HH:mm:ss";
+
         SimpleDateFormat sdf = new SimpleDateFormat(parseFormat);
         Date d = sdf.parse(RFC3339);
         sdf.setTimeZone(TimeZone.getTimeZone(timeZoneId));
