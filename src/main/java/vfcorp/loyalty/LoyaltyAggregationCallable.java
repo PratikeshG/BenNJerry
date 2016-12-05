@@ -9,6 +9,8 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
@@ -19,6 +21,7 @@ import com.squareup.connect.v2.Transaction;
 import vfcorp.Util;
 
 public class LoyaltyAggregationCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(LoyaltyAggregationCallable.class);
 
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
@@ -94,6 +97,8 @@ public class LoyaltyAggregationCallable implements Callable {
                                 // on transactions without merchant adding them
                                 throw new Exception("Loyalty customer has invalid reference ID length. Customer: "
                                         + customer.getId());
+                            } else if (customer != null && !customerHasContactInfo) {
+                                logger.warn("Loyalty customer does not have contact info: " + customer.getId());
                             } else {
                                 throw new Exception(
                                         "Loyalty customer not found in cache for tender: " + tender.getId());
