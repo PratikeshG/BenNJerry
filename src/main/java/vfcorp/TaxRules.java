@@ -5,10 +5,22 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.squareup.connect.Fee;
+import com.squareup.connect.Item;
+import com.squareup.connect.ItemVariation;
 
 public class TaxRules {
     private static final int NY_EXEMPT_THRESHOLD = 11000;
     private static final int MA_EXEMPT_THRESHOLD = 17500;
+
+    // Stores with bag fees
+    private final static String TNF_POST_ST = "vfcorp-tnf-00001";
+    private final static String TNF_VALLEY_FAIR = "vfcorp-tnf-00021";
+    private final static String TNF_BETHESDA = "vfcorp-tnf-00048";
+    private final static String TNF_STANFORD = "vfcorp-tnf-00517";
+
+    // Tax free bag SKUs
+    private final static String BAG_4508 = "040005164508";
+    private final static String BAG_4909 = "040004834909";
 
     // New York, NY - TNF Stores #12, 18, 516
     // 0% on clothing & footwear below $110 per item
@@ -132,10 +144,18 @@ public class TaxRules {
             "95  9502", "95  9503", "95  9550", "95  9551", "95  9552", "95  9553", "96  9600", "96  9610", "96  9620",
             "96  9630" }));
 
-    public static Fee[] getItemTaxesForLocation(String deployment, Fee[] taxes, int itemPrice, String itemDeptClass)
-            throws Exception {
+    public static Fee[] getItemTaxesForLocation(String deployment, Fee[] taxes, Item item) throws Exception {
+        ItemVariation itemVariation = item.getVariations()[0];
 
-        if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
+        int itemPrice = itemVariation.getPriceMoney().getAmount();
+        String itemDeptClass = Util.getValueInParenthesis(itemVariation.getName());
+
+        if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)) {
+            if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_VALLEY_FAIR) || deployment.equals(TNF_BETHESDA)
+                    || deployment.equals(TNF_STANFORD)) {
+                return new Fee[0];
+            }
+        } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH)) {
             if (taxes.length != 1) {
                 throw new Exception("NYC deployment with incorrect number of taxes: " + deployment);
