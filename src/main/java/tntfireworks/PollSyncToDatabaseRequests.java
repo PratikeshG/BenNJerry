@@ -1,6 +1,5 @@
 package tntfireworks;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,16 +21,13 @@ import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
 import util.TimeManager;
 
-public class PollSFTPRequests implements Callable {
+public class PollSyncToDatabaseRequests implements Callable {
     // logger
-    private static Logger logger = LoggerFactory.getLogger(PollSFTPRequests.class);
+    private static Logger logger = LoggerFactory.getLogger(PollSyncToDatabaseRequests.class);
     
     // list of marketing plans
     public static final String[] PLAN_VALUES = new String[] {"2TNTC", "2TNTSS", "2COK703", "5TNT", 
@@ -82,35 +78,13 @@ public class PollSFTPRequests implements Callable {
     
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        Session session = createSSHSession();
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        System.out.println("SFTP channel created.");
+        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword); 
 
         List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
 
-        sftpChannel.disconnect();
-        System.out.println("SFTP channel disconnected.");
-        
-        session.disconnect();
-        System.out.println("SFTP session disconnected.");
+        SSHUtil.closeConnection(sftpChannel);
 
         return newRequests;
-    }
-    
-    private static Session createSSHSession() throws JSchException, IOException {
-        JSch jsch = new JSch();
-
-        // initialize session properties
-        Session session = jsch.getSession(sftpUser, sftpHost, sftpPort);
-        session.setPassword(sftpPassword);
-        session.setConfig("StrictHostKeyChecking", "no");
-    
-        System.out.println("Establishing Connection...");
-        session.connect();
-        System.out.println("Connection established.");
-        
-        return session;
     }
     
     private List<SyncToDatabaseRequest> getSFTPRequests(ChannelSftp channel) throws InterruptedException, SftpException, ParseException {       
@@ -158,14 +132,11 @@ public class PollSFTPRequests implements Callable {
             if (processFile) {
                 String processingFilename = currentDatestamp() + "_" + currentFilename;
                 channel.rename(String.format("%s/%s", inputFullPath, currentFilename), String.format("%s/%s", processingFullPath, processingFilename));
-
                 logger.info(String.format("Queuing %s for processing (%s)...", currentFilename, processingFilename));
 
                 // create request object to be processed by VM
-                SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest();
-                newRequest.setOriginalFilename(currentFilename);
-                newRequest.setProcessingFilename(processingFilename);
-
+                SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename, processingFullPath);
+                
                 sftpRequests.add(newRequest);             
             }
         }       

@@ -1,19 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <vm:connector name="TNTFIREWORKS_VM" validateConnections="true" doc:name="VM"/>
+    <queued-asynchronous-processing-strategy name="TNTFIREWORKS_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <flow name="TNTFireworks:sftp-csv-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="tntfireworks-csv-sftp-cron-1480949901" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check SFTP folders for CSV files">
-		    <prototype-object class="tntfireworks.PollSFTPRequests">
+		    <prototype-object class="tntfireworks.PollSyncToDatabaseRequests">
                 <property key="sftpHost" value="${tntfireworks.sftp.host}"/>
                 <property key="sftpPort" value="${tntfireworks.sftp.port}"/>
                 <property key="sftpUser" value="${tntfireworks.sftp.username}"/>
@@ -24,11 +27,18 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpProcessingPath" value="${tntfireworks.sftp.processingpath}"/>
 		    </prototype-object>  
         </component>
+        <foreach doc:name="For Each SyncToDatabaseRequest">
+            <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="vm://tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" path="tntfireworks-csv-sync-to-db"/>
+        </foreach>
     </flow>
     <flow name="TNTFireworks:trigger-sftp-csv-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/csv/sync/${urlKey}" doc:name="HTTP"/>
         <flow-ref name="TNTFireworks:sftp-csv-cron" doc:name="TNTFireworks:sftp-csv-cron"/>
         <set-payload value="Triggered ingestion of CSV files on SFTP server" doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks:csv-sync-to-database" processingStrategy="TNTFIREWORKS_SyncToDatabase_Async_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="vm://tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" path="tntfireworks-csv-sync-to-db"/>
+        <logger message="Initiating CSV update for marketing plan: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
  
