@@ -11,10 +11,6 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
 public class SSHUtil {
-    private String sftpHost;
-    private int sftpPort;
-    private String sftpUser;
-    private String sftpPassword;
     private static Logger logger;
     
     public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword) 
@@ -48,13 +44,12 @@ public class SSHUtil {
 
         if (sftpChannel != null && sftpChannel.isConnected()) {
             sftpChannel.disconnect();
-            logger.info("SFTP-AWS channel disconnected.");
+            logger.info("SFTP channel closed.");
 
             Session session = sftpChannel.getSession();
             if (session != null && session.isConnected()) {
                 session.disconnect();
-                logger.info("SFTP-AWS session disconnected.");
-
+                logger.info("SFTP session closed.");
             }
         }               
     }

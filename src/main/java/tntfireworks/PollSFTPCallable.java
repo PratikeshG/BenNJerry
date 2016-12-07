@@ -25,9 +25,9 @@ import com.jcraft.jsch.SftpException;
 
 import util.TimeManager;
 
-public class PollSyncToDatabaseRequests implements Callable {
+public class PollSFTPCallable implements Callable {
     // logger
-    private static Logger logger = LoggerFactory.getLogger(PollSyncToDatabaseRequests.class);
+    private static Logger logger = LoggerFactory.getLogger(PollSFTPCallable.class);
     
     // list of marketing plans
     public static final String[] PLAN_VALUES = new String[] {"2TNTC", "2TNTSS", "2COK703", "5TNT", 
@@ -136,6 +136,10 @@ public class PollSyncToDatabaseRequests implements Callable {
 
                 // create request object to be processed by VM
                 SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename, processingFullPath);
+                newRequest.setSftpHost(sftpHost);
+                newRequest.setSftpPort(sftpPort);
+                newRequest.setSftpUser(sftpUser);
+                newRequest.setSftpPassword(sftpPassword);
                 
                 sftpRequests.add(newRequest);             
             }
