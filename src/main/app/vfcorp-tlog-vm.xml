@@ -62,6 +62,13 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
     </sub-flow>
+    <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-hawaii-1480988520 " cronExpression="0 5 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 10:05am UTC (2:05am PST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
     <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1474843448" cronExpression="0 5 8 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 8:05am UTC (12:05am PST)">
             <quartz:event-generator-job/>

@@ -5,10 +5,23 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.squareup.connect.Fee;
+import com.squareup.connect.Item;
+import com.squareup.connect.ItemVariation;
 
 public class TaxRules {
     private static final int NY_EXEMPT_THRESHOLD = 11000;
     private static final int MA_EXEMPT_THRESHOLD = 17500;
+    private static final int RI_EXEMPT_THRESHOLD = 25000;
+
+    // Stores with bag fees
+    private final static String TNF_POST_ST = "vfcorp-tnf-00001";
+    private final static String TNF_VALLEY_FAIR = "vfcorp-tnf-00021";
+    private final static String TNF_BETHESDA = "vfcorp-tnf-00048";
+    private final static String TNF_STANFORD = "vfcorp-tnf-00517";
+
+    // Tax free bag SKUs
+    private final static String BAG_4508 = "040005164508";
+    private final static String BAG_4909 = "040004834909";
 
     // New York, NY - TNF Stores #12, 18, 516
     // 0% on clothing & footwear below $110 per item
@@ -43,9 +56,14 @@ public class TaxRules {
     private final static String TNF_NY_RIVERHEAD = "vfcorp-tnf-00319";
 
     // Boston
-    // No sales tax on clothing (and shoes) that costs less than $175.
+    // No sales tax on clothing (and shoes) that costs less than (or equal to) $175.
     // It it costs more than $175, you pay 6.25% on the amount over 175
     private final static String TNF_BOSTON = "vfcorp-tnf-00014";
+
+    // Rhode Island
+    // No sales tax on clothing (and shoes) that costs less than (or equal to) $250.
+    // It it costs more than $250, you pay 7% on the amount over 250
+    private final static String TNF_RHODE_ISLAND = "vfcorp-tnf-00508";
 
     // PA - TNF Stores #79, 308, 316
     // 0% on clothing
@@ -60,7 +78,7 @@ public class TaxRules {
     private final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
     private final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
 
-    private static final Set<String> CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] { "10  7076",
+    public static final Set<String> CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] { "10  7076",
             "10  1000", "10  1001", "10  1002", "10  1020", "10  1021", "10  1040", "10  1050", "10  1055", "10  1200",
             "10  1500", "10  1501", "10  1502", "10  1520", "10  1521", "10  1540", "10  1550", "10  1555", "10  1600",
             "10  1601", "10  1602", "10  1603", "10  1604", "10  1605", "10  1606", "10  1607", "10  1610", "10  1611",
@@ -132,10 +150,18 @@ public class TaxRules {
             "95  9502", "95  9503", "95  9550", "95  9551", "95  9552", "95  9553", "96  9600", "96  9610", "96  9620",
             "96  9630" }));
 
-    public static Fee[] getItemTaxesForLocation(String deployment, Fee[] taxes, int itemPrice, String itemDeptClass)
-            throws Exception {
+    public static Fee[] getItemTaxesForLocation(String deployment, Fee[] taxes, Item item) throws Exception {
+        ItemVariation itemVariation = item.getVariations()[0];
 
-        if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
+        int itemPrice = itemVariation.getPriceMoney().getAmount();
+        String itemDeptClass = Util.getValueInParenthesis(itemVariation.getName());
+
+        if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)) {
+            if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_VALLEY_FAIR) || deployment.equals(TNF_BETHESDA)
+                    || deployment.equals(TNF_STANFORD)) {
+                return new Fee[0];
+            }
+        } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH)) {
             if (taxes.length != 1) {
                 throw new Exception("NYC deployment with incorrect number of taxes: " + deployment);
@@ -153,6 +179,17 @@ public class TaxRules {
 
             // We can't actually handle Boston taxes right now
             if (isSpecialTaxCategoryBoston(itemPrice, itemDeptClass)) {
+                return new Fee[0];
+            } else {
+                return new Fee[] { taxes[0] };
+            }
+        } else if (deployment.equals(TNF_RHODE_ISLAND)) {
+            if (taxes.length != 1) {
+                throw new Exception("Rhode Island deployment with incorrect number of taxes: " + deployment);
+            }
+
+            // We can't actually handle Rhode Island taxes right now
+            if (isSpecialTaxCategoryRhodeIsland(itemPrice, itemDeptClass)) {
                 return new Fee[0];
             } else {
                 return new Fee[] { taxes[0] };
@@ -210,6 +247,15 @@ public class TaxRules {
     // Need to treat these differently
     private static boolean isSpecialTaxCategoryBoston(int price, String deptClass) {
         if (price <= MA_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
+            return true;
+        }
+        return false;
+    }
+
+    // TODO(bhartard): RI clothing tax is actually rate*(N-$250)
+    // Need to treat these differently
+    private static boolean isSpecialTaxCategoryRhodeIsland(int price, String deptClass) {
+        if (price <= RI_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }
         return false;

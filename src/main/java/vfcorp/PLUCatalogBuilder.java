@@ -124,13 +124,9 @@ public class PLUCatalogBuilder {
         if (catalog.getFees().values().size() > 0) {
             for (String itemSku : catalog.getItems().keySet()) {
                 Item item = catalog.getItems().get(itemSku);
-                ItemVariation itemVariation = item.getVariations()[0];
-
-                int price = itemVariation.getPriceMoney().getAmount();
-                String deptCodeClass = Util.getValueInParenthesis(itemVariation.getName());
 
                 item.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
-                        catalog.getFees().values().toArray(new Fee[0]), price, deptCodeClass));
+                        catalog.getFees().values().toArray(new Fee[0]), item));
             }
         }
     }
