@@ -39,7 +39,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </flow>
     <flow name="TNTFireworks:csv-sync-to-database" processingStrategy="TNTFIREWORKS_SyncToDatabase_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="vm://tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" path="tntfireworks-csv-sync-to-db"/>
-        <logger message="Initiating CSV update for marketing plan: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
         <set-variable variableName="awsState" value="copy" doc:name="AWS S3 State"/>
         <component doc:name="Configure SFTP to AWS S3 File Transfer">
             <prototype-object class="tntfireworks.AwsS3Callable"></prototype-object>

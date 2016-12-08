@@ -29,10 +29,11 @@ public class PollSFTPCallable implements Callable {
     // logger
     private static Logger logger = LoggerFactory.getLogger(PollSFTPCallable.class);
     
-    // list of marketing plans
-    public static final String[] PLAN_VALUES = new String[] {"2TNTC", "2TNTSS", "2COK703", "5TNT", 
-                                                       "5AZSAT", "4TCSWA", "4TCSUT", "4TSS"};
-    public static final HashSet<String> MARKETING_PLANS = new HashSet<String>(Arrays.asList(PLAN_VALUES));
+    // list of file prefixes 
+    //     ex: 2TNTC_<mmddyyyy>.csv or locations_<mmddyyyy>.csv 
+    public static String[] prefixValues = new String[] {"2TNTC", "2TNTSS", "2COK703", "5TNT", 
+                                                       "5AZSAT", "4TCSWA", "4TCSUT", "4TSS", "locations"};
+    public static final HashSet<String> FILE_PREFIXES = new HashSet<String>(Arrays.asList(prefixValues));
     
     // sftp config
     private static String sftpHost;
@@ -91,6 +92,7 @@ public class PollSFTPCallable implements Callable {
         // sftp paths to input/processing directories
         String inputFullPath = sftpBasePath + sftpInputPath;
         String processingFullPath = sftpBasePath + sftpInputPath + sftpProcessingPath;
+        String archiveFullPath = sftpBasePath + sftpArchivePath;
         
         // targetFiles => total files list containing unique marketing plans and/or locations
         // sftpRequests => final requests sent for processing
@@ -98,22 +100,21 @@ public class PollSFTPCallable implements Callable {
         ArrayList<SyncToDatabaseRequest> sftpRequests = new ArrayList<SyncToDatabaseRequest>();               
 
         // find oldest files per marketing plan
-        // TODO(wtsang): ignore any locations_*.csv files for now
-        for (String plan : MARKETING_PLANS) {
-            Vector<LsEntry> list = channel.ls(String.format("%s/%s_*.csv", inputFullPath, plan));
+        for (String filePrefix : FILE_PREFIXES) {
+            Vector<LsEntry> list = channel.ls(String.format("%s/%s_*.csv", inputFullPath, filePrefix));
             LsEntry targetFile = getOldestFile(list);
     
             if (targetFile != null)
-                targetFiles.put(plan, targetFile);                  
+                targetFiles.put(filePrefix, targetFile);                  
         }
         
         // wait for files to finish uploading to SFTP server
         Thread.sleep(7500);
 
         // add to processing folder
-        for (String plan : targetFiles.keySet()) {
+        for (String filePrefix : targetFiles.keySet()) {
             Boolean processFile = true;
-            LsEntry currentFile = targetFiles.get(plan);
+            LsEntry currentFile = targetFiles.get(filePrefix);
             String  currentFilename = currentFile.getFilename();
             
             // check if file is still uploading
@@ -135,7 +136,7 @@ public class PollSFTPCallable implements Callable {
                 logger.info(String.format("Queuing %s for processing (%s)...", currentFilename, processingFilename));
 
                 // create request object to be processed by VM
-                SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename, processingFullPath);
+                SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename, processingFullPath, archiveFullPath);
                 newRequest.setSftpHost(sftpHost);
                 newRequest.setSftpPort(sftpPort);
                 newRequest.setSftpUser(sftpUser);

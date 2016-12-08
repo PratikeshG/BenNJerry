@@ -45,27 +45,45 @@ public class InputParser {
     private static Logger logger = LoggerFactory.getLogger(InputParser.class);
 
     public void syncToDatabase(BufferedInputStream inputStream, String processingFile) throws Exception {
-        CSVMktPlan marketingPlan = new CSVMktPlan();
-        String[] itemFields = null;
-        int totalRecordsProcessed = 0;
-
-        // parse marketing plan name
-        // prepare regex for group matching
+        String filename = "";
+        
+        // set up SQL connection
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        
+        // use less efficient Scanner because BufferedReader hangs on NULL EOF
+        Scanner scanner = new Scanner(inputStream, "UTF-8");
+        
+        // parse filename - marketing plan or location file
         Pattern r = Pattern.compile("\\d+_(\\w+)_\\d+.csv");
-        // use regex to find date in currentFile
         Matcher m = r.matcher(processingFile);
         m.find();
         
         // set marketing plan name
         if (m.group(1) != null)
-            marketingPlan.setName(m.group(1));
+            filename = m.group(1);
         
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        if (filename.equals("locations")) 
+            processLocations(conn, scanner, processingFile);            
+        else
+            processMktPlan(conn, scanner, processingFile, filename);
+        
+        scanner.close();
+        conn.close();
 
-        // Using less efficient Scanner because BufferedReader hangs on NULL EOF
-        Scanner scanner = new Scanner(inputStream, "UTF-8");
+        // Scanner suppresses exceptions
+        if (scanner.ioException() != null) {
+            throw scanner.ioException();
+        }
+             
+    }
+    
+    public void processMktPlan(Connection conn, Scanner scanner, String processingFile, String filename) throws Exception {
+        CSVMktPlan marketingPlan = new CSVMktPlan();
+        String[] itemFields = null;
+        int totalRecordsProcessed = 0;
         
+        marketingPlan.setName(filename); 
         if (!marketingPlan.getName().equals("")) {
             // ignore csv header
             logger.info(String.format("Ingesting marketing plan %s...", processingFile));
@@ -74,7 +92,14 @@ public class InputParser {
             while (scanner.hasNextLine()) {
                 totalRecordsProcessed++;
                 itemFields = scanner.nextLine().split(",");
-    
+
+                // trim and replace SQL chars
+                // TODO(wtsang): determine more comprehensive check
+                for (int i = 0; i < itemFields.length; i++) {
+                    itemFields[i] = itemFields[i].trim();
+                    itemFields[i] = itemFields[i].replaceAll("'", "''");
+                }
+                
                 // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
                 //               and add item constructor to take in HashMap to initialize item
                 // item string fields should be in following order:
@@ -97,27 +122,31 @@ public class InputParser {
                 //
                 if (itemFields.length == 16) {
                     CSVItem item = new CSVItem();
-                    item.setNumber(itemFields[0].trim());
-                    item.setCat(itemFields[1].trim());
-                    item.setCategory(itemFields[2].trim());
-                    item.setDescription(itemFields[3].trim().replaceAll("'", "''")); // item description may contain SQL special char '
-                    item.setCasePacking(itemFields[4].trim());
-                    item.setUnitPrice(itemFields[5].trim());
-                    item.setPricingUOM(itemFields[6].trim());
-                    item.setSuggestedPrice(itemFields[7].trim());
-                    item.setSellingUOM(itemFields[8].trim());
-                    item.setUPC(itemFields[9].trim());
-                    item.setNetItem(itemFields[10].trim());
-                    item.setExpiredDate(itemFields[11].trim());
-                    item.setEffectiveDate(itemFields[12].trim());
-                    item.setBOGO(itemFields[13].trim());
-                    item.setItemNum3(itemFields[14].trim());
-                    item.setCurrency(itemFields[15].trim());
+                    item.setNumber(itemFields[0]);
+                    item.setCat(itemFields[1]);
+                    item.setCategory(itemFields[2]);
+                    item.setDescription(itemFields[3]);
+                    item.setCasePacking(itemFields[4]);
+                    item.setUnitPrice(itemFields[5]);
+                    item.setPricingUOM(itemFields[6]);
+                    item.setSuggestedPrice(itemFields[7]);
+                    item.setSellingUOM(itemFields[8]);
+                    item.setUPC(itemFields[9]);
+                    item.setNetItem(itemFields[10]);
+                    item.setExpiredDate(itemFields[11]);
+                    item.setEffectiveDate(itemFields[12]);
+                    item.setBOGO(itemFields[13]);
+                    item.setItemNum3(itemFields[14]);
+                    item.setCurrency(itemFields[15]);
            
                     // add item to marketing plan
                     marketingPlan.addItem(item);                
                 } else {
-                    logger.error(String.format("Did not processing line, malformed record: %d", totalRecordsProcessed));
+                    String contents = "";
+                    for (int i = 0; i < itemFields.length; i++) {
+                        contents += itemFields[i] + " | "; 
+                    }
+                    logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
                 }
     
                 if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
@@ -129,23 +158,111 @@ public class InputParser {
                 }
             } // end while hasNextLine
         } else {
-            logger.error(String.format("Did not processing file %s, malformed filename", processingFile));
+            logger.error(String.format("Did not process file %s, malformed filename", processingFile));
         }
         
-        scanner.close();
-        conn.close();
-
-        // Scanner suppresses exceptions
-        if (scanner.ioException() != null) {
-            throw scanner.ioException();
-        }
-
         logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
             throw new Exception("No records processed. Invalid input stream.");
-        }        
+        }
     }
     
+    public void processLocations(Connection conn, Scanner scanner, String processingFile) throws Exception {
+        ArrayList<CSVLocation> locations = new ArrayList<CSVLocation>();;
+        String[] locationFields = null;
+        int totalRecordsProcessed = 0;
+        
+        // TODO(wtsang): hack - need to skip first 2 header lines
+        if (scanner.hasNextLine())
+            scanner.nextLine();
+        if (scanner.hasNextLine())
+            scanner.nextLine();
+        
+        logger.info(String.format("Ingesting locations file %s...", processingFile));
+        while (scanner.hasNextLine()) {
+            totalRecordsProcessed++;
+            locationFields = scanner.nextLine().split(",");
+            
+            // trim and replace SQL chars
+            for (int i = 0; i < locationFields.length; i++) {
+                locationFields[i] = locationFields[i].trim();
+                locationFields[i] = locationFields[i].replaceAll("'", "''");
+            }
+
+            // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
+            //               and add location constructor to take in HashMap to initialize location
+            //      0 - locationNum;
+            //      1 - addressNum;
+            //      2 - name;
+            //      3 - address;
+            //      4 - city;
+            //      5 - state;
+            //      6 - zip;
+            //      7 - county;
+            //      8 - mktPlan;
+            //      9 - legal;
+            //      10 - disc;
+            //      11 - rbu;
+            //      12 - bp;
+            //      13 - co;
+            //      14 - saNum;
+            //      15 - saName;
+            //      16 - custNum;
+            //      17 - custName;
+            //      18 - season;
+            //      19 - year;
+            //      20 - machineType;
+            //
+            if (locationFields.length == 21) {
+                CSVLocation location = new CSVLocation();
+                location.setLocationNum(locationFields[0]);
+                location.setAddressNum(locationFields[1]);
+                location.setName(locationFields[2]);
+                location.setAddress(locationFields[3]);
+                location.setCity(locationFields[4]);
+                location.setState(locationFields[5]);
+                location.setZip(locationFields[6]);
+                location.setCounty(locationFields[7]);
+                location.setMktPlan(locationFields[8]);
+                location.setLegal(locationFields[9]);
+                location.setDisc(locationFields[10]);
+                location.setRbu(locationFields[11]);
+                location.setBp(locationFields[12]);
+                location.setCo(locationFields[13]);
+                location.setSaNum(locationFields[14]);
+                location.setSaName(locationFields[15]);
+                location.setCustNum(locationFields[16]);
+                location.setCustName(locationFields[17]);
+                location.setSeason(locationFields[18]);
+                location.setYear(locationFields[19]);
+                location.setMachineType(locationFields[20]);
+       
+                // add item to marketing plan
+                locations.add(location);                
+            } else {
+                String contents = "";
+                for (int i = 0; i < locationFields.length; i++) {
+                    contents += locationFields[i] + " | "; 
+                }
+                logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
+
+            }
+
+            if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
+                submitQuery(conn, generateLocationsSQLUpsert(locations));
+
+                locations.clear();
+
+                logger.info(String.format("(%s) Processed %d records", processingFile, totalRecordsProcessed));
+            }
+        } // end while hasNextLine
+        
+        logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
+        if (totalRecordsProcessed == 0) {
+            throw new Exception("No records processed. Invalid input stream.");
+        }  
+    }
+        
     public String generateMktPlanSQLUpsert(String mktPlanName, ArrayList<CSVItem> items) {
         String updateStatement = "";
 
@@ -165,6 +282,31 @@ public class InputParser {
             updateStatement += " ON DUPLICATE KEY UPDATE cat=VALUES(cat), category=VALUES(category), itemDescription=VALUES(itemDescription), casePacking=VALUES(casePacking),"
                             + "unitPrice=VALUES(unitPrice), pricingUOM=VALUES(pricingUOM), suggestedPrice=VALUES(suggestedPrice), sellingUOM=VALUES(sellingUOM), upc=VALUES(upc),"
                             + "netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency);";
+        }
+
+        return updateStatement; 
+    }
+    
+    public String generateLocationsSQLUpsert(ArrayList<CSVLocation> locations) {
+        String updateStatement = "";
+
+        if (locations.size() > 0) {
+            updateStatement = "INSERT INTO tntfireworks_locations (locationNumber, addressNumber, name, address, city, state, zip, county,"
+                            + "mktPlan, legal, disc, rbu, bp, co, saNum, saName, custNum, custName, season, year, machineType) VALUES ";
+            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+
+            ArrayList<String> updates = new ArrayList<String>();
+            for (CSVLocation location : locations) {
+                updates.add(String.format(valuesFormat, location.getLocationNum(), location.getAddressNum(), location.getName(), location.getAddress(), location.getCity(),
+                        location.getState(), location.getZip(), location.getCounty(), location.getMktPlan(), location.getLegal(), location.getDisc(), location.getRbu(),
+                        location.getBp(), location.getCo(), location.getSaNum(), location.getSaName(), location.getCustNum(), location.getCustName(), location.getSeason(),
+                        location.getYear(), location.getMachineType()));
+            }
+
+            updateStatement = appendWithListIterator(updateStatement, updates);
+            updateStatement += " ON DUPLICATE KEY UPDATE addressNumber=VALUES(addressNumber), name=VALUES(name), address=VALUES(address), city=VALUES(city), state=VALUES(state),"
+                            + "zip=VALUES(zip), county=VALUES(county), mktPlan=VALUES(mktPlan), legal=VALUES(legal), disc=VALUES(disc), rbu=VALUES(rbu), bp=VALUES(bp), co=VALUES(co),"
+                            + "saNum=VALUES(saNum), saName=VALUES(saName), custNum=VALUES(custNum), custName=VALUES(custName), season=VALUES(season), year=VALUES(year), machineType=VALUES(machineType);";
         }
 
         return updateStatement; 
