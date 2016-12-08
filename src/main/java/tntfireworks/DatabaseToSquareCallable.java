@@ -161,6 +161,10 @@ public class DatabaseToSquareCallable implements Callable {
                     String locationTNTId = getValueInParenthesis(location.getName());
                     String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
 
+                    if (marketingPlanId.length() < 1) {
+                        continue;
+                    }
+
                     List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
                     if (locationsList == null) {
                         locationsList = new ArrayList<String>();
