@@ -238,7 +238,7 @@ public class InputParser {
                 location.setMachineType(locationFields[20]);
        
                 // add item to marketing plan
-                locations.add(location);                
+                locations.add(location);
             } else {
                 String contents = "";
                 for (int i = 0; i < locationFields.length; i++) {

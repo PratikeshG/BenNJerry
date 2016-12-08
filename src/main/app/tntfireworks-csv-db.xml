@@ -12,6 +12,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <vm:connector name="TNTFIREWORKS_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="TNTFIREWORKS_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
+    <queued-asynchronous-processing-strategy name="TNTFIREWORKS_DatabaseToSquare_Async_Strategy" maxThreads="${tntfireworks.databaseToSquare.maxThreads}" minThreads="${tntfireworks.databaseToSquare.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <flow name="TNTFireworks:sftp-csv-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="tntfireworks-csv-sftp-cron-1480949901" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
             <quartz:event-generator-job/>
@@ -63,7 +64,27 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 	            <property key="databasePassword" value="${mysql.password}"/>
 		    </prototype-object>
         </component>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="vm://sync-db-to-square"/>
+        <set-payload value="Completed database sync: #[flowVars.SyncToDatabaseRequest.getProcessingFilename()]" doc:name="Email Payload"/>
 
+    </flow>
+    <flow name="TNTFireworks:sync-database-to-square" processingStrategy="TNTFIREWORKS_DatabaseToSquare_Async_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="vm://sync-db-to-square"/>
+        <logger message="Initiating API update for file #[payload.getProcessingFilename()] from database" level="INFO" doc:name="Logger"/>
+        <component doc:name="Database to Square API Updates">
+            <prototype-object class="tntfireworks.DatabaseToSquareCallable">
+		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+                <property key="apiUrl" value="${api.url}"/>
+                <property key="sftpHost" value="${tntfireworks.sftp.host}"/>
+                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>
+                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>
+                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/> 
+                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>          
+            </prototype-object>
+        </component>
+        <set-payload value="Completed API updates: #[flowVars.DatabaseToSquareRequest.getProcessingFilename()]" doc:name="Email Payload"/>
     </flow>
 </mule>
  

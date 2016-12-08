@@ -28,7 +28,7 @@ public class SyncToDatabaseCallable implements Callable {
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {       
         MuleMessage message = eventContext.getMessage();
-
+        
         SyncToDatabaseRequest request = (SyncToDatabaseRequest) message
                 .getProperty("SyncToDatabaseRequest", PropertyScope.INVOCATION);
 
@@ -42,17 +42,17 @@ public class SyncToDatabaseCallable implements Callable {
         parser.setDatabasePassword(databasePassword);
         parser.syncToDatabase(bis, request.getProcessingFilename());
         bis.close();
-            
-        /*
-        // Submit new request to VM for API updates
-        DatabaseToSquareRequest updateRequest = new DatabaseToSquareRequest();
-        updateRequest.setProcessingFileName(SyncToDatabaseRequest.getProcessingFilename());
-        updateRequest.setProcessingFile(true);
-        */
-
-        // submit new request to VM to generate import files for marketing plan
-        //return updateRequest;        
         
-        return new Object();
+        // Submit new request to VM for API updates
+        DatabaseToSquareRequest updateSQRequest = new DatabaseToSquareRequest();
+        updateSQRequest.setProcessingFilename(request.getProcessingFilename());
+        updateSQRequest.setProcessingFlag(true);
+        updateSQRequest.setArchivePath(request.getArchivePath());
+        updateSQRequest.setProcessingPath(request.getProcessingPath());
+
+        // TODO(wtsang): create flow to generate manual import files
+        //      submit new request to VM to generate import files for marketing plan
+        
+        return updateSQRequest;
     }
 }
