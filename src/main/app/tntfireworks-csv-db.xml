@@ -70,28 +70,21 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" processingStrategy="TNTFIREWORKS_DatabaseToSquare_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="vm://sync-db-to-square"/>
-        <choice doc:name="Sync Method?">
-            <when expression="#['${tntfireworks.syncMethod}'=='manual']">
-                <logger message="Initiating csv-manual-import update for file #[payload.getProcessingFilename()] from database" level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Initiating API update for file #[payload.getProcessingFilename()] from database" level="INFO" doc:name="Logger"/>
-                <component doc:name="Database to Square API Updates">
-                    <prototype-object class="tntfireworks.DatabaseToSquareCallable"> 
-                        <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                        <property key="databaseUser" value="${mysql.user}"/>  
-                        <property key="databasePassword" value="${mysql.password}"/>  
-                        <property key="apiUrl" value="${api.url}"/>  
-                        <property key="sftpHost" value="${tntfireworks.sftp.host}"/>  
-                        <property key="sftpPort" value="${tntfireworks.sftp.port}"/>  
-                        <property key="sftpUser" value="${tntfireworks.sftp.username}"/>  
-                        <property key="sftpPassword" value="${tntfireworks.sftp.password}"/>  
-                        <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
-                    </prototype-object>
-                </component>
-                <set-payload value="Completed API updates: #[flowVars.DatabaseToSquareRequest.getProcessingFilename()]" doc:name="Email Payload"/>
-            </otherwise>
-        </choice>
+        <logger message="Initiating API update for file #[payload.getProcessingFilename()] from database" level="INFO" doc:name="Logger"/>
+        <component doc:name="Database to Square API Updates">
+            <prototype-object class="tntfireworks.DatabaseToSquareCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+                <property key="apiUrl" value="${api.url}"/>  
+                <property key="sftpHost" value="${tntfireworks.sftp.host}"/>  
+                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>  
+                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>  
+                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/>  
+                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
+            </prototype-object>
+        </component>
+        <set-payload value="Completed API updates: #[flowVars.DatabaseToSquareRequest.getProcessingFilename()]" doc:name="Email Payload"/>
     </flow>
 </mule>
  
