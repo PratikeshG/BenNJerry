@@ -19,7 +19,7 @@ public class SSHUtil {
         ChannelSftp sftpChannel;
         Session session;
         JSch jsch = new JSch();
-        logger = LoggerFactory.getLogger(SSHUtil.class);  
+        logger = LoggerFactory.getLogger(SSHUtil.class);
 
         // initialize session properties
         session = jsch.getSession(sftpUser, sftpHost, sftpPort);
@@ -27,9 +27,8 @@ public class SSHUtil {
         session.setConfig("StrictHostKeyChecking", "no");
 
         // connection to session
-        logger.info(String.format("Establishing SFTP connection to host: %s", sftpHost));
         session.connect();
-        logger.info(String.format("Connection established to host: %s", sftpHost));
+        logger.info(String.format("SFTP Session connection established to host: %s", sftpHost));
        
         // open/connect channel
         sftpChannel = (ChannelSftp) session.openChannel("sftp");

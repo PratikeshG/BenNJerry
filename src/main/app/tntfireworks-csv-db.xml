@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -8,7 +8,8 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <vm:connector name="TNTFIREWORKS_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="TNTFIREWORKS_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <flow name="TNTFireworks:sftp-csv-cron" processingStrategy="synchronous">
@@ -40,15 +41,29 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
         <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="vm://tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" path="tntfireworks-csv-sync-to-db"/>
         <logger message="Initiating CSV update for marketing plan: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
         <set-variable variableName="awsState" value="copy" doc:name="AWS S3 State"/>
-        <component doc:name="Configure SFTP to AWS S3 file transfer">
-            <prototype-object class="tntfireworks.AwsS3Callable">
-		    </prototype-object>
+        <component doc:name="Configure SFTP to AWS S3 File Transfer">
+            <prototype-object class="tntfireworks.AwsS3Callable"></prototype-object>
         </component>
+        <set-payload value="Started: #[flowVars.SyncToDatabaseRequest.getProcessingFilename()]" doc:name="Email Payload"/>
+        <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
+        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" content-ref="#[flowVars.sftpInputStream]" doc:name="Initiate copy to Amazon S3"/>
+        <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
+        <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Read new stream from S3"/>
+        <set-variable variableName="s3InputStream" value="#[payload.objectContent]" doc:name="Save S3 Stream Reader"/>
         <set-variable variableName="awsState" value="stream" doc:name="AWS S3 State"/>
-        <component doc:name="Clean-up SFTP to AWS transfer">
+        <component doc:name="Clean-up SFTP to AWS Transfer">
             <prototype-object class="tntfireworks.AwsS3Callable">
 		    </prototype-object>
         </component>
+        <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
+        <component doc:name="Sync CSV to Database">
+            <prototype-object class="tntfireworks.SyncToDatabaseCallable">
+	            <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+	            <property key="databaseUser" value="${mysql.user}"/>
+	            <property key="databasePassword" value="${mysql.password}"/>
+		    </prototype-object>
+        </component>
+
     </flow>
 </mule>
  
