@@ -161,8 +161,20 @@ public class DatabaseToSquareCallable implements Callable {
                     String locationTNTId = getValueInParenthesis(location.getName());
                     String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
 
-                    if (marketingPlanId.length() < 1) {
+                    logger.info(String.format("locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                            locationSquareId, locationTNTId, marketingPlanId));
+
+                    if (locationTNTId.length() < 1) {
+                        logger.warn(String.format(
+                                "INVALID LOCATION ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                                locationSquareId, locationTNTId, marketingPlanId));
                         continue;
+                    }
+
+                    if (marketingPlanId == null) {
+                        logger.warn(String.format(
+                                "NO MARKETING PLAN ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                                locationSquareId, locationTNTId, marketingPlanId));
                     }
 
                     List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
@@ -175,40 +187,45 @@ public class DatabaseToSquareCallable implements Callable {
 
                 Catalog catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                         Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+
                 catalog.clearItemLocations();
 
                 for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
                     String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId)
                             .toArray(new String[0]);
 
-                    for (CSVItem updateItem : marketingPlanItemsCache.get(marketingPlanId)) {
-                        if (updateItem.getUPC().length() < 2) {
-                            continue;
+                    List<CSVItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
+                    if (marketingPlanItems != null) {
+                        for (CSVItem updateItem : marketingPlanItems) {
+                            String sku = updateItem.getUPC();
+                            if (sku == null || sku.length() < 2) {
+                                sku = updateItem.getNumber();
+                            }
+
+                            CatalogObject matchingItem = catalog.getItem(sku);
+                            if (matchingItem == null) {
+                                matchingItem = new CatalogObject("ITEM");
+                            }
+
+                            matchingItem.getItemData().setName(updateItem.getDescription());
+                            CatalogItemVariation macthingItemVariation = matchingItem.getItemData().getVariations()[0]
+                                    .getItemVariationData();
+                            macthingItemVariation.setSku(sku);
+                            macthingItemVariation.setName(updateItem.getNumber());
+
+                            int price = Integer.parseInt(parsePrice(updateItem.getSuggestedPrice()));
+                            macthingItemVariation.setPriceMoney(new Money(price));
+
+                            matchingItem.enableAtLocations(squareLocationIds);
+                            matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
+
+                            catalog.addItem(matchingItem);
                         }
-
-                        CatalogObject matchingItem = catalog.getItem(updateItem.getUPC());
-                        if (matchingItem == null) {
-                            matchingItem = new CatalogObject("ITEM");
-                        }
-
-                        matchingItem.getItemData().setName(updateItem.getDescription());
-                        CatalogItemVariation macthingItemVariation = matchingItem.getItemData().getVariations()[0]
-                                .getItemVariationData();
-                        macthingItemVariation.setSku(updateItem.getUPC());
-                        macthingItemVariation.setName(updateItem.getNumber());
-
-                        int price = Integer.parseInt(parsePrice(updateItem.getSuggestedPrice()));
-                        macthingItemVariation.setPriceMoney(new Money(price));
-
-                        matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
-                        catalog.addItem(matchingItem);
-
-                        CatalogObject[] o = { matchingItem };
-                        catalog.enableObjectsAtLocations(o, squareLocationIds);
                     }
                 }
 
                 client.catalog().batchUpsertObjects(catalog.getObjects());
+                logger.info("Done processing for account.");
             }
 
             conn.close();
