@@ -31,7 +31,15 @@ import com.squareup.connect.v2.SquareClientV2;
 
 public class DatabaseToSquareCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DatabaseToSquareCallable.class);
-
+    
+    // TODO(wtsang): generate dynamically by reading all possible values from DB
+    private static final String[] CATEGORIES = new String[] {
+        "ASSORTMENTS", "BASE FOUNTAINS", "CALIFORNIA FOUNTAINS", "CONE FOUNTAINS", "GROUND SPINNERS & CHASERS",
+        "NOVELTIES", "SMOKE", "SPARKLERS", "PUNK", "FIRECRACKERS", "HELICOPTERS", "RELOADABLES", "MULTI-AERIALS", 
+        "SPECIAL AERIALS", "MISSILES", "PARACHUTES", "ROMAN CANDLES", "ROCKETS", "COUNTER CASES & DISPLAYS","PROMOTIONAL",
+        "SUB ASSESMBLIES", "MATERIALS", "TOYS"
+    };
+    
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -117,7 +125,7 @@ public class DatabaseToSquareCallable implements Callable {
             while (resultLocations.next()) {
                 locationMarketingPlanCache.put(resultLocations.getString("locationNumber"),
                         resultLocations.getString("mktPlan"));
-            }
+            }           
 
             // get all items from db
             // columns retrieved: itemNumber, category, itemDescription, suggestedPrice, upc, currency
@@ -151,10 +159,9 @@ public class DatabaseToSquareCallable implements Callable {
             // columns retrieved: connectApp, token
             resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
             while (resultDeployments.next()) {
-                SquareClientV2 client = new SquareClientV2(apiUrl, resultDeployments.getString("token"));
-
+                SquareClientV2 client = new SquareClientV2(apiUrl, resultDeployments.getString("token"));          
                 HashMap<String, List<String>> marketingPlanLocationsCache = new HashMap<String, List<String>>();
-
+                
                 Location[] locations = client.locations().list();
                 for (Location location : locations) {
                     String locationSquareId = location.getId();
@@ -187,9 +194,47 @@ public class DatabaseToSquareCallable implements Callable {
 
                 Catalog catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                         Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-
+               
+                // 1. pull existing categories
+                // 2. check if all defined categories exist
+                // 3. if not, create and upsert              
+                HashMap<String, CatalogObject> existingCategories = (HashMap) catalog.getCategories();
+                
+                // check if there are new categories to add
+                for (int i = 0; i < CATEGORIES.length; i++) {
+                    Boolean exists = false;
+                    
+                    for (String key : existingCategories.keySet()) {
+                        CatalogObject category = existingCategories.get(key);
+                        if (category.getCategoryData().getName().equals(CATEGORIES[i]))
+                            exists = true;
+                    }
+                    
+                    // add category if it does not exist in Square
+                    if (!exists) {
+                        CatalogObject newCategory = new CatalogObject("CATEGORY");
+                        newCategory.getCategoryData().setName(CATEGORIES[i]);
+                        catalog.addCategory(newCategory);
+                    }                    
+                }    
+                
+                // upsert new categories
+                client.catalog().batchUpsertObjects(catalog.getObjects());
+                logger.info("Done checking/adding categories");
+                
+                // retrieve catalog again with all categories existing inside account
+                catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                        Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+              
                 catalog.clearItemLocations();
-
+                
+                // create mapping of category ids to names
+                existingCategories = (HashMap) catalog.getCategories();
+                HashMap<String, String> catNameToId = new HashMap<String, String>();
+                for (String key : existingCategories.keySet()) {
+                    catNameToId.put(existingCategories.get(key).getCategoryData().getName(),existingCategories.get(key).getId());
+                }
+                                
                 for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
                     String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId)
                             .toArray(new String[0]);
@@ -218,7 +263,11 @@ public class DatabaseToSquareCallable implements Callable {
 
                             matchingItem.enableAtLocations(squareLocationIds);
                             matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
-
+                            
+                            // check for matching category, if found, add category id
+                            if (catNameToId.containsKey(updateItem.getCategory()))
+                                matchingItem.getItemData().setCategoryId(catNameToId.get(updateItem.getCategory()));
+                                
                             catalog.addItem(matchingItem);
                         }
                     }
