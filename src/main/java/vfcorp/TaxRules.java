@@ -55,10 +55,12 @@ public class TaxRules {
     // 8.625% on all other items (non-clothing/footwear)
     private final static String TNF_NY_RIVERHEAD = "vfcorp-tnf-00319";
 
-    // Boston
+    // MA
     // No sales tax on clothing (and shoes) that costs less than (or equal to) $175.
     // It it costs more than $175, you pay 6.25% on the amount over 175
     private final static String TNF_BOSTON = "vfcorp-tnf-00014";
+    private final static String TNF_PEABODY = "vfcorp-tnf-00039";
+    private final static String TNF_BRAINTREE = "vfcorp-tnf-00053";
 
     // Rhode Island
     // No sales tax on clothing (and shoes) that costs less than (or equal to) $250.
@@ -68,6 +70,7 @@ public class TaxRules {
     // PA - TNF Stores #79, 308, 316
     // 0% on clothing
     // Standard rate on all other items (non- clothing)
+    private final static String TNF_PA_KING_OF_PRUSSIA = "vfcorp-tnf-00029";
     private final static String TNF_PA_GROVE_CITY = "vfcorp-tnf-00079";
     private final static String TNF_PA_TANNERSVILLE = "vfcorp-tnf-00308";
     private final static String TNF_PA_PHILADELPHIA_OUTLET = "vfcorp-tnf-00316";
@@ -172,13 +175,14 @@ public class TaxRules {
             } else {
                 return new Fee[] { taxes[0] };
             }
-        } else if (deployment.equals(TNF_BOSTON)) {
+        } else if (deployment.equals(TNF_BOSTON) || deployment.equals(TNF_PEABODY)
+                || deployment.equals(TNF_BRAINTREE)) {
             if (taxes.length != 1) {
-                throw new Exception("Boston deployment with incorrect number of taxes: " + deployment);
+                throw new Exception("MA deployment with incorrect number of taxes: " + deployment);
             }
 
-            // We can't actually handle Boston taxes right now
-            if (isSpecialTaxCategoryBoston(itemPrice, itemDeptClass)) {
+            // We can't actually handle MA taxes right now
+            if (isSpecialTaxCategoryMA(itemPrice, itemDeptClass)) {
                 return new Fee[0];
             } else {
                 return new Fee[] { taxes[0] };
@@ -208,8 +212,8 @@ public class TaxRules {
             } else {
                 return new Fee[] { highTax };
             }
-        } else if (deployment.equals(TNF_PA_GROVE_CITY) || deployment.equals(TNF_PA_TANNERSVILLE)
-                || deployment.equals(TNF_PA_PHILADELPHIA_OUTLET)) {
+        } else if (deployment.equals(TNF_PA_KING_OF_PRUSSIA) || deployment.equals(TNF_PA_GROVE_CITY)
+                || deployment.equals(TNF_PA_TANNERSVILLE) || deployment.equals(TNF_PA_PHILADELPHIA_OUTLET)) {
             if (taxes.length != 1) {
                 throw new Exception("Pennsylvania deployment with incorrect number of taxes: " + deployment);
             }
@@ -245,7 +249,7 @@ public class TaxRules {
 
     // TODO(bhartard): MA clothing tax is actually rate*(N-$175)
     // Need to treat these differently
-    private static boolean isSpecialTaxCategoryBoston(int price, String deptClass) {
+    private static boolean isSpecialTaxCategoryMA(int price, String deptClass) {
         if (price <= MA_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }

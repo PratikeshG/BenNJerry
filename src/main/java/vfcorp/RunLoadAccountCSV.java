@@ -22,10 +22,10 @@ public class RunLoadAccountCSV {
     int CONCURRENT_TASKS = 5;
 
     String DATABASE_URL = "jdbc:mysql://104.197.244.109:3306/development_bhartard";
-    String DATABASE_USERNAME = "root";
-    String DATABASE_PASSWORD = "DaqXUs4H]cjPU$36";
+    String DATABASE_USERNAME = "";
+    String DATABASE_PASSWORD = "";
 
-    String DIR_PATH = "/Users/bhartard/desktop/sales/12-5-2016-load/";
+    String DIR_PATH = "/Users/bhartard/desktop/sales/12-8-2016/OUTLET/";
 
     public void run() {
         class PLULoadTask {
@@ -62,24 +62,32 @@ public class RunLoadAccountCSV {
         ArrayList<PLULoadTask> tasks = new ArrayList<PLULoadTask>();
 
         // FULL PRICE
-        //tasks.add(new PLULoadTask("PLU00017.DTA", "AM6RHNEEXS6ZD", "vfcorp-tnf-00017", TIMEZONE));
-        //tasks.add(new PLULoadTask("PLU00506.DTA", "AJRZ51P0966R6", "vfcorp-tnf-00506", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00508.DTA", "96K9R192S0BJJ", "vfcorp-tnf-00508", TIMEZONE));
-        //tasks.add(new PLULoadTask("PLU00512.DTA", "EAEZDPYZW30DR", "vfcorp-tnf-00512", TIMEZONE));
         /*
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "2GAGTTA5Q68YJ", "vfcorp-tnf-00001", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "CH8HXB0NZW1MV", "vfcorp-tnf-00010", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "0TMNNPGCSBE5Y", "vfcorp-tnf-00012", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "CW3R3REFD71KG", "vfcorp-tnf-00014", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "7GVHAS422FBSV", "vfcorp-tnf-00016", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00017.DTA", "AM6RHNEEXS6ZD", "vfcorp-tnf-00017", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "AMS55HMEWYDN6", "vfcorp-tnf-00020", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00021.DTA", "7E392MM4J52FP", "vfcorp-tnf-00021", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00029.DTA", "BVXG4MWRGTNRE", "vfcorp-tnf-00029", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00039.DTA", "EZJM365N7T51R", "vfcorp-tnf-00039", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "FRKT9Z5KM9T0X", "vfcorp-tnf-00040", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00043.DTA", "DGVQJ4QBZG2G1", "vfcorp-tnf-00043", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00044.DTA", "A2X9KEVRVXGCC", "vfcorp-tnf-00044", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00046.DTA", "BBQDRYHM32C6P", "vfcorp-tnf-00046", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00053.DTA", "4HBRD1TZ64J8C", "vfcorp-tnf-00053", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00055.DTA", "6D8TPHJPEMH2M", "vfcorp-tnf-00055", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00059.DTA", "DDYHVFHR1F8S6", "vfcorp-tnf-00059", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "1SY99QNDRDEN5", "vfcorp-tnf-00402", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00506.DTA", "AJRZ51P0966R6", "vfcorp-tnf-00506", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00508.DTA", "96K9R192S0BJJ", "vfcorp-tnf-00508", TIMEZONE));
+        tasks.add(new PLULoadTask("PLU00512.DTA", "EAEZDPYZW30DR", "vfcorp-tnf-00512", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "EN7KGE1AES2TT", "vfcorp-tnf-00513", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "E3BA9DKRGVR5Z", "vfcorp-tnf-00516", TIMEZONE));
         tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "7S5JD3KD1S2KY", "vfcorp-tnf-00517", TIMEZONE));
         */
-
         // OUTLET - EAST COAST
         /*
         tasks.add(new PLULoadTask("plu.chg.20161128194221", "AHH2VZPBV01AN", "vfcorp-tnf-00062", TIMEZONE));
@@ -115,8 +123,9 @@ public class RunLoadAccountCSV {
         tasks.add(new PLULoadTask("plu.chg.20161128194221", "572E9K2QKTXCD", "vfcorp-tnf-00315", TIMEZONE));
         tasks.add(new PLULoadTask("plu.chg.20161128194221", "5XJVMJ0HBBF0C", "vfcorp-tnf-00317", TIMEZONE));
         tasks.add(new PLULoadTask("plu.chg.20161128194221", "364KHVZF5V1GQ", "vfcorp-tnf-00322", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "2BBHP3B5QJQYB", "vfcorp-tnf-00323", TIMEZONE));
         */
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161208201806", "2BBHP3B5QJQYB", "vfcorp-tnf-00323", TIMEZONE));
+
         // OUTLET - WEST COAST
         /*
         tasks.add(new PLULoadTask("plu.chg.20161128194221", "EFG9HHBWZD0KD", "vfcorp-tnf-00060", TIMEZONE));
@@ -234,7 +243,9 @@ public class RunLoadAccountCSV {
                     for (Item item : catalog.getItems().values()) {
 
                         // Skip Boston/RhodeIsland items that we can't tax
-                        if (task.getDeploymentId().equals("vfcorp-tnf-00014")
+                        if ((task.getDeploymentId().equals("vfcorp-tnf-00014")
+                                || task.getDeploymentId().equals("vfcorp-tnf-00039")
+                                || task.getDeploymentId().equals("vfcorp-tnf-00053"))
                                 && TaxRules.CLOTHING_DEPT_CLASS
                                         .contains(Util.getValueInParenthesis(item.getVariations()[0].getName()))
                                 && item.getVariations()[0].getPriceMoney().getAmount() > 17500) {
