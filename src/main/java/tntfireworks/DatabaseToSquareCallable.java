@@ -196,8 +196,9 @@ public class DatabaseToSquareCallable implements Callable {
 
                 // 1. pull existing categories
                 // 2. check if all defined categories exist
-                // 3. if not, create and upsert
-                HashMap<String, CatalogObject> existingCategories = (HashMap) catalog.getCategories();
+                // 3. if not, upsert
+                HashMap<String, CatalogObject> existingCategories = (HashMap<String, CatalogObject>) catalog
+                        .getCategories();
 
                 // check if there are new categories to add
                 for (String categoryName : CATEGORIES) {
@@ -215,21 +216,15 @@ public class DatabaseToSquareCallable implements Callable {
                 client.catalog().batchUpsertObjects(allCategories);
                 logger.info("Done checking/adding categories");
 
-                // retrieve catalog again with all categories existing inside
-                // account
+                // retrieve latest catalog with all categories now in account
                 catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                         Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
+                // reset all item <> location relationships - we will re-add these based on db item info
                 catalog.clearItemLocations();
 
-                // create mapping of category ids to names
-                existingCategories = (HashMap) catalog.getCategories();
-                HashMap<String, String> catNameToId = new HashMap<String, String>();
-                for (String key : existingCategories.keySet()) {
-                    catNameToId.put(key, existingCategories.get(key).getId());
-                }
-
-                logger.info(catNameToId.toString());
+                // get the up-to-date categories
+                existingCategories = (HashMap<String, CatalogObject>) catalog.getCategories();
 
                 for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
                     String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId)
@@ -261,8 +256,9 @@ public class DatabaseToSquareCallable implements Callable {
                             matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
 
                             // check for matching category, if found, add category id
-                            if (catNameToId.containsKey(updateItem.getCategory())) {
-                                matchingItem.getItemData().setCategoryId(catNameToId.get(updateItem.getCategory()));
+                            if (existingCategories.containsKey(updateItem.getCategory())) {
+                                String categoryId = existingCategories.get(updateItem.getCategory()).getId();
+                                matchingItem.getItemData().setCategoryId(categoryId);
                             }
 
                             catalog.addItem(matchingItem);
