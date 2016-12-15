@@ -75,6 +75,11 @@ public class TaxRules {
     private final static String TNF_PA_TANNERSVILLE = "vfcorp-tnf-00308";
     private final static String TNF_PA_PHILADELPHIA_OUTLET = "vfcorp-tnf-00316";
 
+    // NJ
+    // 0% on clothing
+    // Standard rate on all other items (non- clothing)
+    private final static String TNF_NJ_CHERRY_HILL = "vfcorp-tnf-00055";
+
     // MN - TNF Stores #315, 513
     // 0% on clothing/apparel
     // Standard rate on all other items (non- clothing)
@@ -223,6 +228,16 @@ public class TaxRules {
             } else {
                 return new Fee[] { taxes[0] };
             }
+        } else if (deployment.equals(TNF_NJ_CHERRY_HILL)) {
+            if (taxes.length != 1) {
+                throw new Exception("New Jersey deployment with incorrect number of taxes: " + deployment);
+            }
+
+            if (isSpecialTaxCategoryNJ(itemDeptClass)) {
+                return new Fee[0];
+            } else {
+                return new Fee[] { taxes[0] };
+            }
         } else if (deployment.equals(TNF_MN_ALBERTVILLE) || deployment.equals(TNF_MN_MALL_OF_AMERICA)) {
             if (taxes.length != 1) {
                 throw new Exception("Minnesota deployment with incorrect number of taxes: " + deployment);
@@ -266,6 +281,13 @@ public class TaxRules {
     }
 
     private static boolean isSpecialTaxCategoryPA(String deptClass) {
+        if (CLOTHING_DEPT_CLASS.contains(deptClass)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isSpecialTaxCategoryNJ(String deptClass) {
         if (CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }
