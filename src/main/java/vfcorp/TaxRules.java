@@ -9,84 +9,84 @@ import com.squareup.connect.Item;
 import com.squareup.connect.ItemVariation;
 
 public class TaxRules {
-    private static final int NY_EXEMPT_THRESHOLD = 11000;
-    private static final int MA_EXEMPT_THRESHOLD = 17500;
-    private static final int RI_EXEMPT_THRESHOLD = 25000;
+    public static final int NY_EXEMPT_THRESHOLD = 11000;
+    public static final int MA_EXEMPT_THRESHOLD = 17500;
+    public static final int RI_EXEMPT_THRESHOLD = 25000;
 
     // Stores with bag fees
-    private final static String TNF_POST_ST = "vfcorp-tnf-00001";
-    private final static String TNF_VALLEY_FAIR = "vfcorp-tnf-00021";
-    private final static String TNF_BETHESDA = "vfcorp-tnf-00048";
-    private final static String TNF_STANFORD = "vfcorp-tnf-00517";
+    public final static String TNF_POST_ST = "vfcorp-tnf-00001";
+    public final static String TNF_VALLEY_FAIR = "vfcorp-tnf-00021";
+    public final static String TNF_BETHESDA = "vfcorp-tnf-00048";
+    public final static String TNF_STANFORD = "vfcorp-tnf-00517";
 
     // Tax free bag SKUs
-    private final static String BAG_4508 = "040005164508";
-    private final static String BAG_4909 = "040004834909";
+    public final static String BAG_4508 = "040005164508";
+    public final static String BAG_4909 = "040004834909";
 
     // New York, NY - TNF Stores #12, 18, 516
     // 0% on clothing & footwear below $110 per item
     // 8.875% on clothing & footwear $110 and above per item
     // 8.875% on all other items (non- clothing/footwear)
-    private final static String TNF_NYC_BROADWAY = "vfcorp-tnf-00012";
-    private final static String TNF_NYC_WOOSTER = "vfcorp-tnf-00018";
-    private final static String TNF_NYC_FIFTH = "vfcorp-tnf-00516";
+    public final static String TNF_NYC_BROADWAY = "vfcorp-tnf-00012";
+    public final static String TNF_NYC_WOOSTER = "vfcorp-tnf-00018";
+    public final static String TNF_NYC_FIFTH = "vfcorp-tnf-00516";
 
     // White Plains, NY - Westchester Co. - TNF Store #28
     // 4.375% on clothing & footwear below $110 per item
     // 8.375% on clothing & footwear $110 and above per item
     // 8.375% on all other items (non-clothing/footwear)
-    private final static String TNF_NY_WHITEPLAINS = "vfcorp-tnf-00028";
+    public final static String TNF_NY_WHITEPLAINS = "vfcorp-tnf-00028";
 
     // Victor, NY - Ontario Co. - TNF Store #58
     // 3.5% on clothing & footwear below $110 per item
     // 7.5% on clothing & footwear $110 and above per item
     // 7.5% on all other items (non-clothing/footwear)
-    private final static String TNF_NY_ONTARIO = "vfcorp-tnf-00058";
+    public final static String TNF_NY_ONTARIO = "vfcorp-tnf-00058";
 
     // Central Valley, NY - Orange, Co. - TNF Store #64
     // 4.125% on clothing & footwear below $110 per item
     // 8.125% on clothing & footwear $110 and above per item
     // 8.125% on all other items (non-clothing/footwear)
-    private final static String TNF_NY_WOODBURY = "vfcorp-tnf-00064";
+    public final static String TNF_NY_WOODBURY = "vfcorp-tnf-00064";
 
     // Riverhead, NY  - Suffolk Co. - TNF Store #319
     // 4.625% on clothing & footwear below $110 per item
     // 8.625% on clothing & footwear $110 and above per item
     // 8.625% on all other items (non-clothing/footwear)
-    private final static String TNF_NY_RIVERHEAD = "vfcorp-tnf-00319";
+    public final static String TNF_NY_RIVERHEAD = "vfcorp-tnf-00319";
 
     // MA
     // No sales tax on clothing (and shoes) that costs less than (or equal to) $175.
     // It it costs more than $175, you pay 6.25% on the amount over 175
-    private final static String TNF_BOSTON = "vfcorp-tnf-00014";
-    private final static String TNF_PEABODY = "vfcorp-tnf-00039";
-    private final static String TNF_BRAINTREE = "vfcorp-tnf-00053";
+    public final static String TNF_BOSTON = "vfcorp-tnf-00014";
+    public final static String TNF_PEABODY = "vfcorp-tnf-00039";
+    public final static String TNF_BRAINTREE = "vfcorp-tnf-00053";
 
     // Rhode Island
     // No sales tax on clothing (and shoes) that costs less than (or equal to) $250.
     // It it costs more than $250, you pay 7% on the amount over 250
-    private final static String TNF_RHODE_ISLAND = "vfcorp-tnf-00508";
+    public final static String TNF_RHODE_ISLAND = "vfcorp-tnf-00508";
 
     // PA - TNF Stores #79, 308, 316
     // 0% on clothing
     // Standard rate on all other items (non- clothing)
-    private final static String TNF_PA_KING_OF_PRUSSIA = "vfcorp-tnf-00029";
-    private final static String TNF_PA_GROVE_CITY = "vfcorp-tnf-00079";
-    private final static String TNF_PA_TANNERSVILLE = "vfcorp-tnf-00308";
-    private final static String TNF_PA_PHILADELPHIA_OUTLET = "vfcorp-tnf-00316";
+    public final static String TNF_PA_KING_OF_PRUSSIA = "vfcorp-tnf-00029";
+    public final static String TNF_PA_GROVE_CITY = "vfcorp-tnf-00079";
+    public final static String TNF_PA_TANNERSVILLE = "vfcorp-tnf-00308";
+    public final static String TNF_PA_PHILADELPHIA_OUTLET = "vfcorp-tnf-00316";
 
     // NJ
     // 0% on clothing
     // Standard rate on all other items (non- clothing)
-    private final static String TNF_NJ_CHERRY_HILL = "vfcorp-tnf-00055";
+    public final static String TNF_NJ_CHERRY_HILL = "vfcorp-tnf-00055";
 
     // MN - TNF Stores #315, 513
     // 0% on clothing/apparel
     // Standard rate on all other items (non- clothing)
-    private final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
-    private final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
+    public final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
+    public final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
 
-    public static final Set<String> CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] { "10  7076",
+    private static final Set<String> CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] { "10  7076",
             "10  1000", "10  1001", "10  1002", "10  1020", "10  1021", "10  1040", "10  1050", "10  1055", "10  1200",
             "10  1500", "10  1501", "10  1502", "10  1520", "10  1521", "10  1540", "10  1550", "10  1555", "10  1600",
             "10  1601", "10  1602", "10  1603", "10  1604", "10  1605", "10  1606", "10  1607", "10  1610", "10  1611",
@@ -255,8 +255,12 @@ public class TaxRules {
         return new Fee[] { taxes[0] };
     }
 
+    public static boolean deptClassIsClothingTaxCategory(String deptClass) {
+        return CLOTHING_DEPT_CLASS.contains(deptClass);
+    }
+
     private static boolean isSpecialTaxCategoryNYS(int price, String deptClass) {
-        if (price < NY_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
+        if (price < NY_EXEMPT_THRESHOLD && deptClassIsClothingTaxCategory(deptClass)) {
             return true;
         }
         return false;
@@ -265,7 +269,7 @@ public class TaxRules {
     // TODO(bhartard): MA clothing tax is actually rate*(N-$175)
     // Need to treat these differently
     private static boolean isSpecialTaxCategoryMA(int price, String deptClass) {
-        if (price <= MA_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
+        if (price <= MA_EXEMPT_THRESHOLD && deptClassIsClothingTaxCategory(deptClass)) {
             return true;
         }
         return false;
@@ -274,31 +278,22 @@ public class TaxRules {
     // TODO(bhartard): RI clothing tax is actually rate*(N-$250)
     // Need to treat these differently
     private static boolean isSpecialTaxCategoryRhodeIsland(int price, String deptClass) {
-        if (price <= RI_EXEMPT_THRESHOLD && CLOTHING_DEPT_CLASS.contains(deptClass)) {
+        if (price <= RI_EXEMPT_THRESHOLD && deptClassIsClothingTaxCategory(deptClass)) {
             return true;
         }
         return false;
     }
 
     private static boolean isSpecialTaxCategoryPA(String deptClass) {
-        if (CLOTHING_DEPT_CLASS.contains(deptClass)) {
-            return true;
-        }
-        return false;
+        return deptClassIsClothingTaxCategory(deptClass);
     }
 
     private static boolean isSpecialTaxCategoryNJ(String deptClass) {
-        if (CLOTHING_DEPT_CLASS.contains(deptClass)) {
-            return true;
-        }
-        return false;
+        return deptClassIsClothingTaxCategory(deptClass);
     }
 
     private static boolean isSpecialTaxCategoryMN(String deptClass) {
-        if (CLOTHING_DEPT_CLASS.contains(deptClass)) {
-            return true;
-        }
-        return false;
+        return deptClassIsClothingTaxCategory(deptClass);
     }
 
     private static Fee getLowerTax(Fee fee1, Fee fee2) {

@@ -196,7 +196,29 @@ public class PLUCatalogBuilder {
             matchingItem.setName(itemName);
         }
 
+        // Skip MA/RhodeIsland items that we can't tax
+        if (skipItemForTaxReasons(matchingItem, deploymentId)) {
+            return;
+        }
+
         catalog.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
+    }
+
+    private boolean skipItemForTaxReasons(Item item, String deploymentId) {
+        if ((deploymentId.equals(TaxRules.TNF_BOSTON) || deploymentId.equals(TaxRules.TNF_PEABODY)
+                || deploymentId.equals(TaxRules.TNF_BRAINTREE))
+                && TaxRules
+                        .deptClassIsClothingTaxCategory(Util.getValueInParenthesis(item.getVariations()[0].getName()))
+                && item.getVariations()[0].getPriceMoney().getAmount() > TaxRules.MA_EXEMPT_THRESHOLD) {
+            return true;
+        } else if (deploymentId.equals(TaxRules.TNF_RHODE_ISLAND)
+                && TaxRules
+                        .deptClassIsClothingTaxCategory(Util.getValueInParenthesis(item.getVariations()[0].getName()))
+                && item.getVariations()[0].getPriceMoney().getAmount() > TaxRules.RI_EXEMPT_THRESHOLD) {
+            return true;
+        }
+
+        return false;
     }
 
     private void convertCategory(Catalog catalog, ResultSet record) throws SQLException {
