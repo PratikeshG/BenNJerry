@@ -63,6 +63,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         </sftp:outbound-endpoint>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
         <flow-ref name="VFC:TNF:generate-daily-summary-email" doc:name="VFC:TNF:generate-daily-summary-email"/>
+        <flow-ref name="VFC:TNF:generate-daily-category-summary-email" doc:name="VFC:TNF:generate-daily-category-summary-email"/>
         <set-payload value="#['Done processing ' + flowVars.filenameDateStamp]" doc:name="Set Payload"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
     </sub-flow>
@@ -71,6 +72,12 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <singleton-object class="vfcorp.loyalty.DailySummaryCallable"/>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML"  from="Square Bridge" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" bcc="${vfcorp.tnf.summary.email}"/>
+    </sub-flow>
+    <sub-flow name="VFC:TNF:generate-daily-category-summary-email">
+        <component doc:name="Daily Category Summary Logic">
+            <singleton-object class="vfcorp.loyalty.DailyCategoriesSummaryCallable"/>
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.tnf.summary.email}" responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary"/>
     </sub-flow>
     <flow name="VFC:TNF:trigger-generate-loyalty-file">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
