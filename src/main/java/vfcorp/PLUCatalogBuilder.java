@@ -197,11 +197,9 @@ public class PLUCatalogBuilder {
         }
 
         // Skip MA/RhodeIsland items that we can't tax
-        if (skipItemForTaxReasons(matchingItem, deploymentId)) {
-            return;
+        if (!skipItemForTaxReasons(matchingItem, deploymentId)) {
+            catalog.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
         }
-
-        catalog.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
     }
 
     private boolean skipItemForTaxReasons(Item item, String deploymentId) {
