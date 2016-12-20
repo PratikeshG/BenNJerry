@@ -91,46 +91,14 @@ public class PollSFTPCallable implements Callable {
         // inputFilesByPrefix => unique prefixes of files located in input folder
         // sftpRequests => final requests sent for processing
         HashMap<String, LsEntry> filesToProcess = new HashMap<String, LsEntry>();
-        HashMap<String, ArrayList<LsEntry>> inputFilesByPrefix = new HashMap<String, ArrayList<LsEntry>>();
+        HashMap<String, ArrayList<LsEntry>> inputFilesByPrefix;
         ArrayList<SyncToDatabaseRequest> sftpRequests = new ArrayList<SyncToDatabaseRequest>();
 
         // get all CSVs located in input folder
         Vector<LsEntry> inputFiles = channel.ls(String.format("%s/*.csv", inputFullPath));
 
         // sort all files into lists according to unique prefix
-        for (LsEntry file : inputFiles) {
-            String prefix = "";
-
-            // prepare regex pattern for group matching
-            // ^([A-Za-z0-9]+) => find first occurrence of any combination of letters and numbers
-            // (\\d{8}) => find 8 digits
-            Pattern r = Pattern.compile("^([A-Za-z0-9]+)_(\\d{8}).csv");
-
-            // use regex to find date in currentFile
-            Matcher m = r.matcher(file.getFilename());
-            m.find();
-
-            // parse filename from matched regex
-            try {
-                prefix = m.group(1);
-            } catch (Exception e) {
-                logger.warn(String.format("Exception caught: '%s', could not match file '%s'", e.getCause(),
-                        file.getFilename()));
-
-            }
-
-            if (prefix != "") {
-                ArrayList<LsEntry> prefixedFileList;
-                prefixedFileList = inputFilesByPrefix.get(prefix);
-                if (prefixedFileList == null) {
-                    prefixedFileList = new ArrayList<LsEntry>();
-                    prefixedFileList.add(file);
-                    inputFilesByPrefix.put(prefix, prefixedFileList);
-                }
-
-                prefixedFileList.add(file);
-            }
-        }
+        inputFilesByPrefix = sortFilesByPrefix(inputFiles);
 
         // obtain each list of files with the same prefix and find oldest
         for (String filePrefix : inputFilesByPrefix.keySet()) {
@@ -144,6 +112,7 @@ public class PollSFTPCallable implements Callable {
         Thread.sleep(7500);
 
         // add to processing folder
+        logger.info(String.format("Adding files to processing folder. Number of files: '%s'", filesToProcess.size()));
         for (String filePrefix : filesToProcess.keySet()) {
             Boolean processFile = true;
             LsEntry currentFile = filesToProcess.get(filePrefix);
@@ -185,6 +154,45 @@ public class PollSFTPCallable implements Callable {
         return sftpRequests;
     }
 
+    private HashMap<String, ArrayList<LsEntry>> sortFilesByPrefix(Vector<LsEntry> inputFiles) {
+        logger.info(String.format("Sorting list of file entries by prefix. Number of files in directory: '%s'",
+                inputFiles.size()));
+        HashMap<String, ArrayList<LsEntry>> sortedFiles = new HashMap<String, ArrayList<LsEntry>>();
+
+        for (LsEntry file : inputFiles) {
+            String prefix = "";
+
+            // prepare regex pattern for group matching
+            // ^([A-Za-z0-9]+) => find first occurrence of any combination of letters and numbers
+            // (\\d{8}) => find 8 digits
+            Pattern r = Pattern.compile("^([A-Za-z0-9]+)_(\\d{8}).csv");
+
+            // use regex to find date in currentFile
+            Matcher m = r.matcher(file.getFilename());
+            m.find();
+
+            // parse filename from matched regex
+            try {
+                prefix = m.group(1);
+            } catch (Exception e) {
+                logger.warn(String.format("Exception caught: '%s', could not match file '%s'", e.getCause(),
+                        file.getFilename()));
+
+            }
+
+            if (!prefix.equals("")) {
+                ArrayList<LsEntry> prefixedFileList = sortedFiles.get(prefix);
+                if (prefixedFileList == null) {
+                    prefixedFileList = new ArrayList<LsEntry>();
+                    sortedFiles.put(prefix, prefixedFileList);
+                }
+
+                prefixedFileList.add(file);
+            }
+        }
+        return sortedFiles;
+    }
+
     // used to prepend processing filenames
     private String currentDatestamp() throws ParseException {
         String tz = "America/Los_Angeles";
@@ -199,12 +207,13 @@ public class PollSFTPCallable implements Callable {
     // file formats handled:
     //     1. <marketing plan>_<date mmddyyyy>.csv
     //     2. locations_<date mmddyyyy>.csv
-    private LsEntry getOldestFile(ArrayList<LsEntry> fileList) throws ParseException {
+    private LsEntry getOldestFile(List<LsEntry> fileList) throws ParseException {
         // only proceed if list.size() > 1 
-        if (fileList.size() == 0)
+        if (fileList.size() == 0) {
             return null;
-        else if (fileList.size() == 1)
+        } else if (fileList.size() == 1) {
             return fileList.get(0);
+        }
 
         // iterate over fileList and return oldest file
         LsEntry oldestFile = null;
