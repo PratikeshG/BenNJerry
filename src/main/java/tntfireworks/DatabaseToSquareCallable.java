@@ -266,7 +266,20 @@ public class DatabaseToSquareCallable implements Callable {
                     }
                 }
 
+                logger.info("Upsert current catalog of items...");
                 client.catalog().batchUpsertObjects(catalog.getObjects());
+
+                // now list all items in a catalog with out locations and delete
+                for (String key : catalog.getItems().keySet()) {
+                    CatalogObject item = catalog.getItem(key);
+
+                    if (item.getPresentAtLocationIds().length == 0) {
+                        logger.info(String.format("Delete this catalob object name/token %s/%s:",
+                                item.getItemData().getName(), item.getId()));
+                        client.catalog().deleteObject(item.getId());
+                    }
+                }
+
                 logger.info("Done processing for account.");
             }
 
