@@ -24,8 +24,8 @@ public class RunLoadAccountCSV {
     String DATABASE_URL = "jdbc:mysql://104.197.244.109:3306/development_bhartard";
     String DATABASE_USERNAME = "";
     String DATABASE_PASSWORD = "";
-
-    String DIR_PATH = "/Users/bhartard/desktop/sales/12-8-2016/OUTLET/";
+    String TOKEN = "";
+    String DIR_PATH = "/Users/bhartard/desktop/sales/12-16-2016/OUTLET/";
 
     public void run() {
         class PLULoadTask {
@@ -63,83 +63,86 @@ public class RunLoadAccountCSV {
 
         // FULL PRICE
         /*
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "2GAGTTA5Q68YJ", "vfcorp-tnf-00001", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "CH8HXB0NZW1MV", "vfcorp-tnf-00010", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "0TMNNPGCSBE5Y", "vfcorp-tnf-00012", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "CW3R3REFD71KG", "vfcorp-tnf-00014", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "7GVHAS422FBSV", "vfcorp-tnf-00016", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00017.DTA", "AM6RHNEEXS6ZD", "vfcorp-tnf-00017", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "AMS55HMEWYDN6", "vfcorp-tnf-00020", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00021.DTA", "7E392MM4J52FP", "vfcorp-tnf-00021", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00029.DTA", "BVXG4MWRGTNRE", "vfcorp-tnf-00029", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00039.DTA", "EZJM365N7T51R", "vfcorp-tnf-00039", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "FRKT9Z5KM9T0X", "vfcorp-tnf-00040", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00043.DTA", "DGVQJ4QBZG2G1", "vfcorp-tnf-00043", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00044.DTA", "A2X9KEVRVXGCC", "vfcorp-tnf-00044", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00046.DTA", "BBQDRYHM32C6P", "vfcorp-tnf-00046", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00053.DTA", "4HBRD1TZ64J8C", "vfcorp-tnf-00053", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00055.DTA", "6D8TPHJPEMH2M", "vfcorp-tnf-00055", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00059.DTA", "DDYHVFHR1F8S6", "vfcorp-tnf-00059", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "1SY99QNDRDEN5", "vfcorp-tnf-00402", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00506.DTA", "AJRZ51P0966R6", "vfcorp-tnf-00506", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00508.DTA", "96K9R192S0BJJ", "vfcorp-tnf-00508", TIMEZONE));
-        tasks.add(new PLULoadTask("PLU00512.DTA", "EAEZDPYZW30DR", "vfcorp-tnf-00512", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "EN7KGE1AES2TT", "vfcorp-tnf-00513", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "E3BA9DKRGVR5Z", "vfcorp-tnf-00516", TIMEZONE));
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161129170128", "7S5JD3KD1S2KY", "vfcorp-tnf-00517", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "2GAGTTA5Q68YJ", "vfcorp-tnf-00001", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "CH8HXB0NZW1MV", "vfcorp-tnf-00010", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "0TMNNPGCSBE5Y", "vfcorp-tnf-00012", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "CW3R3REFD71KG", "vfcorp-tnf-00014", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "7GVHAS422FBSV", "vfcorp-tnf-00016", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "AM6RHNEEXS6ZD", "vfcorp-tnf-00017", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "AMS55HMEWYDN6", "vfcorp-tnf-00020", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "7E392MM4J52FP", "vfcorp-tnf-00021", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BVXG4MWRGTNRE", "vfcorp-tnf-00029", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "EZJM365N7T51R", "vfcorp-tnf-00039", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "FRKT9Z5KM9T0X", "vfcorp-tnf-00040", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "DGVQJ4QBZG2G1", "vfcorp-tnf-00043", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "A2X9KEVRVXGCC", "vfcorp-tnf-00044", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BBQDRYHM32C6P", "vfcorp-tnf-00046", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "4HBRD1TZ64J8C", "vfcorp-tnf-00053", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "6D8TPHJPEMH2M", "vfcorp-tnf-00055", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "DDYHVFHR1F8S6", "vfcorp-tnf-00059", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "1SY99QNDRDEN5", "vfcorp-tnf-00402", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "AJRZ51P0966R6", "vfcorp-tnf-00506", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "96K9R192S0BJJ", "vfcorp-tnf-00508", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "EAEZDPYZW30DR", "vfcorp-tnf-00512", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "EN7KGE1AES2TT", "vfcorp-tnf-00513", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "E3BA9DKRGVR5Z", "vfcorp-tnf-00516", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "7S5JD3KD1S2KY", "vfcorp-tnf-00517", TIMEZONE));
         */
+
         // OUTLET - EAST COAST
         /*
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "AHH2VZPBV01AN", "vfcorp-tnf-00062", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "3MHE6ZGDW83BN", "vfcorp-tnf-00064", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "49GXCVYDZFGMC", "vfcorp-tnf-00068", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "8BMEXAN3RR35M", "vfcorp-tnf-00069", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "ARYSSQ99X7JMS", "vfcorp-tnf-00075", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "C665K0DQ13K2Z", "vfcorp-tnf-00077", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "BWKTEWFKKST9N", "vfcorp-tnf-00079", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "6SSZ9FV6ZXAAY", "vfcorp-tnf-00082", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "3DCP3A0JBVWH3", "vfcorp-tnf-00084", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "BWMFQABRPCTB1", "vfcorp-tnf-00085", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "8ZRW74VNXXZSZ", "vfcorp-tnf-00086", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "DMZZJMPTT9XPY", "vfcorp-tnf-00301", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "D85N608PP6X0E", "vfcorp-tnf-00303", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "0DEZYS37XPAWM", "vfcorp-tnf-00305", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "6YCN9B38ZN5AS", "vfcorp-tnf-00306", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "AYW0XW6GVETSN", "vfcorp-tnf-00308", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "2Q6BE18439CPN", "vfcorp-tnf-00310", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "DDVH21DXAXXFY", "vfcorp-tnf-00316", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "CGGQRSJ1A09JA", "vfcorp-tnf-00319", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "DD7QBE0XXRYT4", "vfcorp-tnf-00320", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "9K36V9F32WQQ5", "vfcorp-tnf-00321", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "BJR5NZQQ6R9TB", "vfcorp-tnf-00325", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "AHH2VZPBV01AN", "vfcorp-tnf-00062", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "3MHE6ZGDW83BN", "vfcorp-tnf-00064", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "49GXCVYDZFGMC", "vfcorp-tnf-00068", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "8BMEXAN3RR35M", "vfcorp-tnf-00069", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "ARYSSQ99X7JMS", "vfcorp-tnf-00075", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "C665K0DQ13K2Z", "vfcorp-tnf-00077", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BWKTEWFKKST9N", "vfcorp-tnf-00079", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "6SSZ9FV6ZXAAY", "vfcorp-tnf-00082", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "3DCP3A0JBVWH3", "vfcorp-tnf-00084", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BWMFQABRPCTB1", "vfcorp-tnf-00085", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "8ZRW74VNXXZSZ", "vfcorp-tnf-00086", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "DMZZJMPTT9XPY", "vfcorp-tnf-00301", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "D85N608PP6X0E", "vfcorp-tnf-00303", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "0DEZYS37XPAWM", "vfcorp-tnf-00305", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "6YCN9B38ZN5AS", "vfcorp-tnf-00306", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "AYW0XW6GVETSN", "vfcorp-tnf-00308", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "2Q6BE18439CPN", "vfcorp-tnf-00310", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "DDVH21DXAXXFY", "vfcorp-tnf-00316", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "CGGQRSJ1A09JA", "vfcorp-tnf-00319", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "DD7QBE0XXRYT4", "vfcorp-tnf-00320", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "9K36V9F32WQQ5", "vfcorp-tnf-00321", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BJR5NZQQ6R9TB", "vfcorp-tnf-00325", TIMEZONE));
         */
 
         // OUTLET - CENTRAL
         /*
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "2BJNYHSPTGXMD", "vfcorp-tnf-00073", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "3M2G9CB4D5FAB", "vfcorp-tnf-00083", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "F80VW7Y0JM2BD", "vfcorp-tnf-00307", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "12QNRWHW5N3PP", "vfcorp-tnf-00312", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "572E9K2QKTXCD", "vfcorp-tnf-00315", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "5XJVMJ0HBBF0C", "vfcorp-tnf-00317", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "364KHVZF5V1GQ", "vfcorp-tnf-00322", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "2BJNYHSPTGXMD", "vfcorp-tnf-00073", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "3M2G9CB4D5FAB", "vfcorp-tnf-00083", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "F80VW7Y0JM2BD", "vfcorp-tnf-00307", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "12QNRWHW5N3PP", "vfcorp-tnf-00312", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "572E9K2QKTXCD", "vfcorp-tnf-00315", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "5XJVMJ0HBBF0C", "vfcorp-tnf-00317", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "364KHVZF5V1GQ", "vfcorp-tnf-00322", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "2BBHP3B5QJQYB", "vfcorp-tnf-00323", TIMEZONE));
         */
-        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161208201806", "2BBHP3B5QJQYB", "vfcorp-tnf-00323", TIMEZONE));
 
         // OUTLET - WEST COAST
+        //tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "54M0Y91VP2589", "vfcorp-tnf-00076", TIMEZONE));
+
         /*
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "EFG9HHBWZD0KD", "vfcorp-tnf-00060", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "BENMQFQS1RGZR", "vfcorp-tnf-00074", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "54M0Y91VP2589", "vfcorp-tnf-00076", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "F3VCN1ZGTS41D", "vfcorp-tnf-00078", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "6ZCZT745GZBJ1", "vfcorp-tnf-00080", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "49JQE7Y15SDRH", "vfcorp-tnf-00081", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "0YA44XZCQR1QD", "vfcorp-tnf-00302", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "BT2C4972Z5YQD", "vfcorp-tnf-00304", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "8280QFJXDS9W7", "vfcorp-tnf-00311", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "303XHY26ATHTJ", "vfcorp-tnf-00313", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "B37S4A8NEVPH2", "vfcorp-tnf-00314", TIMEZONE));
-        tasks.add(new PLULoadTask("plu.chg.20161128194221", "3VCQ99EZZX5FJ", "vfcorp-tnf-00318", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "EFG9HHBWZD0KD", "vfcorp-tnf-00060", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BENMQFQS1RGZR", "vfcorp-tnf-00074", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "54M0Y91VP2589", "vfcorp-tnf-00076", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "F3VCN1ZGTS41D", "vfcorp-tnf-00078", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "6ZCZT745GZBJ1", "vfcorp-tnf-00080", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "49JQE7Y15SDRH", "vfcorp-tnf-00081", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "0YA44XZCQR1QD", "vfcorp-tnf-00302", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "BT2C4972Z5YQD", "vfcorp-tnf-00304", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "8280QFJXDS9W7", "vfcorp-tnf-00311", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "303XHY26ATHTJ", "vfcorp-tnf-00313", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "B37S4A8NEVPH2", "vfcorp-tnf-00314", TIMEZONE));
+        tasks.add(new PLULoadTask("TNF00060_plu.chg.20161216162436", "3VCQ99EZZX5FJ", "vfcorp-tnf-00318", TIMEZONE));
         */
         // CLEARANCE
         /*
@@ -192,8 +195,8 @@ public class RunLoadAccountCSV {
                     parser.syncToDatabase(bis, MERCHANT_ID, task.getLocationId());
                     bis.close();
 
-                    SquareClient client = new SquareClient("sq0atp-SK8NUp4_KvlEgBls5kGkUg",
-                            "https://connect.squareup.com", "v1", MERCHANT_ID, task.getLocationId());
+                    SquareClient client = new SquareClient(TOKEN, "https://connect.squareup.com", "v1", MERCHANT_ID,
+                            task.getLocationId());
 
                     System.out.println("Downloading items...");
                     Item[] items = client.items().list();
@@ -241,22 +244,6 @@ public class RunLoadAccountCSV {
                                     + tax1Rate + "%), Tax - Sales Tax (" + tax2Rate + "%)\n");
 
                     for (Item item : catalog.getItems().values()) {
-
-                        // Skip Boston/RhodeIsland items that we can't tax
-                        if ((task.getDeploymentId().equals("vfcorp-tnf-00014")
-                                || task.getDeploymentId().equals("vfcorp-tnf-00039")
-                                || task.getDeploymentId().equals("vfcorp-tnf-00053"))
-                                && TaxRules.CLOTHING_DEPT_CLASS
-                                        .contains(Util.getValueInParenthesis(item.getVariations()[0].getName()))
-                                && item.getVariations()[0].getPriceMoney().getAmount() > 17500) {
-                            continue;
-                        } else if (task.getDeploymentId().equals("vfcorp-tnf-00508")
-                                && TaxRules.CLOTHING_DEPT_CLASS
-                                        .contains(Util.getValueInParenthesis(item.getVariations()[0].getName()))
-                                && item.getVariations()[0].getPriceMoney().getAmount() > 25000) {
-                            continue;
-                        }
-
                         sb.append(item.getId() + ",");
                         sb.append("\"" + item.getName().replaceAll("\"", "\"\"") + "\",");
                         sb.append("\"" + item.getCategory().getName().replaceAll("\"", "\"\"") + "\",");
