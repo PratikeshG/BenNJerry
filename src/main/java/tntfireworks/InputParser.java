@@ -60,13 +60,15 @@ public class InputParser {
         m.find();
 
         // set marketing plan name
-        if (m.group(1) != null)
+        if (m.group(1) != null) {
             filename = m.group(1);
+        }
 
-        if (filename.equals("locations"))
+        if (filename.equals("locations")) {
             processLocations(conn, scanner, processingFile);
-        else
+        } else {
             processMktPlan(conn, scanner, processingFile, filename);
+        }
 
         scanner.close();
         conn.close();
@@ -177,11 +179,10 @@ public class InputParser {
 
     public void processLocations(Connection conn, Scanner scanner, String processingFile) throws Exception {
         ArrayList<CSVLocation> locations = new ArrayList<CSVLocation>();
-        ;
         String[] locationFields = null;
         int totalRecordsProcessed = 0;
 
-        // TODO(wtsang): hack - need to skip first header line
+        // TODO(wtsang): hack - need to skip first line in the CSV file (header)
         if (scanner.hasNextLine()) {
             scanner.nextLine();
         }
