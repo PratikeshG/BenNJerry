@@ -155,11 +155,11 @@ public class PollSFTPCallable implements Callable {
         return sftpRequests;
     }
 
-    private boolean foundExistingFile(Vector<LsEntry> inputFiles, String currentFile) {
+    private boolean foundExistingFile(Vector<LsEntry> inputFiles, String prefix) {
         HashMap<String, ArrayList<LsEntry>> processingFilesByPrefix = sortFilesByPrefix(inputFiles);
 
         for (String key : processingFilesByPrefix.keySet()) {
-            if (key.equals(currentFile)) {
+            if (key.equals(prefix)) {
                 return true;
             }
         }
@@ -176,8 +176,9 @@ public class PollSFTPCallable implements Callable {
             String prefix = "";
 
             // prepare regex pattern for group matching
-            // ^([A-Za-z0-9]+) => find first occurrence of any combination of letters and numbers
-            // (\\d{8}) => find 8 digits
+            // ([A-Za-z0-9]+) => find an occurrence of any combination of letters and numbers, 
+            //                   requires at least 1 char
+            // (\\d{8}) => find 8 digits, requires 1 occurrence of 8 digits
             Pattern r = Pattern.compile("([A-Za-z0-9]+)_(\\d{8}).csv");
 
             // use regex to find date in currentFile
