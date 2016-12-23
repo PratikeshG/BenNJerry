@@ -29,7 +29,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
                 <property key="sftpProcessingPath" value="${tntfireworks.sftp.processingpath}"/>
 		    </prototype-object>  
         </component>
-        <foreach doc:name="For Each">
+        <foreach doc:name="For Each SyncToDatabaseRequest">
             <vm:outbound-endpoint exchange-pattern="one-way" path="tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" doc:name="vm://tntfireworks-csv-sync-to-db"/>
         </foreach>
     </flow>
