@@ -127,10 +127,11 @@ public class PollSFTPCallable implements Callable {
             }
 
             // check if another file is processing
-            if (channel.ls(String.format("%s/*.csv", processingFullPath)).size() > 0) {
+            if (foundExistingFile(channel.ls(String.format("%s/*.csv", processingFullPath)), filePrefix)) {
                 processFile = false;
                 logger.info(
-                        String.format("Can't begin processing %s. Already processing another file.", currentFilename));
+                        String.format("Can't begin processing %s. Already processing another file of the same prefix.",
+                                currentFilename));
             }
 
             // move file to processing directory
@@ -154,6 +155,18 @@ public class PollSFTPCallable implements Callable {
         return sftpRequests;
     }
 
+    private boolean foundExistingFile(Vector<LsEntry> inputFiles, String currentFile) {
+        HashMap<String, ArrayList<LsEntry>> processingFilesByPrefix = sortFilesByPrefix(inputFiles);
+
+        for (String key : processingFilesByPrefix.keySet()) {
+            if (key.equals(currentFile)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private HashMap<String, ArrayList<LsEntry>> sortFilesByPrefix(Vector<LsEntry> inputFiles) {
         logger.info(String.format("Sorting list of file entries by prefix. Number of files in directory: '%s'",
                 inputFiles.size()));
@@ -165,7 +178,7 @@ public class PollSFTPCallable implements Callable {
             // prepare regex pattern for group matching
             // ^([A-Za-z0-9]+) => find first occurrence of any combination of letters and numbers
             // (\\d{8}) => find 8 digits
-            Pattern r = Pattern.compile("^([A-Za-z0-9]+)_(\\d{8}).csv");
+            Pattern r = Pattern.compile("([A-Za-z0-9]+)_(\\d{8}).csv");
 
             // use regex to find date in currentFile
             Matcher m = r.matcher(file.getFilename());
