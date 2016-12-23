@@ -158,13 +158,7 @@ public class PollSFTPCallable implements Callable {
     private boolean foundExistingFile(Vector<LsEntry> inputFiles, String prefix) {
         HashMap<String, ArrayList<LsEntry>> processingFilesByPrefix = sortFilesByPrefix(inputFiles);
 
-        for (String key : processingFilesByPrefix.keySet()) {
-            if (key.equals(prefix)) {
-                return true;
-            }
-        }
-
-        return false;
+        return processingFilesByPrefix.containsKey(prefix);
     }
 
     private HashMap<String, ArrayList<LsEntry>> sortFilesByPrefix(Vector<LsEntry> inputFiles) {
