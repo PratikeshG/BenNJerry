@@ -1,5 +1,6 @@
 package tntfireworks;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -16,6 +17,9 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
@@ -86,185 +90,189 @@ public class DatabaseToSquareCallable implements Callable {
         DatabaseToSquareRequest updateSQRequest = (DatabaseToSquareRequest) message.getPayload();
         message.setProperty("DatabaseToSquareRequest", updateSQRequest, PropertyScope.INVOCATION);
 
-        logger.info("Starting database to Square sync...");
+        if (!isProcessingFile(updateSQRequest.getProcessingPath())) {
+            logger.info("Starting database to Square sync...");
 
-        // ResultSets for SQL queries
-        ResultSet resultDeployments = null;
-        ResultSet resultItems = null;
-        ResultSet resultLocations = null;
+            // ResultSets for SQL queries
+            ResultSet resultDeployments = null;
+            ResultSet resultItems = null;
+            ResultSet resultLocations = null;
 
-        // set up SQL connection
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+            // set up SQL connection
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
-        // get locations from db
-        // columns retrieved: locationNumber, name
-        HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
-        resultLocations = submitQuery(conn, generateLocationSQLSelect());
-        while (resultLocations.next()) {
-            locationMarketingPlanCache.put(resultLocations.getString("locationNumber"),
-                    resultLocations.getString("mktPlan"));
-        }
-
-        // get all items from db
-        // columns retrieved: itemNumber, category, itemDescription,
-        // suggestedPrice, upc, currency
-        HashMap<String, List<CSVItem>> marketingPlanItemsCache = new HashMap<String, List<CSVItem>>();
-        resultItems = submitQuery(conn, generateItemSQLSelect());
-        while (resultItems.next()) {
-            String mktPlan = resultItems.getString("mktPlan");
-            List<CSVItem> itemList = marketingPlanItemsCache.get(mktPlan);
-
-            if (itemList == null) {
-                itemList = new ArrayList<CSVItem>();
-                marketingPlanItemsCache.put(mktPlan, itemList);
+            // get locations from db
+            // columns retrieved: locationNumber, name
+            HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
+            resultLocations = submitQuery(conn, generateLocationSQLSelect());
+            while (resultLocations.next()) {
+                locationMarketingPlanCache.put(resultLocations.getString("locationNumber"),
+                        resultLocations.getString("mktPlan"));
             }
 
-            CSVItem item = new CSVItem();
-            item.setNumber(resultItems.getString("itemNumber"));
-            item.setCategory(resultItems.getString("category"));
-            item.setDescription(resultItems.getString("itemDescription"));
-            item.setSuggestedPrice(resultItems.getString("suggestedPrice"));
-            item.setUPC(resultItems.getString("upc"));
-            item.setMarketingPlan(resultItems.getString("mktPlan"));
-            itemList.add(item);
-        }
+            // get all items from db
+            // columns retrieved: itemNumber, category, itemDescription,
+            // suggestedPrice, upc, currency
+            HashMap<String, List<CSVItem>> marketingPlanItemsCache = new HashMap<String, List<CSVItem>>();
+            resultItems = submitQuery(conn, generateItemSQLSelect());
+            while (resultItems.next()) {
+                String mktPlan = resultItems.getString("mktPlan");
+                List<CSVItem> itemList = marketingPlanItemsCache.get(mktPlan);
 
-        System.out.println("plans: " + marketingPlanItemsCache.keySet().size());
-        for (String planId : marketingPlanItemsCache.keySet()) {
-            System.out.println(planId + ": " + marketingPlanItemsCache.get(planId).size());
-        }
+                if (itemList == null) {
+                    itemList = new ArrayList<CSVItem>();
+                    marketingPlanItemsCache.put(mktPlan, itemList);
+                }
 
-        // get deployments from db
-        // columns retrieved: connectApp, token
-        resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
-        while (resultDeployments.next()) {
-            SquareClientV2 client = new SquareClientV2(apiUrl, resultDeployments.getString("token"));
-            HashMap<String, List<String>> marketingPlanLocationsCache = new HashMap<String, List<String>>();
+                CSVItem item = new CSVItem();
+                item.setNumber(resultItems.getString("itemNumber"));
+                item.setCategory(resultItems.getString("category"));
+                item.setDescription(resultItems.getString("itemDescription"));
+                item.setSuggestedPrice(resultItems.getString("suggestedPrice"));
+                item.setUPC(resultItems.getString("upc"));
+                item.setMarketingPlan(resultItems.getString("mktPlan"));
+                itemList.add(item);
+            }
 
-            Location[] locations = client.locations().list();
-            for (Location location : locations) {
-                String locationSquareId = location.getId();
-                String locationTNTId = getValueInParenthesis(location.getName());
-                String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
+            System.out.println("plans: " + marketingPlanItemsCache.keySet().size());
+            for (String planId : marketingPlanItemsCache.keySet()) {
+                System.out.println(planId + ": " + marketingPlanItemsCache.get(planId).size());
+            }
 
-                logger.info(String.format("locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
-                        locationSquareId, locationTNTId, marketingPlanId));
+            // get deployments from db
+            // columns retrieved: connectApp, token
+            resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
+            while (resultDeployments.next()) {
+                SquareClientV2 client = new SquareClientV2(apiUrl, resultDeployments.getString("token"));
+                HashMap<String, List<String>> marketingPlanLocationsCache = new HashMap<String, List<String>>();
 
-                if (locationTNTId.length() < 1) {
-                    logger.warn(String.format(
-                            "INVALID LOCATION ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                Location[] locations = client.locations().list();
+                for (Location location : locations) {
+                    String locationSquareId = location.getId();
+                    String locationTNTId = getValueInParenthesis(location.getName());
+                    String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
+
+                    logger.info(String.format("locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
                             locationSquareId, locationTNTId, marketingPlanId));
-                    continue;
+
+                    if (locationTNTId.length() < 1) {
+                        logger.warn(String.format(
+                                "INVALID LOCATION ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                                locationSquareId, locationTNTId, marketingPlanId));
+                        continue;
+                    }
+
+                    if (marketingPlanId == null) {
+                        logger.warn(String.format(
+                                "NO MARKETING PLAN ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
+                                locationSquareId, locationTNTId, marketingPlanId));
+                    }
+
+                    List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
+                    if (locationsList == null) {
+                        locationsList = new ArrayList<String>();
+                        marketingPlanLocationsCache.put(marketingPlanId, locationsList);
+                    }
+                    locationsList.add(locationSquareId);
                 }
 
-                if (marketingPlanId == null) {
-                    logger.warn(String.format(
-                            "NO MARKETING PLAN ID: locationSquareId (%s), locationTNTId (%s), marketingPlanId (%s)",
-                            locationSquareId, locationTNTId, marketingPlanId));
-                }
+                Catalog catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                        Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
-                List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
-                if (locationsList == null) {
-                    locationsList = new ArrayList<String>();
-                    marketingPlanLocationsCache.put(marketingPlanId, locationsList);
-                }
-                locationsList.add(locationSquareId);
-            }
+                // 1. pull existing categories
+                // 2. check if all defined categories exist
+                // 3. if not, upsert
+                HashMap<String, CatalogObject> existingCategories = (HashMap<String, CatalogObject>) catalog
+                        .getCategories();
 
-            Catalog catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
-                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-
-            // 1. pull existing categories
-            // 2. check if all defined categories exist
-            // 3. if not, upsert
-            HashMap<String, CatalogObject> existingCategories = (HashMap<String, CatalogObject>) catalog
-                    .getCategories();
-
-            // check if there are new categories to add
-            for (String categoryName : CATEGORIES) {
-                // add category if it does not exist in Square
-                CatalogObject category = existingCategories.get(categoryName);
-                if (category == null) {
-                    CatalogObject newCategory = new CatalogObject("CATEGORY");
-                    newCategory.getCategoryData().setName(categoryName);
-                    catalog.addCategory(newCategory);
-                }
-            }
-
-            // upsert new categories
-            CatalogObject[] allCategories = catalog.getCategories().values().toArray(new CatalogObject[0]);
-            client.catalog().batchUpsertObjects(allCategories);
-            logger.info("Done checking/adding categories");
-
-            // retrieve latest catalog with all categories now in account
-            catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
-                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-
-            // reset all item <> location relationships - we will re-add these based on db item info
-            catalog.clearItemLocations();
-
-            // get the up-to-date categories
-            existingCategories = (HashMap<String, CatalogObject>) catalog.getCategories();
-
-            for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
-                String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId).toArray(new String[0]);
-
-                List<CSVItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
-                if (marketingPlanItems != null) {
-                    for (CSVItem updateItem : marketingPlanItems) {
-                        String sku = updateItem.getUPC();
-                        if (sku == null || sku.length() < 2) {
-                            sku = updateItem.getNumber();
-                        }
-
-                        CatalogObject matchingItem = catalog.getItem(sku);
-                        if (matchingItem == null) {
-                            matchingItem = new CatalogObject("ITEM");
-                        }
-
-                        matchingItem.getItemData().setName(updateItem.getDescription());
-                        CatalogItemVariation macthingItemVariation = matchingItem.getItemData().getVariations()[0]
-                                .getItemVariationData();
-                        macthingItemVariation.setSku(sku);
-                        macthingItemVariation.setName(updateItem.getNumber());
-
-                        int price = Integer.parseInt(parsePrice(updateItem.getSuggestedPrice()));
-                        macthingItemVariation.setPriceMoney(new Money(price));
-
-                        matchingItem.enableAtLocations(squareLocationIds);
-                        matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
-
-                        // check for matching category, if found, add category id
-                        if (existingCategories.containsKey(updateItem.getCategory())) {
-                            String categoryId = existingCategories.get(updateItem.getCategory()).getId();
-                            matchingItem.getItemData().setCategoryId(categoryId);
-                        }
-
-                        catalog.addItem(matchingItem);
+                // check if there are new categories to add
+                for (String categoryName : CATEGORIES) {
+                    // add category if it does not exist in Square
+                    CatalogObject category = existingCategories.get(categoryName);
+                    if (category == null) {
+                        CatalogObject newCategory = new CatalogObject("CATEGORY");
+                        newCategory.getCategoryData().setName(categoryName);
+                        catalog.addCategory(newCategory);
                     }
                 }
-            }
 
-            logger.info("Upsert current catalog of items...");
-            client.catalog().batchUpsertObjects(catalog.getObjects());
+                // upsert new categories
+                CatalogObject[] allCategories = catalog.getCategories().values().toArray(new CatalogObject[0]);
+                client.catalog().batchUpsertObjects(allCategories);
+                logger.info("Done checking/adding categories");
 
-            // now list all items in a catalog without locations and delete
-            for (String key : catalog.getItems().keySet()) {
-                CatalogObject item = catalog.getItem(key);
+                // retrieve latest catalog with all categories now in account
+                catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                        Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
-                if (item.getPresentAtLocationIds() == null || item.getPresentAtLocationIds().length == 0) {
-                    logger.info(String.format("Delete this catalog object name/token %s/%s:",
-                            item.getItemData().getName(), item.getId()));
-                    client.catalog().deleteObject(item.getId());
+                // reset all item <> location relationships - we will re-add these based on db item info
+                catalog.clearItemLocations();
+
+                // get the up-to-date categories
+                existingCategories = (HashMap<String, CatalogObject>) catalog.getCategories();
+
+                for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
+                    String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId)
+                            .toArray(new String[0]);
+
+                    List<CSVItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
+                    if (marketingPlanItems != null) {
+                        for (CSVItem updateItem : marketingPlanItems) {
+                            String sku = updateItem.getUPC();
+                            if (sku == null || sku.length() < 2) {
+                                sku = updateItem.getNumber();
+                            }
+
+                            CatalogObject matchingItem = catalog.getItem(sku);
+                            if (matchingItem == null) {
+                                matchingItem = new CatalogObject("ITEM");
+                            }
+
+                            matchingItem.getItemData().setName(updateItem.getDescription());
+                            CatalogItemVariation macthingItemVariation = matchingItem.getItemData().getVariations()[0]
+                                    .getItemVariationData();
+                            macthingItemVariation.setSku(sku);
+                            macthingItemVariation.setName(updateItem.getNumber());
+
+                            int price = Integer.parseInt(parsePrice(updateItem.getSuggestedPrice()));
+                            macthingItemVariation.setPriceMoney(new Money(price));
+
+                            matchingItem.enableAtLocations(squareLocationIds);
+                            matchingItem.setLocationPriceOverride(squareLocationIds, new Money(price), "FIXED_PRICING");
+
+                            // check for matching category, if found, add category id
+                            if (existingCategories.containsKey(updateItem.getCategory())) {
+                                String categoryId = existingCategories.get(updateItem.getCategory()).getId();
+                                matchingItem.getItemData().setCategoryId(categoryId);
+                            }
+
+                            catalog.addItem(matchingItem);
+                        }
+                    }
                 }
+
+                logger.info("Upsert current catalog of items...");
+                client.catalog().batchUpsertObjects(catalog.getObjects());
+
+                // now list all items in a catalog without locations and delete
+                for (String key : catalog.getItems().keySet()) {
+                    CatalogObject item = catalog.getItem(key);
+
+                    if (item.getPresentAtLocationIds() == null || item.getPresentAtLocationIds().length == 0) {
+                        logger.info(String.format("Delete this catalog object name/token %s/%s:",
+                                item.getItemData().getName(), item.getId()));
+                        client.catalog().deleteObject(item.getId());
+                    }
+                }
+
+                logger.info("Done processing for account.");
             }
 
-            logger.info("Done processing for account.");
+            conn.close();
+        } else {
+            logger.info("Cannot start database to Square sync, file ingestion process to DB still in progress.");
         }
-
-        conn.close();
-
         return null;
     }
 
@@ -293,6 +301,18 @@ public class DatabaseToSquareCallable implements Callable {
 
         Statement stmt = conn.createStatement();
         return stmt.executeQuery(query);
+    }
+
+    private boolean isProcessingFile(String processingPath) throws JSchException, IOException, SftpException {
+        boolean status = false;
+        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+
+        if (sftpChannel.ls(String.format("%s/*.csv", processingPath)).size() > 0) {
+            status = true;
+        }
+        SSHUtil.closeConnection(sftpChannel);
+
+        return status;
     }
 
     private static String parsePrice(String input) {
