@@ -9,8 +9,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -87,26 +85,14 @@ public class DatabaseToSquareCallable implements Callable {
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-        logger.info("Starting database to Square sync...");
 
         // retrieve payload from prior step
         DatabaseToSquareRequest updateSQRequest = (DatabaseToSquareRequest) message.getPayload();
         message.setProperty("DatabaseToSquareRequest", updateSQRequest, PropertyScope.INVOCATION);
 
-        // determine if marketing plans were updated OR locations
-        // if locations were updated to db, nothing left to do except archive
-        // parse filename - marketing plan or location file
-        String filename = "";
-        Pattern r = Pattern.compile("\\d+_(\\w+)_\\d+.csv");
-        Matcher m = r.matcher(updateSQRequest.getProcessingFilename());
-        m.find();
+        if (!isProcessingFile(updateSQRequest.getProcessingPath())) {
+            logger.info("Starting database to Square sync...");
 
-        // set name to matched group
-        if (m.group(1) != null) {
-            filename = m.group(1);
-        }
-
-        if (!filename.equals("locations")) {
             // ResultSets for SQL queries
             ResultSet resultDeployments = null;
             ResultSet resultItems = null;
@@ -284,13 +270,9 @@ public class DatabaseToSquareCallable implements Callable {
             }
 
             conn.close();
+        } else {
+            logger.info("Cannot start database to Square sync, file ingestion process to DB still in progress.");
         }
-
-        // Need to move processingFile to archive
-        if (updateSQRequest.isProcessing() && updateSQRequest.getProcessingFilename() != null) {
-            archiveProcessingFile(updateSQRequest);
-        }
-
         return null;
     }
 
@@ -321,15 +303,16 @@ public class DatabaseToSquareCallable implements Callable {
         return stmt.executeQuery(query);
     }
 
-    private void archiveProcessingFile(DatabaseToSquareRequest updateSQRequest)
-            throws JSchException, IOException, SftpException {
+    private boolean isProcessingFile(String processingPath) throws JSchException, IOException, SftpException {
+        boolean status = false;
         ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
-        sftpChannel.rename(
-                String.format("%s/%s", updateSQRequest.getProcessingPath(), updateSQRequest.getProcessingFilename()),
-                String.format("%s/%s", updateSQRequest.getArchivePath(), updateSQRequest.getProcessingFilename()));
-
+        if (sftpChannel.ls(String.format("%s/*.csv", processingPath)).size() > 0) {
+            status = true;
+        }
         SSHUtil.closeConnection(sftpChannel);
+
+        return status;
     }
 
     private static String parsePrice(String input) {

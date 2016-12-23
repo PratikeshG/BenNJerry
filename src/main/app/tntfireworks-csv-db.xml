@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 		    </prototype-object>  
         </component>
         <foreach doc:name="For Each SyncToDatabaseRequest">
-            <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="vm://tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" path="tntfireworks-csv-sync-to-db"/>
+            <vm:outbound-endpoint exchange-pattern="one-way" path="tntfireworks-csv-sync-to-db" connector-ref="TNTFIREWORKS_VM" doc:name="vm://tntfireworks-csv-sync-to-db"/>
         </foreach>
     </flow>
     <flow name="TNTFireworks:trigger-sftp-csv-cron">
@@ -62,6 +62,10 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 	            <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
 	            <property key="databaseUser" value="${mysql.user}"/>
 	            <property key="databasePassword" value="${mysql.password}"/>
+	            <property key="sftpHost" value="${tntfireworks.sftp.host}"/>  
+                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>  
+                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>  
+                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/> 
 		    </prototype-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="vm://sync-db-to-square"/>
