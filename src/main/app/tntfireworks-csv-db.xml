@@ -47,7 +47,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <prototype-object class="tntfireworks.AwsS3Callable"></prototype-object>
         </component>
         <set-payload value="Started csv to database sync: #[flowVars.SyncToDatabaseRequest.getProcessingFilename()]" doc:name="Email Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.internal.recipients}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB STARTED  [' + flowVars.SyncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Started"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB STARTED  [' + flowVars.SyncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Started"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" content-ref="#[flowVars.sftpInputStream]" doc:name="Initiate copy to Amazon S3"/>
         <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
