@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
+	<vm:connector name="TNTFIREWORKS_Reporting_VM" validateConnections="true" doc:name="VM"/>
+    <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+	<flow name="TNTFireworks-trigger-deposits-batch-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/daily-settlements-batch/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <flow-ref name="TNTFireworks-generate-deposits-batch-report" doc:name="TNTFireworks-generate-deposits-batch-report"/>
+        <set-payload value="Credit/Debit Batch Report generated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-trigger-settlements-batch-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/settlements-batch-report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <flow-ref name="TNTFireworks-generate-settlements-batch-report" doc:name="TNTFireworks-generate-settlements-batch-report"/>
+        <set-payload value="Settlements Report generated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-trigger-abnormal-transactions-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abormal-transactions-report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <flow-ref name="TNTFireworks-generate-abnormal-transactions-report" doc:name="TNTFireworks-generate-abnormal-transactions-report"/>
+        <set-payload value="Abnormal Transactions Report generated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-trigger-transactions-batch-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/transactions-batch-report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable doc:name="offset" value="#[message.inboundProperties.'http.query.params'.offset]" variableName="offset"/>
+        <set-session-variable doc:name="range" value="#[message.inboundProperties.'http.query.params'.range]" variableName="range"/>
+        <flow-ref name="TNTFireworks-generate-transactions-batch-report" doc:name="TNTFireworks-generate-transactions-batch-report"/>
+        <set-payload doc:name="Set Payload" value="Generated transactions batch report."/>
+    </flow>
+    <flow name="TNTFireworks-generate-settlements-batch-report">
+        <logger message="Starting TNTFireworks-generate-settlements-batch-report" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
+        <component doc:name="Generate Settlements Batch Report">
+            <prototype-object class="tntfireworks.reporting.SettlementsBatchCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+            </prototype-object>
+        </component>
+    	<smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Settlements Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Settlements Batch Report" to="wtsang@squareup.com"/>
+    </flow>
+    <flow name="TNTFireworks-generate-transactions-batch-report">
+        <logger level="INFO" doc:name="Logger" message="Starting TNTFireworks-generate-transactions-batch-report"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
+        <component doc:name="Generate Transactions Batch Report">
+            <prototype-object class="tntfireworks.reporting.TransactionsBatchCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+            </prototype-object>
+        </component>
+    	<smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Transactions Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Transactions Batch Report" to="wtsang@squareup.com"/>
+    </flow>
+    <flow name="TNTFireworks-generate-abnormal-transactions-report">
+        <logger message="Starting TNTFireworks-generate-abnormal-transactions-report" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
+        <component doc:name="Generate Abnormal Transactions Report">
+            <prototype-object class="tntfireworks.reporting.AbnormalTransactionsCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+            </prototype-object>
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Abnormal Transactions Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Abnormal Transactions Report" to="wtsang@squareup.com"/> 
+    </flow>
+    <flow name="TNTFireworks-generate-deposits-batch-report">
+        <logger message="Starting TNTFireworks-generate-credit-debit-report" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
+        <component doc:name="Generate Deposits Batch Report">
+        	<singleton-object class="tntfireworks.reporting.DepositsBatchCallable"/>    
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Credit/Debit Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Credit Debit Batch Report" to="wtsang@squareup.com"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-deployment-transactions">
+        <component doc:name="Get Deployment Payloads">
+            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
+            </prototype-object>
+        </component>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-splitter"/>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-reply"/>
+        </request-reply>
+        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-transactions-queue-splitter">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-splitter"/>
+        <collection-splitter doc:name="Collection Splitter" />
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-transactions-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
+        <logger message="#[&quot;Retrieving Transaction details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Aggregate deployment details">
+        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsCallable"/>       
+        </component>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-transactions-queue-aggregator">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
+        <logger message="Aggregating transaction details..." level="INFO" doc:name="Logger"/>
+        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-reply"/>
+    </flow>
+</mule>
