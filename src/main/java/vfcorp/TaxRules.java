@@ -15,6 +15,7 @@ public class TaxRules {
 
     // Stores with bag fees
     public final static String TNF_POST_ST = "vfcorp-tnf-00001";
+    public final static String TNF_CHICAGO = "vfcorp-tnf-00010";
     public final static String TNF_VALLEY_FAIR = "vfcorp-tnf-00021";
     public final static String TNF_BETHESDA = "vfcorp-tnf-00048";
     public final static String TNF_STANFORD = "vfcorp-tnf-00517";
@@ -22,6 +23,7 @@ public class TaxRules {
     // Tax free bag SKUs
     public final static String BAG_4508 = "040005164508";
     public final static String BAG_4909 = "040004834909";
+    public final static String BAG_3039 = "040008783039";
 
     // New York, NY - TNF Stores #12, 18, 516
     // 0% on clothing & footwear below $110 per item
@@ -164,9 +166,10 @@ public class TaxRules {
         int itemPrice = itemVariation.getPriceMoney().getAmount();
         String itemDeptClass = Util.getValueInParenthesis(itemVariation.getName());
 
-        if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)) {
-            if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_VALLEY_FAIR) || deployment.equals(TNF_BETHESDA)
-                    || deployment.equals(TNF_STANFORD)) {
+        if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)
+                || itemVariation.getSku().equals(BAG_3039)) {
+            if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_CHICAGO) || deployment.equals(TNF_VALLEY_FAIR)
+                    || deployment.equals(TNF_BETHESDA) || deployment.equals(TNF_STANFORD)) {
                 return new Fee[0];
             }
         } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
