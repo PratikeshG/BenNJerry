@@ -255,6 +255,8 @@ public class RunLoadAccountCSV {
                         if (priceString.length() > 2) {
                             priceString = priceString.substring(0, priceString.length() - 2) + "."
                                     + priceString.substring(priceString.length() - 2);
+                        } else {
+                            priceString = "." + priceString;
                         }
 
                         sb.append(priceString + ",");
