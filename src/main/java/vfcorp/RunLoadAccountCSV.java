@@ -256,7 +256,7 @@ public class RunLoadAccountCSV {
                             priceString = priceString.substring(0, priceString.length() - 2) + "."
                                     + priceString.substring(priceString.length() - 2);
                         } else {
-                            priceString = "." + priceString;
+                            priceString = "0." + priceString;
                         }
 
                         sb.append(priceString + ",");
