@@ -17,41 +17,42 @@ public class StateVariableGenerator implements Callable {
     private String legacyAppId;
 
     public void setApiUrl(String apiUrl) {
-	this.apiUrl = apiUrl;
+        this.apiUrl = apiUrl;
     }
 
     public void setLegacyAppId(String legacyAppId) {
-	this.legacyAppId = legacyAppId;
+        this.legacyAppId = legacyAppId;
     }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-	SecureRandom random = new SecureRandom();
-	String session = new BigInteger(130, random).toString(32);
+        SecureRandom random = new SecureRandom();
+        String session = new BigInteger(130, random).toString(32);
 
-	Map<String, String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
-	String deployment = m.get("deployment");
-	String connectAppId = m.get("client_id");
+        Map<String, String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
+        String deployment = m.get("deployment");
+        String connectAppId = m.get("client_id");
 
-	OAuthURIParams params = new OAuthURIParams();
-	params.setClientId(connectAppId);
-	params.setResponseType("code");
-	params.setState(deployment + "," + session + "," + connectAppId);
-	params.setSession(false);
+        OAuthURIParams params = new OAuthURIParams();
+        params.setClientId(connectAppId);
+        params.setResponseType("code");
+        params.setState(deployment + "," + session + "," + connectAppId);
+        params.setSession(false);
 
-	if (connectAppId.equals(legacyAppId)) {
-	    params.setScope(new String[] { "MERCHANT_PROFILE_READ", "PAYMENTS_READ", "ITEMS_READ", "ITEMS_WRITE" });
-	} else {
-	    params.setScope(new String[] { "MERCHANT_PROFILE_READ", "PAYMENTS_READ", "ITEMS_READ", "ITEMS_WRITE",
-		    "EMPLOYEES_READ", "TIMECARDS_READ", "CUSTOMERS_READ", "CUSTOMERS_WRITE" });
-	}
+        if (connectAppId.equals(legacyAppId)) {
+            params.setScope(new String[] { "MERCHANT_PROFILE_READ", "SETTLEMENTS_READ", "PAYMENTS_READ", "ITEMS_READ",
+                    "ITEMS_WRITE" });
+        } else {
+            params.setScope(new String[] { "MERCHANT_PROFILE_READ", "SETTLEMENTS_READ", "PAYMENTS_READ", "ITEMS_READ",
+                    "ITEMS_WRITE", "EMPLOYEES_READ", "TIMECARDS_READ", "CUSTOMERS_READ", "CUSTOMERS_WRITE" });
+        }
 
-	SquareClient client = new SquareClient(apiUrl);
-	String link = client.oauth().authorizeUrl(params);
+        SquareClient client = new SquareClient(apiUrl);
+        String link = client.oauth().authorizeUrl(params);
 
-	eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
-	eventContext.getMessage().setProperty("link", link, PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("link", link, PropertyScope.INVOCATION);
 
-	return null;
+        return null;
     }
 }

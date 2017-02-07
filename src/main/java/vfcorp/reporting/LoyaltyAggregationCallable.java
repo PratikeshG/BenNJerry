@@ -1,4 +1,4 @@
-package vfcorp.loyalty;
+package vfcorp.reporting;
 
 import java.util.Calendar;
 import java.util.HashMap;

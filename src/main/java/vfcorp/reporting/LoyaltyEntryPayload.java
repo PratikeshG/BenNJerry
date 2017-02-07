@@ -1,4 +1,4 @@
-package vfcorp.loyalty;
+package vfcorp.reporting;
 
 import com.squareup.connect.v2.Customer;
 

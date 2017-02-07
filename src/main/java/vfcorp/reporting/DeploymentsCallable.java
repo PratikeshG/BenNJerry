@@ -1,4 +1,4 @@
-package vfcorp.loyalty;
+package vfcorp.reporting;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package vfcorp.loyalty;
+package vfcorp.reporting;
 
 import java.text.ParseException;
 import java.util.Calendar;
