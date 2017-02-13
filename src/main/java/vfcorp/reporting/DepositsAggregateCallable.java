@@ -47,21 +47,7 @@ public class DepositsAggregateCallable implements Callable {
             SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
                     deployment.getLocationId());
 
-            Location location = null;
-
-            // We want to get the location store ID and time zone
-            // There is currently no retrieveLocation endpoint in V2
-            // Need to list locations then find the correct location
-            Location[] deploymentLocations = squareV2Client.locations().list();
-            for (Location loc : deploymentLocations) {
-                if (loc.getId().equals(deployment.getLocationId())) {
-                    location = loc;
-                    break;
-                }
-            }
-            if (location == null) {
-                throw new Exception("No matching location ID found in loyalty calculation!");
-            }
+            Location location = squareV2Client.locations().retrieve(deployment.getLocationId());
 
             Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
