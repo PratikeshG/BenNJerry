@@ -49,6 +49,12 @@ public class DepositsAggregateCallable implements Callable {
 
             Location location = squareV2Client.locations().retrieve(deployment.getLocationId());
 
+            // No location found
+            if (location == null) {
+                throw new Exception(
+                        String.format("No matching location ID (%s) found in V2 API!", deployment.getLocationId()));
+            }
+
             Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
             Settlement[] settlements = squareV1Client.settlements().list(params);
