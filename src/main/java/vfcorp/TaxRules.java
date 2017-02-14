@@ -88,6 +88,11 @@ public class TaxRules {
     public final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
     public final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
 
+    // Nebraska Crossing TNF Stores #317
+    // 7.0 Sales Tax
+    // 1.95 Occupancy Tax
+    public final static String TNF_NE_NEBRASKA_CROSSING = "vfcorp-tnf-00317";
+
     private static final Set<String> CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] { "10  7076",
             "10  1000", "10  1001", "10  1002", "10  1020", "10  1021", "10  1040", "10  1050", "10  1055", "10  1200",
             "10  1500", "10  1501", "10  1502", "10  1520", "10  1521", "10  1540", "10  1550", "10  1555", "10  1600",
@@ -251,6 +256,11 @@ public class TaxRules {
             } else {
                 return new Fee[] { taxes[0] };
             }
+        } else if (deployment.equals(TNF_NE_NEBRASKA_CROSSING)) {
+            if (taxes.length != 2) {
+                throw new Exception("Nebraska Crossing deployment with incorrect number of taxes: " + deployment);
+            }
+            return taxes;
         } else if (taxes.length != 1) {
             throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
         }

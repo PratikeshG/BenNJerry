@@ -24,7 +24,7 @@ public class Test {
         String API_ENDPOINT = "https://connect.squareupstaging.com";
         String ACCESS_TOKEN = "sq0ats-0LZJnEzOsjOKcgikzHYjfQ";
         String MERCHANT_ID = "DVKXZBNVFQAGS";
-        String LOCATION_ID = "7K2P5XPK2DJ07";
+        String LOCATION_ID = "A5EKHWD5C76SZ";
 
         System.out.println("Running TLOG...");
         com.squareup.connect.SquareClient client = new com.squareup.connect.SquareClient(ACCESS_TOKEN, API_ENDPOINT,

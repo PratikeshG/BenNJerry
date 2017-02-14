@@ -276,6 +276,9 @@ public class RunLoadAccountCSV {
                             if (tax2 != null) {
                                 applySecondTax = (tax2.getRate().equals(itemTax.getRate())) ? "Y" : "N";
                             }
+                        } else if (item.getFees().length == 2) {
+                            applyFirstTax = "Y";
+                            applySecondTax = "Y";
                         }
 
                         sb.append(applyFirstTax + ",");
