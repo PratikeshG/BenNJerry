@@ -224,8 +224,11 @@ public class TLOG {
                             } else if (discountType.equals("2")) {
                                 paymentList.add(new EmployeeDiscount().parse(itemization, discount));
                             } else if (discountType.equals("1")) {
-                                promoRecords.add(new EventGiveback().parse(itemization, discount,
-                                        itemNumberLookupLength, discountCode, discountAppyType));
+                                String promoDetails = Util.getValueInParenthesis(discount.getName());
+                                if (promoDetails.length() > 6) {
+                                    promoRecords.add(new EventGiveback().parse(itemization, discount,
+                                            itemNumberLookupLength, promoDetails, discountAppyType));
+                                }
                             }
                         }
                     }
