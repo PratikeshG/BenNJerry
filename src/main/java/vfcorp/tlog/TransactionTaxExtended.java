@@ -8,6 +8,7 @@ import com.squareup.connect.PaymentTax;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
+import vfcorp.Util;
 
 public class TransactionTaxExtended extends Record {
 
@@ -22,7 +23,7 @@ public class TransactionTaxExtended extends Record {
 
         fields.put("Identifier", new FieldDetails(3, 1, ""));
         fields.put("Tax Type", new FieldDetails(2, 4, ""));
-        fields.put("Tax Method", new FieldDetails(2, 6, ""));
+        fields.put("Tax Method", new FieldDetails(2, 6, "zero filled"));
         fields.put("Tax Code", new FieldDetails(25, 8, "Left justified, space filled"));
         fields.put("Tax Rate", new FieldDetails(7, 33, "zero filled"));
         fields.put("Taxable Amount", new FieldDetails(10, 40, "zero filled"));
@@ -55,6 +56,7 @@ public class TransactionTaxExtended extends Record {
 
     public TransactionTaxExtended parse(Payment payment, PaymentTax tax) throws Exception {
         String taxType = "01";
+        String taxMethod = "01";
         String taxCode = "";
         switch (tax.getName()) {
             case "Sales Tax":
@@ -85,11 +87,18 @@ public class TransactionTaxExtended extends Record {
 
         int taxableAmount = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
 
+        // for special taxes
+        String taxDetails = Util.getValueInParenthesis(tax.getName());
+        if (taxDetails.length() > 2) {
+            taxMethod = taxDetails.substring(0, 2);
+            taxCode = taxDetails.substring(2);
+        }
+
         putValue("Tax Type", taxType);
-        putValue("Tax Method", "01"); // not supported
+        putValue("Tax Method", taxMethod);
         putValue("Tax Rate", "" + taxRate);
         putValue("Tax Code", taxCode);
-        putValue("Taxable Amount", "" + taxableAmount); // TODO(colinlam): this doesn't take into account what kind of tax it is
+        putValue("Taxable Amount", "" + taxableAmount);
         putValue("Tax", "" + tax.getAppliedMoney().getAmount());
         // TODO(): needs to be refactored for refunds
         putValue("Sign Indicator", "0");
