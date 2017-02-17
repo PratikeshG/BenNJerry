@@ -1,14 +1,27 @@
 package tntfireworks;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 public class CSVLocation {
+	@Size(min=1)
+	@NotNull
     private String locationNum;
+	@Size(min=1)
+	@NotNull
     private String addressNum;
+	@Size(min=1)
+	@NotNull
     private String name;
+	@Size(min=1)
+	@NotNull
     private String address;
     private String city;
     private String state;
     private String zip;
     private String county;
+    @Size(min=1)
+	@NotNull
     private String mktPlan;
     private String legal;
     private String disc;
@@ -23,6 +36,7 @@ public class CSVLocation {
     private String year;
     private String machineType;
     private String deployment;
+    
     
     public void setLocationNum(String locationNum) {
         this.locationNum = locationNum;        

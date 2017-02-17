@@ -4,3 +4,4 @@ catalog/**
 src/main/app/mule-app.properties
 src/main/app/mule-deploy.properties
 src/main/resources/development.*
+.settings/org.mulesoft.exportwizardsettings.prefs

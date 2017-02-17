@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import tntfireworks.exceptions.EmptyLocationArrayException;
+
 public class InputParser {
 
     private String databaseUrl;
@@ -304,6 +306,8 @@ public class InputParser {
 
         return updateStatement;
     }
+    
+    
 
     public String generateLocationsSQLUpsert(ArrayList<CSVLocation> locations) {
         String updateStatement = "";
@@ -327,6 +331,8 @@ public class InputParser {
             updateStatement += " ON DUPLICATE KEY UPDATE addressNumber=VALUES(addressNumber), name=VALUES(name), address=VALUES(address), city=VALUES(city), state=VALUES(state),"
                     + "zip=VALUES(zip), county=VALUES(county), mktPlan=VALUES(mktPlan), legal=VALUES(legal), disc=VALUES(disc), rbu=VALUES(rbu), bp=VALUES(bp), co=VALUES(co),"
                     + "saNum=VALUES(saNum), saName=VALUES(saName), custNum=VALUES(custNum), custName=VALUES(custName), season=VALUES(season), year=VALUES(year), machineType=VALUES(machineType);";
+        } else {
+        	throw new EmptyLocationArrayException();
         }
 
         return updateStatement;
