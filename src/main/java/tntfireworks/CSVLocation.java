@@ -4,6 +4,9 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 public class CSVLocation {
+	
+	public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE";
+	
 	@Size(min=1)
 	@NotNull
     private String locationNum;

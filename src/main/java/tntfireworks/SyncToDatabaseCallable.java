@@ -21,6 +21,7 @@ public class SyncToDatabaseCallable implements Callable {
     private int sftpPort;
     private String sftpUser;
     private String sftpPassword;
+    private static final int SYNC_GROUP_SIZE = 2500;
 
     public void setDatabaseUrl(String databaseUrl) {
         this.databaseUrl = databaseUrl;
@@ -60,11 +61,8 @@ public class SyncToDatabaseCallable implements Callable {
         InputStream is = message.getProperty("s3InputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
 
-        InputParser parser = new InputParser();
-        parser.setSyncGroupSize(2500);
-        parser.setDatabaseUrl(databaseUrl);
-        parser.setDatabaseUser(databaseUser);
-        parser.setDatabasePassword(databasePassword);
+        DBConnection dbConnection = new DBConnection(databaseUrl, databaseUser, databasePassword);
+        InputParser parser = new InputParser(dbConnection, SYNC_GROUP_SIZE);
         parser.syncToDatabase(bis, request.getProcessingFilename());
         bis.close();
 

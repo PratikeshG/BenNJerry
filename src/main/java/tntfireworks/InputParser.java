@@ -1,6 +1,7 @@
 package tntfireworks;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -15,65 +16,59 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
+import tntfireworks.exceptions.BadFilenameException;
+import tntfireworks.exceptions.EmptyCsvException;
 import tntfireworks.exceptions.EmptyLocationArrayException;
+import tntfireworks.exceptions.MalformedHeaderRowException;
 
 public class InputParser {
 
-    private String databaseUrl;
-    private String databaseUser;
-    private String databasePassword;
     private int syncGroupSize;
+	private DBConnection dbConnection;
+	public static final String LOCATIONS_FILENAME = "locations";
 
-    public InputParser() {
-        this.syncGroupSize = 2500;
-    }
-
-    public void setDatabaseUrl(String databaseUrl) {
-        this.databaseUrl = databaseUrl;
-    }
-
-    public void setDatabaseUser(String databaseUser) {
-        this.databaseUser = databaseUser;
-    }
-
-    public void setDatabasePassword(String databasePassword) {
-        this.databasePassword = databasePassword;
-    }
-
-    void setSyncGroupSize(int syncGroupSize) {
+    public InputParser(DBConnection dbConnection, int syncGroupSize) {
         this.syncGroupSize = syncGroupSize;
+        this.dbConnection = dbConnection;
     }
 
     private static Logger logger = LoggerFactory.getLogger(InputParser.class);
-
-    public void syncToDatabase(BufferedInputStream inputStream, String processingFile) throws Exception {
-        String filename = "";
-
-        // set up SQL connection
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
-        // use less efficient Scanner because BufferedReader hangs on NULL EOF
-        Scanner scanner = new Scanner(inputStream, "UTF-8");
-
-        // parse filename - marketing plan or location file
+    
+    public String getFilenameOrMarketPlan(String processingFile) {
+    	Preconditions.checkNotNull(processingFile);
+    	
+    	// parse filename - marketing plan or location file
         Pattern r = Pattern.compile("\\d+_(\\w+)_\\d+.csv");
         Matcher m = r.matcher(processingFile);
         m.find();
 
-        // set marketing plan name
-        if (m.group(1) != null) {
-            filename = m.group(1);
-        }
+        try {
+        	return m.group(1);
+        } catch (IllegalStateException e) {
 
-        if (filename.equals("locations")) {
-            processLocations(conn, scanner, processingFile);
+        }
+        logger.error("Bad filename " + processingFile);
+        throw new BadFilenameException();
+        
+    }
+
+    public void syncToDatabase(BufferedInputStream inputStream, String processingFile) throws ClassNotFoundException, SQLException, IOException {
+    	Preconditions.checkNotNull(dbConnection);
+    	Preconditions.checkNotNull(processingFile);
+    	
+        Scanner scanner = new Scanner(inputStream, "UTF-8");
+        String filename = getFilenameOrMarketPlan(processingFile);
+        
+        if (filename.equals(LOCATIONS_FILENAME)) {
+            processLocations(dbConnection, scanner, processingFile);
         } else {
-            processMktPlan(conn, scanner, processingFile, filename);
+            processMktPlan(dbConnection, scanner, processingFile, filename);
         }
 
         scanner.close();
-        conn.close();
+        dbConnection.close();
 
         // Scanner suppresses exceptions
         if (scanner.ioException() != null) {
@@ -82,8 +77,7 @@ public class InputParser {
 
     }
 
-    public void processMktPlan(Connection conn, Scanner scanner, String processingFile, String filename)
-            throws Exception {
+    public void processMktPlan(DBConnection dbConnection, Scanner scanner, String processingFile, String filename) throws ClassNotFoundException, SQLException {
         CSVMktPlan marketingPlan = new CSVMktPlan();
         String[] itemFields = null;
         int totalRecordsProcessed = 0;
@@ -92,13 +86,11 @@ public class InputParser {
         if (!marketingPlan.getName().equals("")) {
             // first replace existing marketing plan from db
             logger.info(String.format("Removing old marketing plan '%s' from DB...", processingFile));
-            submitQuery(conn, generateMktPlanSQLDelete(marketingPlan.getName()));
+            dbConnection.executeQuery(generateMktPlanSQLDelete(marketingPlan.getName()));
 
             // ignore csv header
             logger.info(String.format("Ingesting marketing plan %s...", processingFile));
-            if (scanner.hasNextLine()) {
-                scanner.nextLine();
-            }
+            verifyHeaderRowAndAdvanceToNextLine(scanner, CSVMktPlan.HEADER_ROW);
 
             while (scanner.hasNextLine()) {
                 totalRecordsProcessed++;
@@ -162,7 +154,7 @@ public class InputParser {
                 }
 
                 if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
-                    submitQuery(conn, generateMktPlanSQLUpsert(marketingPlan.getName(), marketingPlan.getAllItems()));
+                	dbConnection.executeQuery(generateMktPlanSQLUpsert(marketingPlan.getName(), marketingPlan.getAllItems()));
 
                     marketingPlan.clearItems();
 
@@ -175,93 +167,115 @@ public class InputParser {
 
         logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
-            throw new Exception("No records processed. Invalid input stream.");
+            throw new RuntimeException("No records processed. Invalid input stream.");
+        }
+    }
+    
+    private void verifyHeaderRowAndAdvanceToNextLine(Scanner scanner, String expectedHeader) {
+    	Preconditions.checkNotNull(scanner);
+    	Preconditions.checkNotNull(expectedHeader);
+    	
+    	if (scanner.hasNextLine()) {
+        	String headerRow = scanner.nextLine();
+        	if (!headerRow.equals(expectedHeader)) {
+        		throw new MalformedHeaderRowException();
+        	}
+        } else {
+        	throw new EmptyCsvException();
+        }
+    }
+    
+    private void processLocation(String[] locationFields, ArrayList<CSVLocation> locations, int totalRecordsProcessed) {
+    	Preconditions.checkNotNull(locationFields);
+    	Preconditions.checkNotNull(locations);
+    	Preconditions.checkNotNull(totalRecordsProcessed);
+    	
+    	// trim and replace SQL chars
+        for (int i = 0; i < locationFields.length; i++) {
+            locationFields[i] = locationFields[i].trim();
+            locationFields[i] = locationFields[i].replaceAll("'", "''");
+        }
+
+        // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
+        //               and add location constructor to take in HashMap to initialize location
+        //      0 - locationNum;
+        //      1 - addressNum;
+        //      2 - name;
+        //      3 - address;
+        //      4 - city;
+        //      5 - state;
+        //      6 - zip;
+        //      7 - county;
+        //      8 - mktPlan;
+        //      9 - legal;
+        //      10 - disc;
+        //      11 - rbu;
+        //      12 - bp;
+        //      13 - co;
+        //      14 - saNum;
+        //      15 - saName;
+        //      16 - custNum;
+        //      17 - custName;
+        //      18 - season;
+        //      19 - year;
+        //      20 - machineType;
+        //
+        if (locationFields.length == 21) {
+            CSVLocation location = new CSVLocation();
+            location.setLocationNum(locationFields[0]);
+            location.setAddressNum(locationFields[1]);
+            location.setName(locationFields[2]);
+            location.setAddress(locationFields[3]);
+            location.setCity(locationFields[4]);
+            location.setState(locationFields[5]);
+            location.setZip(locationFields[6]);
+            location.setCounty(locationFields[7]);
+            location.setMktPlan(locationFields[8]);
+            location.setLegal(locationFields[9]);
+            location.setDisc(locationFields[10]);
+            location.setRbu(locationFields[11]);
+            location.setBp(locationFields[12]);
+            location.setCo(locationFields[13]);
+            location.setSaNum(locationFields[14]);
+            location.setSaName(locationFields[15]);
+            location.setCustNum(locationFields[16]);
+            location.setCustName(locationFields[17]);
+            location.setSeason(locationFields[18]);
+            location.setYear(locationFields[19]);
+            location.setMachineType(locationFields[20]);
+
+            // add item to marketing plan
+            locations.add(location);
+        } else {
+            String contents = "";
+            for (int i = 0; i < locationFields.length; i++) {
+                contents += locationFields[i] + " | ";
+            }
+            logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed,
+                    contents));
         }
     }
 
-    public void processLocations(Connection conn, Scanner scanner, String processingFile) throws Exception {
+    public void processLocations(DBConnection dbConnection, Scanner scanner, String processingFile) throws SQLException, ClassNotFoundException {
+    	Preconditions.checkNotNull(dbConnection);
+    	Preconditions.checkNotNull(scanner);
+    	Preconditions.checkNotNull(processingFile);
+    	
         ArrayList<CSVLocation> locations = new ArrayList<CSVLocation>();
         String[] locationFields = null;
         int totalRecordsProcessed = 0;
 
-        // TODO(wtsang): hack - need to skip first line in the CSV file (header)
-        if (scanner.hasNextLine()) {
-            scanner.nextLine();
-        }
+        verifyHeaderRowAndAdvanceToNextLine(scanner, CSVLocation.HEADER_ROW);
 
         logger.info(String.format("Ingesting locations file %s...", processingFile));
         while (scanner.hasNextLine()) {
             totalRecordsProcessed++;
             locationFields = scanner.nextLine().split(",");
 
-            // trim and replace SQL chars
-            for (int i = 0; i < locationFields.length; i++) {
-                locationFields[i] = locationFields[i].trim();
-                locationFields[i] = locationFields[i].replaceAll("'", "''");
-            }
-
-            // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
-            //               and add location constructor to take in HashMap to initialize location
-            //      0 - locationNum;
-            //      1 - addressNum;
-            //      2 - name;
-            //      3 - address;
-            //      4 - city;
-            //      5 - state;
-            //      6 - zip;
-            //      7 - county;
-            //      8 - mktPlan;
-            //      9 - legal;
-            //      10 - disc;
-            //      11 - rbu;
-            //      12 - bp;
-            //      13 - co;
-            //      14 - saNum;
-            //      15 - saName;
-            //      16 - custNum;
-            //      17 - custName;
-            //      18 - season;
-            //      19 - year;
-            //      20 - machineType;
-            //
-            if (locationFields.length == 21) {
-                CSVLocation location = new CSVLocation();
-                location.setLocationNum(locationFields[0]);
-                location.setAddressNum(locationFields[1]);
-                location.setName(locationFields[2]);
-                location.setAddress(locationFields[3]);
-                location.setCity(locationFields[4]);
-                location.setState(locationFields[5]);
-                location.setZip(locationFields[6]);
-                location.setCounty(locationFields[7]);
-                location.setMktPlan(locationFields[8]);
-                location.setLegal(locationFields[9]);
-                location.setDisc(locationFields[10]);
-                location.setRbu(locationFields[11]);
-                location.setBp(locationFields[12]);
-                location.setCo(locationFields[13]);
-                location.setSaNum(locationFields[14]);
-                location.setSaName(locationFields[15]);
-                location.setCustNum(locationFields[16]);
-                location.setCustName(locationFields[17]);
-                location.setSeason(locationFields[18]);
-                location.setYear(locationFields[19]);
-                location.setMachineType(locationFields[20]);
-
-                // add item to marketing plan
-                locations.add(location);
-            } else {
-                String contents = "";
-                for (int i = 0; i < locationFields.length; i++) {
-                    contents += locationFields[i] + " | ";
-                }
-                logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed,
-                        contents));
-
-            }
+            processLocation(locationFields, locations, totalRecordsProcessed);
 
             if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
-                submitQuery(conn, generateLocationsSQLUpsert(locations));
+            	dbConnection.executeQuery(generateLocationsSQLUpsert(locations));
 
                 locations.clear();
 
@@ -271,7 +285,8 @@ public class InputParser {
 
         logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
-            throw new Exception("No records processed. Invalid input stream.");
+        	logger.error("No records processed. Invalid input stream.");
+            throw new EmptyCsvException();
         }
     }
 
@@ -307,9 +322,10 @@ public class InputParser {
         return updateStatement;
     }
     
-    
 
-    public String generateLocationsSQLUpsert(ArrayList<CSVLocation> locations) {
+    String generateLocationsSQLUpsert(ArrayList<CSVLocation> locations) {
+    	Preconditions.checkNotNull(locations);
+    	
         String updateStatement = "";
 
         if (locations.size() > 0) {
@@ -338,15 +354,6 @@ public class InputParser {
         return updateStatement;
     }
 
-    public void submitQuery(Connection conn, String query) throws SQLException {
-        if (query.isEmpty()) {
-            return;
-        }
-
-        Statement stmt = conn.createStatement();
-        stmt.executeUpdate(query);
-    }
-
     private String appendWithListIterator(String input, List<String> list) {
         Iterator<String> i = list.iterator();
         if (i.hasNext()) {
@@ -357,4 +364,5 @@ public class InputParser {
         }
         return input;
     }
+
 }
