@@ -3,7 +3,7 @@ package tntfireworks;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-public class CSVLocation {
+public class CSVLocation extends CsvRow {
 	
 	public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE";
 	
@@ -39,7 +39,6 @@ public class CSVLocation {
     private String year;
     private String machineType;
     private String deployment;
-    
     
     public void setLocationNum(String locationNum) {
         this.locationNum = locationNum;        
@@ -216,5 +215,68 @@ public class CSVLocation {
     public String getDeloyment() {
         return deployment;
     }
+
+	public static CSVLocation fromLocationFieldsCsvRow(String[] locationFields) {
+		
+		if (locationFields.length != 21) throw new IllegalArgumentException();
+		
+		// trim and replace SQL chars
+        for (int i = 0; i < locationFields.length; i++) {
+            locationFields[i] = locationFields[i].trim();
+            locationFields[i] = locationFields[i].replaceAll("'", "''");
+        }
+
+        // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
+        //               and add location constructor to take in HashMap to initialize location
+        //      0 - locationNum;
+        //      1 - addressNum;
+        //      2 - name;
+        //      3 - address;
+        //      4 - city;
+        //      5 - state;
+        //      6 - zip;
+        //      7 - county;
+        //      8 - mktPlan;
+        //      9 - legal;
+        //      10 - disc;
+        //      11 - rbu;
+        //      12 - bp;
+        //      13 - co;
+        //      14 - saNum;
+        //      15 - saName;
+        //      16 - custNum;
+        //      17 - custName;
+        //      18 - season;
+        //      19 - year;
+        //      20 - machineType;
+        //
+    
+        CSVLocation location = new CSVLocation();
+        location.setLocationNum(locationFields[0]);
+        location.setAddressNum(locationFields[1]);
+        location.setName(locationFields[2]);
+        location.setAddress(locationFields[3]);
+        location.setCity(locationFields[4]);
+        location.setState(locationFields[5]);
+        location.setZip(locationFields[6]);
+        location.setCounty(locationFields[7]);
+        location.setMktPlan(locationFields[8]);
+        location.setLegal(locationFields[9]);
+        location.setDisc(locationFields[10]);
+        location.setRbu(locationFields[11]);
+        location.setBp(locationFields[12]);
+        location.setCo(locationFields[13]);
+        location.setSaNum(locationFields[14]);
+        location.setSaName(locationFields[15]);
+        location.setCustNum(locationFields[16]);
+        location.setCustName(locationFields[17]);
+        location.setSeason(locationFields[18]);
+        location.setYear(locationFields[19]);
+        location.setMachineType(locationFields[20]);
+        
+        if (!location.isValid()) throw new IllegalArgumentException();
+        
+        return location;
+	}
     
 }

@@ -18,7 +18,7 @@ import org.mockito.junit.MockitoRule;
 
 public class DBConnectionTest {
 
-  @Mock private DBConnection dbConnection;
+  @Mock private DbConnection dbConnection;
   @Rule public MockitoRule mockitoRule = MockitoJUnit.rule(); 
   
   @Before

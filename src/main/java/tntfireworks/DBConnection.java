@@ -4,14 +4,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class DBConnection {
+public class DbConnection {
 
   private Connection dbConnection;
   private String databaseUrl;
   private String databaseUser;
   private String databasePassword;
   
-  public DBConnection(String databaseUrl, String databaseUser, String databasePassword) {
+  public DbConnection(String databaseUrl, String databaseUser, String databasePassword) {
 	  this.databaseUrl = databaseUrl;
 	  this.databaseUser = databaseUser;
 	  this.databasePassword = databasePassword;

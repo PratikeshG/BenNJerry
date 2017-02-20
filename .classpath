@@ -19,5 +19,6 @@
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/square-connect-v2-java-sdk"/>
 	<classpathentry exported="true" kind="lib" path="/Users/mlent/Development/SE/managed-integrations/resources/guava-gwt-22.0-SNAPSHOT.jar"/>
 	<classpathentry exported="true" kind="lib" path="/Users/mlent/Development/SE/managed-integrations/resources/mockito-all-3.0.0-beta.1.jar"/>
+	<classpathentry kind="lib" path="/Users/mlent/Development/SE/managed-integrations/resources/hibernate-validator-4.3.2.Final.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

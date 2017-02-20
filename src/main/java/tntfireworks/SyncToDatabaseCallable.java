@@ -61,7 +61,7 @@ public class SyncToDatabaseCallable implements Callable {
         InputStream is = message.getProperty("s3InputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
 
-        DBConnection dbConnection = new DBConnection(databaseUrl, databaseUser, databasePassword);
+        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         InputParser parser = new InputParser(dbConnection, SYNC_GROUP_SIZE);
         parser.syncToDatabase(bis, request.getProcessingFilename());
         bis.close();
