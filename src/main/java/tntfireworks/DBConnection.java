@@ -11,10 +11,11 @@ public class DbConnection {
   private String databaseUser;
   private String databasePassword;
   
-  public DbConnection(String databaseUrl, String databaseUser, String databasePassword) {
+  public DbConnection(String databaseUrl, String databaseUser, String databasePassword) throws ClassNotFoundException, SQLException {
 	  this.databaseUrl = databaseUrl;
 	  this.databaseUser = databaseUser;
 	  this.databasePassword = databasePassword;
+	  this.getDBConnection();
   }
 
   public void getDBConnection() throws ClassNotFoundException, SQLException {

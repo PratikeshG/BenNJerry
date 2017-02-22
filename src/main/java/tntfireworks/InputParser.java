@@ -36,7 +36,7 @@ public class InputParser {
 
     private static Logger logger = LoggerFactory.getLogger(InputParser.class);
     
-    public String getFilenameOrMarketPlan(String processingFile) {
+    public String getMarketPlan(String processingFile) {
     	Preconditions.checkNotNull(processingFile);
     	
     	// parse filename - marketing plan or location file
@@ -59,12 +59,12 @@ public class InputParser {
     	Preconditions.checkNotNull(processingFile);
     	
         Scanner scanner = new Scanner(inputStream, "UTF-8");
-        String filename = getFilenameOrMarketPlan(processingFile);
         
-        if (filename.equals(LOCATIONS_FILENAME)) {
+        if (processingFile.contains(LOCATIONS_FILENAME)) {
             processLocations(dbConnection, scanner, processingFile);
         } else {
-            processMktPlan(dbConnection, scanner, processingFile, filename);
+        	String marketPlanId = getMarketPlan(processingFile);
+            processMktPlan(dbConnection, scanner, processingFile, marketPlanId);
         }
 
         scanner.close();
@@ -77,24 +77,20 @@ public class InputParser {
 
     }
 
-    public void processMktPlan(DbConnection dbConnection, Scanner scanner, String processingFile, String filename) throws ClassNotFoundException, SQLException {
+    public void processMktPlan(DbConnection dbConnection, Scanner scanner, String processingFile, String marketPlanId) throws ClassNotFoundException, SQLException {
     	Preconditions.checkNotNull(dbConnection);
     	Preconditions.checkNotNull(scanner);
-    	Preconditions.checkNotNull(filename);
+    	Preconditions.checkNotNull(marketPlanId);
     	
     	CSVMktPlan marketingPlan = new CSVMktPlan();
         String[] itemFields = null;
         int totalRecordsProcessed = 0;
 
-        marketingPlan.setName(filename);
+        marketingPlan.setName(marketPlanId);
         if (!marketingPlan.getName().equals("")) {
-            // first replace existing marketing plan from db
-            logger.info(String.format("Removing old marketing plan '%s' from DB...", processingFile));
-            dbConnection.executeQuery(generateMktPlanSQLDelete(marketingPlan.getName()));
+        	removeExistingMarketingPlan(processingFile, marketingPlan);
 
-            // ignore csv header 
-            logger.info(String.format("Ingesting marketing plan %s...", processingFile));
-            verifyHeaderRowAndAdvanceToNextLine(scanner, CSVMktPlan.HEADER_ROW);
+            verifyHeaderRowAndAdvanceToNextLine(scanner, CSVMktPlan.HEADER_ROW, processingFile);
 
             while (scanner.hasNextLine()) {
                 totalRecordsProcessed++;
@@ -114,6 +110,11 @@ public class InputParser {
         if (totalRecordsProcessed == 0) {
             throw new RuntimeException("No records processed. Invalid input stream.");
         }
+    }
+    
+    private void removeExistingMarketingPlan(String processingFile, CSVMktPlan marketingPlan) throws ClassNotFoundException, SQLException {
+    	logger.info(String.format("Removing old marketing plan '%s' from DB...", processingFile));
+        dbConnection.executeQuery(generateMktPlanSQLDelete(marketingPlan.getName()));
     }
     
     private void processItemRow(CSVMktPlan marketingPlan, String[] itemFields, int totalRecordsProcessed) {
@@ -140,13 +141,15 @@ public class InputParser {
         logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
     }
     
-    private void verifyHeaderRowAndAdvanceToNextLine(Scanner scanner, String expectedHeader) {
+    private void verifyHeaderRowAndAdvanceToNextLine(Scanner scanner, String expectedHeader, String processingFile) {
+    	logger.info(String.format("Ingesting file %s...", processingFile));
     	Preconditions.checkNotNull(scanner);
     	Preconditions.checkNotNull(expectedHeader);
     	
     	if (scanner.hasNextLine()) {
         	String headerRow = scanner.nextLine();
         	if (!headerRow.equals(expectedHeader)) {
+        		logger.error("Malformed header row.\n***EXPECTED***\n" + expectedHeader + "\n***FOUND***\n" + headerRow);
         		throw new MalformedHeaderRowException();
         	}
         } else {
@@ -175,7 +178,6 @@ public class InputParser {
         logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
     }
     
-    
 
     public void processLocations(DbConnection dbConnection, Scanner scanner, String processingFile) throws SQLException, ClassNotFoundException {
     	Preconditions.checkNotNull(dbConnection);
@@ -186,9 +188,8 @@ public class InputParser {
         String[] locationFields = null;
         int totalRecordsProcessed = 0;
 
-        verifyHeaderRowAndAdvanceToNextLine(scanner, CSVLocation.HEADER_ROW);
+        verifyHeaderRowAndAdvanceToNextLine(scanner, CSVLocation.HEADER_ROW, processingFile);
 
-        logger.info(String.format("Ingesting locations file %s...", processingFile));
         while (scanner.hasNextLine()) {
             totalRecordsProcessed++;
             locationFields = scanner.nextLine().split(",");
@@ -211,7 +212,6 @@ public class InputParser {
 
     public String generateMktPlanSQLDelete(String mktPlanName) {
         String updateStatement = "DELETE FROM tntfireworks_marketing_plans WHERE mktPlan='" + mktPlanName + "'";
-
         return updateStatement;
     }
 

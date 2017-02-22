@@ -305,8 +305,8 @@ public class InputParserTests extends TestCase {
 		//bad filename
 		BufferedInputStream inputStream = Mockito.mock(BufferedInputStream.class);
 		InputParser inputParser = new InputParser(dbConnection, 5);
-		Assert.assertEquals(InputParser.LOCATIONS_FILENAME, inputParser.getFilenameOrMarketPlan("20161223154529_locations_12222016.csv"));
-		Assert.assertEquals("6RET", inputParser.getFilenameOrMarketPlan("20161223145321_6RET_12232016.csv"));
+		Assert.assertEquals(InputParser.LOCATIONS_FILENAME, inputParser.getMarketPlan("20161223154529_locations_12222016.csv"));
+		Assert.assertEquals("6RET", inputParser.getMarketPlan("20161223145321_6RET_12232016.csv"));
 		try {
 			inputParser.syncToDatabase(inputStream, "blah.csv");
 			fail();
