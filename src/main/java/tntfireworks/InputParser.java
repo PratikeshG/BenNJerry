@@ -2,10 +2,7 @@ package tntfireworks;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -26,8 +23,8 @@ import tntfireworks.exceptions.MalformedHeaderRowException;
 public class InputParser {
 
     private int syncGroupSize;
-	private DbConnection dbConnection;
-	public static final String LOCATIONS_FILENAME = "locations";
+    private DbConnection dbConnection;
+    public static final String LOCATIONS_FILENAME = "locations";
 
     public InputParser(DbConnection dbConnection, int syncGroupSize) {
         this.syncGroupSize = syncGroupSize;
@@ -35,35 +32,36 @@ public class InputParser {
     }
 
     private static Logger logger = LoggerFactory.getLogger(InputParser.class);
-    
+
     public String getMarketPlan(String processingFile) {
-    	Preconditions.checkNotNull(processingFile);
-    	
-    	// parse filename - marketing plan or location file
+        Preconditions.checkNotNull(processingFile);
+
+        // parse filename - marketing plan or location file
         Pattern r = Pattern.compile("\\d+_(\\w+)_\\d+.csv");
         Matcher m = r.matcher(processingFile);
         m.find();
 
         try {
-        	return m.group(1);
+            return m.group(1);
         } catch (IllegalStateException e) {
 
         }
         logger.error("Bad filename " + processingFile);
         throw new BadFilenameException();
-        
+
     }
 
-    public void syncToDatabase(BufferedInputStream inputStream, String processingFile) throws ClassNotFoundException, SQLException, IOException {
-    	Preconditions.checkNotNull(dbConnection);
-    	Preconditions.checkNotNull(processingFile);
-    	
+    public void syncToDatabase(BufferedInputStream inputStream, String processingFile)
+            throws ClassNotFoundException, SQLException, IOException {
+        Preconditions.checkNotNull(dbConnection);
+        Preconditions.checkNotNull(processingFile);
+
         Scanner scanner = new Scanner(inputStream, "UTF-8");
-        
+
         if (processingFile.contains(LOCATIONS_FILENAME)) {
             processLocations(dbConnection, scanner, processingFile);
         } else {
-        	String marketPlanId = getMarketPlan(processingFile);
+            String marketPlanId = getMarketPlan(processingFile);
             processMktPlan(dbConnection, scanner, processingFile, marketPlanId);
         }
 
@@ -77,18 +75,19 @@ public class InputParser {
 
     }
 
-    public void processMktPlan(DbConnection dbConnection, Scanner scanner, String processingFile, String marketPlanId) throws ClassNotFoundException, SQLException {
-    	Preconditions.checkNotNull(dbConnection);
-    	Preconditions.checkNotNull(scanner);
-    	Preconditions.checkNotNull(marketPlanId);
-    	
-    	CSVMktPlan marketingPlan = new CSVMktPlan();
+    public void processMktPlan(DbConnection dbConnection, Scanner scanner, String processingFile, String marketPlanId)
+            throws ClassNotFoundException, SQLException {
+        Preconditions.checkNotNull(dbConnection);
+        Preconditions.checkNotNull(scanner);
+        Preconditions.checkNotNull(marketPlanId);
+
+        CSVMktPlan marketingPlan = new CSVMktPlan();
         String[] itemFields = null;
         int totalRecordsProcessed = 0;
 
         marketingPlan.setName(marketPlanId);
         if (!marketingPlan.getName().equals("")) {
-        	removeExistingMarketingPlan(processingFile, marketingPlan);
+            removeExistingMarketingPlan(processingFile, marketingPlan);
 
             verifyHeaderRowAndAdvanceToNextLine(scanner, CSVMktPlan.HEADER_ROW, processingFile);
 
@@ -97,11 +96,11 @@ public class InputParser {
 
                 itemFields = scanner.nextLine().split(",");
                 processItemRow(marketingPlan, itemFields, totalRecordsProcessed);
-                
+
                 if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
-                	insertMarketingPlanBatch(marketingPlan, processingFile, totalRecordsProcessed);
+                    insertMarketingPlanBatch(marketingPlan, processingFile, totalRecordsProcessed);
                 }
-            } 
+            }
         } else {
             logger.error(String.format("Did not process file %s, malformed filename", processingFile));
         }
@@ -111,79 +110,82 @@ public class InputParser {
             throw new RuntimeException("No records processed. Invalid input stream.");
         }
     }
-    
-    private void removeExistingMarketingPlan(String processingFile, CSVMktPlan marketingPlan) throws ClassNotFoundException, SQLException {
-    	logger.info(String.format("Removing old marketing plan '%s' from DB...", processingFile));
+
+    private void removeExistingMarketingPlan(String processingFile, CSVMktPlan marketingPlan)
+            throws ClassNotFoundException, SQLException {
+        logger.info(String.format("Removing old marketing plan '%s' from DB...", processingFile));
         dbConnection.executeQuery(generateMktPlanSQLDelete(marketingPlan.getName()));
     }
-    
+
     private void processItemRow(CSVMktPlan marketingPlan, String[] itemFields, int totalRecordsProcessed) {
-    	try {
-        	
-        	CSVItem item = CSVItem.fromCsvItemFields(itemFields);
-        	marketingPlan.addItem(item);
+        try {
+
+            CSVItem item = CSVItem.fromCsvItemFields(itemFields);
+            marketingPlan.addItem(item);
         } catch (IllegalArgumentException e) {
-        	logMalformedRow(itemFields, totalRecordsProcessed);
+            logMalformedRow(itemFields, totalRecordsProcessed);
         }
     }
-    
-    private void insertMarketingPlanBatch(CSVMktPlan marketingPlan, String processingFile, int totalRecordsProcessed) throws ClassNotFoundException, SQLException {
-    	dbConnection.executeQuery(generateMktPlanSQLUpsert(marketingPlan.getName(), marketingPlan.getAllItems()));
+
+    private void insertMarketingPlanBatch(CSVMktPlan marketingPlan, String processingFile, int totalRecordsProcessed)
+            throws ClassNotFoundException, SQLException {
+        dbConnection.executeQuery(generateMktPlanSQLUpsert(marketingPlan.getName(), marketingPlan.getAllItems()));
         marketingPlan.clearItems();
         logger.info(String.format("(%s) Processed %d records", processingFile, totalRecordsProcessed));
     }
-    
+
     private void logMalformedRow(String[] itemFields, int totalRecordsProcessed) {
-    	String contents = "";
+        String contents = "";
         for (int i = 0; i < itemFields.length; i++) {
             contents += itemFields[i] + " | ";
         }
         logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
     }
-    
+
     private void verifyHeaderRowAndAdvanceToNextLine(Scanner scanner, String expectedHeader, String processingFile) {
-    	logger.info(String.format("Ingesting file %s...", processingFile));
-    	Preconditions.checkNotNull(scanner);
-    	Preconditions.checkNotNull(expectedHeader);
-    	
-    	if (scanner.hasNextLine()) {
-        	String headerRow = scanner.nextLine();
-        	if (!headerRow.equals(expectedHeader)) {
-        		logger.error("Malformed header row.\n***EXPECTED***\n" + expectedHeader + "\n***FOUND***\n" + headerRow);
-        		throw new MalformedHeaderRowException();
-        	}
+        logger.info(String.format("Ingesting file %s...", processingFile));
+        Preconditions.checkNotNull(scanner);
+        Preconditions.checkNotNull(expectedHeader);
+
+        if (scanner.hasNextLine()) {
+            String headerRow = scanner.nextLine();
+            if (!headerRow.equals(expectedHeader)) {
+                logger.error(
+                        "Malformed header row.\n***EXPECTED***\n" + expectedHeader + "\n***FOUND***\n" + headerRow);
+                throw new MalformedHeaderRowException();
+            }
         } else {
-        	throw new EmptyCsvException();
+            throw new EmptyCsvException();
         }
     }
-    
+
     private void processLocation(String[] locationFields, ArrayList<CSVLocation> locations, int totalRecordsProcessed) {
-    	Preconditions.checkNotNull(locationFields);
-    	Preconditions.checkNotNull(locations);
-    	Preconditions.checkNotNull(totalRecordsProcessed);
-    	
-    	try {
-    		CSVLocation location = CSVLocation.fromLocationFieldsCsvRow(locationFields);
-    		locations.add(location);
-    	} catch (IllegalArgumentException e) {
-    		logMalformedLocation(locationFields, totalRecordsProcessed);
-    	}
+        Preconditions.checkNotNull(locationFields);
+        Preconditions.checkNotNull(locations);
+        Preconditions.checkNotNull(totalRecordsProcessed);
+
+        try {
+            CSVLocation location = CSVLocation.fromLocationFieldsCsvRow(locationFields);
+            locations.add(location);
+        } catch (IllegalArgumentException e) {
+            logMalformedLocation(locationFields, totalRecordsProcessed);
+        }
     }
-    
+
     private void logMalformedLocation(String[] locationFields, int totalRecordsProcessed) {
-    	String contents = "";
+        String contents = "";
         for (int i = 0; i < locationFields.length; i++) {
             contents += locationFields[i] + " | ";
         }
         logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
     }
-    
 
-    public void processLocations(DbConnection dbConnection, Scanner scanner, String processingFile) throws SQLException, ClassNotFoundException {
-    	Preconditions.checkNotNull(dbConnection);
-    	Preconditions.checkNotNull(scanner);
-    	Preconditions.checkNotNull(processingFile);
-    	
+    public void processLocations(DbConnection dbConnection, Scanner scanner, String processingFile)
+            throws SQLException, ClassNotFoundException {
+        Preconditions.checkNotNull(dbConnection);
+        Preconditions.checkNotNull(scanner);
+        Preconditions.checkNotNull(processingFile);
+
         ArrayList<CSVLocation> locations = new ArrayList<CSVLocation>();
         String[] locationFields = null;
         int totalRecordsProcessed = 0;
@@ -197,7 +199,7 @@ public class InputParser {
             processLocation(locationFields, locations, totalRecordsProcessed);
 
             if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
-            	dbConnection.executeQuery(generateLocationsSQLUpsert(locations));
+                dbConnection.executeQuery(generateLocationsSQLUpsert(locations));
                 locations.clear();
                 logger.info(String.format("(%s) Processed %d records", processingFile, totalRecordsProcessed));
             }
@@ -205,7 +207,7 @@ public class InputParser {
 
         logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
-        	logger.error("No records processed. Invalid input stream.");
+            logger.error("No records processed. Invalid input stream.");
             throw new EmptyCsvException();
         }
     }
@@ -240,11 +242,10 @@ public class InputParser {
 
         return updateStatement;
     }
-    
 
     String generateLocationsSQLUpsert(ArrayList<CSVLocation> locations) {
-    	Preconditions.checkNotNull(locations);
-    	
+        Preconditions.checkNotNull(locations);
+
         String updateStatement = "";
 
         if (locations.size() > 0) {
@@ -267,7 +268,7 @@ public class InputParser {
                     + "zip=VALUES(zip), county=VALUES(county), mktPlan=VALUES(mktPlan), legal=VALUES(legal), disc=VALUES(disc), rbu=VALUES(rbu), bp=VALUES(bp), co=VALUES(co),"
                     + "saNum=VALUES(saNum), saName=VALUES(saName), custNum=VALUES(custNum), custName=VALUES(custName), season=VALUES(season), year=VALUES(year), machineType=VALUES(machineType);";
         } else {
-        	throw new EmptyLocationArrayException();
+            throw new EmptyLocationArrayException();
         }
 
         return updateStatement;

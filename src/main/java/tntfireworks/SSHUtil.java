@@ -12,8 +12,8 @@ import com.jcraft.jsch.Session;
 
 public class SSHUtil {
     private static Logger logger;
-    
-    public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword) 
+
+    public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword)
             throws JSchException, IOException {
         // initialize local variables
         ChannelSftp sftpChannel;
@@ -29,7 +29,7 @@ public class SSHUtil {
         // connection to session
         session.connect();
         logger.info(String.format("SFTP Session connection established to host: %s", sftpHost));
-       
+
         // open/connect channel
         sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
@@ -37,7 +37,7 @@ public class SSHUtil {
 
         return sftpChannel;
     }
-    
+
     public static void closeConnection(ChannelSftp sftpChannel) throws JSchException {
         logger = LoggerFactory.getLogger(SSHUtil.class);
 
@@ -50,6 +50,6 @@ public class SSHUtil {
                 session.disconnect();
                 logger.info("SFTP session closed.");
             }
-        }               
+        }
     }
 }

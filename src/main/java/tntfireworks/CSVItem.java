@@ -1,22 +1,12 @@
 package tntfireworks;
 
-import java.util.Set;
-
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
 public class CSVItem extends CsvRow {
 
-	@Size(min=1)
-	@NotNull
+    @Size(min = 1)
+    @NotNull
     private String number;
     private String cat;
     private String category;
@@ -171,10 +161,10 @@ public class CSVItem extends CsvRow {
     public void setMarketingPlan(String marketingPlan) {
         this.marketingPlan = marketingPlan;
     }
-    
+
     public static CSVItem fromCsvItemFields(String[] itemFields) {
-    	
-    	CSVItem item = new CSVItem();
+
+        CSVItem item = new CSVItem();
         // trim and replace SQL chars
         // TODO(wtsang): determine more comprehensive check
         for (int i = 0; i < itemFields.length; i++) {
@@ -202,8 +192,9 @@ public class CSVItem extends CsvRow {
         //     14 - itemNum3;
         //     15 - currency;
         //
-        if (itemFields.length != 16) throw new IllegalArgumentException();
-            
+        if (itemFields.length != 16)
+            throw new IllegalArgumentException();
+
         item.setNumber(itemFields[0]);
         item.setCat(itemFields[1]);
         item.setCategory(itemFields[2]);
@@ -220,10 +211,11 @@ public class CSVItem extends CsvRow {
         item.setBOGO(itemFields[13]);
         item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
-        
-        if (!item.isValid()) throw new IllegalArgumentException();
-    
-    return item;
+
+        if (!item.isValid())
+            throw new IllegalArgumentException();
+
+        return item;
     }
-    
+
 }

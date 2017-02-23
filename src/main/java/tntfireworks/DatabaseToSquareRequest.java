@@ -5,7 +5,7 @@ public class DatabaseToSquareRequest {
     private String processingFilename;
     private String processingFullPath;
     private String archiveFullPath;
-    
+
     public boolean isProcessing() {
         return processingFlag;
     }
@@ -21,19 +21,19 @@ public class DatabaseToSquareRequest {
     public void setProcessingFilename(String processingFilename) {
         this.processingFilename = processingFilename;
     }
-    
+
     public void setProcessingPath(String processingFullPath) {
         this.processingFullPath = processingFullPath;
     }
-    
+
     public String getProcessingPath() {
         return processingFullPath;
     }
-    
+
     public void setArchivePath(String archiveFullPath) {
         this.archiveFullPath = archiveFullPath;
     }
-    
+
     public String getArchivePath() {
         return archiveFullPath;
     }

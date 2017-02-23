@@ -124,7 +124,7 @@ public class PollSFTPCallable implements Callable {
         // add to processing folder
         logger.info(String.format("Adding files to processing folder. Number of files: '%s'", filesToProcess.size()));
         for (String filePrefix : filesToProcess.keySet()) {
-        	logger.info("filePrefix=" + filePrefix);
+            logger.info("filePrefix=" + filePrefix);
             Boolean processFile = true;
             LsEntry currentFile = filesToProcess.get(filePrefix);
             String currentFilename = currentFile.getFilename();
