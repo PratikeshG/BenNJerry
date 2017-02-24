@@ -16,7 +16,7 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import util.SquarePayload;
+import util.SquareDeploymentCredentials;
 
 public class DeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DeploymentsCallable.class);
@@ -99,10 +99,10 @@ public class DeploymentsCallable implements Callable {
 
         // get deployments from db
         // columns retrieved: connectApp, token
-        List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
+        List<SquareDeploymentCredentials> deploymentPayloads = new ArrayList<SquareDeploymentCredentials>();
         resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
         while (resultDeployments.next()) {
-            SquarePayload deploymentPayload = new SquarePayload();
+            SquareDeploymentCredentials deploymentPayload = new SquareDeploymentCredentials();
             deploymentPayload.setAccessToken(resultDeployments.getString("token"));
             deploymentPayload.setAccessToken(resultDeployments.getString("merchantId"));
             deploymentPayload.setAccessToken(resultDeployments.getString("merchantAlias"));

@@ -8,7 +8,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 
-import util.SquarePayload;
+import util.SquareDeploymentCredentials;
 
 public class DeploymentsCallable implements Callable {
 
@@ -18,16 +18,16 @@ public class DeploymentsCallable implements Callable {
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> merchantDatabaseEntries = (List<Map<String, Object>>) message.getPayload();
-        List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
+        List<SquareDeploymentCredentials> deploymentPayloads = new ArrayList<SquareDeploymentCredentials>();
 
         for (Map<String, Object> merchantDatabaseEntry : merchantDatabaseEntries) {
-            SquarePayload deploymentPayload = new SquarePayload();
+            SquareDeploymentCredentials deploymentPayload = new SquareDeploymentCredentials();
 
             deploymentPayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
             deploymentPayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
             deploymentPayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
             deploymentPayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
-            deploymentPayload.setLegacy((Boolean) merchantDatabaseEntry.get("legacy"));
+            deploymentPayload.setLegacySingleLocationSquareAccount((Boolean) merchantDatabaseEntry.get("legacy"));
 
             deploymentPayloads.add(deploymentPayload);
         }

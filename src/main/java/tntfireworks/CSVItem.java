@@ -3,6 +3,8 @@ package tntfireworks;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import com.squareup.connect.v2.Money;
+
 public class CsvItem extends CsvRow {
 
     @Size(min = 1)
@@ -192,7 +194,7 @@ public class CsvItem extends CsvRow {
         //     15 - currency;
         //
         if (itemFields.length != 16) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Missing fields");
         }
 
         item.setNumber(itemFields[0]);
@@ -218,6 +220,17 @@ public class CsvItem extends CsvRow {
         }
 
         return item;
+    }
+
+    public Money getPriceAsSquareMoney() {
+        String priceAsStringWithDecimal = this.getSuggestedPrice();
+        priceAsStringWithDecimal = priceAsStringWithDecimal.replaceAll("[^\\d]", "");
+        if (priceAsStringWithDecimal.length() < 1) {
+            priceAsStringWithDecimal = "0";
+        }
+
+        Integer cents = Integer.parseInt(priceAsStringWithDecimal);
+        return new Money(cents, this.getCurrency());
     }
 
 }

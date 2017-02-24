@@ -22,7 +22,7 @@ import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
-import util.SquarePayload;
+import util.SquareDeploymentCredentials;
 import util.TimeManager;
 
 public class TLOGGenerator implements Callable {
@@ -45,15 +45,15 @@ public class TLOGGenerator implements Callable {
         MuleMessage message = eventContext.getMessage();
 
         // TODO(bhartard): Refactor these into separate, testable functions
-        SquarePayload squarePayload = (SquarePayload) message.getPayload();
+        SquareDeploymentCredentials squareDeploymentCredentials = (SquareDeploymentCredentials) message.getPayload();
 
         TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
 
-        tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
-        tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
-        tlogGeneratorPayload.setLocationId(squarePayload.getLocationId());
-        tlogGeneratorPayload.setMerchantAlias(squarePayload.getMerchantAlias());
-        tlogGeneratorPayload.setLegacy(squarePayload.isLegacy());
+        tlogGeneratorPayload.setAccessToken(squareDeploymentCredentials.getAccessToken());
+        tlogGeneratorPayload.setMerchantId(squareDeploymentCredentials.getMerchantId());
+        tlogGeneratorPayload.setLocationId(squareDeploymentCredentials.getLocationId());
+        tlogGeneratorPayload.setMerchantAlias(squareDeploymentCredentials.getMerchantAlias());
+        tlogGeneratorPayload.setLegacy(squareDeploymentCredentials.isLegacySingleLocationSquareAccount());
 
         String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
 

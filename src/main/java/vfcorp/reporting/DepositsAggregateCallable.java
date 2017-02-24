@@ -20,7 +20,7 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
 
-import util.SquarePayload;
+import util.SquareDeploymentCredentials;
 import util.TimeManager;
 
 public class DepositsAggregateCallable implements Callable {
@@ -30,7 +30,7 @@ public class DepositsAggregateCallable implements Callable {
         MuleMessage message = eventContext.getMessage();
 
         @SuppressWarnings("unchecked")
-        List<SquarePayload> deploymentPayloads = (ArrayList<SquarePayload>) message.getPayload();
+        List<SquareDeploymentCredentials> deploymentPayloads = (ArrayList<SquareDeploymentCredentials>) message.getPayload();
 
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
@@ -41,7 +41,7 @@ public class DepositsAggregateCallable implements Callable {
         StringBuilder builder = new StringBuilder();
         builder.append("\"Date\",\"Deposit ID\",\"Store Number\",\"Amount\"\n");
 
-        for (SquarePayload deployment : deploymentPayloads) {
+        for (SquareDeploymentCredentials deployment : deploymentPayloads) {
             SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(), apiUrl, apiVersion,
                     deployment.getMerchantId(), deployment.getLocationId());
             SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
