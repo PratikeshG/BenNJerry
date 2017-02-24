@@ -21,8 +21,9 @@ public class CsvRow {
         for (ConstraintViolation<CsvRow> violation : violations) {
             logger.error(violation.getMessage());
         }
-        if (violations.size() == 0)
+        if (violations.size() == 0) {
             return true;
+        }
         return false;
     }
 

@@ -71,11 +71,11 @@ public class PollSFTPCallable implements Callable {
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
         List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
 
-        SSHUtil.closeConnection(sftpChannel);
+        SshUtil.closeConnection(sftpChannel);
 
         return newRequests;
     }

@@ -10,7 +10,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-public class SSHUtil {
+public class SshUtil {
     private static Logger logger;
 
     public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword)
@@ -19,7 +19,7 @@ public class SSHUtil {
         ChannelSftp sftpChannel;
         Session session;
         JSch jsch = new JSch();
-        logger = LoggerFactory.getLogger(SSHUtil.class);
+        logger = LoggerFactory.getLogger(SshUtil.class);
 
         // initialize session properties
         session = jsch.getSession(sftpUser, sftpHost, sftpPort);
@@ -39,7 +39,7 @@ public class SSHUtil {
     }
 
     public static void closeConnection(ChannelSftp sftpChannel) throws JSchException {
-        logger = LoggerFactory.getLogger(SSHUtil.class);
+        logger = LoggerFactory.getLogger(SshUtil.class);
 
         if (sftpChannel != null && sftpChannel.isConnected()) {
             sftpChannel.disconnect();

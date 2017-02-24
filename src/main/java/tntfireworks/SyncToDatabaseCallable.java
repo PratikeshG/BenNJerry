@@ -13,6 +13,8 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 
+import util.DbConnection;
+
 public class SyncToDatabaseCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
@@ -83,12 +85,12 @@ public class SyncToDatabaseCallable implements Callable {
 
     private void archiveProcessingFile(String processingPath, String archivePath, String processingFilename)
             throws JSchException, IOException, SftpException {
-        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
         sftpChannel.rename(String.format("%s/%s", processingPath, processingFilename),
                 String.format("%s/%s", archivePath, processingFilename));
 
-        SSHUtil.closeConnection(sftpChannel);
+        SshUtil.closeConnection(sftpChannel);
     }
 
 }

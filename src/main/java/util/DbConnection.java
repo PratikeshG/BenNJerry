@@ -1,4 +1,4 @@
-package tntfireworks;
+package util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

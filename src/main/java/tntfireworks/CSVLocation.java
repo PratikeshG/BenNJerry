@@ -3,9 +3,10 @@ package tntfireworks;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-public class CSVLocation extends CsvRow {
+public class CsvLocation extends CsvRow {
 
     public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE";
+    //TODO: wtsang - Work with TNT Fireworks to clean up CSV headers (for example ' ADDRESS #' has leading space)
 
     @Size(min = 1)
     @NotNull
@@ -216,10 +217,11 @@ public class CSVLocation extends CsvRow {
         return deployment;
     }
 
-    public static CSVLocation fromLocationFieldsCsvRow(String[] locationFields) {
+    public static CsvLocation fromLocationFieldsCsvRow(String[] locationFields) {
 
-        if (locationFields.length != 21)
+        if (locationFields.length != 21) {
             throw new IllegalArgumentException();
+        }
 
         // trim and replace SQL chars
         for (int i = 0; i < locationFields.length; i++) {
@@ -252,7 +254,7 @@ public class CSVLocation extends CsvRow {
         //      20 - machineType;
         //
 
-        CSVLocation location = new CSVLocation();
+        CsvLocation location = new CsvLocation();
         location.setLocationNum(locationFields[0]);
         location.setAddressNum(locationFields[1]);
         location.setName(locationFields[2]);
@@ -275,8 +277,9 @@ public class CSVLocation extends CsvRow {
         location.setYear(locationFields[19]);
         location.setMachineType(locationFields[20]);
 
-        if (!location.isValid())
+        if (!location.isValid()) {
             throw new IllegalArgumentException();
+        }
 
         return location;
     }

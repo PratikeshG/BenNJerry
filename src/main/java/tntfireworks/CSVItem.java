@@ -3,7 +3,7 @@ package tntfireworks;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-public class CSVItem extends CsvRow {
+public class CsvItem extends CsvRow {
 
     @Size(min = 1)
     @NotNull
@@ -20,7 +20,6 @@ public class CSVItem extends CsvRow {
     private String netItem;
     private String expiredDate;
     private String effectiveDate;
-
     private String marketingPlan;
     private String bogo;
     private String itemNum3;
@@ -162,9 +161,9 @@ public class CSVItem extends CsvRow {
         this.marketingPlan = marketingPlan;
     }
 
-    public static CSVItem fromCsvItemFields(String[] itemFields) {
+    public static CsvItem fromCsvItemFields(String[] itemFields) {
 
-        CSVItem item = new CSVItem();
+        CsvItem item = new CsvItem();
         // trim and replace SQL chars
         // TODO(wtsang): determine more comprehensive check
         for (int i = 0; i < itemFields.length; i++) {
@@ -192,8 +191,9 @@ public class CSVItem extends CsvRow {
         //     14 - itemNum3;
         //     15 - currency;
         //
-        if (itemFields.length != 16)
+        if (itemFields.length != 16) {
             throw new IllegalArgumentException();
+        }
 
         item.setNumber(itemFields[0]);
         item.setCat(itemFields[1]);
@@ -212,8 +212,10 @@ public class CSVItem extends CsvRow {
         item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
 
-        if (!item.isValid())
+        if (!item.isValid()) {
+            //TODO: wtsang - Add more validations
             throw new IllegalArgumentException();
+        }
 
         return item;
     }

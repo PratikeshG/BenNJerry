@@ -20,6 +20,7 @@ import junit.framework.TestCase;
 import tntfireworks.exceptions.BadFilenameException;
 import tntfireworks.exceptions.EmptyLocationArrayException;
 import tntfireworks.exceptions.MalformedHeaderRowException;
+import util.DbConnection;
 
 public class InputParserTests extends TestCase {
 
@@ -276,7 +277,7 @@ public class InputParserTests extends TestCase {
     @Test
     public void testNoLocation() {
         InputParser inputParser = new InputParser(dbConnection, 5);
-        ArrayList<CSVLocation> emptyLocationsArray = new ArrayList<>();
+        ArrayList<CsvLocation> emptyLocationsArray = new ArrayList<>();
         try {
             String generatedSql = inputParser.generateLocationsSQLUpsert(emptyLocationsArray);
             fail();
@@ -288,7 +289,7 @@ public class InputParserTests extends TestCase {
     @Test
     public void testProperlyFormattedLocation() {
         InputParser inputParser = new InputParser(dbConnection, 5);
-        ArrayList<CSVLocation> locations = generateTwoLocations();
+        ArrayList<CsvLocation> locations = generateTwoLocations();
 
         String generatedSql = inputParser.generateLocationsSQLUpsert(locations);
 
@@ -344,10 +345,10 @@ public class InputParserTests extends TestCase {
         }
     }
 
-    private ArrayList<CSVLocation> generateTwoLocations() {
-        ArrayList<CSVLocation> locations = new ArrayList<>();
+    private ArrayList<CsvLocation> generateTwoLocations() {
+        ArrayList<CsvLocation> locations = new ArrayList<>();
 
-        CSVLocation locationOne = new CSVLocation();
+        CsvLocation locationOne = new CsvLocation();
         locationOne.setLocationNum("AZP0001");
         locationOne.setAddressNum("2226460");
         locationOne.setName("WALMART #2554");
@@ -370,7 +371,7 @@ public class InputParserTests extends TestCase {
         locationOne.setYear("2016");
         locationOne.setMachineType("SQR");
 
-        CSVLocation locationTwo = new CSVLocation();
+        CsvLocation locationTwo = new CsvLocation();
         locationTwo.setLocationNum("AZP0001");
         locationTwo.setAddressNum("2226460");
         locationTwo.setName("WALMART #2554");
