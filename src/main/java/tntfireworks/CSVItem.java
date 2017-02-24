@@ -1,7 +1,12 @@
 package tntfireworks;
 
-public class CSVItem {
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
+public class CsvItem extends CsvRow {
+
+    @Size(min = 1)
+    @NotNull
     private String number;
     private String cat;
     private String category;
@@ -19,7 +24,6 @@ public class CSVItem {
     private String bogo;
     private String itemNum3;
     private String currency;
-    private Boolean isValid; // TODO(wtsang): check required fields are populated and/or not null
 
     public void setNumber(String number) {
         this.number = number;
@@ -156,4 +160,64 @@ public class CSVItem {
     public void setMarketingPlan(String marketingPlan) {
         this.marketingPlan = marketingPlan;
     }
+
+    public static CsvItem fromCsvItemFields(String[] itemFields) {
+
+        CsvItem item = new CsvItem();
+        // trim and replace SQL chars
+        // TODO(wtsang): determine more comprehensive check
+        for (int i = 0; i < itemFields.length; i++) {
+            itemFields[i] = itemFields[i].trim();
+            itemFields[i] = itemFields[i].replaceAll("'", "''");
+        }
+
+        // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
+        //               and add item constructor to take in HashMap to initialize item
+        // item string fields should be in following order:
+        //     0 - number;
+        //     1 - cat;
+        //     2 - category;
+        //     3 - description;
+        //     4 - casePacking;
+        //     5 - unitPrice;
+        //     6 - pricingUOM;
+        //     7 - suggestedPrice;
+        //     8 - sellingUOM;
+        //     9 - upc;
+        //     10 - netItem;
+        //     11- expiredDate;
+        //     12 - effectiveDate;
+        //     13 - bogo;
+        //     14 - itemNum3;
+        //     15 - currency;
+        //
+        if (itemFields.length != 16) {
+            throw new IllegalArgumentException();
+        }
+
+        item.setNumber(itemFields[0]);
+        item.setCat(itemFields[1]);
+        item.setCategory(itemFields[2]);
+        item.setDescription(itemFields[3]);
+        item.setCasePacking(itemFields[4]);
+        item.setUnitPrice(itemFields[5]);
+        item.setPricingUOM(itemFields[6]);
+        item.setSuggestedPrice(itemFields[7]);
+        item.setSellingUOM(itemFields[8]);
+        item.setUPC(itemFields[9]);
+        item.setNetItem(itemFields[10]);
+        item.setExpiredDate(itemFields[11]);
+        item.setEffectiveDate(itemFields[12]);
+        item.setBOGO(itemFields[13]);
+        item.setItemNum3(itemFields[14]);
+        item.setCurrency(itemFields[15]);
+
+        if (!item.isValid()) {
+            //TODO: wtsang - Add more validations
+            throw new IllegalArgumentException();
+        }
+
+        return item;
+    }
+
 }

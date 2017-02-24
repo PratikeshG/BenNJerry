@@ -29,7 +29,7 @@ public class AwsS3Callable implements Callable {
             SyncToDatabaseRequest request = (SyncToDatabaseRequest) message.getPayload();
             
             // create channel + stream to pass to AWS connector
-            ChannelSftp sftpChannel = SSHUtil.createConnection(request.getSftpHost(), request.getSftpPort(), 
+            ChannelSftp sftpChannel = SshUtil.createConnection(request.getSftpHost(), request.getSftpPort(), 
                     request.getSftpUser(), request.getSftpPassword()); 
             InputStream is = sftpChannel.get(String.format("%s/%s", request.getProcessingPath(), request.getProcessingFilename()));
             
@@ -44,7 +44,7 @@ public class AwsS3Callable implements Callable {
         } else if (state.equals("stream")) {
             logger.info("Closing connection used for SFTP server to AWS S3 transfer");
             ChannelSftp sftpChannel = (ChannelSftp) message.getProperty("sftpChannel", PropertyScope.INVOCATION);
-            SSHUtil.closeConnection(sftpChannel);            
+            SshUtil.closeConnection(sftpChannel);            
         }
 
         // no need to return any value

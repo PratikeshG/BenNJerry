@@ -10,16 +10,16 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-public class SSHUtil {
+public class SshUtil {
     private static Logger logger;
-    
-    public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword) 
+
+    public static ChannelSftp createConnection(String sftpHost, int sftpPort, String sftpUser, String sftpPassword)
             throws JSchException, IOException {
         // initialize local variables
         ChannelSftp sftpChannel;
         Session session;
         JSch jsch = new JSch();
-        logger = LoggerFactory.getLogger(SSHUtil.class);
+        logger = LoggerFactory.getLogger(SshUtil.class);
 
         // initialize session properties
         session = jsch.getSession(sftpUser, sftpHost, sftpPort);
@@ -29,7 +29,7 @@ public class SSHUtil {
         // connection to session
         session.connect();
         logger.info(String.format("SFTP Session connection established to host: %s", sftpHost));
-       
+
         // open/connect channel
         sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
@@ -37,9 +37,9 @@ public class SSHUtil {
 
         return sftpChannel;
     }
-    
+
     public static void closeConnection(ChannelSftp sftpChannel) throws JSchException {
-        logger = LoggerFactory.getLogger(SSHUtil.class);
+        logger = LoggerFactory.getLogger(SshUtil.class);
 
         if (sftpChannel != null && sftpChannel.isConnected()) {
             sftpChannel.disconnect();
@@ -50,6 +50,6 @@ public class SSHUtil {
                 session.disconnect();
                 logger.info("SFTP session closed.");
             }
-        }               
+        }
     }
 }

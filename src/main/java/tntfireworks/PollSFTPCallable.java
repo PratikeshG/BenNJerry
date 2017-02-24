@@ -71,15 +71,25 @@ public class PollSFTPCallable implements Callable {
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
         List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
 
-        SSHUtil.closeConnection(sftpChannel);
+        SshUtil.closeConnection(sftpChannel);
 
         return newRequests;
     }
 
+    /*
+     * Processes files in the input directory
+     * 
+     * Preconditions: it is expected that the directory structure contain the following folders:
+     * 
+     * \archive
+     * \input
+     * \input\processing
+     * 
+     */
     private List<SyncToDatabaseRequest> getSFTPRequests(ChannelSftp channel)
             throws InterruptedException, SftpException, ParseException {
         // sftp paths to input/processing directories
@@ -114,6 +124,7 @@ public class PollSFTPCallable implements Callable {
         // add to processing folder
         logger.info(String.format("Adding files to processing folder. Number of files: '%s'", filesToProcess.size()));
         for (String filePrefix : filesToProcess.keySet()) {
+            logger.info("filePrefix=" + filePrefix);
             Boolean processFile = true;
             LsEntry currentFile = filesToProcess.get(filePrefix);
             String currentFilename = currentFile.getFilename();

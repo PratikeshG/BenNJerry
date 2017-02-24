@@ -114,18 +114,18 @@ public class DatabaseToSquareCallable implements Callable {
             // get all items from db
             // columns retrieved: itemNumber, category, itemDescription,
             // suggestedPrice, upc, currency
-            HashMap<String, List<CSVItem>> marketingPlanItemsCache = new HashMap<String, List<CSVItem>>();
+            HashMap<String, List<CsvItem>> marketingPlanItemsCache = new HashMap<String, List<CsvItem>>();
             resultItems = submitQuery(conn, generateItemSQLSelect());
             while (resultItems.next()) {
                 String mktPlan = resultItems.getString("mktPlan");
-                List<CSVItem> itemList = marketingPlanItemsCache.get(mktPlan);
+                List<CsvItem> itemList = marketingPlanItemsCache.get(mktPlan);
 
                 if (itemList == null) {
-                    itemList = new ArrayList<CSVItem>();
+                    itemList = new ArrayList<CsvItem>();
                     marketingPlanItemsCache.put(mktPlan, itemList);
                 }
 
-                CSVItem item = new CSVItem();
+                CsvItem item = new CsvItem();
                 item.setNumber(resultItems.getString("itemNumber"));
                 item.setCategory(resultItems.getString("category"));
                 item.setDescription(resultItems.getString("itemDescription"));
@@ -216,9 +216,9 @@ public class DatabaseToSquareCallable implements Callable {
                     String[] squareLocationIds = marketingPlanLocationsCache.get(marketingPlanId)
                             .toArray(new String[0]);
 
-                    List<CSVItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
+                    List<CsvItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
                     if (marketingPlanItems != null) {
-                        for (CSVItem updateItem : marketingPlanItems) {
+                        for (CsvItem updateItem : marketingPlanItems) {
                             String sku = updateItem.getUPC();
                             if (sku == null || sku.length() < 2) {
                                 sku = updateItem.getNumber();
@@ -305,12 +305,12 @@ public class DatabaseToSquareCallable implements Callable {
 
     private boolean isProcessingFile(String processingPath) throws JSchException, IOException, SftpException {
         boolean status = false;
-        ChannelSftp sftpChannel = SSHUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
         if (sftpChannel.ls(String.format("%s/*.csv", processingPath)).size() > 0) {
             status = true;
         }
-        SSHUtil.closeConnection(sftpChannel);
+        SshUtil.closeConnection(sftpChannel);
 
         return status;
     }
