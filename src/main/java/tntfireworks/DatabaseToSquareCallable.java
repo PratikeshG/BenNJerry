@@ -19,14 +19,20 @@ import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
 
-import util.SquareDeploymentCredentials;
+import util.SquarePayload;
 
 public class DatabaseToSquareCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DatabaseToSquareCallable.class);
 
+    //TODO: put these constants into Square Connect V2 library
+    private static final String FIXED_PRICING = "FIXED_PRICING";
+    private static final String CATEGORY = "CATEGORY";
+    private static final String ITEM = "ITEM";
+
     private String apiUrl;
 
     public void setApiUrl(String apiUrl) {
+        Preconditions.checkNotNull(apiUrl);
         this.apiUrl = apiUrl;
     }
 
@@ -39,8 +45,7 @@ public class DatabaseToSquareCallable implements Callable {
     }
 
     private HashMap<String, List<String>> generateMarketingPlanLocationsCache(
-            HashMap<String, String> locationMarketingPlanCache, SquareClientV2 client,
-            SquareDeploymentCredentials deployment) {
+            HashMap<String, String> locationMarketingPlanCache, SquareClientV2 client, SquarePayload deployment) {
         HashMap<String, List<String>> marketingPlanLocationsCache = new HashMap<String, List<String>>();
 
         Location[] locations;
@@ -64,7 +69,7 @@ public class DatabaseToSquareCallable implements Callable {
             HashMap<String, List<String>> marketingPlanLocationsCache,
             HashMap<String, String> locationMarketingPlanCache) {
         String locationSquareId = location.getId();
-        String locationTNTId = getValueInParenthesis(location.getName());
+        String locationTNTId = getValueInParenthesisAndStripHashtag(location.getName());
         String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
 
         if (locationTNTId.length() < 1) {
@@ -127,7 +132,7 @@ public class DatabaseToSquareCallable implements Callable {
     }
 
     private void addCategoryToLocalCatalog(Catalog catalog, String categoryName) {
-        CatalogObject newCategory = new CatalogObject("CATEGORY");
+        CatalogObject newCategory = new CatalogObject(CATEGORY);
         newCategory.getCategoryData().setName(categoryName);
         catalog.addCategory(newCategory);
     }
@@ -169,7 +174,7 @@ public class DatabaseToSquareCallable implements Callable {
     private CatalogObject getOrCreateSquareItem(Catalog catalog, String sku) {
         CatalogObject squareItem = catalog.getItem(sku);
         if (squareItem == null) {
-            squareItem = new CatalogObject("ITEM");
+            squareItem = new CatalogObject(ITEM);
         }
         return squareItem;
     }
@@ -185,7 +190,7 @@ public class DatabaseToSquareCallable implements Callable {
             String categoryId = categories.get(csvItem.getCategory()).getId();
             squareItem.getItemData().setCategoryId(categoryId);
         } else
-            throw new IllegalArgumentException("Missing category");
+            throw new IllegalArgumentException("Missing category for itemNumber " + csvItem.getNumber());
     }
 
     private void generateCatalogUpsertsForItem(CsvItem csvItem, String[] squareLocationIds, Catalog catalog,
@@ -202,7 +207,7 @@ public class DatabaseToSquareCallable implements Callable {
         squareItemVariation.setPriceMoney(priceMoney);
 
         squareItem.enableAtLocations(squareLocationIds);
-        squareItem.setLocationPriceOverride(squareLocationIds, squareItemVariation.getPriceMoney(), "FIXED_PRICING");
+        squareItem.setLocationPriceOverride(squareLocationIds, squareItemVariation.getPriceMoney(), FIXED_PRICING);
         setSquareCategoryForItem(categories, csvItem, squareItem);
 
         catalog.addItem(squareItem);
@@ -261,10 +266,13 @@ public class DatabaseToSquareCallable implements Callable {
 
     }
 
-    private void syncronizeItemsAndCategoriesForDeployment(SquareDeploymentCredentials deployment,
+    private void syncronizeItemsAndCategoriesForDeployment(SquarePayload deployment,
             HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
         SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken());
+        Preconditions.checkNotNull(deployment);
+        Preconditions.checkNotNull(marketingPlanItemsCache);
+        Preconditions.checkNotNull(marketingPlanItemsCache);
 
         String merchantToken = deployment.getMerchantId();
         logger.info(String.format("Begin processing Catalog API updates for merchant token: %s", merchantToken));
@@ -293,24 +301,22 @@ public class DatabaseToSquareCallable implements Callable {
 
         HashMap<String, String> locationMarketingPlanCache = getSessionProperty("locationMarketingPlanCache", message);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = getSessionProperty("marketingPlanItemsCache", message);
-        SquareDeploymentCredentials deployment = (SquareDeploymentCredentials) message.getPayload();
+        SquarePayload deployment = (SquarePayload) message.getPayload();
 
         syncronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
 
         return null;
     }
 
-    private static String getValueInParenthesis(String input) {
-        Preconditions.checkNotNull(input);
+    private static String getValueInParenthesisAndStripHashtag(String input) {
+        Preconditions.checkArgument(input.contains("("));
+        Preconditions.checkArgument(input.contains(")"));
+        Preconditions.checkArgument(input.indexOf("(") < input.indexOf(")"));
 
         int firstIndex = input.indexOf('(');
         int lastIndex = input.indexOf(')');
-        if (firstIndex > -1 && lastIndex > -1) {
-            String value = input.substring(firstIndex + 1, lastIndex);
-            return value.replaceAll("#", "");
-        } else {
-            throw new IllegalArgumentException("Does not contain ( or )");
-        }
+        String value = input.substring(firstIndex + 1, lastIndex);
+        return value.replaceAll("#", "");
 
     }
 

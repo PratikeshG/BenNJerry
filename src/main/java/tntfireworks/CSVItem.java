@@ -1,8 +1,11 @@
 package tntfireworks;
 
+import java.math.BigDecimal;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.Money;
 
 public class CsvItem extends CsvRow {
@@ -222,15 +225,39 @@ public class CsvItem extends CsvRow {
         return item;
     }
 
-    public Money getPriceAsSquareMoney() {
-        String priceAsStringWithDecimal = this.getSuggestedPrice();
-        priceAsStringWithDecimal = priceAsStringWithDecimal.replaceAll("[^\\d]", "");
-        if (priceAsStringWithDecimal.length() < 1) {
-            priceAsStringWithDecimal = "0";
+    @Override
+    public boolean isValid() {
+        if (!super.isValid()) {
+            return false;
         }
 
-        Integer cents = Integer.parseInt(priceAsStringWithDecimal);
+        try {
+            this.getPriceAsSquareMoney();
+        } catch (RuntimeException e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public Money getPriceAsSquareMoney() {
+        Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null");
+        Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0, "must be positive");
+        Preconditions.checkNotNull(this.getCurrency(), "missing currency");
+        Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
+
+        BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
+        int cents = dollars.multiply(new BigDecimal(100)).intValue();
         return new Money(cents, this.getCurrency());
+    }
+
+    private static boolean isNumeric(String str) {
+        try {
+            double d = Double.parseDouble(str);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+        return true;
     }
 
 }

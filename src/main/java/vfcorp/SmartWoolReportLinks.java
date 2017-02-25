@@ -8,7 +8,7 @@ import org.mule.api.transport.PropertyScope;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Location;
 
-import util.SquareDeploymentCredentials;
+import util.SquarePayload;
 import util.TimeManager;
 
 import java.util.HashMap;
@@ -25,7 +25,7 @@ public class SmartWoolReportLinks implements Callable {
         String domainUrl = message.getProperty("domainUrl", PropertyScope.SESSION);
         
         // set SquareClientV2 for API calls
-        SquareDeploymentCredentials payload = (SquareDeploymentCredentials) message.getPayload();
+        SquarePayload payload = (SquarePayload) message.getPayload();
         SquareClientV2 client = new SquareClientV2(apiUrl, payload.getAccessToken());
         
         // final payload as emailBody in html

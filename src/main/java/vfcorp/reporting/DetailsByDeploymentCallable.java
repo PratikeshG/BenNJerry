@@ -19,7 +19,7 @@ import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
-import util.SquareDeploymentCredentials;
+import util.SquarePayload;
 import util.TimeManager;
 
 public class DetailsByDeploymentCallable implements Callable {
@@ -28,7 +28,7 @@ public class DetailsByDeploymentCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        SquareDeploymentCredentials deployment = (SquareDeploymentCredentials) message.getPayload();
+        SquarePayload deployment = (SquarePayload) message.getPayload();
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 

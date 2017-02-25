@@ -8,7 +8,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 
-import util.SquareDeploymentCredentials;
+import util.SquarePayload;
 
 public class DeploymentsCallable implements Callable {
 
@@ -18,10 +18,10 @@ public class DeploymentsCallable implements Callable {
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> merchantDatabaseEntries = (List<Map<String, Object>>) message.getPayload();
-        List<SquareDeploymentCredentials> deploymentPayloads = new ArrayList<SquareDeploymentCredentials>();
+        List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
 
         for (Map<String, Object> merchantDatabaseEntry : merchantDatabaseEntries) {
-            SquareDeploymentCredentials deploymentPayload = new SquareDeploymentCredentials();
+            SquarePayload deploymentPayload = new SquarePayload();
 
             deploymentPayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
             deploymentPayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));

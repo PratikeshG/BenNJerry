@@ -1,6 +1,6 @@
 package paradies;
 
-import util.SquareDeploymentCredentials;
+import util.SquarePayload;
 
 import org.mule.api.MuleMessage;
 
@@ -37,7 +37,7 @@ public class EmployeeCallable implements Callable {
 			employeeIdCache.put(externalId, id);
 		}
 
-		SquareDeploymentCredentials sqPayload = (SquareDeploymentCredentials) message.getPayload();
+		SquarePayload sqPayload = (SquarePayload) message.getPayload();
 		String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
 		String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 		SquareClient client = new SquareClient(sqPayload.getAccessToken(), apiUrl, apiVersion, sqPayload.getMerchantId(), sqPayload.getLocationId());

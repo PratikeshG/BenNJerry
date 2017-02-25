@@ -1,6 +1,6 @@
 package util;
 
-public class SquareDeploymentCredentials {
+public class SquarePayload {
 
     private String merchantId;
     private String locationId;
