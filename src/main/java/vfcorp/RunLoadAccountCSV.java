@@ -246,7 +246,11 @@ public class RunLoadAccountCSV {
                     for (Item item : catalog.getItems().values()) {
                         sb.append(item.getId() + ",");
                         sb.append("\"" + item.getName().replaceAll("\"", "\"\"") + "\",");
-                        sb.append("\"" + item.getCategory().getName().replaceAll("\"", "\"\"") + "\",");
+                        if (item.getCategory() != null) {
+                            sb.append("\"" + item.getCategory().getName().replaceAll("\"", "\"\"") + "\",");
+                        } else {
+                            sb.append(",");
+                        }
                         sb.append(",");
                         sb.append(item.getVariations()[0].getName() + ",");
 
