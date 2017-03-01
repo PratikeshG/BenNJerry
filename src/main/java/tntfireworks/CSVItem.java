@@ -1,5 +1,6 @@
 package tntfireworks;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 import javax.validation.constraints.NotNull;
@@ -8,26 +9,38 @@ import javax.validation.constraints.Size;
 import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.Money;
 
-public class CsvItem extends CsvRow {
+public class CsvItem extends CsvRow implements Serializable {
 
     @Size(min = 1)
     @NotNull
     private String number;
     private String cat;
+    @NotNull
+    @Size(min = 1)
     private String category;
+    @NotNull
+    @Size(min = 1)
     private String description;
     private String casePacking;
     private String unitPrice;
     private String pricingUOM;
+    @NotNull
+    @Size(min = 1)
     private String suggestedPrice;
     private String sellingUOM;
+    @NotNull
+    @Size(min = 1)
     private String upc;
     private String netItem;
     private String expiredDate;
     private String effectiveDate;
+    @NotNull
+    @Size(min = 1)
     private String marketingPlan;
     private String bogo;
     private String itemNum3;
+    @NotNull
+    @Size(min = 3)
     private String currency;
 
     public void setNumber(String number) {
@@ -166,7 +179,7 @@ public class CsvItem extends CsvRow {
         this.marketingPlan = marketingPlan;
     }
 
-    public static CsvItem fromCsvItemFields(String[] itemFields) {
+    public static CsvItem fromCsvItemFields(String[] itemFields, String marketingPlan) {
 
         CsvItem item = new CsvItem();
         // trim and replace SQL chars
@@ -200,22 +213,24 @@ public class CsvItem extends CsvRow {
             throw new IllegalArgumentException("Missing fields");
         }
 
+        // NOTE: unused fields have been commented to avoid ingesting unnecessary data and having someone use wrong price etc. later by accident
         item.setNumber(itemFields[0]);
-        item.setCat(itemFields[1]);
+        //item.setCat(itemFields[1]);
         item.setCategory(itemFields[2]);
         item.setDescription(itemFields[3]);
-        item.setCasePacking(itemFields[4]);
-        item.setUnitPrice(itemFields[5]);
-        item.setPricingUOM(itemFields[6]);
-        item.setSuggestedPrice(itemFields[7]);
-        item.setSellingUOM(itemFields[8]);
+        //item.setCasePacking(itemFields[4]);
+        //item.setUnitPrice(itemFields[5]);
+        //item.setPricingUOM(itemFields[6]);
+        item.setSuggestedPrice(stripDollarSign(itemFields[7])); //any pre-cleaning done here
+        //item.setSellingUOM(itemFields[8]);
         item.setUPC(itemFields[9]);
-        item.setNetItem(itemFields[10]);
-        item.setExpiredDate(itemFields[11]);
-        item.setEffectiveDate(itemFields[12]);
-        item.setBOGO(itemFields[13]);
-        item.setItemNum3(itemFields[14]);
+        //item.setNetItem(itemFields[10]);
+        //item.setExpiredDate(itemFields[11]);
+        //item.setEffectiveDate(itemFields[12]);
+        //item.setBOGO(itemFields[13]);
+        //item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
+        item.setMarketingPlan(marketingPlan);
 
         if (!item.isValid()) {
             //TODO: wtsang - Add more validations
@@ -240,10 +255,20 @@ public class CsvItem extends CsvRow {
         return true;
     }
 
+    private static String stripDollarSign(String string) {
+        String stripped = string.replace("$", "");
+        return stripped;
+    }
+
+    private String getUniqueItemString() {
+        return " | MarketingPlan=" + this.getMarketingPlan() + " | ItemNumber=" + this.getNumber();
+    }
+
     public Money getPriceAsSquareMoney() {
-        Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null");
-        Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0, "must be positive");
-        Preconditions.checkNotNull(this.getCurrency(), "missing currency");
+        Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null" + this.getUniqueItemString());
+        Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0,
+                "must be positive" + this.getUniqueItemString());
+        Preconditions.checkNotNull(this.getCurrency(), "missing currency" + this.getUniqueItemString());
         Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
 
         BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
@@ -254,10 +279,10 @@ public class CsvItem extends CsvRow {
     private static boolean isNumeric(String str) {
         try {
             double d = Double.parseDouble(str);
+            return true;
         } catch (NumberFormatException nfe) {
             return false;
         }
-        return true;
     }
 
 }

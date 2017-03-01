@@ -122,8 +122,7 @@ public class InputParser {
 
     private void processItemRow(CsvMktPlan marketingPlan, String[] itemFields, int totalRecordsProcessed) {
         try {
-
-            CsvItem item = CsvItem.fromCsvItemFields(itemFields);
+            CsvItem item = CsvItem.fromCsvItemFields(itemFields, marketingPlan.getName());
             marketingPlan.addItem(item);
         } catch (IllegalArgumentException e) {
             logMalformedRow(itemFields, totalRecordsProcessed);

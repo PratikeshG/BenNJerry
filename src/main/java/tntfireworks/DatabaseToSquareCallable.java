@@ -100,11 +100,13 @@ public class DatabaseToSquareCallable implements Callable {
         }
     }
 
-    private void upsertCategoriesFromDatabaseToSquare(Catalog catalog, SquareClientV2 client) {
+    private Catalog upsertCategoriesFromDatabaseToSquare(String[] categories, SquareClientV2 client) {
+
+        Catalog catalog = getCatalog(client);
 
         HashMap<String, CatalogObject> existingCategories = getCategoriesAsHashmapFromSquare(catalog);
 
-        for (String categoryName : this.getTntFireworksCategories()) {
+        for (String categoryName : categories) {
             CatalogObject category = existingCategories.get(categoryName);
             if (category == null) {
                 addCategoryToLocalCatalog(catalog, categoryName);
@@ -112,6 +114,7 @@ public class DatabaseToSquareCallable implements Callable {
         }
 
         batchUpsertCategoriesToSquare(catalog, client);
+        return getCatalog(client);
     }
 
     private void batchUpsertCategoriesToSquare(Catalog catalog, SquareClientV2 client) {
@@ -137,21 +140,9 @@ public class DatabaseToSquareCallable implements Callable {
         catalog.addCategory(newCategory);
     }
 
-    private void updateCatalogWithNewCategories(Catalog catalog, SquareClientV2 client) {
-        upsertCategoriesFromDatabaseToSquare(catalog, client);
-        logger.info("Retrieving updated catalog...");
-        try {
-            catalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
-                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("failure to retreive updated catalog");
-        }
-
-    }
-
-    private void clearItemLocations(Catalog catalog) {
+    private Catalog clearItemLocations(Catalog catalog) {
         catalog.clearItemLocations();
+        return catalog;
     }
 
     private HashMap<String, CatalogObject> getCategoriesAsHashmapFromSquare(Catalog catalog) {
@@ -227,29 +218,32 @@ public class DatabaseToSquareCallable implements Callable {
 
     }
 
-    private void generateItemUpdates(HashMap<String, List<String>> marketingPlanLocationsCache,
+    private Catalog generateItemUpdates(HashMap<String, List<String>> marketingPlanLocationsCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache, Catalog catalog) {
         for (String marketingPlanId : marketingPlanLocationsCache.keySet()) {
             generateItemUpdatesForMarketingPlan(marketingPlanItemsCache, marketingPlanId, marketingPlanLocationsCache,
                     catalog);
         }
+        return catalog;
     }
 
-    private void batchUpsertItemsIntoCatalog(Catalog catalog, SquareClientV2 client) {
+    private Catalog batchUpsertItemsIntoCatalog(Catalog catalog, SquareClientV2 client) {
         try {
             logger.info("Upsert latest catalog of items...");
             client.catalog().batchUpsertObjects(catalog.getObjects());
+            return getCatalog(client);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure upserting items into catalog");
         }
     }
 
-    private void removeItemsNotPresentAtAnyLocations(Catalog catalog, SquareClientV2 client) {
+    private Catalog removeItemsNotPresentAtAnyLocations(Catalog catalog, SquareClientV2 client) {
         for (String key : catalog.getItems().keySet()) {
             CatalogObject item = catalog.getItem(key);
             deleteItem(item, client);
         }
+        return getCatalog(client);
     }
 
     private void deleteItem(CatalogObject item, SquareClientV2 client) {
@@ -279,14 +273,14 @@ public class DatabaseToSquareCallable implements Callable {
 
         HashMap<String, List<String>> marketingPlanLocationsCache = generateMarketingPlanLocationsCache(
                 locationMarketingPlanCache, client, deployment);
+        String[] categories = this.getTntFireworksCategories();
 
         Catalog catalog = getCatalog(client);
-
-        updateCatalogWithNewCategories(catalog, client);
-        clearItemLocations(catalog);
-        generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
-        batchUpsertItemsIntoCatalog(catalog, client);
-        removeItemsNotPresentAtAnyLocations(catalog, client);
+        catalog = upsertCategoriesFromDatabaseToSquare(categories, client);
+        catalog = clearItemLocations(catalog);
+        catalog = generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
+        catalog = batchUpsertItemsIntoCatalog(catalog, client);
+        catalog = removeItemsNotPresentAtAnyLocations(catalog, client);
 
         logger.info(String.format("Done processing Catalog API updates for merchant token: %s", merchantToken));
     }
@@ -317,7 +311,6 @@ public class DatabaseToSquareCallable implements Callable {
         int lastIndex = input.indexOf(')');
         String value = input.substring(firstIndex + 1, lastIndex);
         return value.replaceAll("#", "");
-
     }
 
 }

@@ -16,6 +16,20 @@ public class CsvItemTest extends TestCase {
         testMoney(cents, dollarsStr, dollarsCur, centsCur);
     }
 
+    public void testWithDollarSign() {
+        int cents = 100;
+        String centsCur = "USD";
+        String dollarsStr = "$1.00";
+        String dollarsCur = "USD";
+
+        try {
+            testMoney(cents, dollarsStr, dollarsCur, centsCur);
+            fail();
+        } catch (NumberFormatException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
     private void testMoney(int cents, String dollarsStr, String centsCur, String dollarsCur) {
         CsvItem csvItem = new CsvItem();
         csvItem.setSuggestedPrice(dollarsStr);
@@ -42,15 +56,6 @@ public class CsvItemTest extends TestCase {
 
     public void testBigMoney() {
         testMoney(10000, "100.00", "USD", "USD");
-    }
-
-    public void testThrowsExceptionWithDollarSign() {
-        try {
-            testMoney(2, "$0.02", "USD", "USD");
-            fail();
-        } catch (IllegalArgumentException e) {
-            Assert.assertTrue(true);
-        }
     }
 
     public void testThrowsExceptionWithNegative() {

@@ -88,6 +88,7 @@ public class DeploymentsCallable implements Callable {
             item.setSuggestedPrice(resultItems.getString("suggestedPrice"));
             item.setUPC(resultItems.getString("upc"));
             item.setMarketingPlan(resultItems.getString("mktPlan"));
+            item.setCurrency(resultItems.getString("currency"));
             itemList.add(item);
         }
         message.setProperty("marketingPlanItemsCache", marketingPlanItemsCache, PropertyScope.SESSION);
@@ -104,8 +105,8 @@ public class DeploymentsCallable implements Callable {
         while (resultDeployments.next()) {
             SquarePayload deploymentPayload = new SquarePayload();
             deploymentPayload.setAccessToken(resultDeployments.getString("token"));
-            deploymentPayload.setAccessToken(resultDeployments.getString("merchantId"));
-            deploymentPayload.setAccessToken(resultDeployments.getString("merchantAlias"));
+            deploymentPayload.setMerchantId(resultDeployments.getString("merchantId"));
+            deploymentPayload.setMerchantAlias(resultDeployments.getString("merchantAlias"));
             deploymentPayloads.add(deploymentPayload);
         }
 
@@ -127,7 +128,7 @@ public class DeploymentsCallable implements Callable {
     }
 
     public String generateItemSQLSelect() {
-        String query = "SELECT itemNumber, category, itemDescription, suggestedPrice, upc, mktPlan FROM tntfireworks_marketing_plans;";
+        String query = "SELECT itemNumber, category, itemDescription, suggestedPrice, upc, mktPlan, currency FROM tntfireworks_marketing_plans;";
         logger.info("Generated query: " + query);
         return query;
     }
