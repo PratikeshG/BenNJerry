@@ -48,30 +48,77 @@ public class DeploymentsCallable implements Callable {
 
         logger.info("Starting database to Square sync...");
 
-        // ResultSets for SQL queries
-        ResultSet resultDeployments = null;
-        ResultSet resultItems = null;
-        ResultSet resultLocations = null;
-
         // set up SQL connection
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
-        // get locations from db
+        // set mule session variables
+        setMuleLocationMarketingPlanCache(conn, message);
+        setMuleMarketingPlanItemCacheFromDb(conn, message);
+
+        // get deployments to return
+        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(conn);
+
+        conn.close();
+
+        return deploymentPayloads;
+    }
+
+    private void setMuleLocationMarketingPlanCache(Connection conn, MuleMessage message) throws SQLException {
+        ResultSet resultLocations = submitQuery(conn, generateLocationSQLSelect());
+        HashMap<String, String> locationMarketingPlanCache = generateLocationMarketingPlanCache(resultLocations);
+        message.setProperty("locationMarketingPlanCache", locationMarketingPlanCache, PropertyScope.SESSION);
+    }
+
+    private void setMuleMarketingPlanItemCacheFromDb(Connection conn, MuleMessage message) throws SQLException {
+        ResultSet resultItems = submitQuery(conn, generateItemSQLSelect());
+        HashMap<String, List<CsvItem>> marketingPlanItemsCache = generateMarketingPlanItemsCache(resultItems);
+        message.setProperty("marketingPlanItemsCache", marketingPlanItemsCache, PropertyScope.SESSION);
+        logMarketingPlans(marketingPlanItemsCache);
+    }
+
+    private List<SquarePayload> getDeploymentsFromDb(Connection conn) throws SQLException {
+        ResultSet resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
+        List<SquarePayload> deploymentPayloads = generateDeploymentPayloads(resultDeployments);
+        return deploymentPayloads;
+    }
+
+    private void logMarketingPlans(HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
+        System.out.println("plans: " + marketingPlanItemsCache.keySet().size());
+        for (String planId : marketingPlanItemsCache.keySet()) {
+            System.out.println(planId + ": " + marketingPlanItemsCache.get(planId).size());
+        }
+    }
+
+    private List<SquarePayload> generateDeploymentPayloads(ResultSet resultDeployments) throws SQLException {
+        // columns retrieved: connectApp, token
+        List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
+        while (resultDeployments.next()) {
+            SquarePayload deploymentPayload = new SquarePayload();
+            deploymentPayload.setAccessToken(resultDeployments.getString("token"));
+            deploymentPayload.setMerchantId(resultDeployments.getString("merchantId"));
+            deploymentPayload.setMerchantAlias(resultDeployments.getString("merchantAlias"));
+            deploymentPayloads.add(deploymentPayload);
+        }
+        return deploymentPayloads;
+    }
+
+    public HashMap<String, String> generateLocationMarketingPlanCache(ResultSet resultLocations) throws SQLException {
         // columns retrieved: locationNumber, name
+
         HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
-        resultLocations = submitQuery(conn, generateLocationSQLSelect());
         while (resultLocations.next()) {
             locationMarketingPlanCache.put(resultLocations.getString("locationNumber"),
                     resultLocations.getString("mktPlan"));
         }
-        message.setProperty("locationMarketingPlanCache", locationMarketingPlanCache, PropertyScope.SESSION);
+        return locationMarketingPlanCache;
+    }
 
+    public HashMap<String, List<CsvItem>> generateMarketingPlanItemsCache(ResultSet resultItems) throws SQLException {
         // get all items from db
         // columns retrieved: itemNumber, category, itemDescription,
         // suggestedPrice, upc, currency
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = new HashMap<String, List<CsvItem>>();
-        resultItems = submitQuery(conn, generateItemSQLSelect());
         while (resultItems.next()) {
             String mktPlan = resultItems.getString("mktPlan");
             List<CsvItem> itemList = marketingPlanItemsCache.get(mktPlan);
@@ -91,28 +138,8 @@ public class DeploymentsCallable implements Callable {
             item.setCurrency(resultItems.getString("currency"));
             itemList.add(item);
         }
-        message.setProperty("marketingPlanItemsCache", marketingPlanItemsCache, PropertyScope.SESSION);
+        return marketingPlanItemsCache;
 
-        System.out.println("plans: " + marketingPlanItemsCache.keySet().size());
-        for (String planId : marketingPlanItemsCache.keySet()) {
-            System.out.println(planId + ": " + marketingPlanItemsCache.get(planId).size());
-        }
-
-        // get deployments from db
-        // columns retrieved: connectApp, token
-        List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
-        resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
-        while (resultDeployments.next()) {
-            SquarePayload deploymentPayload = new SquarePayload();
-            deploymentPayload.setAccessToken(resultDeployments.getString("token"));
-            deploymentPayload.setMerchantId(resultDeployments.getString("merchantId"));
-            deploymentPayload.setMerchantAlias(resultDeployments.getString("merchantAlias"));
-            deploymentPayloads.add(deploymentPayload);
-        }
-
-        conn.close();
-
-        return deploymentPayloads;
     }
 
     public String generateDeploymentSQLSelect(String deploymentName) {

@@ -213,22 +213,21 @@ public class CsvItem extends CsvRow implements Serializable {
             throw new IllegalArgumentException("Missing fields");
         }
 
-        // NOTE: unused fields have been commented to avoid ingesting unnecessary data and having someone use wrong price etc. later by accident
         item.setNumber(itemFields[0]);
-        //item.setCat(itemFields[1]);
+        item.setCat(itemFields[1]);
         item.setCategory(itemFields[2]);
         item.setDescription(itemFields[3]);
-        //item.setCasePacking(itemFields[4]);
-        //item.setUnitPrice(itemFields[5]);
-        //item.setPricingUOM(itemFields[6]);
+        item.setCasePacking(itemFields[4]);
+        item.setUnitPrice(itemFields[5]);
+        item.setPricingUOM(itemFields[6]);
         item.setSuggestedPrice(stripDollarSign(itemFields[7])); //any pre-cleaning done here
-        //item.setSellingUOM(itemFields[8]);
+        item.setSellingUOM(itemFields[8]);
         item.setUPC(itemFields[9]);
-        //item.setNetItem(itemFields[10]);
-        //item.setExpiredDate(itemFields[11]);
-        //item.setEffectiveDate(itemFields[12]);
-        //item.setBOGO(itemFields[13]);
-        //item.setItemNum3(itemFields[14]);
+        item.setNetItem(itemFields[10]);
+        item.setExpiredDate(itemFields[11]);
+        item.setEffectiveDate(itemFields[12]);
+        item.setBOGO(itemFields[13]);
+        item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
         item.setMarketingPlan(marketingPlan);
 

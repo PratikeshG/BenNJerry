@@ -12,11 +12,11 @@ import org.slf4j.LoggerFactory;
 
 public class CsvRow {
 
-    private ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-    private Validator validator = factory.getValidator();
-    private static Logger logger = LoggerFactory.getLogger(CsvRow.class);
-
     public boolean isValid() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Logger logger = LoggerFactory.getLogger(CsvRow.class);
+
         Set<ConstraintViolation<CsvRow>> violations = validator.validate(this);
         for (ConstraintViolation<CsvRow> violation : violations) {
             logger.error(violation.getMessage());

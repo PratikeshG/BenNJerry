@@ -253,26 +253,26 @@ public class CsvLocation extends CsvRow {
         // NOTE: unused fields are commented out to avoid ingesting unverified data and having it misused elsewhere
         CsvLocation location = new CsvLocation();
         location.setLocationNum(locationFields[0]);
-        //        location.setAddressNum(locationFields[1]);
+        location.setAddressNum(locationFields[1]);
         location.setName(locationFields[2]);
-        //        location.setAddress(locationFields[3]);
-        //        location.setCity(locationFields[4]);
-        //        location.setState(locationFields[5]);
-        //        location.setZip(locationFields[6]);
-        //        location.setCounty(locationFields[7]);
+        location.setAddress(locationFields[3]);
+        location.setCity(locationFields[4]);
+        location.setState(locationFields[5]);
+        location.setZip(locationFields[6]);
+        location.setCounty(locationFields[7]);
         location.setMktPlan(locationFields[8]);
-        //        location.setLegal(locationFields[9]);
-        //        location.setDisc(locationFields[10]);
-        //        location.setRbu(locationFields[11]);
-        //        location.setBp(locationFields[12]);
-        //        location.setCo(locationFields[13]);
-        //        location.setSaNum(locationFields[14]);
-        //        location.setSaName(locationFields[15]);
-        //        location.setCustNum(locationFields[16]);
-        //        location.setCustName(locationFields[17]);
-        //        location.setSeason(locationFields[18]);
-        //        location.setYear(locationFields[19]);
-        //        location.setMachineType(locationFields[20]);
+        location.setLegal(locationFields[9]);
+        location.setDisc(locationFields[10]);
+        location.setRbu(locationFields[11]);
+        location.setBp(locationFields[12]);
+        location.setCo(locationFields[13]);
+        location.setSaNum(locationFields[14]);
+        location.setSaName(locationFields[15]);
+        location.setCustNum(locationFields[16]);
+        location.setCustName(locationFields[17]);
+        location.setSeason(locationFields[18]);
+        location.setYear(locationFields[19]);
+        location.setMachineType(locationFields[20]);
 
         if (!location.isValid()) {
             throw new IllegalArgumentException();
