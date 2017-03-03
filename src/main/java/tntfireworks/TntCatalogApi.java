@@ -3,6 +3,7 @@ package tntfireworks;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,9 @@ public class TntCatalogApi {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
 
+        System.out.println("locationMarketingPlanCache:");
         System.out.println(gson.toJson(locationMarketingPlanCache));
+        System.out.println("marketingPlanItemsCache");
         System.out.println(gson.toJson(marketingPlanItemsCache));
 
         this.client = client;
@@ -59,9 +62,14 @@ public class TntCatalogApi {
 
         clearItemLocations(catalog);
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
+        System.out.println("ItemsToInsertJson");
+        CatalogObject[] catalogObjects = catalog.getObjects();
+        GsonBuilder builder = new GsonBuilder();
+        Gson gson = builder.create();
+        System.out.println(gson.toJson(catalogObjects));
         try {
             logger.info("Upsert latest catalog of items...");
-            client.catalog().batchUpsertObjects(catalog.getObjects());
+            client.catalog().batchUpsertObjects(catalogObjects);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure upserting items into catalog");
@@ -92,7 +100,7 @@ public class TntCatalogApi {
 
         String[] categories = getTntFireworksCategories();
 
-        HashMap<String, CatalogObject> existingCategories = getCategoriesAsHashmapFromSquare(catalog);
+        Map<String, CatalogObject> existingCategories = getCategoriesAsHashmapFromSquare(catalog);
 
         for (String categoryName : categories) {
             CatalogObject category = existingCategories.get(categoryName);
@@ -151,7 +159,7 @@ public class TntCatalogApi {
         return squareItem.getItemData().getVariations()[0].getItemVariationData();
     }
 
-    private void setSquareCategoryForItem(HashMap<String, CatalogObject> categories, CsvItem csvItem,
+    private void setSquareCategoryForItem(Map<String, CatalogObject> categories, CsvItem csvItem,
             CatalogObject squareItem) {
         // check for matching category, if found, add category id
         if (categories.containsKey(csvItem.getCategory())) {
@@ -162,7 +170,7 @@ public class TntCatalogApi {
     }
 
     private void generateCatalogUpsertsForItem(CsvItem csvItem, String[] squareLocationIds, Catalog catalog,
-            HashMap<String, CatalogObject> categories) {
+            Map<String, CatalogObject> categories) {
         String sku = getSku(csvItem);
 
         CatalogObject squareItem = getOrCreateSquareItem(catalog, sku);
@@ -183,7 +191,7 @@ public class TntCatalogApi {
 
     private void generateItemUpdatesForMarketingPlan(HashMap<String, List<CsvItem>> marketingPlanItemsCache,
             String marketingPlanId, HashMap<String, List<String>> marketingPlanLocationsCache, Catalog catalog) {
-        HashMap<String, CatalogObject> categories = getCategoriesAsHashmapFromSquare(catalog);
+        Map<String, CatalogObject> categories = getCategoriesAsHashmapFromSquare(catalog);
         String[] squareLocationIds = getSquareLocationIds(marketingPlanLocationsCache, marketingPlanId);
 
         List<CsvItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
@@ -227,8 +235,8 @@ public class TntCatalogApi {
 
     private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
 
-    private HashMap<String, CatalogObject> getCategoriesAsHashmapFromSquare(Catalog catalog) {
-        return (HashMap<String, CatalogObject>) catalog.getCategories();
+    private Map<String, CatalogObject> getCategoriesAsHashmapFromSquare(Catalog catalog) {
+        return catalog.getCategories();
     }
 
     private void addCategoryToLocalCatalog(Catalog catalog, String categoryName) {

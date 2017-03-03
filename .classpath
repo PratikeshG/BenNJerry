@@ -20,5 +20,6 @@
 	<classpathentry kind="lib" path="resources/mockito-all-3.0.0-beta.1.jar"/>
 	<classpathentry kind="lib" path="resources/mule-module-security-property-placeholder-1.6.1.jar"/>
 	<classpathentry kind="lib" path="resources/mysql-connector-java-5.0.8-bin.jar"/>
+	<classpathentry kind="lib" path="resources/jsonassert-1.4.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
