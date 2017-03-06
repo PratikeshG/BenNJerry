@@ -246,7 +246,11 @@ public class RunLoadAccountCSV {
                     for (Item item : catalog.getItems().values()) {
                         sb.append(item.getId() + ",");
                         sb.append("\"" + item.getName().replaceAll("\"", "\"\"") + "\",");
-                        sb.append("\"" + item.getCategory().getName().replaceAll("\"", "\"\"") + "\",");
+                        if (item.getCategory() != null) {
+                            sb.append("\"" + item.getCategory().getName().replaceAll("\"", "\"\"") + "\",");
+                        } else {
+                            sb.append(",");
+                        }
                         sb.append(",");
                         sb.append(item.getVariations()[0].getName() + ",");
 
@@ -276,6 +280,9 @@ public class RunLoadAccountCSV {
                             if (tax2 != null) {
                                 applySecondTax = (tax2.getRate().equals(itemTax.getRate())) ? "Y" : "N";
                             }
+                        } else if (item.getFees().length == 2) {
+                            applyFirstTax = "Y";
+                            applySecondTax = "Y";
                         }
 
                         sb.append(applyFirstTax + ",");

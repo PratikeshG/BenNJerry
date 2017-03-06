@@ -94,6 +94,16 @@ public class PLUCatalogBuilder {
             catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
         }
 
+        // Promo discounts only for Full Price stores
+        if (deploymentId.startsWith("vfcorp-tnf-0000") || deploymentId.startsWith("vfcorp-tnf-0001")
+                || deploymentId.startsWith("vfcorp-tnf-0002") || deploymentId.startsWith("vfcorp-tnf-0003")
+                || deploymentId.startsWith("vfcorp-tnf-0004") || deploymentId.startsWith("vfcorp-tnf-0005")
+                || deploymentId.startsWith("vfcorp-tnf-004") || deploymentId.startsWith("vfcorp-tnf-005")) {
+            for (Discount discount : getEventDiscounts()) {
+                catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
+            }
+        }
+
         // Items
         ResultSet dbItemCursor = getDBItems(conn, locationId, filtered);
         int rowcount = 0;
@@ -367,6 +377,13 @@ public class PLUCatalogBuilder {
                 newDiscount("Transaction $ Other [01136]", "VARIABLE_AMOUNT", null, 0),
                 newDiscount("Transaction $ Post Card Promo [01130]", "VARIABLE_AMOUNT", null, 0),
                 newDiscount("Transaction $ Price Match [01131]", "VARIABLE_AMOUNT", null, 0) };
+
+        return discounts;
+    }
+
+    private Discount[] getEventDiscounts() {
+        Discount[] discounts = new Discount[] {
+                newDiscount("10% VIPeak Discount WS17 [11000] (557001WS17)", "FIXED", "0.10", 0) };
 
         return discounts;
     }
