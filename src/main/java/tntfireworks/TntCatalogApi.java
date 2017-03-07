@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
@@ -20,31 +18,20 @@ import com.squareup.connect.v2.SquareClientV2;
 
 public class TntCatalogApi {
 
-    // constants
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
 
-    // instance vars
     private SquareClientV2 client;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
     public Catalog catalog;
 
-    // constructor
     public TntCatalogApi(SquareClientV2 client, HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
         Preconditions.checkNotNull(client);
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
-
-        GsonBuilder builder = new GsonBuilder();
-        Gson gson = builder.create();
-
-        System.out.println("locationMarketingPlanCache:");
-        System.out.println(gson.toJson(locationMarketingPlanCache));
-        System.out.println("marketingPlanItemsCache");
-        System.out.println(gson.toJson(marketingPlanItemsCache));
 
         this.client = client;
         marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, client);
@@ -53,7 +40,6 @@ public class TntCatalogApi {
         catalog = retrieveCatalogFromSquare();
     }
 
-    // public methods
     public Catalog batchUpsertItemsIntoCatalog() {
         Preconditions.checkNotNull(catalog);
         Preconditions.checkNotNull(client);
@@ -64,9 +50,7 @@ public class TntCatalogApi {
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
         System.out.println("ItemsToInsertJson");
         CatalogObject[] catalogObjects = catalog.getObjects();
-        GsonBuilder builder = new GsonBuilder();
-        Gson gson = builder.create();
-        System.out.println(gson.toJson(catalogObjects));
+
         try {
             logger.info("Upsert latest catalog of items...");
             client.catalog().batchUpsertObjects(catalogObjects);
@@ -301,12 +285,6 @@ public class TntCatalogApi {
         try {
             logger.info("Processing Catalog API updates");
             locations = client.locations().list();
-
-            GsonBuilder builder = new GsonBuilder();
-            Gson gson = builder.create();
-
-            System.out.println(gson.toJson(locations));
-
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Square API call to list locations failed");
@@ -315,10 +293,6 @@ public class TntCatalogApi {
         for (Location location : locations) {
             addLocationToMarketingPlanLocationsCache(location, marketingPlanLocationsCache, locationMarketingPlanCache);
         }
-
-        GsonBuilder builder = new GsonBuilder();
-        Gson gson = builder.create();
-        System.out.println(gson.toJson(marketingPlanLocationsCache));
 
         return marketingPlanLocationsCache;
 

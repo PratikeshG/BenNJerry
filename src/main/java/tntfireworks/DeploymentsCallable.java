@@ -1,13 +1,10 @@
 package tntfireworks;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -16,6 +13,10 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import util.DbConnection;
 import util.SquarePayload;
 
 public class DeploymentsCallable implements Callable {
@@ -25,6 +26,8 @@ public class DeploymentsCallable implements Callable {
     private String databaseUser;
     private String databasePassword;
     private String activeDeployment;
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
 
     public void setDatabaseUrl(String databaseUrl) {
         this.databaseUrl = databaseUrl;
@@ -45,82 +48,98 @@ public class DeploymentsCallable implements Callable {
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-
         logger.info("Starting database to Square sync...");
 
-        // set up SQL connection
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
-        // set mule session variables
-        setMuleLocationMarketingPlanCache(conn, message);
-        setMuleMarketingPlanItemCacheFromDb(conn, message);
-
-        // get deployments to return
-        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(conn);
-
-        conn.close();
+        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
+        List<SquarePayload> deploymentPayloads = setUpDeployments(activeDeployment, tntDatabaseApi, message);
+        tntDatabaseApi.close();
 
         return deploymentPayloads;
     }
 
-    private void setMuleLocationMarketingPlanCache(Connection conn, MuleMessage message) throws SQLException {
-        ResultSet resultLocations = submitQuery(conn, generateLocationSQLSelect());
-        HashMap<String, String> locationMarketingPlanCache = generateLocationMarketingPlanCache(resultLocations);
+    public List<SquarePayload> setUpDeployments(String deployment, TntDatabaseApi tntDatabaseApi, MuleMessage message)
+            throws SQLException {
+        HashMap<String, String> locationMarketingPlanCache = generateLocationMarketingPlanCache(tntDatabaseApi);
+        HashMap<String, List<CsvItem>> marketingPlanItemsCache = generateMarketingPlanItemsCache(tntDatabaseApi);
+        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(tntDatabaseApi, deployment);
+
+        // set mule session variables
+        setMuleLocationMarketingPlanCache(locationMarketingPlanCache, message);
+        setMuleMarketingPlanItemCacheFromDb(marketingPlanItemsCache, message);
+
+        return deploymentPayloads;
+    }
+
+    private void setMuleLocationMarketingPlanCache(HashMap<String, String> locationMarketingPlanCache,
+            MuleMessage message) throws SQLException {
         message.setProperty("locationMarketingPlanCache", locationMarketingPlanCache, PropertyScope.SESSION);
     }
 
-    private void setMuleMarketingPlanItemCacheFromDb(Connection conn, MuleMessage message) throws SQLException {
-        ResultSet resultItems = submitQuery(conn, generateItemSQLSelect());
-        HashMap<String, List<CsvItem>> marketingPlanItemsCache = generateMarketingPlanItemsCache(resultItems);
+    private void setMuleMarketingPlanItemCacheFromDb(HashMap<String, List<CsvItem>> marketingPlanItemsCache,
+            MuleMessage message) throws SQLException {
         message.setProperty("marketingPlanItemsCache", marketingPlanItemsCache, PropertyScope.SESSION);
         logMarketingPlans(marketingPlanItemsCache);
     }
 
-    private List<SquarePayload> getDeploymentsFromDb(Connection conn) throws SQLException {
-        ResultSet resultDeployments = submitQuery(conn, generateDeploymentSQLSelect(activeDeployment));
-        List<SquarePayload> deploymentPayloads = generateDeploymentPayloads(resultDeployments);
+    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi, String deployment)
+            throws SQLException {
+        List<SquarePayload> deploymentPayloads = generateDeploymentPayloads(tntDatabaseApi, deployment);
         return deploymentPayloads;
     }
 
     private void logMarketingPlans(HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
-        System.out.println("plans: " + marketingPlanItemsCache.keySet().size());
+        logger.info("plans: " + marketingPlanItemsCache.keySet().size());
         for (String planId : marketingPlanItemsCache.keySet()) {
-            System.out.println(planId + ": " + marketingPlanItemsCache.get(planId).size());
+            logger.info(planId + ": " + marketingPlanItemsCache.get(planId).size());
         }
     }
 
-    private List<SquarePayload> generateDeploymentPayloads(ResultSet resultDeployments) throws SQLException {
+    public List<SquarePayload> generateDeploymentPayloads(TntDatabaseApi tntDatabaseApi, String deployment)
+            throws SQLException {
+
+        ArrayList<Map<String, String>> rows = tntDatabaseApi
+                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(activeDeployment));
+
+        logger.info("generateDeploymentSQLSelect=" + gson.toJson(rows));
+
         // columns retrieved: connectApp, token
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
-        while (resultDeployments.next()) {
+        for (Map<String, String> row : rows) {
             SquarePayload deploymentPayload = new SquarePayload();
-            deploymentPayload.setAccessToken(resultDeployments.getString("token"));
-            deploymentPayload.setMerchantId(resultDeployments.getString("merchantId"));
-            deploymentPayload.setMerchantAlias(resultDeployments.getString("merchantAlias"));
+            deploymentPayload.setAccessToken(row.get("token"));
+            deploymentPayload.setMerchantId(row.get("merchantId"));
+            deploymentPayload.setMerchantAlias(row.get("merchantAlias"));
             deploymentPayloads.add(deploymentPayload);
         }
         return deploymentPayloads;
     }
 
-    public HashMap<String, String> generateLocationMarketingPlanCache(ResultSet resultLocations) throws SQLException {
+    public HashMap<String, String> generateLocationMarketingPlanCache(TntDatabaseApi tntDatabaseApi)
+            throws SQLException {
+        ArrayList<Map<String, String>> rows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLocationSQLSelect());
         // columns retrieved: locationNumber, name
+        logger.info("generateLocationMarketingPlanCache=" + gson.toJson(rows));
 
         HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
-        while (resultLocations.next()) {
-            locationMarketingPlanCache.put(resultLocations.getString("locationNumber"),
-                    resultLocations.getString("mktPlan"));
+        for (Map<String, String> row : rows) {
+            locationMarketingPlanCache.put(row.get("locationNumber"), row.get("mktPlan"));
         }
         return locationMarketingPlanCache;
     }
 
-    public HashMap<String, List<CsvItem>> generateMarketingPlanItemsCache(ResultSet resultItems) throws SQLException {
+    public HashMap<String, List<CsvItem>> generateMarketingPlanItemsCache(TntDatabaseApi tntDatabaseApi)
+            throws SQLException {
+        ArrayList<Map<String, String>> rows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
         // get all items from db
         // columns retrieved: itemNumber, category, itemDescription,
         // suggestedPrice, upc, currency
+
+        logger.info("generateMarketingPlanItemsCache=" + gson.toJson(rows));
+
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = new HashMap<String, List<CsvItem>>();
-        while (resultItems.next()) {
-            String mktPlan = resultItems.getString("mktPlan");
+        for (Map<String, String> row : rows) {
+            String mktPlan = row.get("mktPlan");
             List<CsvItem> itemList = marketingPlanItemsCache.get(mktPlan);
 
             if (itemList == null) {
@@ -129,43 +148,17 @@ public class DeploymentsCallable implements Callable {
             }
 
             CsvItem item = new CsvItem();
-            item.setNumber(resultItems.getString("itemNumber"));
-            item.setCategory(resultItems.getString("category"));
-            item.setDescription(resultItems.getString("itemDescription"));
-            item.setSuggestedPrice(resultItems.getString("suggestedPrice"));
-            item.setUPC(resultItems.getString("upc"));
-            item.setMarketingPlan(resultItems.getString("mktPlan"));
-            item.setCurrency(resultItems.getString("currency"));
+            item.setNumber(row.get("itemNumber"));
+            item.setCategory(row.get("category"));
+            item.setDescription(row.get("itemDescription"));
+            item.setSuggestedPrice(row.get("suggestedPrice"));
+            item.setUPC(row.get("upc"));
+            item.setMarketingPlan(row.get("mktPlan"));
+            item.setCurrency(row.get("currency"));
             itemList.add(item);
         }
         return marketingPlanItemsCache;
 
     }
 
-    public String generateDeploymentSQLSelect(String deploymentName) {
-        String query = "SELECT * FROM token WHERE deployment='" + deploymentName + "'";
-        logger.info("Generated query: " + query);
-        return query;
-    }
-
-    public String generateLocationSQLSelect() {
-        String query = "SELECT locationNumber, name, mktPlan FROM tntfireworks_locations;";
-        logger.info("Generated query: " + query);
-        return query;
-    }
-
-    public String generateItemSQLSelect() {
-        String query = "SELECT itemNumber, category, itemDescription, suggestedPrice, upc, mktPlan, currency FROM tntfireworks_marketing_plans;";
-        logger.info("Generated query: " + query);
-        return query;
-    }
-
-    public ResultSet submitQuery(Connection conn, String query) throws SQLException {
-        if (query.isEmpty()) {
-            return null;
-        }
-
-        Statement stmt = conn.createStatement();
-        return stmt.executeQuery(query);
-    }
 }

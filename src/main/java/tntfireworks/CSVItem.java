@@ -271,7 +271,7 @@ public class CsvItem extends CsvRow implements Serializable {
         Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
 
         BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
-        int cents = dollars.multiply(new BigDecimal(100)).intValue();
+        int cents = dollars.multiply(new BigDecimal(100)).intValueExact();
         return new Money(cents, this.getCurrency());
     }
 

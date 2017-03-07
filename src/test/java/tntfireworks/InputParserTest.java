@@ -22,7 +22,7 @@ import tntfireworks.exceptions.EmptyLocationArrayException;
 import tntfireworks.exceptions.MalformedHeaderRowException;
 import util.DbConnection;
 
-public class InputParserTests extends TestCase {
+public class InputParserTest extends TestCase {
 
     private static final String EMPTY_STRING = "";
     @Mock

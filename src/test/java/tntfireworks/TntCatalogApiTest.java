@@ -27,7 +27,7 @@ import com.squareup.connect.v2.SquareClientV2;
 import junit.framework.TestCase;
 import util.SquarePayload;
 
-public class TntCatalogApiTests extends TestCase {
+public class TntCatalogApiTest extends TestCase {
 
     private static final String apiUrl = "https://connect.squareupstaging.com";
 

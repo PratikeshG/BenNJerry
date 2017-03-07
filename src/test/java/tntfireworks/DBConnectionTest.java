@@ -13,7 +13,7 @@ import org.mockito.junit.MockitoRule;
 
 import util.DbConnection;
 
-public class DBConnectionTest {
+public class DbConnectionTest {
 
     @Mock
     private DbConnection dbConnection;
