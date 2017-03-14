@@ -48,6 +48,16 @@ public class DatabaseToSquareCallable implements Callable {
         return null;
     }
 
+    /*
+     * Synchronizes items and categories between the Bridge DB and Square for a single Square account (e.g. deployment)
+     * 
+     * @param deployment - SquarePayload object containing accessToken needed by Square API client
+     * @param locationMarketingPlanCache - HashMap of Square Location to TNT Markting Plan
+     * @param marketingPlanItemsCache - HashMap of TNT Marketing Plan to List of Items (in CsvItem format)
+     * 
+     * This is done in three operations - batch upserting categories, batch upserting items, and finally removing items
+     * not present at any location for this deployment
+     */
     public void syncronizeItemsAndCategoriesForDeployment(SquarePayload deployment,
             HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {

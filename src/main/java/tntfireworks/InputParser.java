@@ -245,7 +245,7 @@ public class InputParser {
         return updateStatement;
     }
 
-    String generateLocationsSQLUpsert(ArrayList<CsvLocation> locations) {
+    public String generateLocationsSQLUpsert(ArrayList<CsvLocation> locations) {
         Preconditions.checkNotNull(locations);
 
         String updateStatement = "";

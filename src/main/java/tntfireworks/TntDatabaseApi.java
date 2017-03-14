@@ -22,7 +22,6 @@ public class TntDatabaseApi {
     }
 
     public TntDatabaseApi() {
-
     }
 
     public ArrayList<Map<String, String>> submitQuery(String query) {

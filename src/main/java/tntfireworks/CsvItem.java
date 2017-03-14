@@ -179,36 +179,40 @@ public class CsvItem extends CsvRow implements Serializable {
         this.marketingPlan = marketingPlan;
     }
 
+    /*
+     * Creates a CsvItem object from an ordered array of Strings, and sets the marketing plan
+     * 
+     * Note - trim() is performed on all fields, and dollar signs are stripped from suggestedPrice
+     * 
+     * The item string fields should be in following order:
+     * 0 - number
+     * 1 - cat
+     * 2 - category
+     * 3 - description
+     * 4 - casePacking
+     * 5 - unitPrice
+     * 6 - pricingUOM
+     * 7 - suggestedPrice
+     * 8 - sellingUOM
+     * 9 - upc
+     * 10 - netItem
+     * 11- expiredDate
+     * 12 - effectiveDate
+     * 13 - bogo
+     * 14 - itemNum3
+     * 15 - currency
+     * 
+     * @return the newly created CsvItem
+     */
     public static CsvItem fromCsvItemFields(String[] itemFields, String marketingPlan) {
 
         CsvItem item = new CsvItem();
-        // trim and replace SQL chars
-        // TODO(wtsang): determine more comprehensive check
+        // TODO(wtsang): determine more comprehensive cleaning operations based on prior CSV submissions
         for (int i = 0; i < itemFields.length; i++) {
             itemFields[i] = itemFields[i].trim();
             itemFields[i] = itemFields[i].replaceAll("'", "''");
         }
 
-        // TODO(wtsang): can use a HashMap + ArrayList to read in fields + add accordingly
-        //               and add item constructor to take in HashMap to initialize item
-        // item string fields should be in following order:
-        //     0 - number;
-        //     1 - cat;
-        //     2 - category;
-        //     3 - description;
-        //     4 - casePacking;
-        //     5 - unitPrice;
-        //     6 - pricingUOM;
-        //     7 - suggestedPrice;
-        //     8 - sellingUOM;
-        //     9 - upc;
-        //     10 - netItem;
-        //     11- expiredDate;
-        //     12 - effectiveDate;
-        //     13 - bogo;
-        //     14 - itemNum3;
-        //     15 - currency;
-        //
         if (itemFields.length != 16) {
             throw new IllegalArgumentException("Missing fields");
         }
@@ -220,7 +224,7 @@ public class CsvItem extends CsvRow implements Serializable {
         item.setCasePacking(itemFields[4]);
         item.setUnitPrice(itemFields[5]);
         item.setPricingUOM(itemFields[6]);
-        item.setSuggestedPrice(stripDollarSign(itemFields[7])); //any pre-cleaning done here
+        item.setSuggestedPrice(stripDollarSign(itemFields[7]));
         item.setSellingUOM(itemFields[8]);
         item.setUPC(itemFields[9]);
         item.setNetItem(itemFields[10]);
@@ -239,6 +243,15 @@ public class CsvItem extends CsvRow implements Serializable {
         return item;
     }
 
+    /*
+     * Performs validation using Hiberante Validation framework
+     * 
+     * First the Annotation validators are applied (e.g. @NonNull
+     * Second, we check that the Suggested Price can be converted to the Square money type
+     * 
+     * (non-Javadoc)
+     * @see tntfireworks.CsvRow#isValid()
+     */
     @Override
     public boolean isValid() {
         if (!super.isValid()) {
@@ -263,15 +276,24 @@ public class CsvItem extends CsvRow implements Serializable {
         return " | MarketingPlan=" + this.getMarketingPlan() + " | ItemNumber=" + this.getNumber();
     }
 
+    /*
+     * Converts the CsvItem suggestedPrice and currency Strings to a Square Money object (cents)
+     * 
+     * @return Square Money object including int of cents and currency
+     * 
+     * @throws ArithmeticException if this has a nonzero fractional part, or will not fit in an int.
+     * 
+     */
     public Money getPriceAsSquareMoney() {
         Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null" + this.getUniqueItemString());
         Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0,
-                "must be positive" + this.getUniqueItemString());
-        Preconditions.checkNotNull(this.getCurrency(), "missing currency" + this.getUniqueItemString());
+                "must be positive " + this.getUniqueItemString());
+        Preconditions.checkNotNull(this.getCurrency(), "missing currency " + this.getUniqueItemString());
         Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
 
         BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
-        int cents = dollars.multiply(new BigDecimal(100)).intValueExact();
+        dollars = dollars.movePointRight(2);
+        int cents = dollars.intValueExact();
         return new Money(cents, this.getCurrency());
     }
 

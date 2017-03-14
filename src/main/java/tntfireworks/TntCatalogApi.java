@@ -2,6 +2,7 @@ package tntfireworks;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -21,11 +22,52 @@ public class TntCatalogApi {
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
+    private static final String[] BASE_CATEGORIES = new String[] { "ASSORTMENTS", "BASE FOUNTAINS",
+            "CALIFORNIA FOUNTAINS", "CONE FOUNTAINS", "GROUND SPINNERS & CHASERS", "NOVELTIES", "SMOKE", "SPARKLERS",
+            "PUNK", "FIRECRACKERS", "HELICOPTERS", "RELOADABLES", "MULTI-AERIALS", "SPECIAL AERIALS", "MISSILES",
+            "PARACHUTES", "ROMAN CANDLES", "ROCKETS", "COUNTER CASES & DISPLAYS", "PROMOTIONAL", "SUB ASSESMBLIES",
+            "MATERIALS", "TOYS" };
 
     private SquareClientV2 client;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
     public Catalog catalog;
+
+    /*
+     * Gets the full Catalog of items from Square and updates the local catalog instance var
+     * 
+     * Note: the primary keys for each CatalogObject type are as follows:
+     *   Items: SKU
+     *   Categories: Name
+     *   Taxes: ID
+     *   Discounts: Name
+     *   Modifier Lists: Name
+     *   
+     * @return the catalog from Square
+     */
+    public Catalog retrieveCatalogFromSquare() {
+        Preconditions.checkNotNull(client);
+
+        logger.info("Retrieving catalog...");
+        try {
+            return client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Square API call to catalog failed");
+        }
+    }
+
+    /* 
+     * Getter for local catalog instance var
+     * 
+     * @return local Catalog
+     */
+    public Catalog getLocalCatalog() {
+        Preconditions.checkNotNull(catalog);
+
+        return catalog;
+    }
 
     public TntCatalogApi(SquareClientV2 client, HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
@@ -40,6 +82,11 @@ public class TntCatalogApi {
         catalog = retrieveCatalogFromSquare();
     }
 
+    /*
+     * Batch upserts CatalogItem objects found in the local DB into the Square Catalog
+     * 
+     * @return the updated Catalog
+     */
     public Catalog batchUpsertItemsIntoCatalog() {
         Preconditions.checkNotNull(catalog);
         Preconditions.checkNotNull(client);
@@ -48,7 +95,6 @@ public class TntCatalogApi {
 
         clearItemLocations(catalog);
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
-        System.out.println("ItemsToInsertJson");
         CatalogObject[] catalogObjects = catalog.getObjects();
 
         try {
@@ -62,6 +108,13 @@ public class TntCatalogApi {
         return catalog;
     }
 
+    /*
+     * Removes items in the Square Catalog when not present at any locations
+     * 
+     * This method does not currently use the Square batch delete operation
+     * 
+     * @return the updated catalog
+     */
     public Catalog removeItemsNotPresentAtAnyLocations() {
         Preconditions.checkNotNull(catalog);
         Preconditions.checkNotNull(client);
@@ -76,6 +129,17 @@ public class TntCatalogApi {
         return catalog;
     }
 
+    /*
+     * Upserts the categories found in the MySQL database into Square
+     * 
+     * The existing categories from Square are pulled and compared with the categories in the local DB.
+     * If the category is present in the local DB but not in Square, the category will be loaded into Square.
+     * Note: this operation does not remove categories in Square that are no longer in the local DB.
+     * 
+     * TODO: @wtsang - pull from DB instead of hard-coded categories
+     * 
+     * @return the updated catalog
+     */
     public Catalog batchUpsertCategoriesFromDatabaseToSquare() {
         Preconditions.checkNotNull(catalog);
         Preconditions.checkNotNull(client);
@@ -98,7 +162,14 @@ public class TntCatalogApi {
         return catalog;
     }
 
+    /* 
+     * Clears the catalog in Square
+     * 
+     * @return the updated catalog
+     */
     public Catalog clearCatalog() {
+        Preconditions.checkNotNull(catalog);
+        Preconditions.checkNotNull(client);
 
         for (CatalogObject catalogObject : catalog.getObjects()) {
             try {
@@ -149,8 +220,9 @@ public class TntCatalogApi {
         if (categories.containsKey(csvItem.getCategory())) {
             String categoryId = categories.get(csvItem.getCategory()).getId();
             squareItem.getItemData().setCategoryId(categoryId);
-        } else
+        } else {
             throw new IllegalArgumentException("Missing category for itemNumber " + csvItem.getNumber());
+        }
     }
 
     private void generateCatalogUpsertsForItem(CsvItem csvItem, String[] squareLocationIds, Catalog catalog,
@@ -179,20 +251,39 @@ public class TntCatalogApi {
         String[] squareLocationIds = getSquareLocationIds(marketingPlanLocationsCache, marketingPlanId);
 
         List<CsvItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
-        if (marketingPlanItems != null) {
+        if (marketingPlanItems != null && marketingPlanItems.size() > 0) {
             for (CsvItem updateItem : marketingPlanItems) {
                 generateCatalogUpsertsForItem(updateItem, squareLocationIds, catalog, categories);
             }
+        } else {
+            throw new IllegalArgumentException("Empty marketing plan: " + marketingPlanId);
         }
 
     }
 
+    private HashSet<String> getBaseTntCategoriesSet() {
+        HashSet<String> categoriesSet = new HashSet<String>();
+
+        for (String category : BASE_CATEGORIES) {
+            categoriesSet.add(category);
+        }
+
+        return categoriesSet;
+    }
+
     private String[] getTntFireworksCategories() {
-        // TODO(wtsang): generate dynamically by reading all possible values from DB
-        return new String[] { "ASSORTMENTS", "BASE FOUNTAINS", "CALIFORNIA FOUNTAINS", "CONE FOUNTAINS",
-                "GROUND SPINNERS & CHASERS", "NOVELTIES", "SMOKE", "SPARKLERS", "PUNK", "FIRECRACKERS", "HELICOPTERS",
-                "RELOADABLES", "MULTI-AERIALS", "SPECIAL AERIALS", "MISSILES", "PARACHUTES", "ROMAN CANDLES", "ROCKETS",
-                "COUNTER CASES & DISPLAYS", "PROMOTIONAL", "SUB ASSESMBLIES", "MATERIALS", "TOYS" };
+        // get baseline categories
+        HashSet<String> categoriesSet = getBaseTntCategoriesSet();
+
+        // add any additional categories
+        for (List<CsvItem> csvItemList : marketingPlanItemsCache.values()) {
+            for (CsvItem item : csvItemList) {
+                categoriesSet.add(item.getCategory());
+            }
+        }
+
+        String[] categoriesArray = categoriesSet.toArray(new String[categoriesSet.size()]);
+        return categoriesArray;
     }
 
     private void generateItemUpdates(HashMap<String, List<String>> marketingPlanLocationsCache,
@@ -300,21 +391,6 @@ public class TntCatalogApi {
 
     private CatalogObject[] getAllCategories(Catalog catalog) {
         return catalog.getCategories().values().toArray(new CatalogObject[0]);
-    }
-
-    public Catalog retrieveCatalogFromSquare() {
-        logger.info("Retrieving catalog...");
-        try {
-            return client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
-                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Square API call to catalog failed");
-        }
-    }
-
-    public Catalog getLocalCatalog() {
-        return catalog;
     }
 
 }
