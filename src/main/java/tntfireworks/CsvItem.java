@@ -11,12 +11,12 @@ import com.squareup.connect.v2.Money;
 
 public class CsvItem extends CsvRow implements Serializable {
 
+    private static final String UNCATEGORIZED = "UNCATEGORIZED";
+
     @Size(min = 1)
     @NotNull
     private String number;
     private String cat;
-    @NotNull
-    @Size(min = 1)
     private String category;
     @NotNull
     @Size(min = 1)
@@ -219,7 +219,7 @@ public class CsvItem extends CsvRow implements Serializable {
 
         item.setNumber(itemFields[0]);
         item.setCat(itemFields[1]);
-        item.setCategory(itemFields[2]);
+        item.setCategory(getCategoryNameFromCsvOrSetUncategorized(itemFields[2]));
         item.setDescription(itemFields[3]);
         item.setCasePacking(itemFields[4]);
         item.setUnitPrice(itemFields[5]);
@@ -241,6 +241,13 @@ public class CsvItem extends CsvRow implements Serializable {
         }
 
         return item;
+    }
+
+    private static String getCategoryNameFromCsvOrSetUncategorized(String categoryNameFromCsv) {
+        if (categoryNameFromCsv == null || categoryNameFromCsv.trim().equals("")) {
+            categoryNameFromCsv = UNCATEGORIZED;
+        }
+        return categoryNameFromCsv;
     }
 
     /*
