@@ -65,9 +65,6 @@ return hcPayload;]]></scripting:script>
         </foreach>
     </sub-flow>
     <flow name="Pandora:health-check-payments" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-pandora-hc-tender-1471812551" cronExpression="0 0/10 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every 10 minutes">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <choice doc:name="isActive?">
             <when expression="#['${paradies.pandora.isActive}' == false]">
                 <logger message="Pandora flows inactive. Not performing health checks." level="INFO" doc:name="Logger"/>
@@ -80,9 +77,6 @@ return hcPayload;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Brighton:health-check-payments" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-brighton-hc-tender-1471812551" cronExpression="0 0/10 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every 10 minutes">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <choice doc:name="isActive?">
             <when expression="#['${paradies.brighton.isActive}' == false]">
                 <logger message="Brighton flows inactive. Not performing health checks." level="INFO" doc:name="Logger"/>

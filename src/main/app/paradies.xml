@@ -31,9 +31,6 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
         <set-session-variable variableName="token" value="#[payload.accessToken]" doc:name="Set token"></set-session-variable>  
     </sub-flow>
     <flow name="Paradies:ftp-inbound-listener" processingStrategy="synchronous">
-        <sftp:inbound-endpoint connector-ref="Paradies_SFTP_catalog" host="${paradies.ftp.host}" port="${paradies.ftp.port}" path="${paradies.ftp.path.items}" user="${paradies.ftp.username}" password="${paradies.ftp.password}" responseTimeout="10000" pollingFrequency="${paradies.ftp.pollingFrequency}" sizeCheckWaitTime="7500" doc:name="/Outbound">
-  			<file:filename-wildcard-filter pattern="${paradies.ftp.pattern.upc}*,${paradies.ftp.pattern.employee}*"></file:filename-wildcard-filter>
-        </sftp:inbound-endpoint>
         <object-to-byte-array-transformer doc:name="Object to Byte Array"/>
   
         <set-session-variable variableName="sftpPayload" value="#[payload]" doc:name="Set ftpPayload"></set-session-variable>  
@@ -169,10 +166,8 @@ return tlogGenerator.getTlogs();]]></scripting:script>
         <set-payload value="Done!" doc:name="Set Payload"></set-payload>  
         <logger message="TLOG: #[payload]" level="INFO" doc:name="Finish"></logger>  
     </sub-flow>
-    <flow name="Pandora:generate-TLOGs" processingStrategy="synchronous"> 
-        <quartz:inbound-endpoint jobName="quartz-pandora-generate-tlog-1471812555" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
-            <quartz:event-generator-job></quartz:event-generator-job>  
-        </quartz:inbound-endpoint>  
+    <flow name="Pandora:generate-TLOGs" processingStrategy="synchronous">
+  
         <choice doc:name="Choice"> 
             <when expression="#['${paradies.pandora.isActive}' == false]"> 
                 <logger message="Pandora flows inactive. Not generating TLOGs." level="INFO" doc:name="Logger"></logger>  
@@ -184,10 +179,8 @@ return tlogGenerator.getTlogs();]]></scripting:script>
             </otherwise>  
         </choice>  
     </flow>
-    <flow name="Brighton:generate-TLOGs" processingStrategy="synchronous"> 
-        <quartz:inbound-endpoint jobName="quartz-brighton-generate-tlog-1471812555" cronExpression="0 0 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 1:00am (EST)"> 
-            <quartz:event-generator-job></quartz:event-generator-job>  
-        </quartz:inbound-endpoint>  
+    <flow name="Brighton:generate-TLOGs" processingStrategy="synchronous">
+  
         <choice doc:name="Choice"> 
             <when expression="#['${paradies.brighton.isActive}' == false]"> 
                 <logger message="Brighton flows inactive. Not generating TLOGs." level="INFO" doc:name="Logger"></logger>  
