@@ -37,6 +37,7 @@ public class PLUSyncToAwsPrepareCallable implements Callable {
         MuleMessage message = eventContext.getMessage();
 
         PLUSyncToDatabaseRequest request = (PLUSyncToDatabaseRequest) message.getPayload();
+        String awsFolder = message.getProperty("awsFolder", PropertyScope.INVOCATION);
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
@@ -49,8 +50,7 @@ public class PLUSyncToAwsPrepareCallable implements Callable {
         InputStream is = sftpChannel.get(request.getProcessingFileName());
 
         message.setProperty("pluSyncToDatabaseRequest", request, PropertyScope.INVOCATION);
-        message.setProperty("pluAwsKey",
-                String.format("TNF/%s/PLU/%s", request.getDeployment().getStoreId(), request.getProcessingFileName()),
+        message.setProperty("pluAwsKey", String.format("%s/%s", awsFolder, request.getProcessingFileName()),
                 PropertyScope.INVOCATION);
         message.setProperty("pluStreamReaderAws", is, PropertyScope.INVOCATION);
         message.setProperty("sftpChannel", sftpChannel, PropertyScope.INVOCATION);

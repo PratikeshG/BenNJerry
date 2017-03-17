@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <vm:connector name="VFC_VM_PLU" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="43200000"/>
     <queued-asynchronous-processing-strategy name="VFC_PLU_DatabaseToSquare_Async_Strategy" maxThreads="${vfcorp.plu.databaseToSquare.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="-1"/>
-    <flow name="VFC:TNF:plu-sftp-cron" processingStrategy="synchronous">
+    <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="vfc-PLU-SFTP-cron-1470289552" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -39,12 +39,21 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     </flow>
     <flow name="VFC:trigger-plu-sftp-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/sync/${urlKey}" doc:name="/plu/sync"/>
-        <flow-ref name="VFC:TNF:plu-sftp-cron" doc:name="VFC:TNF:plu-sftp-cron"/>
+        <flow-ref name="VFC:plu-sftp-cron" doc:name="VFC:plu-sftp-cron"/>
         <set-payload value="Ran PLU SFTP Cron" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:plu-sync-to-database" processingStrategy="VFC_PLU_SyncToDatabase_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Kipling or TNF">
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
+                <set-variable variableName="brand" value="Kipling" doc:name="brand: Kipling"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="brand" value="TNF" doc:name="brand: TNF"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="awsFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="AWS bucket folder"/>
         <component doc:name="Prepare stream to move PLU from SFTP To AWS">
             <prototype-object class="vfcorp.PLUSyncToAwsPrepareCallable">
 		    	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
@@ -53,7 +62,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Started: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="email payload"/>
+        <set-payload value="Started: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="email payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" content-ref="#[flowVars.pluStreamReaderAws]" doc:name="Initiate copy to Amazon S3"/>
@@ -72,7 +81,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		    </prototype-object>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-        <set-payload value="Completed database sync: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
+        <set-payload value="Completed database sync: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog db sync - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
     <flow name="VFC:plu-database-to-square" processingStrategy="VFC_PLU_DatabaseToSquare_Async_Strategy">

@@ -16,6 +16,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+    <sftp:connector name="SFTP" validateConnections="true" doc:name="SFTP"/>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -58,7 +59,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <singleton-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
         </component>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
