@@ -1,21 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <vm:connector name="VFC_VM_TLOG" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_TLOG_Async_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+    <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
+        <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.tnf.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.tnf.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
+    </sub-flow>
+    <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
+        <set-variable variableName="awsFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.kipling.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.kipling.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
+    </sub-flow>
+    <sub-flow name="VFC:generate-tlog-for-location">
+        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query preferredCustomerCounters">
+            <db:parameterized-query><![CDATA[SELECT * FROM vfcorp_preferred_customer_counter WHERE deployment = #[flowVars.deployment] AND storeId = #[flowVars.storeId];]]></db:parameterized-query>
+        </db:select>
+        <set-session-variable variableName="preferredCustomerCounters" value="#[message.payload]" doc:name="preferredCustomerCounters"/>
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
+        <component doc:name="Generate TLOGs">
+            <prototype-object class="vfcorp.TLOGGenerator">
+            	<property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
+                <property key="apiUrl" value="${api.url}"/>
+            </prototype-object>
+        </component>
+    </sub-flow>
+    <sub-flow name="VFC:generate-tlog-for-location-finish">
+        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
+        <choice doc:name="Update PCM">
+            <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
+                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
+                <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
+                    <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
+                </db:insert>
+            </when>
+            <otherwise>
+                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <logger message="#['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
+    </sub-flow>
     <flow name="VFC:tlog-generate-for-deployment" processingStrategy="VFC_TLOG_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
         <logger level="INFO" doc:name="Logger" message="Initiating TLOG (VM) for deployment #[payload.getDeployment()]"/>
         <set-variable variableName="tlogVFCDeployment" value="#[payload]" doc:name="Set tlogVFCDeployment"/>
         <set-variable variableName="storeId" value="#[payload.getStoreId()]" doc:name="Set storeId"/>
+        <set-variable variableName="deployment" value="#[payload.getDeployment()]" doc:name="Set deployment"/>
         <set-variable variableName="timeZone" value="#[payload.getTimeZone()]" doc:name="Set timeZone"/>
         <set-variable variableName="range" value="#[String.valueOf(payload.getTlogRange())]" doc:name="Set range"/>
         <set-variable variableName="offset" value="#[String.valueOf(payload.getTlogOffset())]" doc:name="Set offset"/>
@@ -63,31 +111,38 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
     </sub-flow>
     <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-hawaii-1480988520 " cronExpression="0 5 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 10:05am UTC (2:05am PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-hawaii-1489719962 " cronExpression="0 30 9 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 9:30am UTC / 11:30pm HST / 2:30am PST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1474843448" cronExpression="0 5 8 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 8:05am UTC (12:05am PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1489719962" cronExpression="0 30 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:30am UTC / 10:30pm PST ">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-CENTRAL" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-central-1474843448" cronExpression="0 5 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:05am UTC (10:05pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-central-1489719962" cronExpression="0 30 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:30am UTC / 11:30pm CST / 9:30pm PST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-east-1474843448" cronExpression="0 5 5 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 5:05am UTC (9:05pm PST)">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-east-1489719962" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC / 11:30pm EST / 8:30pm PST ">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Kipling:tlog-trigger-EAST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-kipling-east-1489719962" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC / 11:30pm EST / 8:30pm PST ">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="kipling-east" doc:name="Set deploymentGroup: kipling-east"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-deploymentGroup">

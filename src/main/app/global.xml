@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-property-placeholder="http://www.mulesoft.org/schema/mule/secure-property-placeholder" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/secure-property-placeholder http://www.mulesoft.org/schema/mule/secure-property-placeholder/current/mule-secure-property-placeholder.xsd
+<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-property-placeholder="http://www.mulesoft.org/schema/mule/secure-property-placeholder" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/secure-property-placeholder http://www.mulesoft.org/schema/mule/secure-property-placeholder/current/mule-secure-property-placeholder.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
     <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail" />
     <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.paradies.properties,${mule.env}.tntfireworks.properties" doc:name="Secure Property Placeholder"/>
@@ -18,6 +19,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         <http:config useTransportForUris="false"/>
     </configuration>
     <smtp:gmail-connector name="Gmail_HTML" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
+    <s3:config name="Amazon_S3__Configuration" accessKey="${aws.accesskey}" secretKey="${aws.secretkey}" connectionTimeout="1800000" maxConnections="150" socketTimeout="1800000" doc:name="Amazon S3: Configuration"/>
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>
