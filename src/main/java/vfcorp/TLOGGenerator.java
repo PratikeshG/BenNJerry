@@ -203,22 +203,22 @@ public class TLOGGenerator implements Callable {
 
             String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
 
-            EpicorParser epicor = new EpicorParser();
-            epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
-            epicor.tlog().setDeployment(deploymentId);
-            epicor.tlog().setTimeZoneId(timeZone);
+            TLOG tlog = new TLOG();
+            tlog.setItemNumberLookupLength(itemNumberLookupLength);
+            tlog.setDeployment(deploymentId);
+            tlog.setTimeZoneId(timeZone);
 
             // Get Cloudhub default object store
             ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
                     .lookupObject("_defaultUserObjectStore");
-            epicor.tlog().setObjectStore(objectStore);
-            epicor.tlog().parse(matchingMerchant, tlogGeneratorPayload.getPayments(),
-                    tlogGeneratorPayload.getEmployees(), tlogGeneratorPayload.getCustomers());
+            tlog.setObjectStore(objectStore);
+            tlog.parse(matchingMerchant, tlogGeneratorPayload.getPayments(), tlogGeneratorPayload.getEmployees(),
+                    tlogGeneratorPayload.getCustomers());
 
             message.setProperty("vfcorpStoreNumber",
                     Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
 
-            return epicor.tlog().toString();
+            return tlog.toString();
         }
 
         return null;
