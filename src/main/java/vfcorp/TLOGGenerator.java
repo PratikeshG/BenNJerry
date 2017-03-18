@@ -53,7 +53,7 @@ public class TLOGGenerator implements Callable {
         tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
         tlogGeneratorPayload.setLocationId(squarePayload.getLocationId());
         tlogGeneratorPayload.setMerchantAlias(squarePayload.getMerchantAlias());
-        tlogGeneratorPayload.setLegacy(squarePayload.isLegacy());
+        tlogGeneratorPayload.setLegacy(squarePayload.isLegacySingleLocationSquareAccount());
 
         String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
 

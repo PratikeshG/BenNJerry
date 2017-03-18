@@ -2,14 +2,24 @@ package util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DbConnection {
 
+    private static Logger logger = LoggerFactory.getLogger(DbConnection.class);
     private Connection dbConnection;
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+
+    public DbConnection() {
+
+    }
 
     public DbConnection(String databaseUrl, String databaseUser, String databasePassword)
             throws ClassNotFoundException, SQLException {
@@ -31,4 +41,14 @@ public class DbConnection {
     public void close() throws SQLException {
         dbConnection.close();
     }
+
+    public ResultSet submitQuery(String query) throws SQLException {
+        if (query.isEmpty()) {
+            return null;
+        }
+
+        Statement stmt = dbConnection.createStatement();
+        return stmt.executeQuery(query);
+    }
+
 }

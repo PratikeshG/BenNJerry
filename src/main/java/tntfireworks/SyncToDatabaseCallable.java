@@ -57,7 +57,7 @@ public class SyncToDatabaseCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        SyncToDatabaseRequest request = (SyncToDatabaseRequest) message.getProperty("SyncToDatabaseRequest",
+        SyncToDatabaseRequest request = (SyncToDatabaseRequest) message.getProperty("syncToDatabaseRequest",
                 PropertyScope.INVOCATION);
 
         InputStream is = message.getProperty("s3InputStream", PropertyScope.INVOCATION);
@@ -70,17 +70,7 @@ public class SyncToDatabaseCallable implements Callable {
 
         archiveProcessingFile(request.getProcessingPath(), request.getArchivePath(), request.getProcessingFilename());
 
-        // Submit new request to VM for API updates
-        DatabaseToSquareRequest updateSQRequest = new DatabaseToSquareRequest();
-        updateSQRequest.setProcessingFilename(request.getProcessingFilename());
-        updateSQRequest.setProcessingFlag(true);
-        updateSQRequest.setArchivePath(request.getArchivePath());
-        updateSQRequest.setProcessingPath(request.getProcessingPath());
-
-        // TODO(wtsang): create flow to generate manual import files
-        //      submit new request to VM to generate import files for marketing plan
-
-        return updateSQRequest;
+        return message.getPayload();
     }
 
     private void archiveProcessingFile(String processingPath, String archivePath, String processingFilename)

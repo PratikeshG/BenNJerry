@@ -22,7 +22,7 @@ import tntfireworks.exceptions.EmptyLocationArrayException;
 import tntfireworks.exceptions.MalformedHeaderRowException;
 import util.DbConnection;
 
-public class InputParserTests extends TestCase {
+public class InputParserTest extends TestCase {
 
     private static final String EMPTY_STRING = "";
     @Mock
@@ -43,6 +43,35 @@ public class InputParserTests extends TestCase {
         String expectedInsertQuery = "INSERT INTO tntfireworks_marketing_plans (mktPlan, itemNumber, cat, category, itemDescription, casePacking, unitPrice, pricingUOM,suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, bogo, itemNum3, currency) VALUES "
                 + "('6RET', '100073', '10', 'ASSORTMENTS', 'BIG BOMB TRAY C', '1-Apr', '59.99', 'EA', '59.99', 'EA', '027736004485', 'N', '12/31/2040', '5/1/2015', '', 'AS104', 'USD'), "
                 + "('6RET', '100382', '10', 'ASSORTMENTS', 'TNT HOT SHOT BAG C', '24/1', '14.99', 'EA', '14.99', 'EA', '027736000098', 'N', '12/31/2040', '8/1/2012', '', 'AS123', 'USD') "
+                + "ON DUPLICATE KEY UPDATE cat=VALUES(cat), category=VALUES(category), itemDescription=VALUES(itemDescription), casePacking=VALUES(casePacking),unitPrice=VALUES(unitPrice), pricingUOM=VALUES(pricingUOM), suggestedPrice=VALUES(suggestedPrice), sellingUOM=VALUES(sellingUOM), upc=VALUES(upc),netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency);";
+        try {
+            InputStream in = IOUtils.toInputStream(source, "UTF-8");
+            BufferedInputStream inputStream = new BufferedInputStream(IOUtils.toBufferedInputStream(in));
+            Mockito.when(dbConnection.executeQuery(expectedDeleteQuery)).thenReturn(10).thenReturn(11);
+            InputParser inputParser = new InputParser(dbConnection, 5);
+            inputParser.syncToDatabase(inputStream, "20161223145321_6RET_12232016.csv");
+            Mockito.verify(dbConnection).executeQuery(expectedDeleteQuery);
+            Mockito.verify(dbConnection).executeQuery(expectedInsertQuery);
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            fail();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    public void testUncategorizedMarketingPlansCSV() {
+        String source = "Item Number,CAT,Category,Item Description,Case Packing,Unit Price,Pricing UOM,Suggested Selling Price,Selling UOM,UPC,Net Item,Expired Date,Eff Date Date,Buy 1Get N Free Value,3rd Item Number,Cur Cod\n"
+                + "100073,10, ,BIG BOMB TRAY C               ,1-Apr,59.99,EA,59.99,EA,027736004485,N,12/31/2040,5/1/2015,,AS104                    ,USD\n"
+                + "100382,10,,TNT HOT SHOT BAG C            ,24/1                          ,14.99,EA,14.99,EA,027736000098,N,12/31/2040,8/1/2012,,AS123                    ,USD";
+        String expectedDeleteQuery = "DELETE FROM tntfireworks_marketing_plans WHERE mktPlan='6RET'";
+        String expectedInsertQuery = "INSERT INTO tntfireworks_marketing_plans (mktPlan, itemNumber, cat, category, itemDescription, casePacking, unitPrice, pricingUOM,suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, bogo, itemNum3, currency) VALUES "
+                + "('6RET', '100073', '10', 'UNCATEGORIZED', 'BIG BOMB TRAY C', '1-Apr', '59.99', 'EA', '59.99', 'EA', '027736004485', 'N', '12/31/2040', '5/1/2015', '', 'AS104', 'USD'), "
+                + "('6RET', '100382', '10', 'UNCATEGORIZED', 'TNT HOT SHOT BAG C', '24/1', '14.99', 'EA', '14.99', 'EA', '027736000098', 'N', '12/31/2040', '8/1/2012', '', 'AS123', 'USD') "
                 + "ON DUPLICATE KEY UPDATE cat=VALUES(cat), category=VALUES(category), itemDescription=VALUES(itemDescription), casePacking=VALUES(casePacking),unitPrice=VALUES(unitPrice), pricingUOM=VALUES(pricingUOM), suggestedPrice=VALUES(suggestedPrice), sellingUOM=VALUES(sellingUOM), upc=VALUES(upc),netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency);";
         try {
             InputStream in = IOUtils.toInputStream(source, "UTF-8");

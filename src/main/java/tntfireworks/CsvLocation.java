@@ -11,14 +11,10 @@ public class CsvLocation extends CsvRow {
     @Size(min = 1)
     @NotNull
     private String locationNum;
-    @Size(min = 1)
-    @NotNull
     private String addressNum;
     @Size(min = 1)
     @NotNull
     private String name;
-    @Size(min = 1)
-    @NotNull
     private String address;
     private String city;
     private String state;
@@ -254,6 +250,7 @@ public class CsvLocation extends CsvRow {
         //      20 - machineType;
         //
 
+        // NOTE: unused fields are commented out to avoid ingesting unverified data and having it misused elsewhere
         CsvLocation location = new CsvLocation();
         location.setLocationNum(locationFields[0]);
         location.setAddressNum(locationFields[1]);
