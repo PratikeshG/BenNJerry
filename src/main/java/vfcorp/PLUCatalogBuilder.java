@@ -85,6 +85,11 @@ public class PLUCatalogBuilder {
 
         conn.close();
 
+        // Now that catalog is set, reassign taxes
+        for (Location location : client.locations().list()) {
+            assignLocationSpecificTaxes(catalog, location);
+        }
+
         upsertObjectsToSquare(catalog.getItems().values().toArray(new CatalogObject[0]), "item");
         removeItemsNotPresentAtAnyLocations(catalog);
     }
@@ -107,12 +112,21 @@ public class PLUCatalogBuilder {
 
         syncLocationDbItems(conn, catalog, location, deploymentId);
         syncLocationDbSalePrices(conn, catalog, location);
+    }
 
-        // Taxes should be configured on a per location basis in Dashboard
+    private void assignLocationSpecificTaxes(Catalog catalog, Location location) throws Exception {
+        String deploymentId = getDeploymentIdForLocation(location);
+        if (deploymentId == null) {
+            return; // Skip invalid location
+        }
+
         CatalogObject[] locationTaxes = objectsPresentAtLocation(
                 catalog.getTaxes().values().toArray(new CatalogObject[0]), location.getId());
-        applyLocationSpecificItemTaxes(catalog.getItems().values().toArray(new CatalogObject[0]), locationTaxes,
-                deploymentId, location.getId());
+
+        if (locationTaxes.length > 0) {
+            applyLocationSpecificItemTaxes(catalog.getItems().values().toArray(new CatalogObject[0]), locationTaxes,
+                    deploymentId, location.getId());
+        }
     }
 
     private void syncLocationDbItems(Connection conn, Catalog catalog, Location location, String deploymentId)
@@ -365,6 +379,7 @@ public class PLUCatalogBuilder {
             query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString());
         }
 
+        logger.info("Querying items DB for location " + locationId);
         return executeQuery(conn, query);
     }
 
@@ -380,6 +395,7 @@ public class PLUCatalogBuilder {
                 + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') <= STR_TO_DATE(dateSaleEnds, '%m%d%Y') "
                 + "     GROUP BY itemNumber) as newest ON events.id = newest.id";
 
+        logger.info("Querying item sales DB for loaction " + locationId);
         return executeQuery(conn, query);
     }
 
