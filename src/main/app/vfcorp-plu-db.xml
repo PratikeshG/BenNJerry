@@ -78,87 +78,52 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
-        </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-        <set-payload value="Completed database sync: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog db sync - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-    </flow>
-    <flow name="VFC:plu-database-to-square" processingStrategy="VFC_PLU_DatabaseToSquare_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" name="vfcPLUUpdateVM" doc:name="vm://vfc-plu-db-to-square"/>
-        <logger message="Initiating PLU API update for deployment #[payload.getDeployment().getDeployment()] -- from database" level="INFO" doc:name="Logger"/>
-        <component doc:name="Database to Square Catalog Update">
-            <prototype-object class="vfcorp.PLUDatabaseToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-                <property key="apiUrl" value="${api.url}"/>
                 <property key="sftpHost" value="${vfcorp.sftp.host}"/>
                 <property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Completed api updates: #[flowVars.pluDatabaseToSquareRequest.getProcessingFileName() != null ? flowVars.pluDatabaseToSquareRequest.getProcessingFileName() : &quot;No file processing.&quot;]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog api updates - ' + flowVars.pluDatabaseToSquareRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <set-payload value="Completed database sync: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
-    <sub-flow name="VFC:plu-database-to-square-for-deploymentGroup">
-        <logger message="Initiating PLU Database to Square update for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Get deployments for deploymentGroup">
-            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentGroupToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
+    <sub-flow name="VFC:plu-database-to-square-for-brand">
+        <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Database to Square Catalog Update">
+            <prototype-object class="vfcorp.PLUDatabaseToSquareCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>  
+                <property key="apiUrl" value="${api.url}"/>  
+            </prototype-object>
         </component>
-        <foreach doc:name="For Each PLUDatabaseToSquareRequest">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-        </foreach>
+        <set-payload value="Completed Database to Square updates for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.brand]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
-    <sub-flow name="VFC:plu-database-to-square-for-deployment">
-        <logger message="Initiating PLU Database to Square update for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Get deployment">
-            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
-        </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-    </sub-flow>
-    <flow name="VFC:trigger-plu-database-to-square-for-deployment">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{deployment}" doc:name="/plu/square"/>
-        <set-variable variableName="deployment" value="#[message.inboundProperties.'http.uri.params'.deployment]" doc:name="Set deployment"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deployment" doc:name="VFC:plu-database-to-square-for-deployment"/>
-        <set-payload value="Ran PLU Database to Square for deployment #[flowVars.deployment]" doc:name="Set Payload"/>
+    <flow name="VFC:trigger-plu-database-to-square-for-brand">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{brand}" doc:name="/vfc/plu/square/KEY/BRAND"/>
+        <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.uri.params'.brand]" doc:name="Set brand"/>
+        <logger message="HTTP Trigger: PLU Database to Square: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
+        <async doc:name="Async">
+            <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+        </async>
+        <set-payload value="Running PLU Database to Square for VFC brand: #[flowVars.brand]" doc:name="Set Payload"/>
     </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-HAWAII" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-hawaii-1470289536" cronExpression="0 0 18 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 18:00 UTC (8:00am HST)">
+    <flow name="VFC:TNF:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-hawaii-1470289545" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 10:00am UTC / 6:00am EST / 3:00am PST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
+        <logger message="CRON: PLU Database to Square for TNF" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="tnf" doc:name="Set brand: tnf"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-west-1470289228" cronExpression="0 0 15 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 15:00 UTC (8:00am PST)">
+    <flow name="VFC:Kipling:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-kipling-1470289145" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 10:00am UTC / 6:00am EST / 3:00am PST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
-    </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-CENTRAL" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-central-1470289539" cronExpression="0 0 13 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 13:00 UTC (8:00am CST)">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
-    </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-east-1470289121" cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (8:00am EST)">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
+        <logger message="CRON: PLU Database to Square for Kipling" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="kipling" doc:name="Set brand: kipling"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
 </mule>

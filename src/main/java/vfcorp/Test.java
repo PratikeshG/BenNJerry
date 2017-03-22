@@ -1,31 +1,21 @@
 package vfcorp;
 
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.mule.tck.util.FakeObjectStore;
-
-import com.squareup.connect.Employee;
-import com.squareup.connect.Merchant;
-import com.squareup.connect.Payment;
-import com.squareup.connect.v2.Customer;
-import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
-
-import util.TimeManager;
+import com.squareup.connect.v2.SquareClientV2;
 
 public class Test {
-
     public static void main(String[] args) throws Exception {
-        /*
-         * TLOG testing
-         */
-        String API_ENDPOINT = "https://connect.squareupstaging.com";
-        String ACCESS_TOKEN = "sq0ats-0LZJnEzOsjOKcgikzHYjfQ";
-        String MERCHANT_ID = "DVKXZBNVFQAGS";
-        String LOCATION_ID = "A5EKHWD5C76SZ";
 
+        final String API_ENDPOINT = "https://connect.squareupstaging.com";
+        final String ACCESS_TOKEN = "sq0ats-0LZJnEzOsjOKcgikzHYjfQ";
+        final String MERCHANT_ID = "DVKXZBNVFQAGS";
+        final String LOCATION_ID = "A5EKHWD5C76SZ";
+
+        final String DB_URL = "jdbc:mysql://104.197.244.109:3306/development_bhartard";
+        final String DB_USER = "root";
+        final String DB_PASSWORD = "DaqXUs4H]cjPU$36";
+        final String BRAND = "tnf";
+
+        /*
         System.out.println("Running TLOG...");
         com.squareup.connect.SquareClient client = new com.squareup.connect.SquareClient(ACCESS_TOKEN, API_ENDPOINT,
                 "v1", MERCHANT_ID, LOCATION_ID);
@@ -61,80 +51,26 @@ public class Test {
             }
         }
 
-        EpicorParser epicor = new EpicorParser();
-        epicor.tlog().setDeployment("deploymentId");
-        epicor.tlog().setTimeZoneId(TIMEZONE);
-        epicor.tlog().setItemNumberLookupLength(14);
-        epicor.tlog().setObjectStore(new FakeObjectStore<String>());
-        epicor.tlog().parse(location, payments, employees, customerPaymentCache);
+        TLOG tlog = new TLOG();
+        tlog.setDeployment("deploymentId");
+        tlog.setTimeZoneId(TIMEZONE);
+        tlog.setItemNumberLookupLength(14);
+        tlog.setObjectStore(new FakeObjectStore<String>());
+        tlog.parse(location, payments, employees, customerPaymentCache);
 
         System.out.println("Saving TLOG...");
         PrintWriter writer = new PrintWriter("/Users/bhartard/Desktop/sample-tnf.txt", "UTF-8");
-        writer.print(epicor.tlog().toString());
+        writer.print(tlog.toString());
         writer.close();
+        */
 
-        /*
-         * IM testing
-         *
-         * File f = new File("/Users/colinlam/Desktop/PLU.RPT"); FileInputStream
-         * fis = new FileInputStream(f); BufferedInputStream bis = new
-         * BufferedInputStream(fis); EpicorParser epicor = new EpicorParser();
-         * epicor.rpc().generate(bis);
-         */
+        SquareClientV2 client = new SquareClientV2(API_ENDPOINT, ACCESS_TOKEN);
 
-        /*
-         * Testing account diff
-         *
-         * SquareClient current = new
-         * SquareClient("sq0ats-hqRgaU2PkvwxBOqIcdfGYg",
-         * "https://connect.squareupstaging.com", "v1", "me", "6DMEYHD342E7D");
-         * // colinlam+eldmslave2 SquareClient proposed = new
-         * SquareClient("sq0ats-hqRgaU2PkvwxBOqIcdfGYg",
-         * "https://connect.squareupstaging.com", "v1", "me", "296T830F8YV30");
-         * // colinlam+eldmslave1
-         *
-         * Catalog master = Catalog.getCatalog(current,
-         * CatalogChangeRequest.PrimaryKey.NAME); Catalog slave =
-         * Catalog.getCatalog(proposed, CatalogChangeRequest.PrimaryKey.NAME);
-         *
-         * CatalogChangeRequest req = CatalogChangeRequest.diff(master, slave,
-         * CatalogChangeRequest.PrimaryKey.SKU,
-         * CatalogChangeRequest.PrimaryKey.NAME, new HashSet<Object>());
-         * req.setSquareClient(current).call();
-         */
+        PLUCatalogBuilder catalogBuilder = new PLUCatalogBuilder(client, DB_URL, DB_USER, DB_PASSWORD, BRAND);
+        catalogBuilder.setPluFiltered(false);
 
-        /*
-         * RPC testing
-         *
-         *
-         * SquareClient clientMaster = new SquareClient("",
-         * "https://connect.squareupstaging.com", "v1", "DVKXZBNVFQAGS",
-         * "7K2P5XPK2DJ07"); Catalog master = Catalog.getCatalog(clientMaster,
-         * CatalogChangeRequest.PrimaryKey.NAME);
-         *
-         * File f = new File("/Users/colinlam/Desktop/PLU2.RPT");
-         * FileInputStream fis = new FileInputStream(f); BufferedInputStream bis
-         * = new BufferedInputStream(fis); EpicorParser epicor = new
-         * EpicorParser(); epicor.rpc().setItemNumberLookupLength(14);
-         * epicor.rpc().ingest(bis); Catalog slave =
-         * epicor.rpc().convert(master, CatalogChangeRequest.PrimaryKey.NAME);
-         *
-         * CatalogChangeRequest ccr = CatalogChangeRequest.diff(master, slave,
-         * CatalogChangeRequest.PrimaryKey.SKU,
-         * CatalogChangeRequest.PrimaryKey.NAME, new HashSet<Object>());
-         *
-         * ccr.setSquareClient(clientMaster);
-         *
-         * System.out.println("starting resolution"); ccr.call();
-         */
-
-        /*
-         * SquareClient clientMaster = new
-         * SquareClient("sq0atp-R8QA_3XoGz67JNhM1pX7zQ",
-         * "https://connect.squareup.com", "v1", "me", "58R606YEZ83T9"); Item[]
-         * items = clientMaster.items().list();
-         * System.out.println(items.length);
-         */
+        catalogBuilder.syncCategoriesFromDatabaseToSquare();
+        catalogBuilder.syncItemsFromDatabaseToSquare();
 
         System.out.println("Done.");
     }

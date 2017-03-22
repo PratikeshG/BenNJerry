@@ -9,8 +9,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TimeZone;
 
@@ -18,237 +22,331 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mysql.jdbc.ResultSet;
-import com.squareup.connect.Category;
-import com.squareup.connect.Discount;
-import com.squareup.connect.Fee;
-import com.squareup.connect.Item;
-import com.squareup.connect.ItemVariation;
-import com.squareup.connect.Money;
-import com.squareup.connect.SquareClient;
-import com.squareup.connect.diff.Catalog;
-import com.squareup.connect.diff.CatalogChangeRequest;
+import com.squareup.connect.v2.Catalog;
+import com.squareup.connect.v2.CatalogItemVariation;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Money;
+import com.squareup.connect.v2.SquareClientV2;
 
 import util.TimeManager;
 
 public class PLUCatalogBuilder {
     private static Logger logger = LoggerFactory.getLogger(PLUCatalogBuilder.class);
 
+    private static final String FIXED_PRICING = "FIXED_PRICING";
+    private static final String CATEGORY = "CATEGORY";
+    private static final String ITEM = "ITEM";
+
+    private static String DEPLOYMENT_PREFIX = "vfcorp";
+    private static String INVALID_STORE_ID = "00000";
+
+    private SquareClientV2 client;
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+    private String brand;
+    private boolean pluFiltered;
     private int itemNumberLookupLength;
 
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
     }
 
-    public PLUCatalogBuilder(String databaseUrl, String databaseUser, String databasePassword) {
+    public void setPluFiltered(boolean pluFiltered) {
+        this.pluFiltered = pluFiltered;
+    }
+
+    public PLUCatalogBuilder(SquareClientV2 client, String databaseUrl, String databaseUser, String databasePassword,
+            String brand) {
+        this.client = client;
         this.databaseUrl = databaseUrl;
         this.databaseUser = databaseUser;
         this.databasePassword = databasePassword;
+        this.brand = brand;
+        this.pluFiltered = true;
         this.itemNumberLookupLength = 14;
     }
 
-    public Catalog newCatalogFromSquare(SquareClient client) throws Exception {
-        Catalog catalog = new Catalog();
+    public void syncItemsFromDatabaseToSquare() throws Exception {
+        Catalog catalog = client.catalog().retrieveCatalog();
+        catalog.clearItemLocations();
+        catalog.clearItemTaxes();
 
-        Item[] items = client.items().list();
-        for (Item item : items) {
-            catalog.addItem(item, CatalogChangeRequest.PrimaryKey.SKU);
-        }
-
-        Category[] categories = client.categories().list();
-        for (Category category : categories) {
-            catalog.addCategory(category, CatalogChangeRequest.PrimaryKey.NAME);
-        }
-
-        Fee[] fees = client.fees().list();
-        for (Fee fee : fees) {
-            catalog.addFee(fee); // default primary is ID
-        }
-
-        Discount[] discounts = client.discounts().list();
-        for (Discount discount : discounts) {
-            catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
-        }
-
-        return catalog;
-    }
-
-    public Catalog newCatalogFromDatabase(Catalog current, String deploymentId, String locationId, String timeZone,
-            boolean filtered) throws Exception {
+        printCatalogStats(catalog);
 
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        Catalog catalog = new Catalog(current);
 
-        // Categories
-        ResultSet dbDeptClassCursor = getDBDeptClass(conn, locationId);
-        while (dbDeptClassCursor.next()) {
-            convertCategory(catalog, dbDeptClassCursor);
-        }
-
-        // Ignore existing discounts and only load expected defaults
-        catalog.setDiscounts(new HashMap<String, Discount>());
-        for (Discount discount : getDefaultDiscounts()) {
-            catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
-        }
-
-        // Promo discounts only for Full Price stores
-        if (deploymentId.startsWith("vfcorp-tnf-0000") || deploymentId.startsWith("vfcorp-tnf-0001")
-                || deploymentId.startsWith("vfcorp-tnf-0002") || deploymentId.startsWith("vfcorp-tnf-0003")
-                || deploymentId.startsWith("vfcorp-tnf-0004") || deploymentId.startsWith("vfcorp-tnf-0005")
-                || deploymentId.startsWith("vfcorp-tnf-004") || deploymentId.startsWith("vfcorp-tnf-005")) {
-            for (Discount discount : getEventDiscounts()) {
-                catalog.addDiscount(discount, CatalogChangeRequest.PrimaryKey.NAME);
-            }
-        }
-
-        // Items
-        ResultSet dbItemCursor = getDBItems(conn, locationId, filtered);
-        int rowcount = 0;
-        if (dbItemCursor.last()) {
-            rowcount = dbItemCursor.getRow();
-            dbItemCursor.beforeFirst();
-        }
-        logger.info(String.format("(%s) Total items from DB: %d", deploymentId, rowcount));
-        while (dbItemCursor.next()) {
-            convertItem(catalog, dbItemCursor, deploymentId);
-        }
-
-        // Sale Events
-        ResultSet dbItemSaleCursor = getDBItemSaleEvents(conn, locationId, timeZone);
-        while (dbItemSaleCursor.next()) {
-            applySalePrice(catalog, dbItemSaleCursor);
+        // For each location, add unique item to catalog and set price (sale) overrides
+        for (Location location : client.locations().list()) {
+            syncCatalogForLocation(conn, catalog, location);
         }
 
         conn.close();
 
-        // Apply item-specific taxes
-        applyItemTaxes(catalog, deploymentId);
-
-        return catalog;
+        upsertObjectsToSquare(catalog.getItems().values().toArray(new CatalogObject[0]), "item");
+        removeItemsNotPresentAtAnyLocations(catalog);
     }
 
-    private void applyItemTaxes(Catalog catalog, String deploymentId) throws Exception {
-        if (catalog.getFees().values().size() > 0) {
-            for (String itemSku : catalog.getItems().keySet()) {
-                Item item = catalog.getItems().get(itemSku);
+    private String getDeploymentIdForLocation(Location location) {
+        String locationId = Util.getStoreNumber(location.getName());
+        if (locationId.equals(INVALID_STORE_ID)) {
+            return null;
+        }
 
-                item.setFees(TaxRules.getItemTaxesForLocation(deploymentId,
-                        catalog.getFees().values().toArray(new Fee[0]), item));
-            }
+        return String.format("%s-%s-%s", DEPLOYMENT_PREFIX, brand, locationId);
+    }
+
+    private void syncCatalogForLocation(Connection conn, Catalog catalog, Location location) throws Exception {
+        String deploymentId = getDeploymentIdForLocation(location);
+        if (deploymentId == null) {
+            System.out.println("INVALID LOCATION: " + location.getName());
+            return; // Skip invalid location
+        }
+
+        syncLocationDbItems(conn, catalog, location, deploymentId);
+        syncLocationDbSalePrices(conn, catalog, location);
+
+        // Taxes should be configured on a per location basis in Dashboard
+        CatalogObject[] locationTaxes = objectsPresentAtLocation(
+                catalog.getTaxes().values().toArray(new CatalogObject[0]), location.getId());
+        applyLocationSpecificItemTaxes(catalog.getItems().values().toArray(new CatalogObject[0]), locationTaxes,
+                deploymentId, location.getId());
+    }
+
+    private void syncLocationDbItems(Connection conn, Catalog catalog, Location location, String deploymentId)
+            throws Exception {
+        ResultSet dbItemCursor = queryDBItems(conn, location.getId());
+        while (dbItemCursor.next()) {
+            updateCatalogLocationWithItem(catalog, location, dbItemCursor, deploymentId);
         }
     }
 
-    private void applySalePrice(Catalog catalog, ResultSet record) throws Exception {
+    private void syncLocationDbSalePrices(Connection conn, Catalog catalog, Location location) throws Exception {
+        ResultSet dbItemSaleCursor = queryDBItemSaleEvents(conn, location.getId(), location.getTimezone());
+        while (dbItemSaleCursor.next()) {
+            applySalePrice(catalog, location.getId(), dbItemSaleCursor);
+        }
+    }
+
+    private static void printCatalogStats(Catalog catalog) {
+        System.out.println("CATEGORIES: " + catalog.getCategories().size());
+        System.out.println("ITEMS: " + catalog.getItems().size());
+        System.out.println("TAXES: " + catalog.getTaxes().size());
+        System.out.println("DISCOUNTS: " + catalog.getDiscounts().size());
+        System.out.println("MODIFIER LISTS: " + catalog.getModifierLists().size());
+    }
+
+    private void removeItemsNotPresentAtAnyLocations(Catalog catalog) {
+        ArrayList<String> idsToDelete = new ArrayList<String>();
+
+        for (String key : catalog.getItems().keySet()) {
+            CatalogObject item = catalog.getItem(key);
+
+            if (!isObjectPresentAtAnyLocation(item)) {
+                idsToDelete.add(item.getId());
+            }
+        }
+
+        deleteObjectsFromSquare(idsToDelete.toArray(new String[0]));
+    }
+
+    private CatalogObject[] objectsPresentAtLocation(CatalogObject[] objects, String locationId) {
+        ArrayList<CatalogObject> objectsForLocation = new ArrayList<CatalogObject>();
+
+        for (CatalogObject object : objects) {
+            if (object.isPresentAtAllLocations() || (object.getPresentAtLocationIds() != null
+                    && Arrays.asList(object.getPresentAtLocationIds()).contains(locationId))) {
+                objectsForLocation.add(object);
+            }
+        }
+
+        return objectsForLocation.toArray(new CatalogObject[0]);
+    }
+
+    private boolean isObjectPresentAtAnyLocation(CatalogObject object) {
+        return (object.isPresentAtAllLocations()
+                || (object.getPresentAtLocationIds() != null && object.getPresentAtLocationIds().length > 0));
+    }
+
+    public void syncCategoriesFromDatabaseToSquare() throws Exception {
+        HashSet<String> allDatabaseCategoryNames = (HashSet<String>) getUniqueCategoriesFromDatabase();
+
+        // Only retrieve Square account categories for now
+        Catalog categoriesCatalog = retrieveCategoriesFromSquare();
+
+        // Add missing categories
+        for (String categoryName : allDatabaseCategoryNames) {
+            CatalogObject existingCategory = categoriesCatalog.getCategories().get(categoryName);
+            if (existingCategory == null) {
+                CatalogObject newCategory = new CatalogObject(CATEGORY);
+                newCategory.getCategoryData().setName(categoryName);
+                categoriesCatalog.addCategory(newCategory);
+            }
+        }
+
+        upsertObjectsToSquare(categoriesCatalog.getCategories().values().toArray(new CatalogObject[0]), "category");
+    }
+
+    private Catalog retrieveCategoriesFromSquare() throws Exception {
+        Catalog catalog = new Catalog(client.catalog().listCategories(), Catalog.PrimaryKey.SKU,
+                Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+        return catalog;
+    }
+
+    private void deleteObjectsFromSquare(String[] objectIds) {
+        logger.info(String.format("Deleteing %d objects from catalog...", objectIds.length));
+        try {
+            client.catalog().batchDeleteObjects(objectIds);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failure deleting objects");
+        }
+    }
+
+    private void upsertObjectsToSquare(CatalogObject[] objects, String type) {
+        logger.info(String.format("Upserting %s objects from catalog...", type));
+        try {
+            client.catalog().batchUpsertObjects(objects);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(String.format("Failure upserting %s objects into catalog", type));
+        }
+    }
+
+    private Set<String> getUniqueCategoriesFromDatabase() throws ClassNotFoundException, SQLException {
+        HashSet<String> categoriesSet = new HashSet<String>();
+
+        ResultSet dbDeptClassCursor = queryDBDeptClass(brand);
+        while (dbDeptClassCursor.next()) {
+            String deptNumber = String.format("%-4s", dbDeptClassCursor.getString("deptNumber"));
+            String classNumber = String.format("%-4s", dbDeptClassCursor.getString("classNumber"));
+            String categoryName = deptNumber + classNumber + " " + dbDeptClassCursor.getString("description").trim();
+
+            categoriesSet.add(categoryName);
+        }
+
+        return categoriesSet;
+    }
+
+    private ResultSet queryDBDeptClass(String brand) throws SQLException, ClassNotFoundException {
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+
+        String query = String.format(
+                "SELECT deptNumber, classNumber, description FROM vfcorp_plu_dept_class WHERE deployment LIKE 'vfcorp-%s-%%' GROUP BY deptNumber, classNumber, description",
+                brand);
+
+        return executeQuery(conn, query);
+    }
+
+    private void applyLocationSpecificItemTaxes(CatalogObject[] items, CatalogObject[] locationSpecificTaxes,
+            String deploymentId, String locationId) throws Exception {
+        for (CatalogObject item : items) {
+            String[] taxIds = TaxRules.getItemTaxesForLocation(item.getItemData(), locationSpecificTaxes, deploymentId,
+                    locationId);
+            item.getItemData().appendTaxIds(taxIds);
+        }
+    }
+
+    private void applySalePrice(Catalog catalog, String locationId, ResultSet record) throws Exception {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
-        Item item = catalog.getItems().get(sku);
-        ItemVariation variation = (item != null) ? item.getVariations()[0] : null;
+        CatalogObject item = catalog.getItem(sku);
+        CatalogItemVariation variation = getFirstItemVariation(item);
 
         if (variation != null && variation.getSku().equals(sku)) {
             int price = Integer.parseInt(record.getString("salePrice"));
             if (price > 0) {
-                variation.setPriceMoney(new Money(price));
+                item.setLocationPriceOverride(new String[] { locationId }, new Money(price), FIXED_PRICING);
             }
         }
     }
 
-    private Item getMatchingOrNewItem(Catalog catalog, String sku) {
-        Item matchingItem = null;
-
-        Item item = catalog.getItems().get(sku);
-        if (item != null) {
-            if (sku.equals(item.getVariations()[0].getSku())) {
-                matchingItem = item;
-            }
+    private CatalogObject getMatchingOrNewItem(Catalog catalog, String sku) {
+        CatalogObject item = catalog.getItem(sku);
+        if (item == null) {
+            item = new CatalogObject(ITEM);
         }
-
-        if (matchingItem == null) {
-            matchingItem = new Item();
-            ItemVariation newVariation = new ItemVariation("Regular");
-            newVariation.setSku(sku);
-            matchingItem.setVariations(new ItemVariation[] { newVariation });
-        }
-
-        return matchingItem;
+        return item;
     }
 
-    private void convertItem(Catalog catalog, ResultSet record, String deploymentId) throws Exception {
+    private void updateCatalogLocationWithItem(Catalog catalog, Location location, ResultSet record,
+            String deploymentId) throws Exception {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
-        Item matchingItem = getMatchingOrNewItem(catalog, sku);
-        ItemVariation matchingVariation = matchingItem.getVariations()[0];
+        CatalogObject updatedItem = getMatchingOrNewItem(catalog, sku);
+        CatalogItemVariation updatedVariation = getFirstItemVariation(updatedItem);
 
+        // Item Name
+        String description = record.getString("description").replaceFirst("\\s+$", "");
+        String altDescription = (record.getString("alternateDescription") != null)
+                ? record.getString("alternateDescription").trim() : "";
+        String itemName = (altDescription.length() > description.length()) ? altDescription : description;
+        updatedItem.getItemData().setName(itemName);
+
+        // Variation SKU
+        updatedVariation.setSku(sku);
+
+        // Variation Price
         int price = Integer.parseInt(record.getString("retailPrice"));
+        Money locationPriceMoney = new Money(price);
         if (price > 0) {
-            matchingVariation.setPriceMoney(new Money(price));
+            // We can't discern which location's price is the master price, just override
+            updatedVariation.setPriceMoney(locationPriceMoney);
         }
 
+        // Variation Name
         String deptCodeClass = String.format("%-4s", record.getString("deptNumber"))
                 + String.format("%-4s", record.getString("classNumber"));
-        matchingVariation.setName(String.format("%s (%s)", sku, deptCodeClass));
+        updatedVariation.setName(String.format("%s (%s)", sku, deptCodeClass));
 
-        for (Category category : catalog.getCategories().values()) {
-            if (category.getName().subSequence(0, 8).equals(deptCodeClass)) {
-                matchingItem.setCategory(category);
+        // Item Category
+        for (CatalogObject category : catalog.getCategories().values()) {
+            if (category.getCategoryData().getName().subSequence(0, 8).equals(deptCodeClass)) {
+                updatedItem.getItemData().setCategoryId(category.getId());
                 break;
             }
         }
 
-        // Only update name if it looks like it has changed
-        String itemName = record.getString("description").replaceFirst("\\s+$", "");
-        if (!matchingItem.getName().startsWith(itemName)) {
-            String altDescription = (record.getString("alternateDescription") != null)
-                    ? record.getString("alternateDescription").trim() : "";
-            itemName = (altDescription.length() > itemName.length()) ? altDescription : itemName;
-            matchingItem.setName(itemName);
-        }
+        // Availability
+        String locationId = location.getId();
+        updatedItem.setPresentAtAllLocations(true);
+        updatedItem.enableAtLocation(locationId);
+        updatedItem.setLocationPriceOverride(locationId, locationPriceMoney, FIXED_PRICING);
 
         // Skip MA/RhodeIsland items that we can't tax
-        if (!skipItemForTaxReasons(matchingItem, deploymentId)) {
-            catalog.addItem(matchingItem, CatalogChangeRequest.PrimaryKey.SKU);
+        if (skipItemForTaxReasons(updatedItem, deploymentId)) {
+            updatedItem.disableAtLocation(locationId);
         }
+
+        catalog.addItem(updatedItem);
     }
 
-    private boolean skipItemForTaxReasons(Item item, String deploymentId) {
+    private CatalogItemVariation getFirstItemVariation(CatalogObject item) {
+        if (item.getItemData().getVariations() != null) {
+            return item.getItemData().getVariations()[0].getItemVariationData();
+        }
+        return null;
+    }
+
+    // Square can't support certain items due to deployment specific taxes. We'll omit them.
+    private boolean skipItemForTaxReasons(CatalogObject item, String deploymentId) {
         if ((deploymentId.equals(TaxRules.TNF_BOSTON) || deploymentId.equals(TaxRules.TNF_PEABODY)
                 || deploymentId.equals(TaxRules.TNF_BRAINTREE))
-                && TaxRules
-                        .deptClassIsClothingTaxCategory(Util.getValueInParenthesis(item.getVariations()[0].getName()))
-                && item.getVariations()[0].getPriceMoney().getAmount() > TaxRules.MA_EXEMPT_THRESHOLD) {
+                && TaxRules.deptClassIsClothingTaxCategory(
+                        Util.getValueInParenthesis(getFirstItemVariation(item).getName()))
+                && getFirstItemVariation(item).getPriceMoney().getAmount() > TaxRules.MA_EXEMPT_THRESHOLD) {
             return true;
         } else if (deploymentId.equals(TaxRules.TNF_RHODE_ISLAND)
-                && TaxRules
-                        .deptClassIsClothingTaxCategory(Util.getValueInParenthesis(item.getVariations()[0].getName()))
-                && item.getVariations()[0].getPriceMoney().getAmount() > TaxRules.RI_EXEMPT_THRESHOLD) {
+                && TaxRules.deptClassIsClothingTaxCategory(
+                        Util.getValueInParenthesis(getFirstItemVariation(item).getName()))
+                && getFirstItemVariation(item).getPriceMoney().getAmount() > TaxRules.RI_EXEMPT_THRESHOLD) {
             return true;
         }
 
         return false;
-    }
-
-    private void convertCategory(Catalog catalog, ResultSet record) throws SQLException {
-        String deptNumber = String.format("%-4s", record.getString("deptNumber"));
-        String classNumber = String.format("%-4s", record.getString("classNumber"));
-        String categoryName = deptNumber + classNumber + " " + record.getString("description").trim();
-
-        Category matchingCategory = null;
-        for (String key : catalog.getCategories().keySet()) {
-            Category category = catalog.getCategories().get(key);
-            if (category.getName().substring(0, 8).equals(categoryName.substring(0, 8))) {
-                matchingCategory = category;
-                break;
-            }
-        }
-
-        if (matchingCategory == null) {
-            matchingCategory = new Category();
-        }
-
-        matchingCategory.setName(categoryName);
-        catalog.addCategory(matchingCategory, CatalogChangeRequest.PrimaryKey.NAME);
     }
 
     private ResultSet executeQuery(Connection conn, String query) throws SQLException {
@@ -258,24 +356,19 @@ public class PLUCatalogBuilder {
         return result;
     }
 
-    private ResultSet getDBDeptClass(Connection conn, String locationId) throws SQLException {
-        String query = String.format("SELECT * FROM vfcorp_plu_dept_class WHERE locationId = '%s'", locationId);
-        return executeQuery(conn, query);
-    }
-
-    private ResultSet getDBItems(Connection conn, String locationId, boolean filtered)
-            throws SQLException, IOException {
+    private ResultSet queryDBItems(Connection conn, String locationId)
+            throws SQLException, IOException, ClassNotFoundException {
         String query = String.format("SELECT * FROM vfcorp_plu_items WHERE locationId = '%s'", locationId);
 
-        if (filtered) {
-            logger.info("Applying SKU filter... ");
+        if (pluFiltered) {
+            logger.info("Applying SKU whitelist filter... ");
             query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString());
         }
 
         return executeQuery(conn, query);
     }
 
-    private ResultSet getDBItemSaleEvents(Connection conn, String locationId, String timeZone)
+    private ResultSet queryDBItemSaleEvents(Connection conn, String locationId, String timeZone)
             throws SQLException, IOException, ParseException {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
         String nowDate = TimeManager.toSimpleDateTimeInTimeZone(cal, timeZone, "MMddyyyy");
@@ -305,7 +398,7 @@ public class PLUCatalogBuilder {
             brSKU.close();
         }
 
-        logger.info("Total SKU filtered: " + skuFilter.size());
+        logger.info("Total SKU whitelist filtered: " + skuFilter.size());
 
         StringJoiner sj = new StringJoiner(",");
         for (String sku : skuFilter.keySet()) {
@@ -347,62 +440,5 @@ public class PLUCatalogBuilder {
             // Remove trailing spaces
             return shortItemNumber.replaceFirst("\\s+$", "");
         }
-    }
-
-    private Discount[] getDefaultDiscounts() {
-        Discount[] discounts = new Discount[] { newDiscount("40% Associate Discount [21000]", "FIXED", "0.40", 0),
-                newDiscount("50% Associate Discount [21000]", "FIXED", "0.50", 0),
-
-                newDiscount("Item % Customer Accommodation [00122]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % Damaged [00123]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % In Store Coupon [00124]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % Mall Coupon [00125]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % Other [00126]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % Post Card Promo [00120]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Item % Price Match [00121]", "VARIABLE_PERCENTAGE", "0", 0),
-
-                newDiscount("Transaction % Customer Accommodation [01142]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Damaged [01143]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % In Store Coupon [01144]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Mall Coupon [01145]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Military [01150]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Other [01146]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Post Card Promo [01140]", "VARIABLE_PERCENTAGE", "0", 0),
-                newDiscount("Transaction % Price Match [01141]", "VARIABLE_PERCENTAGE", "0", 0),
-
-                newDiscount("Transaction $ Customer Accommodation [01132]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ Damaged [01133]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ In Store Coupon [01134]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ Mall Coupon [01135]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ Other [01136]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ Post Card Promo [01130]", "VARIABLE_AMOUNT", null, 0),
-                newDiscount("Transaction $ Price Match [01131]", "VARIABLE_AMOUNT", null, 0) };
-
-        return discounts;
-    }
-
-    private Discount[] getEventDiscounts() {
-        Discount[] discounts = new Discount[] {
-                newDiscount("10% VIPeak Discount WS17 [11000] (557001WS17)", "FIXED", "0.10", 0) };
-
-        return discounts;
-    }
-
-    private Discount newDiscount(String name, String type, String rate, int amount) {
-        Discount d = new Discount();
-
-        d.setName(name);
-        d.setDiscountType(type);
-
-        // Do not include this field for amount-based discounts.
-        if (rate != null) {
-            d.setRate(rate);
-        } else {
-            // Do not include this field for rate-based discounts.
-            Money money = new Money(amount, "USD");
-            d.setAmountMoney(money);
-        }
-
-        return d;
     }
 }

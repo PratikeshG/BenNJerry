@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.squareup.connect.Fee;
-import com.squareup.connect.Item;
-import com.squareup.connect.ItemVariation;
+import com.squareup.connect.v2.CatalogItem;
+import com.squareup.connect.v2.CatalogItemVariation;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.LocationOverride;
 
 public class TaxRules {
     public static final int NY_EXEMPT_THRESHOLD = 11000;
@@ -165,17 +166,28 @@ public class TaxRules {
             "95  9501", "95  9502", "95  9503", "95  9550", "95  9551", "95  9552", "95  9553", "96  9600", "96  9610",
             "96  9620", "96  9630" }));
 
-    public static Fee[] getItemTaxesForLocation(String deployment, Fee[] taxes, Item item) throws Exception {
-        ItemVariation itemVariation = item.getVariations()[0];
+    private static int getLocationPrice(CatalogItemVariation itemVariation, String locationId) {
+        for (LocationOverride locationPrice : itemVariation.getLocationOverrides()) {
+            if (locationPrice.getLocationId().equals(locationId)) {
+                return locationPrice.getPriceMoney().getAmount();
+            }
+        }
 
-        int itemPrice = itemVariation.getPriceMoney().getAmount();
+        return itemVariation.getPriceMoney().getAmount();
+    }
+
+    public static String[] getItemTaxesForLocation(CatalogItem item, CatalogObject[] taxes, String deployment,
+            String locationId) throws Exception {
+        CatalogItemVariation itemVariation = item.getVariations()[0].getItemVariationData();
+
+        int itemPrice = getLocationPrice(itemVariation, locationId);
         String itemDeptClass = Util.getValueInParenthesis(itemVariation.getName());
 
         if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)
                 || itemVariation.getSku().equals(BAG_3039)) {
             if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_CHICAGO) || deployment.equals(TNF_VALLEY_FAIR)
                     || deployment.equals(TNF_BETHESDA) || deployment.equals(TNF_STANFORD)) {
-                return new Fee[0];
+                return new String[0];
             }
         } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH)) {
@@ -184,9 +196,9 @@ public class TaxRules {
             }
 
             if (isSpecialTaxCategoryNYS(itemPrice, itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_BOSTON) || deployment.equals(TNF_PEABODY)
                 || deployment.equals(TNF_BRAINTREE)) {
@@ -196,9 +208,9 @@ public class TaxRules {
 
             // We can't actually handle MA taxes right now
             if (isSpecialTaxCategoryMA(itemPrice, itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_RHODE_ISLAND)) {
             if (taxes.length != 1) {
@@ -207,9 +219,9 @@ public class TaxRules {
 
             // We can't actually handle Rhode Island taxes right now
             if (isSpecialTaxCategoryRhodeIsland(itemPrice, itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_NY_WHITEPLAINS) || deployment.equals(TNF_NY_ONTARIO)
                 || deployment.equals(TNF_NY_WOODBURY) || deployment.equals(TNF_NY_RIVERHEAD)) {
@@ -217,13 +229,13 @@ public class TaxRules {
                 throw new Exception("NYS deployment with incorrect number of taxes: " + deployment);
             }
 
-            Fee lowTax = getLowerTax(taxes[0], taxes[1]);
-            Fee highTax = getHigherTax(taxes[0], taxes[1]);
+            CatalogObject lowTax = getLowerTax(taxes[0], taxes[1]);
+            CatalogObject highTax = getHigherTax(taxes[0], taxes[1]);
 
             if (isSpecialTaxCategoryNYS(itemPrice, itemDeptClass)) {
-                return new Fee[] { lowTax };
+                return new String[] { lowTax.getId() };
             } else {
-                return new Fee[] { highTax };
+                return new String[] { highTax.getId() };
             }
         } else if (deployment.equals(TNF_PA_KING_OF_PRUSSIA) || deployment.equals(TNF_PA_GROVE_CITY)
                 || deployment.equals(TNF_PA_TANNERSVILLE) || deployment.equals(TNF_PA_PHILADELPHIA_OUTLET)) {
@@ -232,9 +244,9 @@ public class TaxRules {
             }
 
             if (isSpecialTaxCategoryPA(itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_NJ_CHERRY_HILL)) {
             if (taxes.length != 1) {
@@ -242,9 +254,9 @@ public class TaxRules {
             }
 
             if (isSpecialTaxCategoryNJ(itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_MN_ALBERTVILLE) || deployment.equals(TNF_MN_MALL_OF_AMERICA)) {
             if (taxes.length != 1) {
@@ -252,20 +264,20 @@ public class TaxRules {
             }
 
             if (isSpecialTaxCategoryMN(itemDeptClass)) {
-                return new Fee[0];
+                return new String[0];
             } else {
-                return new Fee[] { taxes[0] };
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_NE_NEBRASKA_CROSSING)) {
             if (taxes.length != 2) {
                 throw new Exception("Nebraska Crossing deployment with incorrect number of taxes: " + deployment);
             }
-            return taxes;
+            return new String[] { taxes[0].getId(), taxes[1].getId() };
         } else if (taxes.length != 1) {
             throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
         }
 
-        return new Fee[] { taxes[0] };
+        return new String[] { taxes[0].getId() };
     }
 
     public static boolean deptClassIsClothingTaxCategory(String deptClass) {
@@ -309,17 +321,18 @@ public class TaxRules {
         return deptClassIsClothingTaxCategory(deptClass);
     }
 
-    private static Fee getLowerTax(Fee fee1, Fee fee2) {
-        if (Float.parseFloat(fee1.getRate()) < Float.parseFloat(fee2.getRate())) {
-            return fee1;
+    private static CatalogObject getLowerTax(CatalogObject tax1, CatalogObject tax2) {
+        if (Float.parseFloat(tax1.getTaxData().getPercentage()) < Float.parseFloat(tax2.getTaxData().getPercentage())) {
+            return tax1;
         }
-        return fee2;
+        return tax2;
     }
 
-    private static Fee getHigherTax(Fee fee1, Fee fee2) {
-        if (Float.parseFloat(fee1.getRate()) >= Float.parseFloat(fee2.getRate())) {
-            return fee1;
+    private static CatalogObject getHigherTax(CatalogObject tax1, CatalogObject tax2) {
+        if (Float.parseFloat(tax1.getTaxData().getPercentage()) >= Float
+                .parseFloat(tax2.getTaxData().getPercentage())) {
+            return tax1;
         }
-        return fee2;
+        return tax2;
     }
 }

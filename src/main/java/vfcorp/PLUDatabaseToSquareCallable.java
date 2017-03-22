@@ -1,6 +1,6 @@
 package vfcorp;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.mule.api.MuleEventContext;
@@ -10,15 +10,10 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 import com.squareup.connect.Page;
 import com.squareup.connect.PageCell;
 import com.squareup.connect.SquareClient;
-import com.squareup.connect.diff.Catalog;
-import com.squareup.connect.diff.CatalogChangeRequest;
+import com.squareup.connect.v2.SquareClientV2;
 
 public class PLUDatabaseToSquareCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PLUDatabaseToSquareCallable.class);
@@ -26,10 +21,6 @@ public class PLUDatabaseToSquareCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
-    private String sftpHost;
-    private int sftpPort;
-    private String sftpUser;
-    private String sftpPassword;
     private String apiUrl;
     private int itemNumberLookupLength;
 
@@ -45,22 +36,6 @@ public class PLUDatabaseToSquareCallable implements Callable {
         this.databasePassword = databasePassword;
     }
 
-    public void setSftpHost(String sftpHost) {
-        this.sftpHost = sftpHost;
-    }
-
-    public void setSftpPort(int sftpPort) {
-        this.sftpPort = sftpPort;
-    }
-
-    public void setSftpUser(String sftpUser) {
-        this.sftpUser = sftpUser;
-    }
-
-    public void setSftpPassword(String sftpPassword) {
-        this.sftpPassword = sftpPassword;
-    }
-
     public void setApiUrl(String apiUrl) {
         this.apiUrl = apiUrl;
     }
@@ -73,76 +48,42 @@ public class PLUDatabaseToSquareCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        PLUDatabaseToSquareRequest updateRequest = (PLUDatabaseToSquareRequest) message.getPayload();
-        message.setProperty("pluDatabaseToSquareRequest", updateRequest, PropertyScope.INVOCATION);
+        String brand = (String) message.getProperty("brand", PropertyScope.SESSION);
 
-        String deploymentId = updateRequest.getDeployment().getDeployment();
+        // Retrieve a single deployment for credentials for master account
+        VFCDeployment masterAccount = getMasterAccountDeployment(brand);
 
-        SquareClient client = new SquareClient(updateRequest.getDeployment().getAccessToken(), apiUrl, "v1",
-                updateRequest.getDeployment().getMerchantId(), updateRequest.getDeployment().getLocationId());
+        SquareClientV2 client = new SquareClientV2(apiUrl, masterAccount.getAccessToken());
 
-        PLUCatalogBuilder catalogBuilder = new PLUCatalogBuilder(databaseUrl, databaseUser, databasePassword);
+        PLUCatalogBuilder catalogBuilder = new PLUCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
+                brand);
         catalogBuilder.setItemNumberLookupLength(itemNumberLookupLength);
+        catalogBuilder.setPluFiltered(masterAccount.isPluFiltered());
 
-        Catalog currentCatalog = catalogBuilder.newCatalogFromSquare(client);
-        Catalog proposedCatalog = catalogBuilder.newCatalogFromDatabase(currentCatalog, deploymentId,
-                updateRequest.getDeployment().getLocationId(), updateRequest.getDeployment().getTimeZone(),
-                updateRequest.getDeployment().isPluFiltered());
+        catalogBuilder.syncCategoriesFromDatabaseToSquare();
+        catalogBuilder.syncItemsFromDatabaseToSquare();
 
-        CatalogChangeRequest ccr = diffAndLogChanges(currentCatalog, proposedCatalog, deploymentId);
-
-        logger.info(String.format("(%s) Updating account...", deploymentId));
-        ccr.setSquareClient(client);
-        ccr.call();
-
-        // TODO(bhartard): Determine how to handle fav page/cells after
-        // migration to V2 APIs
+        // TODO(bhartard): Determine how to handle fav page/cells
+        /*
         updateFavoritesGrid(client);
+        */
 
-        logger.info(String.format("(%s) Done updating account.", deploymentId));
+        logger.info(String.format("Done updating brand account: %s", brand));
 
-        // This request originated from an SFTP PLU file update
-        // Need to move it to archive from processing
-        if (updateRequest.isProcessingPluFile() && updateRequest.getProcessingFileName() != null) {
-            archiveProcessingFile(updateRequest.getProcessingFileName(), updateRequest.getDeployment().getPluPath());
-        }
         return null;
     }
 
-    private void archiveProcessingFile(String fileName, String filePath)
-            throws JSchException, IOException, SftpException {
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
+    private VFCDeployment getMasterAccountDeployment(String brand) throws Exception {
+        String whereFilter = String.format("vfcorp_deployments.deployment LIKE 'vfcorp-%s-%%'", brand);
 
-        sftpChannel.rename(filePath + "/processing/" + fileName, filePath + "/archive/" + fileName);
+        ArrayList<VFCDeployment> matchingDeployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+                databaseUser, databasePassword, whereFilter);
 
-        sftpChannel.disconnect();
-        session.disconnect();
-    }
+        if (matchingDeployments.size() < 1) {
+            throw new Exception(String.format("No deployments for brand '%s' found.", brand));
+        }
 
-    private CatalogChangeRequest diffAndLogChanges(Catalog current, Catalog proposed, String deploymentId) {
-        logger.info(String.format("(%s) Current categories total: %d", deploymentId, current.getCategories().size()));
-        logger.info(String.format("(%s) Current discounts total: %d", deploymentId, current.getDiscounts().size()));
-        logger.info(String.format("(%s) Current fees total: %d", deploymentId, current.getFees().size()));
-        logger.info(String.format("(%s) Current items total: %d", deploymentId, current.getItems().size()));
-
-        logger.info(String.format("(%s) Proposed categories total: %d", deploymentId, proposed.getCategories().size()));
-        logger.info(String.format("(%s) Proposed discounts total: %d", deploymentId, proposed.getDiscounts().size()));
-        logger.info(String.format("(%s) Proposed fees total: %d", deploymentId, proposed.getFees().size()));
-        logger.info(String.format("(%s) Proposed items total: %d", deploymentId, proposed.getItems().size()));
-
-        logger.info(String.format("(%s) Performing diff...", deploymentId));
-        CatalogChangeRequest ccr = CatalogChangeRequest.diff(current, proposed, CatalogChangeRequest.PrimaryKey.SKU,
-                CatalogChangeRequest.PrimaryKey.NAME);
-        logger.info(String.format("(%s) Diff complete.", deploymentId));
-
-        logger.info(String.format("(%s) Diff new mappings total: %d", deploymentId,
-                ccr.getMappingsToApply().keySet().size()));
-        logger.info(String.format("(%s) Diff create total: %d", deploymentId, ccr.getObjectsToCreate().size()));
-        logger.info(String.format("(%s) Diff update total: %d", deploymentId, ccr.getObjectsToUpdate().size()));
-
-        return ccr;
+        return matchingDeployments.get(0);
     }
 
     private void updateFavoritesGrid(SquareClient client) throws Exception {
