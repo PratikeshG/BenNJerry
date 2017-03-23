@@ -326,16 +326,24 @@ public class PLUCatalogBuilder {
 
         // Availability
         String locationId = location.getId();
-        updatedItem.setPresentAtAllLocations(true);
-        updatedItem.enableAtLocation(locationId);
-        updatedItem.setLocationPriceOverride(locationId, locationPriceMoney, FIXED_PRICING);
+        setPresentAtAllLocations(updatedItem);
 
         // Skip MA/RhodeIsland items that we can't tax
         if (skipItemForTaxReasons(updatedItem, deploymentId)) {
             updatedItem.disableAtLocation(locationId);
+        } else {
+            updatedItem.enableAtLocation(locationId);
+            updatedItem.setLocationPriceOverride(locationId, locationPriceMoney, FIXED_PRICING);
         }
 
         catalog.addItem(updatedItem);
+    }
+
+    private void setPresentAtAllLocations(CatalogObject object) {
+        object.setPresentAtAllLocations(true);
+        if (object.getItemData() != null) {
+            object.getItemData().setPresentAtAllLocations(true);
+        }
     }
 
     private CatalogItemVariation getFirstItemVariation(CatalogObject item) {
