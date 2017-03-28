@@ -21,7 +21,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <set-payload value="Triggered ingestion of CSV files on SFTP server" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:sftp-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="tntfireworks-csv-sftp-cron-1480949901" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
+        <quartz:inbound-endpoint jobName="tntfireworks-csv-sftp-cron-1480949912" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="QuartzDefault">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check SFTP folders for CSV files">

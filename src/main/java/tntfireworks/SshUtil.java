@@ -28,12 +28,12 @@ public class SshUtil {
 
         // connection to session
         session.connect();
-        logger.info(String.format("SFTP Session connection established to host: %s", sftpHost));
+        logger.info(String.format("TNT: SFTP Session connection established to host: %s", sftpHost));
 
         // open/connect channel
         sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
-        logger.info("SFTP channel created.");
+        logger.info("TNT: SFTP channel created.");
 
         return sftpChannel;
     }
@@ -43,12 +43,12 @@ public class SshUtil {
 
         if (sftpChannel != null && sftpChannel.isConnected()) {
             sftpChannel.disconnect();
-            logger.info("SFTP channel closed.");
+            logger.info("TNT: SFTP channel closed.");
 
             Session session = sftpChannel.getSession();
             if (session != null && session.isConnected()) {
                 session.disconnect();
-                logger.info("SFTP session closed.");
+                logger.info("TNT: SFTP session closed.");
             }
         }
     }

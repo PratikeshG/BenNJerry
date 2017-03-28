@@ -82,13 +82,13 @@ public class PollSFTPCallable implements Callable {
 
     /*
      * Processes files in the input directory
-     * 
+     *
      * Preconditions: it is expected that the directory structure contain the following folders:
-     * 
+     *
      * \archive
      * \input
      * \input\processing
-     * 
+     *
      */
     private List<SyncToDatabaseRequest> getSFTPRequests(ChannelSftp channel)
             throws InterruptedException, SftpException, ParseException {
@@ -122,7 +122,8 @@ public class PollSFTPCallable implements Callable {
         Thread.sleep(7500);
 
         // add to processing folder
-        logger.info(String.format("Adding files to processing folder. Number of files: '%s'", filesToProcess.size()));
+        logger.info(
+                String.format("TNT: Adding files to processing folder. Number of files: '%s'", filesToProcess.size()));
         for (String filePrefix : filesToProcess.keySet()) {
             logger.info("filePrefix=" + filePrefix);
             Boolean processFile = true;
@@ -133,16 +134,16 @@ public class PollSFTPCallable implements Callable {
             if (currentFile.getAttrs().getSize() != channel
                     .lstat(String.format("%s/%s", inputFullPath, currentFilename)).getSize()) {
                 processFile = false;
-                logger.info(
-                        String.format("%s not ready for processing, still uploading to SFTP server.", currentFilename));
+                logger.info(String.format("TNT: %s not ready for processing, still uploading to SFTP server.",
+                        currentFilename));
             }
 
             // check if another file is processing
             if (foundExistingFile(channel.ls(String.format("%s/*.csv", processingFullPath)), filePrefix)) {
                 processFile = false;
-                logger.info(
-                        String.format("Can't begin processing %s. Already processing another file of the same prefix.",
-                                currentFilename));
+                logger.info(String.format(
+                        "TNT: Can't begin processing %s. Already processing another file of the same prefix.",
+                        currentFilename));
             }
 
             // move file to processing directory
@@ -150,7 +151,8 @@ public class PollSFTPCallable implements Callable {
                 String processingFilename = currentDatestamp() + "_" + currentFilename;
                 channel.rename(String.format("%s/%s", inputFullPath, currentFilename),
                         String.format("%s/%s", processingFullPath, processingFilename));
-                logger.info(String.format("Queuing %s for processing (%s)...", currentFilename, processingFilename));
+                logger.info(
+                        String.format("TNT: Queuing %s for processing (%s)...", currentFilename, processingFilename));
 
                 // create request object to be processed by VM
                 SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename,
@@ -173,7 +175,7 @@ public class PollSFTPCallable implements Callable {
     }
 
     private HashMap<String, ArrayList<LsEntry>> sortFilesByPrefix(Vector<LsEntry> inputFiles) {
-        logger.info(String.format("Sorting list of file entries by prefix. Number of files in directory: '%s'",
+        logger.info(String.format("TNT: Sorting list of file entries by prefix. Number of files in directory: '%s'",
                 inputFiles.size()));
         HashMap<String, ArrayList<LsEntry>> sortedFiles = new HashMap<String, ArrayList<LsEntry>>();
 
@@ -181,7 +183,7 @@ public class PollSFTPCallable implements Callable {
             String prefix = "";
 
             // prepare regex pattern for group matching
-            // ([A-Za-z0-9]+) => find an occurrence of any combination of letters and numbers, 
+            // ([A-Za-z0-9]+) => find an occurrence of any combination of letters and numbers,
             //                   requires at least 1 char
             // (\\d{8}) => find 8 digits, requires 1 occurrence of 8 digits
             Pattern r = Pattern.compile("([A-Za-z0-9]+)_(\\d{8}).csv");
@@ -219,7 +221,7 @@ public class PollSFTPCallable implements Callable {
         return TimeManager.toSimpleDateTimeInTimeZone(c, tz, "yyyyMMddHHmmss");
     }
 
-    // assumptions: 
+    // assumptions:
     //     1. new marketing updates do not come within 24 hours of each other
     //     2. 1 unit day is used as the smallest unit of measure between files
     //
@@ -227,7 +229,7 @@ public class PollSFTPCallable implements Callable {
     //     1. <marketing plan>_<date mmddyyyy>.csv
     //     2. locations_<date mmddyyyy>.csv
     private LsEntry getOldestFile(List<LsEntry> fileList) throws ParseException {
-        // only proceed if list.size() > 1 
+        // only proceed if list.size() > 1
         if (fileList.size() == 0) {
             return null;
         } else if (fileList.size() == 1) {

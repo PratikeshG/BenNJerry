@@ -10,7 +10,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <flow name="VFC:SmartWool:email-report-links-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (7:00am EST)" jobName="email-smartwool-report-links-cron-1478536627">
+        <quartz:inbound-endpoint cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (7:00am EST)" jobName="quartz-smartwool-reportlinks-1490636322" connector-ref="QuartzDefault">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Active?">
