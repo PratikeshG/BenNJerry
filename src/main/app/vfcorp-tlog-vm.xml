@@ -118,7 +118,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1489719962" cronExpression="0 30 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:30am UTC / 10:30pm PST ">
+        <quartz:inbound-endpoint jobName="vfcGenerateTLOGs-tnf-west-1489719963" cronExpression="0 30 6 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 6:30am UTC / 11:30pm PST ">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>

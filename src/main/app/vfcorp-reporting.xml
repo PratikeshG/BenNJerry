@@ -87,7 +87,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1475820918" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 2:00am (PST)">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1475820916" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Loyalty Enabled?">

@@ -11,7 +11,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
     <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail" />
-    <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.paradies.properties,${mule.env}.tntfireworks.properties" doc:name="Secure Property Placeholder"/>
+    <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.tntfireworks.properties" doc:name="Secure Property Placeholder"/>
     <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration">
         <reconnect frequency="5000" count="10"/>
     </db:mysql-config>
@@ -20,21 +20,14 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </configuration>
     <smtp:gmail-connector name="Gmail_HTML" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
     <s3:config name="Amazon_S3__Configuration" accessKey="${aws.accesskey}" secretKey="${aws.secretkey}" connectionTimeout="1800000" maxConnections="150" socketTimeout="1800000" doc:name="Amazon S3: Configuration"/>
+    <quartz:connector name="QuartzDefault" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="SquareBridgeScheduler1"/>
+    </quartz:connector>
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>
         <set-session-variable variableName="domainUrl" value="${domain.url}" doc:name="Set Domain URL"/>
     </sub-flow>
-    <flow name="flowInitializer" initialState="started">
-        <quartz:inbound-endpoint jobName="flowInitializer" repeatInterval="0" repeatCount="0" responseTimeout="10000" doc:name="Quartz">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <component doc:name="Initialize flows based on configuration">
-            <singleton-object class="util.FlowInitializer">
-                <property key="inactiveFlows" value="${inactiveFlows}"/>
-            </singleton-object>
-        </component>
-    </flow>
     <catch-exception-strategy name="globalExceptionCatchingStrategy">
         <remove-session-variable variableName="token" doc:name="Redact any token value"/>
         <logger message="#[exception + '\n' + message + '\n' + exception.?cause.?message]" level="ERROR" doc:name="Log error to console"/>

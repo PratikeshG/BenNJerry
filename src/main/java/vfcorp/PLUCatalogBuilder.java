@@ -79,14 +79,16 @@ public class PLUCatalogBuilder {
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
 
         // For each location, add unique item to catalog and set price (sale) overrides
-        for (Location location : client.locations().list()) {
+        Location[] locations = client.locations().list();
+
+        for (Location location : locations) {
             syncCatalogForLocation(conn, catalog, location);
         }
 
         conn.close();
 
         // Now that catalog is set, reassign taxes
-        for (Location location : client.locations().list()) {
+        for (Location location : locations) {
             assignLocationSpecificTaxes(catalog, location);
         }
 
@@ -225,7 +227,8 @@ public class PLUCatalogBuilder {
             client.catalog().batchUpsertObjects(objects);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(String.format("Failure upserting %s objects into catalog", type));
+            throw new RuntimeException(
+                    String.format("Failure upserting %s objects into catalog: %s", type, e.getMessage()));
         }
     }
 
@@ -268,6 +271,10 @@ public class PLUCatalogBuilder {
         String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
 
         CatalogObject item = catalog.getItem(sku);
+        if (item == null) {
+            return;
+        }
+
         CatalogItemVariation variation = getFirstItemVariation(item);
 
         if (variation != null && variation.getSku().equals(sku)) {
@@ -328,7 +335,8 @@ public class PLUCatalogBuilder {
         String locationId = location.getId();
         setPresentAtAllLocations(updatedItem);
 
-        // Skip MA/RhodeIsland items that we can't tax
+        // We need to exclude certain items from MA/RhodeIsland because we can't apply proper dynamic taxation
+        // TNF requested these items not show up for sale in the POS
         if (skipItemForTaxReasons(updatedItem, deploymentId)) {
             updatedItem.disableAtLocation(locationId);
         } else {

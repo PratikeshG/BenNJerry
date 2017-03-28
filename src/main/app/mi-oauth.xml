@@ -69,7 +69,7 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
 ---
 {
 	accessToken: payload[0].token as :string,
-	legacy: true when payload[0].legacy == 1 otherwise false,
+	legacySingleLocationSquareAccount: true when payload[0].legacySingleLocationSquareAccount == 1 otherwise false,
 	locationId: payload[0].locationId,
 	merchantAlias: payload[0].merchantAlias,
 	merchantId: payload[0].merchantId
