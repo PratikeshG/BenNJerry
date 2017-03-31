@@ -92,8 +92,17 @@ public class PLUCatalogBuilder {
             assignLocationSpecificTaxes(catalog, location);
         }
 
+        // Remove repeated item meta data, such as superfluous location price overrides
+        prepareForUpsert(catalog);
+
         upsertObjectsToSquare(catalog.getItems().values().toArray(new CatalogObject[0]), "item");
         removeItemsNotPresentAtAnyLocations(catalog);
+    }
+
+    private void prepareForUpsert(Catalog catalog) {
+        for (CatalogObject catalogObject : catalog.getItems().values()) {
+            catalogObject.minimizePriceOverrides();
+        }
     }
 
     private String getDeploymentIdForLocation(Location location) {

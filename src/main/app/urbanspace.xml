@@ -17,6 +17,9 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <queued-asynchronous-processing-strategy name="Urbanspace_Report_Async_Processing_Strategy" maxThreads="${urbanspace.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="1800000"></queued-asynchronous-processing-strategy>
     <vm:connector name="Urbanspace_VM_Config" validateConnections="true" doc:name="VM"/>
+    <quartz:connector name="Quartz-Urbanspace" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="" value="org.quartz.scheduler.instanceName" value-ref="Quartz-Urbanspace"/>
+    </quartz:connector>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports">
         <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports (#[flowVars.deployment])" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -177,7 +180,7 @@ return sp;]]></scripting:script>
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
     <flow name="Urbanspace:Broadway-Bites">
-        <quartz:inbound-endpoint jobName="urbanspace-bbites-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-bbites-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -197,7 +200,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Madison-Square-Eats">
-        <quartz:inbound-endpoint jobName="urbanspace-mse-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-mse-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -217,7 +220,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Vanderbilt">
-        <quartz:inbound-endpoint jobName="urbanspace-vanderbilt-1490537531" cronExpression="0 0 7 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Run every Sunday at 7:00am UTC (2:00am EST) for sales prev Sunday - Saturday" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-vanderbilt-1490537531" cronExpression="0 0 7 ? * SUN *" repeatInterval="0" responseTimeout="10000" doc:name="Run every Sunday at 7:00am UTC (2:00am EST) for sales prev Sunday - Saturday" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -237,7 +240,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Garment-District">
-        <quartz:inbound-endpoint jobName="urbanspace-garment-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-garment-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -257,7 +260,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Bryant-Park">
-        <quartz:inbound-endpoint jobName="urbanspace-bryantpark-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-bryantpark-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -277,7 +280,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Roosevelt">
-        <quartz:inbound-endpoint jobName="urbanspace-roosevelt-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="urbanspace-roosevelt-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">

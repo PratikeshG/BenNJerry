@@ -17,6 +17,9 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
     <sftp:connector name="SFTP" validateConnections="true" doc:name="SFTP"/>
+    <quartz:connector name="Quartz-VFC-reporting" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="" value="org.quartz.scheduler.instanceName" value-ref="Quartz-VFC-reporting"/>
+    </quartz:connector>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -87,7 +90,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz.vfc-tnf-generate-loyalty-1490636322" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="quartz.vfc-tnf-generate-loyalty-1490636322" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger message="ATTEMPTING TO RUN TNF loyalty..." level="INFO" doc:name="debug Logger"/>
@@ -101,13 +104,6 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
                 <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="vfcorp-cron-test">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-test-1490636322" cronExpression="0 0 1 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="TEST CRON every 20 mins" connector-ref="QuartzDefault">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <set-payload value="This is a test. Should run at 6pm PST" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="bhartard@squareup.com" from="Square Bridge" subject="#['TNF TEST CRON - ' + server.dateTime.format('EEE, d MMM yyyy')]" bcc="bhartard@squareup.com" responseTimeout="10000" mimeType="text/html" doc:name="Copy_of_Email Summary"/>
     </flow>
     <flow name="VFC:TNF:trigger-generate-deposits-file">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tnf/deposits/LtgCWxOPXNTB7GwP" doc:name="/vfc/tnf/deposits"/>

@@ -69,15 +69,17 @@ public class PLUPollSyncToDatabaseCallable implements Callable {
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+
         sftpChannel.connect();
-        System.out.println("SFTP channel created.");
+        logger.info("VFC: SFTP channel created");
 
         List<PLUSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
 
         sftpChannel.disconnect();
-        System.out.println("SFTP channel disconnected.");
+        logger.info("VFC: SFTP channel disconnected");
+
         session.disconnect();
-        System.out.println("SFTP session disconnected.");
+        logger.info("VFC: SFTP session disconnected");
 
         return syncRequests;
     }

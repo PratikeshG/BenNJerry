@@ -18,8 +18,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <vm:connector name="VFC_VM_PLU" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="43200000"/>
     <queued-asynchronous-processing-strategy name="VFC_PLU_DatabaseToSquare_Async_Strategy" maxThreads="${vfcorp.plu.databaseToSquare.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="-1"/>
+    <quartz:connector name="Quartz-VFC-plu" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-plu"/>
+    </quartz:connector>
     <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636322" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636322" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-VFC-plu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">
@@ -33,9 +36,16 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
 		</component>
-        <foreach doc:name="For Each PluSyncDatabaseRequest">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-sync-to-db"/>
-        </foreach>
+        <choice doc:name="Only process non-empty lists">
+            <when expression="#[payload == null || payload.size() &lt; 1]">
+                <logger message="VFC SFTP Poll: No files to process" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <foreach doc:name="For Each PluSyncDatabaseRequest">
+                    <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-sync-to-db"/>
+                </foreach>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="VFC:trigger-plu-sftp-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/sync/${urlKey}" doc:name="/plu/sync"/>
@@ -62,8 +72,6 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Started: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="email payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" content-ref="#[flowVars.pluStreamReaderAws]" doc:name="Initiate copy to Amazon S3"/>
         <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
@@ -84,8 +92,6 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Completed database sync: #[flowVars.brand + ' - ' + flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
     <sub-flow name="VFC:plu-database-to-square-for-brand">
         <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>

@@ -20,9 +20,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </configuration>
     <smtp:gmail-connector name="Gmail_HTML" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
     <s3:config name="Amazon_S3__Configuration" accessKey="${aws.accesskey}" secretKey="${aws.secretkey}" connectionTimeout="1800000" maxConnections="150" socketTimeout="1800000" doc:name="Amazon S3: Configuration"/>
-    <quartz:connector name="QuartzDefault" validateConnections="true" doc:name="Quartz">
-        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="SquareBridgeScheduler1"/>
-    </quartz:connector>
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>

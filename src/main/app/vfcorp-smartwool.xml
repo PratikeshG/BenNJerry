@@ -9,8 +9,11 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <quartz:connector name="Quartz-Smartwool" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-Smartwool"/>
+    </quartz:connector>
     <flow name="VFC:SmartWool:email-report-links-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (7:00am EST)" jobName="quartz-smartwool-reportlinks-1490636322" connector-ref="QuartzDefault">
+        <quartz:inbound-endpoint cronExpression="0 0 12 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 12:00 UTC (7:00am EST)" jobName="quartz-smartwool-reportlinks-1490636322" connector-ref="Quartz-Smartwool">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Active?">
