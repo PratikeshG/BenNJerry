@@ -94,6 +94,11 @@ public class TaxRules {
     // 1.95 Occupancy Tax
     public final static String TNF_NE_NEBRASKA_CROSSING = "vfcorp-tnf-00317";
 
+    // Columbus, OH TNF Stores #43
+    // 7.0 Sales Tax
+    // 0.50 Mall Tax
+    public final static String TNF_OH_COLUMBUS = "vfcorp-tnf-00043";
+
     private static final Set<String> TNF_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
             "10  7076", "10  1000", "10  1001", "10  1002", "10  1020", "10  1021", "10  1040", "10  1050", "10  1055",
             "10  1200", "10  1500", "10  1501", "10  1502", "10  1520", "10  1521", "10  1540", "10  1550", "10  1555",
@@ -271,6 +276,11 @@ public class TaxRules {
         } else if (deployment.equals(TNF_NE_NEBRASKA_CROSSING)) {
             if (taxes.length != 2) {
                 throw new Exception("Nebraska Crossing deployment with incorrect number of taxes: " + deployment);
+            }
+            return new String[] { taxes[0].getId(), taxes[1].getId() };
+        } else if (deployment.equals(TNF_OH_COLUMBUS)) {
+            if (taxes.length != 2) {
+                throw new Exception("Columbus deployment with incorrect number of taxes: " + deployment);
             }
             return new String[] { taxes[0].getId(), taxes[1].getId() };
         } else if (taxes.length != 1) {
