@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
     <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
     <sftp:connector name="SFTP" validateConnections="true" doc:name="SFTP"/>
     <quartz:connector name="Quartz-VFC-reporting" validateConnections="true" doc:name="Quartz">
-        <quartz:factory-property key="" value="org.quartz.scheduler.instanceName" value-ref="Quartz-VFC-reporting"/>
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-reporting"/>
     </quartz:connector>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
