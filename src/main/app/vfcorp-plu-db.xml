@@ -113,14 +113,20 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <async doc:name="Async">
             <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
         </async>
-        <set-payload value="Running PLU Database to Square for VFC brand: #[flowVars.brand]" doc:name="Set Payload"/>
+        <set-payload value="Running PLU Database to Square for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:TNF:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1490636324" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for TNF" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="tnf" doc:name="Set brand: tnf"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
     <flow name="VFC:Kipling:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-kipling-PLU-daily-1490636324" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for Kipling" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="kipling" doc:name="Set brand: kipling"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
