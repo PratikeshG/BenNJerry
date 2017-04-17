@@ -69,11 +69,16 @@ public class PLUCatalogBuilder {
     }
 
     public void syncItemsFromDatabaseToSquare() throws Exception {
-        Catalog catalog = client.catalog().retrieveCatalog();
-        catalog.clearItemLocations();
-        catalog.clearItemTaxes();
+        Catalog sourceCatalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
-        printCatalogStats(catalog);
+        Catalog workingCatalog = new Catalog(sourceCatalog, Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+
+        workingCatalog.clearItemLocations();
+        workingCatalog.clearItemTaxes();
+
+        logCatalogStats(workingCatalog);
 
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
@@ -82,21 +87,25 @@ public class PLUCatalogBuilder {
         Location[] locations = client.locations().list();
 
         for (Location location : locations) {
-            syncCatalogForLocation(conn, catalog, location);
+            syncCatalogForLocation(conn, workingCatalog, location);
         }
 
         conn.close();
 
         // Now that catalog is set, reassign taxes
         for (Location location : locations) {
-            assignLocationSpecificTaxes(catalog, location);
+            assignLocationSpecificTaxes(workingCatalog, location);
         }
 
         // Remove repeated item meta data, such as superfluous location price overrides
-        prepareForUpsert(catalog);
+        prepareForUpsert(workingCatalog);
 
-        upsertObjectsToSquare(catalog.getItems().values().toArray(new CatalogObject[0]), "item");
-        removeItemsNotPresentAtAnyLocations(catalog);
+        logger.info("TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
+        CatalogObject[] modifiedItems = workingCatalog.getModifiedItems();
+        logger.info("TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
+
+        upsertObjectsToSquare(modifiedItems, "item");
+        removeItemsNotPresentAtAnyLocations(workingCatalog);
     }
 
     private void prepareForUpsert(Catalog catalog) {
@@ -155,12 +164,12 @@ public class PLUCatalogBuilder {
         }
     }
 
-    private static void printCatalogStats(Catalog catalog) {
-        System.out.println("CATEGORIES: " + catalog.getCategories().size());
-        System.out.println("ITEMS: " + catalog.getItems().size());
-        System.out.println("TAXES: " + catalog.getTaxes().size());
-        System.out.println("DISCOUNTS: " + catalog.getDiscounts().size());
-        System.out.println("MODIFIER LISTS: " + catalog.getModifierLists().size());
+    private static void logCatalogStats(Catalog catalog) {
+        logger.info("CATEGORIES: " + catalog.getCategories().size());
+        logger.info("ITEMS: " + catalog.getItems().size());
+        logger.info("TAXES: " + catalog.getTaxes().size());
+        logger.info("DISCOUNTS: " + catalog.getDiscounts().size());
+        logger.info("MODIFIER LISTS: " + catalog.getModifierLists().size());
     }
 
     private void removeItemsNotPresentAtAnyLocations(Catalog catalog) {
@@ -349,8 +358,9 @@ public class PLUCatalogBuilder {
         if (skipItemForTaxReasons(updatedItem, deploymentId)) {
             updatedItem.disableAtLocation(locationId);
         } else {
-            updatedItem.enableAtLocation(locationId);
-            updatedItem.setLocationPriceOverride(locationId, locationPriceMoney, FIXED_PRICING);
+            if (price > 0) {
+                updatedItem.setLocationPriceOverride(locationId, locationPriceMoney, FIXED_PRICING);
+            }
         }
 
         catalog.addItem(updatedItem);

@@ -7,7 +7,7 @@ import java.util.Set;
 import com.squareup.connect.v2.CatalogItem;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
-import com.squareup.connect.v2.LocationOverride;
+import com.squareup.connect.v2.ItemVariationLocationOverride;
 
 public class TaxRules {
     public static final int NY_EXEMPT_THRESHOLD = 11000;
@@ -172,9 +172,11 @@ public class TaxRules {
             "96  9620", "96  9630" }));
 
     private static int getLocationPrice(CatalogItemVariation itemVariation, String locationId) {
-        for (LocationOverride locationPrice : itemVariation.getLocationOverrides()) {
-            if (locationPrice.getLocationId().equals(locationId)) {
-                return locationPrice.getPriceMoney().getAmount();
+        if (itemVariation.getLocationOverrides() != null) {
+            for (ItemVariationLocationOverride locationPrice : itemVariation.getLocationOverrides()) {
+                if (locationPrice.getLocationId().equals(locationId)) {
+                    return locationPrice.getPriceMoney().getAmount();
+                }
             }
         }
 
