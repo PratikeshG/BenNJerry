@@ -24,7 +24,7 @@ public class AwsS3Callable implements Callable {
         String state = message.getProperty("awsState", PropertyScope.INVOCATION);
 
         if (state.equals("copy")) {
-            logger.info("Creating connection used for SFTP server to AWS S3 transfer");
+            logger.info("TNT: Creating connection used for SFTP server to AWS S3 transfer");
             // obtain SyncToDatabaseRequest object from PollSFTPCallable call
             SyncToDatabaseRequest request = (SyncToDatabaseRequest) message.getPayload();
 
@@ -42,7 +42,7 @@ public class AwsS3Callable implements Callable {
             message.setProperty("sftpChannel", sftpChannel, PropertyScope.INVOCATION);
 
         } else if (state.equals("stream")) {
-            logger.info("Closing connection used for SFTP server to AWS S3 transfer");
+            logger.info("TNT: Closing connection used for SFTP server to AWS S3 transfer");
             ChannelSftp sftpChannel = (ChannelSftp) message.getProperty("sftpChannel", PropertyScope.INVOCATION);
 
             SshUtil.closeConnection(sftpChannel);

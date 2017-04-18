@@ -7,7 +7,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-public class PLUQueryDatabaseDeploymentToSquareCallable implements Callable {
+public class TlogQueryDatabaseDeploymentCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -31,17 +31,13 @@ public class PLUQueryDatabaseDeploymentToSquareCallable implements Callable {
         String deployment = message.getProperty("deployment", PropertyScope.INVOCATION);
         String whereFilter = String.format("vfcorp_deployments.deployment = '%s'", deployment);
 
-        ArrayList<VFCDeployment> deployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+        ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, whereFilter);
 
         if (deployments.size() != 1) {
             throw new Exception(String.format("Deployment '%s' not found.", deployment));
         }
 
-        PLUDatabaseToSquareRequest updateRequest = new PLUDatabaseToSquareRequest();
-        updateRequest.setDeployment(deployments.get(0));
-        updateRequest.setProcessingPluFile(false);
-
-        return updateRequest;
+        return deployments.get(0);
     }
 }

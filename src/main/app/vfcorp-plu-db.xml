@@ -16,14 +16,16 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <vm:connector name="VFC_VM_PLU" validateConnections="true" doc:name="VM"/>
-    <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="3600000"/>
-    <queued-asynchronous-processing-strategy name="VFC_PLU_DatabaseToSquare_Async_Strategy" maxThreads="${vfcorp.plu.databaseToSquare.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="3600000"/>
-    <flow name="VFC:TNF:plu-sftp-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfc-PLU-SFTP-cron-1470289552" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes">
+    <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="43200000"/>
+    <quartz:connector name="Quartz-VFC-plu" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-plu"/>
+    </quartz:connector>
+    <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636322" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-VFC-plu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">
-		    <prototype-object class="vfcorp.PLUPollSyncToDatabaseCallable">
+		    <prototype-object class="vfcorp.PluPollSyncToDatabaseCallable">
 		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
@@ -33,116 +35,100 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
 		</component>
-        <foreach doc:name="For Each PluSyncDatabaseRequest">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-sync-to-db"/>
-        </foreach>
+        <choice doc:name="Only process non-empty lists">
+            <when expression="#[payload == null || payload.size() &lt; 1]">
+                <logger message="VFC SFTP Poll: No files to process" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <foreach doc:name="For Each PluSyncDatabaseRequest">
+                    <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-sync-to-db"/>
+                </foreach>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="VFC:trigger-plu-sftp-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/sync/${urlKey}" doc:name="/plu/sync"/>
-        <flow-ref name="VFC:TNF:plu-sftp-cron" doc:name="VFC:TNF:plu-sftp-cron"/>
+        <flow-ref name="VFC:plu-sftp-cron" doc:name="VFC:plu-sftp-cron"/>
         <set-payload value="Ran PLU SFTP Cron" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:plu-sync-to-database" processingStrategy="VFC_PLU_SyncToDatabase_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Kipling or TNF">
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
+                <set-variable variableName="brand" value="Kipling" doc:name="brand: Kipling"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="brand" value="TNF" doc:name="brand: TNF"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="awsFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="AWS bucket folder"/>
         <component doc:name="Prepare stream to move PLU from SFTP To AWS">
-            <prototype-object class="vfcorp.PLUSyncToAwsPrepareCallable">
+            <prototype-object class="vfcorp.PluSyncToAwsPrepareCallable">
 		    	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
 				<property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Started: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="email payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - STARTED catalog (db) - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" content-ref="#[flowVars.pluStreamReaderAws]" doc:name="Initiate copy to Amazon S3"/>
         <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
         <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" doc:name="Read new stream from S3"/>
         <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
         <component doc:name="Close SFTP connections">
-            <singleton-object class="vfcorp.PLUSyncToAwsCleanupCallable"/>
+            <singleton-object class="vfcorp.PluSyncToAwsCleanupCallable"/>
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync PLU To Database">
-            <prototype-object class="vfcorp.PLUSyncToDatabaseCallable">
+            <prototype-object class="vfcorp.PluSyncToDatabaseCallable">
 		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
-        </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-        <set-payload value="Completed database sync: #[flowVars.pluSyncToDatabaseRequest.getProcessingFileName()]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog db sync - ' + flowVars.pluSyncToDatabaseRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
-    </flow>
-    <flow name="VFC:plu-database-to-square" processingStrategy="VFC_PLU_DatabaseToSquare_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" name="vfcPLUUpdateVM" doc:name="vm://vfc-plu-db-to-square"/>
-        <logger message="Initiating PLU API update for deployment #[payload.getDeployment().getDeployment()] -- from database" level="INFO" doc:name="Logger"/>
-        <component doc:name="Database to Square Catalog Update">
-            <prototype-object class="vfcorp.PLUDatabaseToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>
-                <property key="apiUrl" value="${api.url}"/>
                 <property key="sftpHost" value="${vfcorp.sftp.host}"/>
                 <property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
 		    </prototype-object>
         </component>
-        <set-payload value="Completed api updates: #[flowVars.pluDatabaseToSquareRequest.getProcessingFileName() != null ? flowVars.pluDatabaseToSquareRequest.getProcessingFileName() : &quot;No file processing.&quot;]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED catalog api updates - ' + flowVars.pluDatabaseToSquareRequest.getDeployment().getDeployment()]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </flow>
-    <sub-flow name="VFC:plu-database-to-square-for-deploymentGroup">
-        <logger message="Initiating PLU Database to Square update for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Get deployments for deploymentGroup">
-            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentGroupToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
+    <sub-flow name="VFC:plu-database-to-square-for-brand">
+        <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Database to Square Catalog Update">
+            <prototype-object class="vfcorp.PluDatabaseToSquareCallable"> 
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
+                <property key="databaseUser" value="${mysql.user}"/>  
+                <property key="databasePassword" value="${mysql.password}"/>  
+                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>  
+                <property key="apiUrl" value="${api.url}"/>  
+            </prototype-object>
         </component>
-        <foreach doc:name="For Each PLUDatabaseToSquareRequest">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-        </foreach>
+        <set-payload value="Completed Database to Square updates for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.brand]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
-    <sub-flow name="VFC:plu-database-to-square-for-deployment">
-        <logger message="Initiating PLU Database to Square update for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Get deployment">
-            <prototype-object class="vfcorp.PLUQueryDatabaseDeploymentToSquareCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-		    </prototype-object>
-        </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-plu-db-to-square" connector-ref="VFC_VM_PLU" doc:name="vm://vfc-plu-db-to-square"/>
-    </sub-flow>
-    <flow name="VFC:trigger-plu-database-to-square-for-deployment">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{deployment}" doc:name="/plu/square"/>
-        <set-variable variableName="deployment" value="#[message.inboundProperties.'http.uri.params'.deployment]" doc:name="Set deployment"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deployment" doc:name="VFC:plu-database-to-square-for-deployment"/>
-        <set-payload value="Ran PLU Database to Square for deployment #[flowVars.deployment]" doc:name="Set Payload"/>
+    <flow name="VFC:trigger-plu-database-to-square-for-brand">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{brand}" doc:name="/vfc/plu/square/KEY/BRAND"/>
+        <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.uri.params'.brand]" doc:name="Set brand"/>
+        <logger message="HTTP Trigger: PLU Database to Square: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
+        <async doc:name="Async">
+            <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+        </async>
+        <set-payload value="Running PLU Database to Square for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
     </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-west-1470289528" cronExpression="0 0 16 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 16:00 UTC (8:00am PST)">
+    <flow name="VFC:TNF:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1490636324" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
+        <logger message="CRON: PLU Database to Square for TNF" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="tnf" doc:name="Set brand: tnf"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-CENTRAL" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-central-1470289538" cronExpression="0 0 14 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 14:00 UTC (8:00am CST)">
+    <flow name="VFC:Kipling:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-kipling-PLU-daily-1490636324" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
-    </flow>
-    <flow name="VFC:TNF:plu-trigger-database-to-square-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="vfcTriggerPLUDatabase-to-square-tnf-east-1470289138" cronExpression="0 0 13 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 13:00 UTC (8:00am EST)">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
-        <flow-ref name="VFC:plu-database-to-square-for-deploymentGroup" doc:name="VFC:plu-database-to-square-for-deploymentGroup"/>
+        <logger message="CRON: PLU Database to Square for Kipling" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="kipling" doc:name="Set brand: kipling"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
 </mule>

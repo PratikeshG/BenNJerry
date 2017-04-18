@@ -16,6 +16,10 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+    <sftp:connector name="SFTP-VFC-reporting" validateConnections="true" doc:name="SFTP"/>
+    <quartz:connector name="Quartz-VFC-reporting" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-reporting"/>
+    </quartz:connector>
     <flow name="VFC:generate-aggregate-transactions-report">
         <logger message="Starting VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -58,7 +62,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <singleton-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
         </component>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="VFCorpSFTP" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
             <reconnect-forever/>
         </sftp:outbound-endpoint>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
@@ -86,9 +90,10 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1475820918" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 2:00am (PST)">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1490636322" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
+        <logger message="ATTEMPTING TO RUN TNF loyalty..." level="INFO" doc:name="debug Logger"/>
         <choice doc:name="Loyalty Enabled?">
             <when expression="#['${vfcorp.tlog.tnf.loyalty.enabled}' == false]">
                 <logger message="TNF loyalty disabled. Not generating loyalty file." level="INFO" doc:name="Logger"/>

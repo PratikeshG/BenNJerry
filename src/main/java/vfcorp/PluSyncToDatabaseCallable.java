@@ -1,6 +1,7 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.mule.api.MuleEventContext;
@@ -8,10 +9,19 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-public class PLUSyncToDatabaseCallable implements Callable {
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+
+public class PluSyncToDatabaseCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+    private String sftpHost;
+    private int sftpPort;
+    private String sftpUser;
+    private String sftpPassword;
 
     public void setDatabaseUrl(String databaseUrl) {
         this.databaseUrl = databaseUrl;
@@ -25,11 +35,27 @@ public class PLUSyncToDatabaseCallable implements Callable {
         this.databasePassword = databasePassword;
     }
 
+    public void setSftpHost(String sftpHost) {
+        this.sftpHost = sftpHost;
+    }
+
+    public void setSftpPort(int sftpPort) {
+        this.sftpPort = sftpPort;
+    }
+
+    public void setSftpUser(String sftpUser) {
+        this.sftpUser = sftpUser;
+    }
+
+    public void setSftpPassword(String sftpPassword) {
+        this.sftpPassword = sftpPassword;
+    }
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        PLUSyncToDatabaseRequest pluSyncToDatabaseRequest = (PLUSyncToDatabaseRequest) message
+        PluSyncToDatabaseRequest pluSyncToDatabaseRequest = (PluSyncToDatabaseRequest) message
                 .getProperty("pluSyncToDatabaseRequest", PropertyScope.INVOCATION);
 
         String deploymentId = pluSyncToDatabaseRequest.getDeployment().getDeployment();
@@ -39,7 +65,7 @@ public class PLUSyncToDatabaseCallable implements Callable {
         InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
 
-        PLUParser parser = new PLUParser();
+        PluParser parser = new PluParser();
         parser.setDeploymentId(deploymentId);
         parser.setSyncGroupSize(2500);
         parser.setDatabaseUrl(databaseUrl);
@@ -48,12 +74,22 @@ public class PLUSyncToDatabaseCallable implements Callable {
         parser.syncToDatabase(bis, merchantId, locationId);
         bis.close();
 
-        // Submit new request to VM for API updates
-        PLUDatabaseToSquareRequest updateRequest = new PLUDatabaseToSquareRequest();
-        updateRequest.setDeployment(pluSyncToDatabaseRequest.getDeployment());
-        updateRequest.setProcessingFileName(pluSyncToDatabaseRequest.getProcessingFileName());
-        updateRequest.setProcessingPluFile(true);
+        // Archive file from SFTP processing directory
+        archiveProcessingFile(pluSyncToDatabaseRequest.getProcessingFileName(),
+                pluSyncToDatabaseRequest.getDeployment().getPluPath());
 
-        return updateRequest;
+        return null;
+    }
+
+    private void archiveProcessingFile(String fileName, String filePath)
+            throws JSchException, IOException, SftpException {
+        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+
+        sftpChannel.rename(filePath + "/processing/" + fileName, filePath + "/archive/" + fileName);
+
+        sftpChannel.disconnect();
+        session.disconnect();
     }
 }

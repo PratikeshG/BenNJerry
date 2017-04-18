@@ -22,8 +22,8 @@ import com.jcraft.jsch.SftpException;
 
 import util.TimeManager;
 
-public class PLUPollSyncToDatabaseCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(PLUPollSyncToDatabaseCallable.class);
+public class PluPollSyncToDatabaseCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(PluPollSyncToDatabaseCallable.class);
     private static final String PROCESSING_DIRECTORY = "processing";
 
     private String databaseUrl;
@@ -64,29 +64,31 @@ public class PLUPollSyncToDatabaseCallable implements Callable {
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        ArrayList<VFCDeployment> deployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+        ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, "enablePLU = 1");
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        System.out.println("SFTP channel created.");
 
-        List<PLUSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
+        sftpChannel.connect();
+        logger.info("VFC: SFTP channel created");
+
+        List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
 
         sftpChannel.disconnect();
-        System.out.println("SFTP channel disconnected.");
+        logger.info("VFC: SFTP channel disconnected");
+
         session.disconnect();
-        System.out.println("SFTP session disconnected.");
+        logger.info("VFC: SFTP session disconnected");
 
         return syncRequests;
     }
 
-    private List<PLUSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VFCDeployment> deployments)
+    private List<PluSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VfcDeployment> deployments)
             throws SftpException, ParseException, InterruptedException {
         HashMap<String, LsEntry> targetFiles = new HashMap<String, LsEntry>();
 
-        for (VFCDeployment deployment : deployments) {
+        for (VfcDeployment deployment : deployments) {
             channel.cd(deployment.getPluPath());
 
             Vector<LsEntry> list = channel.ls("plu.chg*");
@@ -99,8 +101,8 @@ public class PLUPollSyncToDatabaseCallable implements Callable {
 
         Thread.sleep(7500); // wait to verify if file ready for processing
 
-        ArrayList<PLUSyncToDatabaseRequest> syncRequests = new ArrayList<PLUSyncToDatabaseRequest>();
-        for (VFCDeployment deployment : deployments) {
+        ArrayList<PluSyncToDatabaseRequest> syncRequests = new ArrayList<PluSyncToDatabaseRequest>();
+        for (VfcDeployment deployment : deployments) {
             channel.cd(deployment.getPluPath());
 
             LsEntry targetFile = targetFiles.get(deployment.getPluPath());
@@ -125,7 +127,7 @@ public class PLUPollSyncToDatabaseCallable implements Callable {
 
                         logger.info(String.format("Queuing %s for processing (%s)...", fileName, processingFileName));
 
-                        PLUSyncToDatabaseRequest newRequest = new PLUSyncToDatabaseRequest();
+                        PluSyncToDatabaseRequest newRequest = new PluSyncToDatabaseRequest();
                         newRequest.setOriginalFileName(fileName);
                         newRequest.setProcessingFileName(processingFileName);
                         newRequest.setDeployment(deployment);

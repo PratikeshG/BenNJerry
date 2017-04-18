@@ -9,7 +9,7 @@ import java.util.Scanner;
 
 import vfcorp.rpc.ItemAdditionalDataRecord;
 
-public class RunFindSKUsByStyle {
+public class RunFindSkusByStyle {
     private static final String ITEM_ADDITIONAL_DATA_RECORD = "36";
     private static final String PATH = "/Users/bhartard/desktop/styles/PLU00001.DTA";
     private static final String[] styleList = { "0A2VE20C5", "0A2VE2870", "0A2VE2JK3", "0A2VE2NXS", "0A2TCNHDC",

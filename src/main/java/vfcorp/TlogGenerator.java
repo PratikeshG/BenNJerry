@@ -25,7 +25,7 @@ import com.squareup.connect.v2.Transaction;
 import util.SquarePayload;
 import util.TimeManager;
 
-public class TLOGGenerator implements Callable {
+public class TlogGenerator implements Callable {
 
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
@@ -47,7 +47,7 @@ public class TLOGGenerator implements Callable {
         // TODO(bhartard): Refactor these into separate, testable functions
         SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
-        TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
+        TlogGeneratorPayload tlogGeneratorPayload = new TlogGeneratorPayload();
 
         tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
         tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
@@ -203,22 +203,22 @@ public class TLOGGenerator implements Callable {
 
             String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
 
-            EpicorParser epicor = new EpicorParser();
-            epicor.tlog().setItemNumberLookupLength(itemNumberLookupLength);
-            epicor.tlog().setDeployment(deploymentId);
-            epicor.tlog().setTimeZoneId(timeZone);
+            Tlog tlog = new Tlog();
+            tlog.setItemNumberLookupLength(itemNumberLookupLength);
+            tlog.setDeployment(deploymentId);
+            tlog.setTimeZoneId(timeZone);
 
             // Get Cloudhub default object store
             ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
                     .lookupObject("_defaultUserObjectStore");
-            epicor.tlog().setObjectStore(objectStore);
-            epicor.tlog().parse(matchingMerchant, tlogGeneratorPayload.getPayments(),
-                    tlogGeneratorPayload.getEmployees(), tlogGeneratorPayload.getCustomers());
+            tlog.setObjectStore(objectStore);
+            tlog.parse(matchingMerchant, tlogGeneratorPayload.getPayments(), tlogGeneratorPayload.getEmployees(),
+                    tlogGeneratorPayload.getCustomers());
 
             message.setProperty("vfcorpStoreNumber",
                     Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
 
-            return epicor.tlog().toString();
+            return tlog.toString();
         }
 
         return null;

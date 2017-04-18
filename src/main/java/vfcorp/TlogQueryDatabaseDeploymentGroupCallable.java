@@ -7,7 +7,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-public class TLOGQueryDatabaseDeploymentGroupCallable implements Callable {
+public class TlogQueryDatabaseDeploymentGroupCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -31,7 +31,7 @@ public class TLOGQueryDatabaseDeploymentGroupCallable implements Callable {
         String deploymentGroup = message.getProperty("deploymentGroup", PropertyScope.INVOCATION);
         String whereFilter = String.format("deploymentGroup = '%s' AND enableTLOG = 1", deploymentGroup);
 
-        ArrayList<VFCDeployment> deployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+        ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, whereFilter);
 
         return deployments;

@@ -22,7 +22,7 @@ import com.squareup.connect.v2.Customer;
 
 import vfcorp.tlog.Address;
 import vfcorp.tlog.Associate;
-import vfcorp.tlog.CRMLoyaltyIndicator;
+import vfcorp.tlog.CrmLoyaltyIndicator;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
 import vfcorp.tlog.DiscountTypeIndicator;
@@ -44,17 +44,17 @@ import vfcorp.tlog.TransactionTax;
 import vfcorp.tlog.TransactionTaxExtended;
 import vfcorp.tlog.TransactionTotal;
 
-public class TLOG {
+public class Tlog {
 
     private List<Record> transactionLog;
     private int itemNumberLookupLength;
     private String deployment;
     private String timeZoneId;
-    private static Logger logger = LoggerFactory.getLogger(TLOG.class);
+    private static Logger logger = LoggerFactory.getLogger(Tlog.class);
 
     private ObjectStore<String> objectStore;
 
-    public TLOG() {
+    public Tlog() {
         transactionLog = new LinkedList<Record>();
     }
 
@@ -265,7 +265,7 @@ public class TLOG {
                     // status).
                     boolean isLoyalty = (loyaltyCustomer.getCompanyName() != null
                             && loyaltyCustomer.getCompanyName().equals("1")) ? true : false;
-                    paymentList.add(new CRMLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
+                    paymentList.add(new CrmLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
                 }
 
                 paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList,

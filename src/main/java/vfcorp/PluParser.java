@@ -18,8 +18,8 @@ import vfcorp.rpc.DepartmentClassRecord;
 import vfcorp.rpc.ItemAlternateDescription;
 import vfcorp.rpc.ItemRecord;
 
-public class PLUParser {
-    private static Logger logger = LoggerFactory.getLogger(PLUParser.class);
+public class PluParser {
+    private static Logger logger = LoggerFactory.getLogger(PluParser.class);
 
     public static final String ITEM_RECORD = "01";
     public static final String ALTERNATE_RECORD = "02";
@@ -34,7 +34,7 @@ public class PLUParser {
     private String databasePassword;
     private int syncGroupSize;
 
-    public PLUParser() {
+    public PluParser() {
         this.syncGroupSize = 5000;
     }
 

@@ -8,7 +8,7 @@ import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
 
-public class TLOGGeneratorPayload {
+public class TlogGeneratorPayload {
 
     private String merchantId;
     private String locationId;
