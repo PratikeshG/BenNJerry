@@ -52,7 +52,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <set-payload value="Ran PLU SFTP Cron" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:plu-sync-to-database" processingStrategy="VFC_PLU_SyncToDatabase_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vfcPLUSyncVM"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
         <choice doc:name="Kipling or TNF">
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">

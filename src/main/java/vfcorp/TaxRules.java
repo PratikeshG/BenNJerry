@@ -99,6 +99,7 @@ public class TaxRules {
     // 0.50 Mall Tax
     public final static String TNF_OH_COLUMBUS = "vfcorp-tnf-00043";
 
+    // TODO(bhartard): Remove from source, load from DB or CSV
     private static final Set<String> TNF_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
             "10  7076", "10  1000", "10  1001", "10  1002", "10  1020", "10  1021", "10  1040", "10  1050", "10  1055",
             "10  1200", "10  1500", "10  1501", "10  1502", "10  1520", "10  1521", "10  1540", "10  1550", "10  1555",
