@@ -6,7 +6,7 @@ import java.util.Map;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
-public class CRMLoyaltyIndicator extends Record {
+public class CrmLoyaltyIndicator extends Record {
 
 	private static Map<String,FieldDetails> fields;
 	private static int length;
@@ -23,11 +23,11 @@ public class CRMLoyaltyIndicator extends Record {
 		fields.put("Loyalty Indicator", new FieldDetails(1, 27, ""));
 	}
 
-	public CRMLoyaltyIndicator() {
+	public CrmLoyaltyIndicator() {
 		super();
 	}
 
-	public CRMLoyaltyIndicator(String record) {
+	public CrmLoyaltyIndicator(String record) {
 		super(record);
 	}
 
@@ -46,7 +46,7 @@ public class CRMLoyaltyIndicator extends Record {
 		return id;
 	}
 
-	public CRMLoyaltyIndicator parse(String customerId, boolean isLoyaltyCustomer) throws Exception {		
+	public CrmLoyaltyIndicator parse(String customerId, boolean isLoyaltyCustomer) throws Exception {		
 		putValue("User ID", "010"); // Always 010
 		putValue("Preferred Customer Number", customerId);
 		putValue("Loyalty Indicator", isLoyaltyCustomer ? "1" : "0");

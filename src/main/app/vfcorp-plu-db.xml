@@ -25,7 +25,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">
-		    <prototype-object class="vfcorp.PLUPollSyncToDatabaseCallable">
+		    <prototype-object class="vfcorp.PluPollSyncToDatabaseCallable">
 		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
@@ -64,7 +64,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         </choice>
         <set-variable variableName="awsFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="AWS bucket folder"/>
         <component doc:name="Prepare stream to move PLU from SFTP To AWS">
-            <prototype-object class="vfcorp.PLUSyncToAwsPrepareCallable">
+            <prototype-object class="vfcorp.PluSyncToAwsPrepareCallable">
 		    	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
 				<property key="sftpPort" value="${vfcorp.sftp.port}"/>
                 <property key="sftpUser" value="${vfcorp.sftp.username}"/>
@@ -77,11 +77,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" doc:name="Read new stream from S3"/>
         <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
         <component doc:name="Close SFTP connections">
-            <singleton-object class="vfcorp.PLUSyncToAwsCleanupCallable"/>
+            <singleton-object class="vfcorp.PluSyncToAwsCleanupCallable"/>
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync PLU To Database">
-            <prototype-object class="vfcorp.PLUSyncToDatabaseCallable">
+            <prototype-object class="vfcorp.PluSyncToDatabaseCallable">
 		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
                 <property key="databaseUser" value="${mysql.user}"/>
                 <property key="databasePassword" value="${mysql.password}"/>
@@ -95,7 +95,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
     <sub-flow name="VFC:plu-database-to-square-for-brand">
         <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square Catalog Update">
-            <prototype-object class="vfcorp.PLUDatabaseToSquareCallable"> 
+            <prototype-object class="vfcorp.PluDatabaseToSquareCallable"> 
                 <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
                 <property key="databaseUser" value="${mysql.user}"/>  
                 <property key="databasePassword" value="${mysql.password}"/>  

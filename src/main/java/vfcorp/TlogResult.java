@@ -1,6 +1,6 @@
 package vfcorp;
 
-public class TLOGResult {
+public class TlogResult {
 
 	private String tlog;
 	private String storeNumber;

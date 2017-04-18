@@ -6,7 +6,7 @@ import java.util.Map;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
-public class CRMAlternateKey extends Record {
+public class CrmAlternateKey extends Record {
 
 	private static Map<String,FieldDetails> fields;
 	private static int length;
@@ -22,11 +22,11 @@ public class CRMAlternateKey extends Record {
 		fields.put("Alternate Key", new FieldDetails(80, 8, "Left justified, space filled"));
 	}
 
-	public CRMAlternateKey() {
+	public CrmAlternateKey() {
 		super();
 	}
 
-	public CRMAlternateKey(String record) {
+	public CrmAlternateKey(String record) {
 		super(record);
 	}
 
@@ -45,7 +45,7 @@ public class CRMAlternateKey extends Record {
 		return id;
 	}
 
-	public CRMAlternateKey parse(String key) throws Exception {		
+	public CrmAlternateKey parse(String key) throws Exception {		
 		putValue("Alternate Key Type", "LOYA");
 		putValue("Alternate Key", key);
 

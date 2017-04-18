@@ -25,7 +25,7 @@ import com.squareup.connect.v2.Transaction;
 import util.SquarePayload;
 import util.TimeManager;
 
-public class TLOGGenerator implements Callable {
+public class TlogGenerator implements Callable {
 
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
@@ -47,7 +47,7 @@ public class TLOGGenerator implements Callable {
         // TODO(bhartard): Refactor these into separate, testable functions
         SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
-        TLOGGeneratorPayload tlogGeneratorPayload = new TLOGGeneratorPayload();
+        TlogGeneratorPayload tlogGeneratorPayload = new TlogGeneratorPayload();
 
         tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
         tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
@@ -203,7 +203,7 @@ public class TLOGGenerator implements Callable {
 
             String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
 
-            TLOG tlog = new TLOG();
+            Tlog tlog = new Tlog();
             tlog.setItemNumberLookupLength(itemNumberLookupLength);
             tlog.setDeployment(deploymentId);
             tlog.setTimeZoneId(timeZone);

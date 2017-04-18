@@ -24,7 +24,7 @@ import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
 
-public class TLOGTest {
+public class TlogTest {
 
 	private static final String TRANSACTION_HEADER = "000";
 	private static final String MERCHANDISE_ITEM = "001";
@@ -88,7 +88,7 @@ public class TLOGTest {
 		payment.setCreatedAt("2016-05-20T12:00:00Z");
 		Payment[] payments = new Payment[]{payment};
 		
-		TLOG tlog = new TLOG();
+		Tlog tlog = new Tlog();
 		tlog.setItemNumberLookupLength(1);
 		tlog.setObjectStore(new FakeObjectStore<String>());
 		tlog.setTimeZoneId("UTC");

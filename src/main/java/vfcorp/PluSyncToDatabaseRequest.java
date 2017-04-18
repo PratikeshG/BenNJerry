@@ -1,9 +1,9 @@
 package vfcorp;
 
-public class PLUSyncToDatabaseRequest {
+public class PluSyncToDatabaseRequest {
     private String originalFileName;
     private String processingFileName;
-    private VFCDeployment deployment;
+    private VfcDeployment deployment;
 
     public String getOriginalFileName() {
         return originalFileName;
@@ -21,11 +21,11 @@ public class PLUSyncToDatabaseRequest {
         this.processingFileName = processingFileName;
     }
 
-    public VFCDeployment getDeployment() {
+    public VfcDeployment getDeployment() {
         return deployment;
     }
 
-    public void setDeployment(VFCDeployment deployment) {
+    public void setDeployment(VfcDeployment deployment) {
         this.deployment = deployment;
     }
 }

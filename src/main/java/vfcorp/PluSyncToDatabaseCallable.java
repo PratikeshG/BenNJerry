@@ -14,7 +14,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
-public class PLUSyncToDatabaseCallable implements Callable {
+public class PluSyncToDatabaseCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -55,7 +55,7 @@ public class PLUSyncToDatabaseCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        PLUSyncToDatabaseRequest pluSyncToDatabaseRequest = (PLUSyncToDatabaseRequest) message
+        PluSyncToDatabaseRequest pluSyncToDatabaseRequest = (PluSyncToDatabaseRequest) message
                 .getProperty("pluSyncToDatabaseRequest", PropertyScope.INVOCATION);
 
         String deploymentId = pluSyncToDatabaseRequest.getDeployment().getDeployment();
@@ -65,7 +65,7 @@ public class PLUSyncToDatabaseCallable implements Callable {
         InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
 
-        PLUParser parser = new PLUParser();
+        PluParser parser = new PluParser();
         parser.setDeploymentId(deploymentId);
         parser.setSyncGroupSize(2500);
         parser.setDatabaseUrl(databaseUrl);

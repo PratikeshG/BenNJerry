@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 import org.mule.api.MuleEventContext;
@@ -10,7 +11,10 @@ import org.mule.api.transport.PropertyScope;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
 
-public class PLUSyncToAwsPrepareCallable implements Callable {
+public class TlogUploadToSftpCallable implements Callable {
+    private static final String TLOG_PREFIX = "SA";
+    private static final String TLOG_SUFFIX = ".NEW";
+
     private String sftpHost;
     private int sftpPort;
     private String sftpUser;
@@ -36,25 +40,24 @@ public class PLUSyncToAwsPrepareCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        PLUSyncToDatabaseRequest request = (PLUSyncToDatabaseRequest) message.getPayload();
-        String awsFolder = message.getProperty("awsFolder", PropertyScope.INVOCATION);
+        String tlog = (String) message.getPayload();
+
+        String vfcorpStoreNumber = message.getProperty("vfcorpStoreNumber", PropertyScope.INVOCATION);
+        VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
+
+        String uploadPattern = TLOG_PREFIX + vfcorpStoreNumber + TLOG_SUFFIX;
+        InputStream uploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
-        System.out.println("SFTP AWS channel created.");
 
-        System.out.println("Saving pluStreamReaderAWS stream...");
-        sftpChannel.cd(request.getDeployment().getPluPath() + "/processing");
+        sftpChannel.cd(deployment.getTlogPath());
+        sftpChannel.put(uploadStream, uploadPattern, ChannelSftp.OVERWRITE);
 
-        InputStream is = sftpChannel.get(request.getProcessingFileName());
+        sftpChannel.disconnect();
+        session.disconnect();
 
-        message.setProperty("pluSyncToDatabaseRequest", request, PropertyScope.INVOCATION);
-        message.setProperty("pluAwsKey", String.format("%s/%s", awsFolder, request.getProcessingFileName()),
-                PropertyScope.INVOCATION);
-        message.setProperty("pluStreamReaderAws", is, PropertyScope.INVOCATION);
-        message.setProperty("sftpChannel", sftpChannel, PropertyScope.INVOCATION);
-
-        return request;
+        return tlog;
     }
 }

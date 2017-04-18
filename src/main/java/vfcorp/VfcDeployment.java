@@ -1,6 +1,6 @@
 package vfcorp;
 
-public class VFCDeployment {
+public class VfcDeployment {
     private String deployment;
     private String storeId;
     private String timeZone;

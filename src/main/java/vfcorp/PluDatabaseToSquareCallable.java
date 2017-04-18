@@ -15,8 +15,8 @@ import com.squareup.connect.PageCell;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.SquareClientV2;
 
-public class PLUDatabaseToSquareCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(PLUDatabaseToSquareCallable.class);
+public class PluDatabaseToSquareCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(PluDatabaseToSquareCallable.class);
 
     private String databaseUrl;
     private String databaseUser;
@@ -51,11 +51,11 @@ public class PLUDatabaseToSquareCallable implements Callable {
         String brand = (String) message.getProperty("brand", PropertyScope.SESSION);
 
         // Retrieve a single deployment for credentials for master account
-        VFCDeployment masterAccount = getMasterAccountDeployment(brand);
+        VfcDeployment masterAccount = getMasterAccountDeployment(brand);
 
         SquareClientV2 client = new SquareClientV2(apiUrl, masterAccount.getAccessToken());
 
-        PLUCatalogBuilder catalogBuilder = new PLUCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
+        PluCatalogBuilder catalogBuilder = new PluCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
                 brand);
         catalogBuilder.setItemNumberLookupLength(itemNumberLookupLength);
         catalogBuilder.setPluFiltered(masterAccount.isPluFiltered());
@@ -73,10 +73,10 @@ public class PLUDatabaseToSquareCallable implements Callable {
         return null;
     }
 
-    private VFCDeployment getMasterAccountDeployment(String brand) throws Exception {
+    private VfcDeployment getMasterAccountDeployment(String brand) throws Exception {
         String whereFilter = String.format("vfcorp_deployments.deployment LIKE 'vfcorp-%s-%%'", brand);
 
-        ArrayList<VFCDeployment> matchingDeployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+        ArrayList<VfcDeployment> matchingDeployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, whereFilter);
 
         if (matchingDeployments.size() < 1) {

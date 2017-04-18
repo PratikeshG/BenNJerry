@@ -93,7 +93,7 @@ public class Util {
         return session;
     }
 
-    public static List<VFCDeployment> getVFCDeployments(String host, String user, String password, String whereFilter)
+    public static List<VfcDeployment> getVfcDeployments(String host, String user, String password, String whereFilter)
             throws SQLException, ClassNotFoundException {
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(host, user, password);
@@ -105,9 +105,9 @@ public class Util {
 
         ResultSet result = (ResultSet) stmt.executeQuery(query);
 
-        ArrayList<VFCDeployment> deployments = new ArrayList<VFCDeployment>();
+        ArrayList<VfcDeployment> deployments = new ArrayList<VfcDeployment>();
         while (result.next()) {
-            VFCDeployment deployment = new VFCDeployment();
+            VfcDeployment deployment = new VfcDeployment();
             deployment.setDeployment(result.getString("deployment"));
             deployment.setStoreId(result.getString("storeId"));
             deployment.setTimeZone(result.getString("timeZone"));

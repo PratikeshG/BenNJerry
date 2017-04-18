@@ -8,7 +8,7 @@ import org.mule.api.transport.PropertyScope;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
 
-public class PLUSyncToAwsCleanupCallable implements Callable {
+public class PluSyncToAwsCleanupCallable implements Callable {
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {

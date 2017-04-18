@@ -31,8 +31,8 @@ import com.squareup.connect.v2.SquareClientV2;
 
 import util.TimeManager;
 
-public class PLUCatalogBuilder {
-    private static Logger logger = LoggerFactory.getLogger(PLUCatalogBuilder.class);
+public class PluCatalogBuilder {
+    private static Logger logger = LoggerFactory.getLogger(PluCatalogBuilder.class);
 
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
@@ -57,7 +57,7 @@ public class PLUCatalogBuilder {
         this.pluFiltered = pluFiltered;
     }
 
-    public PLUCatalogBuilder(SquareClientV2 client, String databaseUrl, String databaseUser, String databasePassword,
+    public PluCatalogBuilder(SquareClientV2 client, String databaseUrl, String databaseUser, String databasePassword,
             String brand) {
         this.client = client;
         this.databaseUrl = databaseUrl;

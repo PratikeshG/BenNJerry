@@ -7,7 +7,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 
-public class TLOGQueryDatabaseDeploymentCallable implements Callable {
+public class TlogQueryDatabaseDeploymentCallable implements Callable {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
@@ -31,7 +31,7 @@ public class TLOGQueryDatabaseDeploymentCallable implements Callable {
         String deployment = message.getProperty("deployment", PropertyScope.INVOCATION);
         String whereFilter = String.format("vfcorp_deployments.deployment = '%s'", deployment);
 
-        ArrayList<VFCDeployment> deployments = (ArrayList<VFCDeployment>) Util.getVFCDeployments(databaseUrl,
+        ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, whereFilter);
 
         if (deployments.size() != 1) {
