@@ -40,8 +40,7 @@ public class TlogUploadToSftpCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        String tlog = (String) message.getPayload();
-
+        String tlog = message.getProperty("tlog", PropertyScope.INVOCATION);
         String vfcorpStoreNumber = message.getProperty("vfcorpStoreNumber", PropertyScope.INVOCATION);
         VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
 

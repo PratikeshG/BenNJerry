@@ -217,8 +217,7 @@ public class TlogGenerator implements Callable {
 
             message.setProperty("vfcorpStoreNumber",
                     Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
-
-            return tlog.toString();
+            message.setProperty("tlog", tlog.toString(), PropertyScope.INVOCATION);
         }
 
         return null;

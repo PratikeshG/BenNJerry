@@ -46,21 +46,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </prototype-object>
         </component>
     </sub-flow>
-    <sub-flow name="VFC:generate-tlog-for-location-finish">
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" doc:name="Copy to Amazon S3"/>
-        <choice doc:name="Update PCM">
-            <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
-                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
-                <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
-                    <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
-                </db:insert>
-            </when>
-            <otherwise>
-                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
-            </otherwise>
-        </choice>
-        <logger message="#['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
-    </sub-flow>
     <flow name="VFC:tlog-generate-for-deployment" processingStrategy="VFC_TLOG_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
         <logger level="INFO" doc:name="Logger" message="Initiating TLOG (VM) for deployment #[payload.getDeployment()]"/>
@@ -79,6 +64,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </otherwise>
         </choice>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
+        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" content-ref="#[flowVars.tlog]" doc:name="Copy to Amazon S3"/>
         <component doc:name="Upload TLOG to SFTP">
             <prototype-object class="vfcorp.TlogUploadToSftpCallable">
             	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
@@ -87,7 +73,18 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
                 <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
             </prototype-object>
         </component>
-        <flow-ref name="VFC:generate-tlog-for-location-finish" doc:name="VFC:generate-tlog-for-location-finish"/>
+        <choice doc:name="Update PCM">
+            <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
+                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
+                <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
+                    <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
+                </db:insert>
+            </when>
+            <otherwise>
+                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <logger message="#['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
     </flow>
     <sub-flow name="VFC:tlog-generate-for-deploymentGroup">
         <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
