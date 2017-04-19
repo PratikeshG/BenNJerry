@@ -43,16 +43,26 @@ public class TlogUploadToSftpCallable implements Callable {
         String tlog = message.getProperty("tlog", PropertyScope.INVOCATION);
         String vfcorpStoreNumber = message.getProperty("vfcorpStoreNumber", PropertyScope.INVOCATION);
         VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
+        String storeforceArchiveDirectory = message.getProperty("storeforceArchiveDirectory", PropertyScope.INVOCATION);
 
         String uploadPattern = TLOG_PREFIX + vfcorpStoreNumber + TLOG_SUFFIX;
-        InputStream uploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+
+        InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
         sftpChannel.cd(deployment.getTlogPath());
-        sftpChannel.put(uploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+        sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+
+        // If deployment has storeforce enabled, save another copy of TLOG to SF archive directory
+        if (storeforceArchiveDirectory.length() > 0) {
+            InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+
+            sftpChannel.cd(storeforceArchiveDirectory);
+            sftpChannel.put(storeforceUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+        }
 
         sftpChannel.disconnect();
         session.disconnect();

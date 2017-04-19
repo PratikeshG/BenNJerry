@@ -23,6 +23,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.tnf.loyalty.group.existing}" doc:name="customerGroupExisting"/>
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.tnf.storeforce}" doc:name="storeforceArchiveDirectory"/>
     </sub-flow>
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
         <set-variable variableName="awsFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
@@ -30,6 +31,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.kipling.loyalty.group.existing}" doc:name="customerGroupExisting"/>
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.kipling.storeforce}" doc:name="storeforceArchiveDirectory"/>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
