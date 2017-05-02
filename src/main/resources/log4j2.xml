@@ -29,6 +29,10 @@
         <!-- Connect SDK classes -->
         <AsyncLogger name="com.squareup.connect" level="DEBUG"/>
         
+        <!-- HTTP loggers -->
+        <AsyncLogger name="org.mule.module.http.internal.HttpMessageLogger" level="DEBUG" />
+        <AsyncLogger name="com.ning.http" level="DEBUG" />
+
         <AsyncRoot level="INFO">
             <AppenderRef ref="file" />
         </AsyncRoot>
