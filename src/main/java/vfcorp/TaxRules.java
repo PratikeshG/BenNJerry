@@ -191,8 +191,8 @@ public class TaxRules {
         int itemPrice = getLocationPrice(itemVariation, locationId);
         String itemDeptClass = Util.getValueInParenthesis(itemVariation.getName());
 
-        if (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)
-                || itemVariation.getSku().equals(BAG_3039)) {
+        if (itemVariation.getSku() != null && (itemVariation.getSku().equals(BAG_4508)
+                || itemVariation.getSku().equals(BAG_4909) || itemVariation.getSku().equals(BAG_3039))) {
             if (deployment.equals(TNF_POST_ST) || deployment.equals(TNF_CHICAGO) || deployment.equals(TNF_VALLEY_FAIR)
                     || deployment.equals(TNF_BETHESDA) || deployment.equals(TNF_STANFORD)) {
                 return new String[0];
