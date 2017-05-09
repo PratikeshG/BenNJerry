@@ -430,7 +430,7 @@ public class PluCatalogBuilder {
                 + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') <= STR_TO_DATE(dateSaleEnds, '%m%d%Y') "
                 + "     GROUP BY itemNumber) as newest ON events.id = newest.id";
 
-        logger.info("Querying item sales DB for loaction " + locationId);
+        logger.info("Querying item sales DB for location " + locationId);
         return executeQuery(conn, query);
     }
 
