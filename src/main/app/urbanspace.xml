@@ -299,4 +299,24 @@ return sp;]]></scripting:script>
             </otherwise>
         </choice>
     </flow>
+    <flow name="Urbanspace:Turnstyle">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-turnstyle-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.turnstyle.active}' == false]">
+                <logger message="Urbanspace:Turnstyle disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Turnstyle Market" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.turnstyle.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.turnstyle.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.turnstyle.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.turnstyle.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.turnstyle.time.timeZone}" doc:name="Timezone"/>
+                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
+    </flow>
 </mule>
