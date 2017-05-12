@@ -1,35 +1,24 @@
 package vfcorp;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
-import java.util.TimeZone;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
-
-import util.TimeManager;
 
 public class PluCatalogBuilder {
     private static Logger logger = LoggerFactory.getLogger(PluCatalogBuilder.class);
@@ -80,17 +69,19 @@ public class PluCatalogBuilder {
 
         logCatalogStats(workingCatalog);
 
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
         // For each location, add unique item to catalog and set price (sale) overrides
         Location[] locations = client.locations().list();
 
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+
         for (Location location : locations) {
-            syncCatalogForLocation(conn, workingCatalog, location);
+            syncCatalogForLocation(databaseApi, workingCatalog, location);
         }
 
-        conn.close();
+        databaseApi.close();
 
         // Now that catalog is set, reassign taxes
         for (Location location : locations) {
@@ -123,15 +114,16 @@ public class PluCatalogBuilder {
         return String.format("%s-%s-%s", DEPLOYMENT_PREFIX, brand, locationId);
     }
 
-    private void syncCatalogForLocation(Connection conn, Catalog catalog, Location location) throws Exception {
+    private void syncCatalogForLocation(VfcDatabaseApi databaseApi, Catalog catalog, Location location)
+            throws Exception {
         String deploymentId = getDeploymentIdForLocation(location);
         if (deploymentId == null) {
             System.out.println("INVALID LOCATION: " + location.getName());
             return; // Skip invalid location
         }
 
-        syncLocationDbItems(conn, catalog, location, deploymentId);
-        syncLocationDbSalePrices(conn, catalog, location);
+        syncLocationDbItems(databaseApi, catalog, location, deploymentId);
+        syncLocationDbSalePrices(databaseApi, catalog, location);
     }
 
     private void assignLocationSpecificTaxes(Catalog catalog, Location location) throws Exception {
@@ -149,18 +141,22 @@ public class PluCatalogBuilder {
         }
     }
 
-    private void syncLocationDbItems(Connection conn, Catalog catalog, Location location, String deploymentId)
-            throws Exception {
-        ResultSet dbItemCursor = queryDBItems(conn, location.getId());
-        while (dbItemCursor.next()) {
-            updateCatalogLocationWithItem(catalog, location, dbItemCursor, deploymentId);
+    private void syncLocationDbItems(VfcDatabaseApi databaseApi, Catalog catalog, Location location,
+            String deploymentId) throws Exception {
+        ArrayList<Map<String, String>> records = databaseApi.queryDbItems(location.getId(), pluFiltered);
+
+        for (Map<String, String> itemRecord : records) {
+            updateCatalogLocationWithItem(catalog, location, itemRecord, deploymentId);
         }
     }
 
-    private void syncLocationDbSalePrices(Connection conn, Catalog catalog, Location location) throws Exception {
-        ResultSet dbItemSaleCursor = queryDBItemSaleEvents(conn, location.getId(), location.getTimezone());
-        while (dbItemSaleCursor.next()) {
-            applySalePrice(catalog, location.getId(), dbItemSaleCursor);
+    private void syncLocationDbSalePrices(VfcDatabaseApi databaseApi, Catalog catalog, Location location)
+            throws Exception {
+        ArrayList<Map<String, String>> records = databaseApi.queryDbItemSaleEvents(location.getId(),
+                location.getTimezone());
+
+        for (Map<String, String> itemSaleRecord : records) {
+            applySalePrice(catalog, location.getId(), itemSaleRecord);
         }
     }
 
@@ -205,7 +201,14 @@ public class PluCatalogBuilder {
     }
 
     public void syncCategoriesFromDatabaseToSquare() throws Exception {
-        HashSet<String> allDatabaseCategoryNames = (HashSet<String>) getUniqueCategoriesFromDatabase();
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+
+        HashSet<String> allDatabaseCategoryNames = (HashSet<String>) getUniqueCategoriesFromDatabase(databaseApi);
+
+        databaseApi.close();
 
         // Only retrieve Square account categories for now
         Catalog categoriesCatalog = retrieveCategoriesFromSquare();
@@ -250,30 +253,21 @@ public class PluCatalogBuilder {
         }
     }
 
-    private Set<String> getUniqueCategoriesFromDatabase() throws ClassNotFoundException, SQLException {
+    private Set<String> getUniqueCategoriesFromDatabase(VfcDatabaseApi databaseApi)
+            throws ClassNotFoundException, SQLException, IOException {
         HashSet<String> categoriesSet = new HashSet<String>();
 
-        ResultSet dbDeptClassCursor = queryDBDeptClass(brand);
-        while (dbDeptClassCursor.next()) {
-            String deptNumber = String.format("%-4s", dbDeptClassCursor.getString("deptNumber"));
-            String classNumber = String.format("%-4s", dbDeptClassCursor.getString("classNumber"));
-            String categoryName = deptNumber + classNumber + " " + dbDeptClassCursor.getString("description").trim();
+        ArrayList<Map<String, String>> records = databaseApi.queryDbDeptClass(brand);
+
+        for (Map<String, String> deptClassRecord : records) {
+            String deptNumber = String.format("%-4s", deptClassRecord.get("deptNumber"));
+            String classNumber = String.format("%-4s", deptClassRecord.get("classNumber"));
+            String categoryName = deptNumber + classNumber + " " + deptClassRecord.get("description").trim();
 
             categoriesSet.add(categoryName);
         }
 
         return categoriesSet;
-    }
-
-    private ResultSet queryDBDeptClass(String brand) throws SQLException, ClassNotFoundException {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-
-        String query = String.format(
-                "SELECT deptNumber, classNumber, description FROM vfcorp_plu_dept_class WHERE deployment LIKE 'vfcorp-%s-%%' GROUP BY deptNumber, classNumber, description",
-                brand);
-
-        return executeQuery(conn, query);
     }
 
     private void applyLocationSpecificItemTaxes(CatalogObject[] items, CatalogObject[] locationSpecificTaxes,
@@ -285,8 +279,8 @@ public class PluCatalogBuilder {
         }
     }
 
-    private void applySalePrice(Catalog catalog, String locationId, ResultSet record) throws Exception {
-        String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
+    private void applySalePrice(Catalog catalog, String locationId, Map<String, String> record) throws Exception {
+        String sku = convertItemNumberIntoSku(record.get("itemNumber"));
 
         CatalogObject item = catalog.getItem(sku);
         if (item == null) {
@@ -296,7 +290,7 @@ public class PluCatalogBuilder {
         CatalogItemVariation variation = getFirstItemVariation(item);
 
         if (variation != null && variation.getSku().equals(sku)) {
-            int price = Integer.parseInt(record.getString("salePrice"));
+            int price = Integer.parseInt(record.get("salePrice"));
             if (price > 0) {
                 item.setLocationPriceOverride(new String[] { locationId }, new Money(price), FIXED_PRICING);
             }
@@ -311,17 +305,17 @@ public class PluCatalogBuilder {
         return item;
     }
 
-    private void updateCatalogLocationWithItem(Catalog catalog, Location location, ResultSet record,
+    private void updateCatalogLocationWithItem(Catalog catalog, Location location, Map<String, String> record,
             String deploymentId) throws Exception {
-        String sku = convertItemNumberIntoSku(record.getString("itemNumber"));
+        String sku = convertItemNumberIntoSku(record.get("itemNumber"));
 
         CatalogObject updatedItem = getMatchingOrNewItem(catalog, sku);
         CatalogItemVariation updatedVariation = getFirstItemVariation(updatedItem);
 
         // Item Name
-        String description = record.getString("description").replaceFirst("\\s+$", "");
-        String altDescription = (record.getString("alternateDescription") != null)
-                ? record.getString("alternateDescription").trim() : "";
+        String description = record.get("description").replaceFirst("\\s+$", "");
+        String altDescription = (record.get("alternateDescription") != null) ? record.get("alternateDescription").trim()
+                : "";
         String itemName = (altDescription.length() > description.length()) ? altDescription : description;
         updatedItem.getItemData().setName(itemName);
 
@@ -329,7 +323,7 @@ public class PluCatalogBuilder {
         updatedVariation.setSku(sku);
 
         // Variation Price
-        int price = Integer.parseInt(record.getString("retailPrice"));
+        int price = Integer.parseInt(record.get("retailPrice"));
         Money locationPriceMoney = new Money(price);
         if (price > 0) {
             // We can't discern which location's price is the master price, just override
@@ -337,8 +331,8 @@ public class PluCatalogBuilder {
         }
 
         // Variation Name
-        String deptCodeClass = String.format("%-4s", record.getString("deptNumber"))
-                + String.format("%-4s", record.getString("classNumber"));
+        String deptCodeClass = String.format("%-4s", record.get("deptNumber"))
+                + String.format("%-4s", record.get("classNumber"));
         updatedVariation.setName(String.format("%s (%s)", sku, deptCodeClass));
 
         // Item Category
@@ -396,66 +390,6 @@ public class PluCatalogBuilder {
         }
 
         return false;
-    }
-
-    private ResultSet executeQuery(Connection conn, String query) throws SQLException {
-        Statement stmt = conn.createStatement();
-        ResultSet result = (ResultSet) stmt.executeQuery(query);
-
-        return result;
-    }
-
-    private ResultSet queryDBItems(Connection conn, String locationId)
-            throws SQLException, IOException, ClassNotFoundException {
-        String query = String.format("SELECT * FROM vfcorp_plu_items WHERE locationId = '%s'", locationId);
-
-        if (pluFiltered) {
-            logger.info("Applying SKU whitelist filter... ");
-            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString());
-        }
-
-        logger.info("Querying items DB for location " + locationId);
-        return executeQuery(conn, query);
-    }
-
-    private ResultSet queryDBItemSaleEvents(Connection conn, String locationId, String timeZone)
-            throws SQLException, IOException, ParseException {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
-        String nowDate = TimeManager.toSimpleDateTimeInTimeZone(cal, timeZone, "MMddyyyy");
-
-        String query = "SELECT events.itemNumber as itemNumber, events.salePrice as salePrice "
-                + "FROM vfcorp_plu_sale_events as events " + "JOIN " + "     (SELECT itemNumber, MAX(id) as id "
-                + "     FROM vfcorp_plu_sale_events " + "     WHERE locationId = '" + locationId + "' AND "
-                + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') >= STR_TO_DATE(dateSaleBegins, '%m%d%Y') AND "
-                + "     STR_TO_DATE('" + nowDate + "', '%m%d%Y') <= STR_TO_DATE(dateSaleEnds, '%m%d%Y') "
-                + "     GROUP BY itemNumber) as newest ON events.id = newest.id";
-
-        logger.info("Querying item sales DB for location " + locationId);
-        return executeQuery(conn, query);
-    }
-
-    private String getFilteredSKUQueryString() throws IOException {
-        HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
-
-        String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
-        InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
-        BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
-        try {
-            String line;
-            while ((line = brSKU.readLine()) != null) {
-                skuFilter.put(line.trim(), new Boolean(true));
-            }
-        } finally {
-            brSKU.close();
-        }
-
-        logger.info("Total SKU whitelist filtered: " + skuFilter.size());
-
-        StringJoiner sj = new StringJoiner(",");
-        for (String sku : skuFilter.keySet()) {
-            sj.add(String.format("'%s'", sku));
-        }
-        return sj.toString();
     }
 
     /*
