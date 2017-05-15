@@ -194,7 +194,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.bbites.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -214,7 +214,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.mse.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -234,7 +234,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.vanderbilt.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -254,7 +254,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.garment.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -274,7 +274,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.bryantpark.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -294,7 +294,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.roosevelt.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.roosevelt.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.roosevelt.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.roosevelt.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
@@ -314,7 +314,7 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="range" value="${urbanspace.turnstyle.time.range}" doc:name="Time range"/>
                 <set-session-variable variableName="offset" value="${urbanspace.turnstyle.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.turnstyle.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.results.email}" doc:name="Emails"/>
+                <set-session-variable variableName="emails" value="${urbanspace.turnstyle.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
