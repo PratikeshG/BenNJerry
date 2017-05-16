@@ -24,8 +24,6 @@ public class CsvItem extends CsvRow implements Serializable {
     private String casePacking;
     private String unitPrice;
     private String pricingUOM;
-    @NotNull
-    @Size(min = 1)
     private String suggestedPrice;
     private String sellingUOM;
     @NotNull
@@ -42,6 +40,10 @@ public class CsvItem extends CsvRow implements Serializable {
     @NotNull
     @Size(min = 3)
     private String currency;
+    private String halfOff;
+    @NotNull
+    @Size(min = 1)
+    private String sellingPrice;
 
     public void setNumber(String number) {
         this.number = number;
@@ -179,6 +181,28 @@ public class CsvItem extends CsvRow implements Serializable {
         this.marketingPlan = marketingPlan;
     }
 
+    public String getHalfOff() {
+        return halfOff;
+    }
+
+    public void setHalfOff(String halfOff) {
+        if (halfOff.equals("Y")) {
+            this.halfOff = halfOff;
+        } else if (halfOff.equals("N")) {
+            this.halfOff = halfOff;
+        } else {
+            throw new IllegalArgumentException("Invalid half off status");
+        }
+    }
+
+    public String getSellingPrice() {
+        return sellingPrice;
+    }
+
+    public void setSellingPrice(String sellingPrice) {
+        this.sellingPrice = sellingPrice;
+    }
+
     /*
      * Creates a CsvItem object from an ordered array of Strings, and sets the marketing plan
      * 
@@ -201,20 +225,21 @@ public class CsvItem extends CsvRow implements Serializable {
      * 13 - bogo
      * 14 - itemNum3
      * 15 - currency
+     * 16 - halfOff
+     * 17 - sellingPrice
      * 
      * @return the newly created CsvItem
      */
     public static CsvItem fromCsvItemFields(String[] itemFields, String marketingPlan) {
+        if (itemFields.length != 18) {
+            throw new IllegalArgumentException("Invalid number of fields");
+        }
 
         CsvItem item = new CsvItem();
         // TODO(wtsang): determine more comprehensive cleaning operations based on prior CSV submissions
         for (int i = 0; i < itemFields.length; i++) {
             itemFields[i] = itemFields[i].trim();
             itemFields[i] = itemFields[i].replaceAll("'", "''");
-        }
-
-        if (itemFields.length != 16) {
-            throw new IllegalArgumentException("Missing fields");
         }
 
         item.setNumber(itemFields[0]);
@@ -234,6 +259,8 @@ public class CsvItem extends CsvRow implements Serializable {
         item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
         item.setMarketingPlan(marketingPlan);
+        item.setHalfOff(itemFields[16]);
+        item.setSellingPrice(itemFields[17]);
 
         if (!item.isValid()) {
             //TODO: wtsang - Add more validations

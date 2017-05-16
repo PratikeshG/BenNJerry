@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class CsvMktPlan {
 
-    public static final String HEADER_ROW = "Item Number,CAT,Category,Item Description,Case Packing,Unit Price,Pricing UOM,Suggested Selling Price,Selling UOM,UPC,Net Item,Expired Date,Eff Date Date,Buy 1Get N Free Value,3rd Item Number,Cur Cod";
+    public static final String HEADER_ROW = "Item Number,CAT,Category,Item Description,Case Packing, Unit Price,Pricing UOM,Suggested Selling Price,Selling UOM,UPC,Net Item,Expired Date, Effective Date,Buy 1 Get N Free Value,3rd ItemNumber,Currency Code,Half Off,Selling Price";
     private String name;
     private ArrayList<CsvItem> items;
 

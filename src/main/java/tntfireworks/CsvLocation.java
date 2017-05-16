@@ -5,7 +5,8 @@ import javax.validation.constraints.Size;
 
 public class CsvLocation extends CsvRow {
 
-    public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE";
+    public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE,Square Dashboard Account";
+
     //TODO: wtsang - Work with TNT Fireworks to clean up CSV headers (for example ' ADDRESS #' has leading space)
 
     @Size(min = 1)
@@ -36,6 +37,7 @@ public class CsvLocation extends CsvRow {
     private String year;
     private String machineType;
     private String deployment;
+    private String sqDashboardEmail;
 
     public void setLocationNum(String locationNum) {
         this.locationNum = locationNum;
@@ -213,9 +215,16 @@ public class CsvLocation extends CsvRow {
         return deployment;
     }
 
-    public static CsvLocation fromLocationFieldsCsvRow(String[] locationFields) {
+    public String getSqDashboardEmail() {
+        return sqDashboardEmail;
+    }
 
-        if (locationFields.length != 21) {
+    public void setSqDashboardEmail(String sqDashboardEmail) {
+        this.sqDashboardEmail = sqDashboardEmail;
+    }
+
+    public static CsvLocation fromLocationFieldsCsvRow(String[] locationFields) {
+        if (locationFields.length != 22) {
             throw new IllegalArgumentException();
         }
 
@@ -248,6 +257,7 @@ public class CsvLocation extends CsvRow {
         //      18 - season;
         //      19 - year;
         //      20 - machineType;
+        //      21 - sqDashboardEmail
         //
 
         // NOTE: unused fields are commented out to avoid ingesting unverified data and having it misused elsewhere
@@ -273,6 +283,7 @@ public class CsvLocation extends CsvRow {
         location.setSeason(locationFields[18]);
         location.setYear(locationFields[19]);
         location.setMachineType(locationFields[20]);
+        location.setSqDashboardEmail(locationFields[21]);
 
         if (!location.isValid()) {
             throw new IllegalArgumentException();
@@ -280,5 +291,4 @@ public class CsvLocation extends CsvRow {
 
         return location;
     }
-
 }
