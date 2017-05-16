@@ -311,7 +311,7 @@ public class CsvItem extends CsvRow implements Serializable {
     }
 
     /*
-     * Converts the CsvItem suggestedPrice and currency Strings to a Square Money object (cents)
+     * Converts the CsvItem sellingPrice and currency Strings to a Square Money object (cents)
      * 
      * @return Square Money object including int of cents and currency
      * 
@@ -319,13 +319,13 @@ public class CsvItem extends CsvRow implements Serializable {
      * 
      */
     public Money getPriceAsSquareMoney() {
-        Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null" + this.getUniqueItemString());
-        Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0,
+        Preconditions.checkNotNull(this.getSellingPrice(), "price cannot be null" + this.getUniqueItemString());
+        Preconditions.checkArgument(Double.parseDouble(this.getSellingPrice()) > 0,
                 "must be positive " + this.getUniqueItemString());
         Preconditions.checkNotNull(this.getCurrency(), "missing currency " + this.getUniqueItemString());
-        Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
+        Preconditions.checkArgument(isNumeric(this.getSellingPrice()));
 
-        BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
+        BigDecimal dollars = new BigDecimal(this.getSellingPrice());
         dollars = dollars.movePointRight(2);
         int cents = dollars.intValueExact();
         return new Money(cents, this.getCurrency());

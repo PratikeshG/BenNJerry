@@ -112,19 +112,21 @@ public class DeploymentsCallable implements Callable {
             deploymentPayload.setMerchantAlias(row.get("merchantAlias"));
             deploymentPayloads.add(deploymentPayload);
         }
+
         return deploymentPayloads;
     }
 
     public HashMap<String, String> generateLocationMarketingPlanCache(TntDatabaseApi tntDatabaseApi)
             throws SQLException {
         ArrayList<Map<String, String>> rows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLocationSQLSelect());
-        // columns retrieved: locationNumber, name
+        // columns retrieved: all
         logger.info("generateLocationMarketingPlanCache=" + gson.toJson(rows));
 
         HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
         for (Map<String, String> row : rows) {
             locationMarketingPlanCache.put(row.get("locationNumber"), row.get("mktPlan"));
         }
+
         return locationMarketingPlanCache;
     }
 
@@ -133,7 +135,7 @@ public class DeploymentsCallable implements Callable {
         ArrayList<Map<String, String>> rows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
         // get all items from db
         // columns retrieved: itemNumber, category, itemDescription,
-        // suggestedPrice, upc, currency
+        // upc, currency, halfOff, sellingPrice
 
         logger.info("generateMarketingPlanItemsCache=" + gson.toJson(rows));
 
@@ -151,14 +153,14 @@ public class DeploymentsCallable implements Callable {
             item.setNumber(row.get("itemNumber"));
             item.setCategory(row.get("category"));
             item.setDescription(row.get("itemDescription"));
-            item.setSuggestedPrice(row.get("suggestedPrice"));
             item.setUPC(row.get("upc"));
             item.setMarketingPlan(row.get("mktPlan"));
             item.setCurrency(row.get("currency"));
+            item.setHalfOff(row.get("halfOff"));
+            item.setSellingPrice(row.get("sellingPrice"));
             itemList.add(item);
         }
+
         return marketingPlanItemsCache;
-
     }
-
 }

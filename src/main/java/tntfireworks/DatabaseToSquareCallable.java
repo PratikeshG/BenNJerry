@@ -74,5 +74,4 @@ public class DatabaseToSquareCallable implements Callable {
         tntCatalogApi.batchUpsertItemsIntoCatalog();
         tntCatalogApi.removeItemsNotPresentAtAnyLocations();
     }
-
 }

@@ -58,13 +58,13 @@ public class TntDatabaseApi {
     }
 
     public String generateLocationSQLSelect() {
-        String query = "SELECT locationNumber, name, mktPlan FROM tntfireworks_locations;";
+        String query = "SELECT * FROM tntfireworks_locations;";
         logger.info("Generated query: " + query);
         return query;
     }
 
     public String generateItemSQLSelect() {
-        String query = "SELECT itemNumber, category, itemDescription, suggestedPrice, upc, mktPlan, currency FROM tntfireworks_marketing_plans;";
+        String query = "SELECT itemNumber, category, itemDescription, upc, mktPlan, currency, halfOff, sellingPrice FROM tntfireworks_marketing_plans;";
         logger.info("Generated query: " + query);
         return query;
     }

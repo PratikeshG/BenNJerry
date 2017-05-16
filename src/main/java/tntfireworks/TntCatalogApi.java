@@ -18,15 +18,11 @@ import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
 
 public class TntCatalogApi {
+    private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
 
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
-    private static final String[] BASE_CATEGORIES = new String[] { "ASSORTMENTS", "BASE FOUNTAINS",
-            "CALIFORNIA FOUNTAINS", "CONE FOUNTAINS", "GROUND SPINNERS & CHASERS", "NOVELTIES", "SMOKE", "SPARKLERS",
-            "PUNK", "FIRECRACKERS", "HELICOPTERS", "RELOADABLES", "MULTI-AERIALS", "SPECIAL AERIALS", "MISSILES",
-            "PARACHUTES", "ROMAN CANDLES", "ROCKETS", "COUNTER CASES & DISPLAYS", "PROMOTIONAL", "SUB ASSESMBLIES",
-            "MATERIALS", "TOYS" };
 
     private SquareClientV2 client;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
@@ -135,9 +131,7 @@ public class TntCatalogApi {
      * The existing categories from Square are pulled and compared with the categories in the local DB.
      * If the category is present in the local DB but not in Square, the category will be loaded into Square.
      * Note: this operation does not remove categories in Square that are no longer in the local DB.
-     * 
-     * TODO: @wtsang - pull from DB instead of hard-coded categories
-     * 
+     *  
      * @return the updated catalog
      */
     public Catalog batchUpsertCategoriesFromDatabaseToSquare() {
@@ -231,7 +225,14 @@ public class TntCatalogApi {
 
         CatalogObject squareItem = getOrCreateSquareItem(catalog, sku);
 
-        squareItem.getItemData().setName(csvItem.getDescription());
+        // add bogo to price description
+        if (csvItem.getHalfOff().equals("Y")) {
+            String modifiedDesc = String.format("%s - BOGO PRICE", csvItem.getDescription());
+            squareItem.getItemData().setName(modifiedDesc);
+        } else {
+            squareItem.getItemData().setName(csvItem.getDescription());
+        }
+
         CatalogItemVariation squareItemVariation = getFirstItemVariation(squareItem);
         squareItemVariation.setSku(sku);
         squareItemVariation.setName(csvItem.getNumber());
@@ -261,21 +262,10 @@ public class TntCatalogApi {
 
     }
 
-    private HashSet<String> getBaseTntCategoriesSet() {
+    private String[] getTntFireworksCategories() {
         HashSet<String> categoriesSet = new HashSet<String>();
 
-        for (String category : BASE_CATEGORIES) {
-            categoriesSet.add(category);
-        }
-
-        return categoriesSet;
-    }
-
-    private String[] getTntFireworksCategories() {
-        // get baseline categories
-        HashSet<String> categoriesSet = getBaseTntCategoriesSet();
-
-        // add any additional categories
+        // add any categories
         for (List<CsvItem> csvItemList : marketingPlanItemsCache.values()) {
             for (CsvItem item : csvItemList) {
                 categoriesSet.add(item.getCategory());
@@ -308,8 +298,6 @@ public class TntCatalogApi {
 
     }
 
-    private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
-
     private Map<String, CatalogObject> getCategoriesAsHashmapFromSquare(Catalog catalog) {
         return catalog.getCategories();
     }
@@ -333,39 +321,30 @@ public class TntCatalogApi {
 
     }
 
-    private static String getValueInParenthesisAndStripHashtag(String input) {
-        Preconditions.checkArgument(input.contains("("));
-        Preconditions.checkArgument(input.contains(")"));
-        Preconditions.checkArgument(input.indexOf("(") < input.indexOf(")"));
-
-        int firstIndex = input.indexOf('(');
-        int lastIndex = input.indexOf(')');
-        String value = input.substring(firstIndex + 1, lastIndex);
-        return value.replaceAll("#", "");
-    }
-
     private void addLocationToMarketingPlanLocationsCache(Location location,
             HashMap<String, List<String>> marketingPlanLocationsCache,
             HashMap<String, String> locationMarketingPlanCache) {
         String locationSquareId = location.getId();
-        String locationTNTId = getValueInParenthesisAndStripHashtag(location.getName());
+        String locationTNTId = location.getName();
         String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
 
         if (locationTNTId.length() < 1) {
-            throw new IllegalArgumentException("Invalid location id ");
+            throw new IllegalArgumentException("Invalid TNT location number/ID");
         }
 
-        if (marketingPlanId == null) {
-            throw new IllegalArgumentException("Invalid marketing plan id");
-        }
+        if (!locationTNTId.contains("DEACTIVATED")) {
+            if (marketingPlanId == null) {
+                throw new IllegalArgumentException(
+                        "Could not find mapping of location number (in existing SQ account) to a market plan");
+            }
 
-        List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
-        if (locationsList == null) {
-            locationsList = new ArrayList<String>();
-            marketingPlanLocationsCache.put(marketingPlanId, locationsList);
+            List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
+            if (locationsList == null) {
+                locationsList = new ArrayList<String>();
+                marketingPlanLocationsCache.put(marketingPlanId, locationsList);
+            }
+            locationsList.add(locationSquareId);
         }
-        locationsList.add(locationSquareId);
-
     }
 
     private HashMap<String, List<String>> generateMarketingPlanLocationsCache(
