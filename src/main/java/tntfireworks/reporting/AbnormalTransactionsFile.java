@@ -277,10 +277,7 @@ public class AbnormalTransactionsFile {
                 String entryMethod = "";
                 String customerId = "";
 
-                /*
-                 *  - occasional null values for card detail fields below from the API
-                 *  - this is normal behavior since valid tender types could include gift cards      
-                 */
+                // occasional null values for card detail fields below from the API
                 if (tender.getType().equals("CARD")) {
                     try {
                         cardBrand = tender.getCardDetails().getCard().getCardBrand();
@@ -366,7 +363,6 @@ public class AbnormalTransactionsFile {
             this.type = "";
             if (level > 0 && level <= types.length) {
                 this.type = types[level - 1];
-                logger.info("Alert TYPE: " + this.type);
             } else {
                 throw new Exception("Invalid alert level for Abnormal Transactions Report");
             }

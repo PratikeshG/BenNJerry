@@ -8,9 +8,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.squareup.connect.Payment;
 
 import tntfireworks.TntDatabaseApi;
@@ -18,8 +15,6 @@ import util.DbConnection;
 import util.TimeManager;
 
 public class CreditDebitBatchFile {
-    private static Logger logger = LoggerFactory.getLogger(CreditDebitBatchFile.class);
-
     // file fields
     private String sourceType;
     private int loadNumber;

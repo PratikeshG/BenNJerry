@@ -13,9 +13,6 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 import com.squareup.connect.v2.Transaction;
@@ -25,7 +22,6 @@ import util.DbConnection;
 import util.TimeManager;
 
 public class TransactionsBatchFile {
-    private static Logger logger = LoggerFactory.getLogger(TransactionsBatchFile.class);
     private String fileDate;
     private List<TransactionEntry> transactionEntries;
     private Map<String, String> tenderToFee;
@@ -71,7 +67,6 @@ public class TransactionsBatchFile {
                 "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State",
                 "RBU", "SA NAME");
         reportBuilder.append(fileHeader);
-        logger.info(fileHeader);
 
         for (TransactionEntry entry : transactionEntries) {
             for (Tender tender : entry.tenders) {
@@ -125,7 +120,6 @@ public class TransactionsBatchFile {
                         formatTotal(entry.netTotal), entry.locationNumber, entry.city, entry.state, entry.rbu,
                         entry.saName);
                 reportBuilder.append(fileRow);
-                logger.info(fileRow);
             }
         }
 

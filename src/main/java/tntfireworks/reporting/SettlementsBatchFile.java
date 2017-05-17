@@ -11,9 +11,6 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SettlementEntry;
 
@@ -22,7 +19,6 @@ import util.DbConnection;
 import util.TimeManager;
 
 public class SettlementsBatchFile {
-    private static Logger logger = LoggerFactory.getLogger(SettlementsBatchFile.class);
     private String fileDate;
     private List<SettlementsFileEntry> settlementFileEntries;
 
@@ -74,7 +70,6 @@ public class SettlementsBatchFile {
                 "Location Number", "Settlement Id", "Initiated At (UTC)", "Settlement Amount",
                 "Settlement Fee", "Type", "RBU", "City", "State", "Zip");
         reportBuilder.append(fileHeader);
-        logger.info(fileHeader);
 
         for (SettlementsFileEntry fileEntry : settlementFileEntries) {
             for (SettlementEntry settlementEntry : fileEntry.settlementEntries) {
