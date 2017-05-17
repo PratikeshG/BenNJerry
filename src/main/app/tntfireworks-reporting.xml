@@ -45,10 +45,10 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
         <component doc:name="Generate Settlements Batch Report">
-            <prototype-object class="tntfireworks.reporting.SettlementsBatchCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
+            <prototype-object class="tntfireworks.reporting.SettlementsBatchCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
             </prototype-object>
         </component>
     	<smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Settlements Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Settlements Batch Report" to="wtsang@squareup.com"/>
@@ -58,10 +58,10 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
         <component doc:name="Generate Transactions Batch Report">
-            <prototype-object class="tntfireworks.reporting.TransactionsBatchCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
+            <prototype-object class="tntfireworks.reporting.TransactionsBatchCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
             </prototype-object>
         </component>
     	<smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Transactions Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Transactions Batch Report" to="wtsang@squareup.com"/>
@@ -72,9 +72,9 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
         <component doc:name="Generate Abnormal Transactions Batch Report">
             <prototype-object class="tntfireworks.reporting.AbnormalTransactionsCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
             </prototype-object>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Abnormal Transactions Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Abnormal Transactions Batch Report" to="wtsang@squareup.com"/> 
@@ -84,17 +84,21 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
         <component doc:name="Generate Credit Debit Batch Report">
-        	<singleton-object class="tntfireworks.reporting.DepositsBatchCallable"/>    
+        	<prototype-object class="tntfireworks.reporting.CreditDebitBatchCallable">
+        	    <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+        	</prototype-object>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Credit Debit Batch Report  - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Credit Debit Batch Report" to="wtsang@squareup.com"/>
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-transactions">
         <component doc:name="Get Deployment Payloads">
-            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
-                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
+            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>
             </prototype-object>
         </component>
         <request-reply doc:name="Request-Reply">
@@ -112,7 +116,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
         <logger message="#[&quot;Retrieving Transaction details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Aggregate deployment details">
-        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsCallable"/>       
+        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsCallable"/>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
     </flow>

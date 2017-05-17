@@ -69,8 +69,13 @@ public class TntDatabaseApi {
         return query;
     }
 
+    public String generateLoadNumberSQLSelect() {
+        String query = "SELECT reportName, count FROM tntfireworks_reports_load_number;";
+        logger.info("Generated query: " + query);
+        return query;
+    }
+
     public void close() throws SQLException {
         dbConnection.close();
     }
-
 }

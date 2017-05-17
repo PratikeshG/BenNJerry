@@ -10,8 +10,25 @@ import org.mule.api.lifecycle.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import util.DbConnection;
+
 public class CreditDebitBatchCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(CreditDebitBatchCallable.class);
+    private String databaseUrl;
+    private String databaseUser;
+    private String databasePassword;
+
+    public void setDatabaseUrl(String databaseUrl) {
+        this.databaseUrl = databaseUrl;
+    }
+
+    public void setDatabaseUser(String databaseUser) {
+        this.databaseUser = databaseUser;
+    }
+
+    public void setDatabasePassword(String databasePassword) {
+        this.databasePassword = databasePassword;
+    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -21,7 +38,8 @@ public class CreditDebitBatchCallable implements Callable {
         List<List<TntLocationDetails>> deploymentAggregate = (List<List<TntLocationDetails>>) message
                 .getPayload();
 
-        CreditDebitBatchFile batchFile = new CreditDebitBatchFile(deploymentAggregate);
+        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        CreditDebitBatchFile batchFile = new CreditDebitBatchFile(deploymentAggregate, dbConnection);
 
         DataHandler dataHandler = new DataHandler(batchFile.generateBatchReport(), "text/plain; charset=UTF-8");
         eventContext.getMessage().addOutboundAttachment(batchFile.getFileDate() + "-credit-debit-batch-report.csv",
