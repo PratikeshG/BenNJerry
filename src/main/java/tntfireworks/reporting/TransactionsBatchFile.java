@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
-import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.Transaction;
 
 import tntfireworks.TntDatabaseApi;
@@ -29,12 +28,14 @@ public class TransactionsBatchFile {
     private static Logger logger = LoggerFactory.getLogger(TransactionsBatchFile.class);
     private String fileDate;
     private List<TransactionEntry> transactionEntries;
+    private Map<String, String> tenderToFee;
 
     public TransactionsBatchFile(List<List<TntLocationDetails>> deploymentAggregate, DbConnection dbConnection)
             throws Exception {
         // initialize non-static values
         fileDate = getDate("America/Los_Angeles", "MM-dd-yy", 0);
         transactionEntries = new ArrayList<TransactionEntry>();
+        tenderToFee = new HashMap<String, String>();
 
         // cache location data from tnt database to limit to 1 query submission
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
@@ -45,6 +46,13 @@ public class TransactionsBatchFile {
         // ingest location details into rows of payment data
         for (List<TntLocationDetails> deployment : deploymentAggregate) {
             for (TntLocationDetails locationDetails : deployment) {
+                // map tender ids to v2 tender fees
+                for (Transaction transaction : locationDetails.getTransactions()) {
+                    for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
+                        tenderToFee.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
+                    }
+                }
+
                 for (Payment payment : locationDetails.getPayments()) {
                     transactionEntries.add(new TransactionEntry(payment, locationDetails, dbLocationRows));
                 }
@@ -75,14 +83,27 @@ public class TransactionsBatchFile {
                 String otherTenderAmt = "";
                 String otherTenderType = "";
                 String refundAmt = "";
+                String tenderFee = "";
 
-                // retrieve entry method
+                // get fee from tenderToFee mapping
+                if (tenderToFee.containsKey(tender.getId())) {
+                    tenderFee = tenderToFee.get(tender.getId());
+                }
+
+                // retrieve entry method, if null (for cash), set to NA
                 entryMethod = tender.getEntryMethod();
+                if (entryMethod == null) {
+                    entryMethod = "NA";
+                }
+                refundAmt = Integer.toString(tender.getRefundedMoney().getAmount());
 
                 // get tender details
                 switch (tender.getType()) {
                     case "CREDIT_CARD":
                         cardAmt = formatTotal(tender.getTotalMoney().getAmount());
+                        break;
+                    case "CASH":
+                        cashAmt = formatTotal(tender.getTotalMoney().getAmount());
                         break;
                     case "OTHER":
                         otherTenderAmt = formatTotal(tender.getTotalMoney().getAmount());
@@ -94,35 +115,17 @@ public class TransactionsBatchFile {
                         break;
                 }
 
-                if (entry.tenderToRefunds.containsKey(tender.getId())
-                        && entry.tenderToRefunds.get(tender.getId()).size() > 0) {
-                    for (Refund refund : entry.tenderToRefunds.get(tender.getId())) {
-                        refundAmt = formatTotal(refund.getAmountMoney().getAmount());
-                        // write file row
-                        String fileRow = String.format(
-                                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                                entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
-                                formatTotal(entry.discounts), formatTotal(entry.netSales), formatTotal(entry.tax),
-                                formatTotal(entry.tip), tender.getId(), refundAmt, formatTotal(entry.totalCollected),
-                                source, cardAmt, entryMethod, cashAmt, otherTenderAmt, otherTenderType,
-                                formatTotal(entry.fees), formatTotal(entry.netTotal), entry.locationNumber, entry.city,
-                                entry.state, entry.rbu, entry.saName);
-                        reportBuilder.append(fileRow);
-                        logger.info(fileRow);
-                    }
-                } else {
-                    // write file row
-                    String fileRow = String.format(
-                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                            entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
-                            formatTotal(entry.discounts),
-                            formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), tender.getId(),
-                            refundAmt, formatTotal(entry.totalCollected), source, cardAmt, entryMethod, cashAmt,
-                            otherTenderAmt, otherTenderType, formatTotal(entry.fees), formatTotal(entry.netTotal),
-                            entry.locationNumber, entry.city, entry.state, entry.rbu, entry.saName);
-                    reportBuilder.append(fileRow);
-                    logger.info(fileRow);
-                }
+                // write file row
+                String fileRow = String.format(
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
+                        entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
+                        formatTotal(entry.discounts), formatTotal(entry.netSales), formatTotal(entry.tax),
+                        formatTotal(entry.tip), tender.getId(), refundAmt, formatTotal(entry.totalCollected), source,
+                        cardAmt, entryMethod, cashAmt, otherTenderAmt, otherTenderType, tenderFee,
+                        formatTotal(entry.netTotal), entry.locationNumber, entry.city, entry.state, entry.rbu,
+                        entry.saName);
+                reportBuilder.append(fileRow);
+                logger.info(fileRow);
             }
         }
 
@@ -159,20 +162,16 @@ public class TransactionsBatchFile {
         private int fees;
         private int netTotal;
         private List<Tender> tenders;
-        private Map<String, List<Refund>> tenderToRefunds;
-        private Map<String, String> tenderToFees;
         private String locationNumber;
         private String rbu;
         private String city;
         private String state;
         private String saName;
-        private String timezone;
 
         public TransactionEntry(Payment payment, TntLocationDetails locationDetails,
                 List<Map<String, String>> dbLocationRows) {
             // initialize payment information
             paymentId = payment.getId();
-            timezone = locationDetails.getLocation().getTimezone();
             createdAt = payment.getCreatedAt();
             grossSales = payment.getGrossSalesMoney().getAmount();
             discounts = payment.getDiscountMoney().getAmount();
@@ -202,40 +201,6 @@ public class TransactionsBatchFile {
                     this.saName = row.get("saName");
                 }
             }
-
-            // initialize map of tenders to v2 refunds
-            tenderToRefunds = new HashMap<String, List<Refund>>();
-
-            // cache v2 refund data for mapping
-            List<Refund> refundCache = new ArrayList<Refund>();
-            for (Transaction transaction : locationDetails.getTransactions()) {
-                if (transaction.getRefunds() != null) {
-                    for (Refund refund : transaction.getRefunds()) {
-                        refundCache.add(refund);
-                    }
-                }
-            }
-
-            // create mapping of v2 refunds (full or partial) to tender id
-            for (Refund refund : refundCache) {
-                String tenderId = refund.getTenderId();
-                List<Refund> existingRefunds;
-
-                if (tenderToRefunds.containsKey(tenderId)) {
-                    existingRefunds = tenderToRefunds.get(tenderId);
-                } else {
-                    existingRefunds = new ArrayList<Refund>();
-                    tenderToRefunds.put(tenderId, existingRefunds);
-                }
-                existingRefunds.add(refund);
-            }
-
-            // map tender ids to v2 tender fees
-            for (Transaction transaction : locationDetails.getTransactions()) {
-                for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                    //        tenderToFees.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
-                }
-            }
         }
 
         /* 
@@ -261,6 +226,7 @@ public class TransactionsBatchFile {
                     locationNumber = locationName;
                 }
             }
+
             return locationNumber;
         }
     }
