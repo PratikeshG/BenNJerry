@@ -14,28 +14,28 @@ import com.squareup.connect.Payment;
 
 import util.TimeManager;
 
-public class DepositsBatchFile {
-    private static Logger logger = LoggerFactory.getLogger(DepositsBatchFile.class);
+public class CreditDebitBatchFile {
+    private static Logger logger = LoggerFactory.getLogger(CreditDebitBatchFile.class);
 
     // file fields
     private String sourceType;
     private int loadNumber;
     private String fileDate;
-    private List<DepositsBatchEntry> batchFileEntries;
+    private List<CreditDebitEntry> batchFileEntries;
 
-    public DepositsBatchFile(List<List<TntLocationDetails>> deploymentAggregate) throws Exception {
+    public CreditDebitBatchFile(List<List<TntLocationDetails>> deploymentAggregate) throws Exception {
         // initialize values that are currently static
         sourceType = "SQUARE";
         loadNumber = 0;
 
         // initialize non-static values
         fileDate = getDate("America/Los_Angeles", "MM-dd-yy", 0);
-        batchFileEntries = new ArrayList<DepositsBatchEntry>();
+        batchFileEntries = new ArrayList<CreditDebitEntry>();
 
         // ingest location details into rows of payment data
         for (List<TntLocationDetails> deployment : deploymentAggregate) {
             for (TntLocationDetails locationDetails : deployment) {
-                batchFileEntries.add(new DepositsBatchEntry(locationDetails));
+                batchFileEntries.add(new CreditDebitEntry(locationDetails));
             }
         }
     }
@@ -69,7 +69,7 @@ public class DepositsBatchFile {
 
         reportBuilder.append(fileHeader);
 
-        for (DepositsBatchEntry entry : batchFileEntries) {
+        for (CreditDebitEntry entry : batchFileEntries) {
             String fileRow = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
                     sourceType, Integer.toString(loadNumber), fileDate, formatTotal(entry.netDepositAmt),
                     Integer.toString(entry.ticketCount), Integer.toString(entry.debitCount),
@@ -82,7 +82,7 @@ public class DepositsBatchFile {
         return reportBuilder.toString();
     }
 
-    private class DepositsBatchEntry {
+    private class CreditDebitEntry {
         private int netDepositAmt;
         private int ticketCount;
         private int debitCount;
@@ -95,7 +95,7 @@ public class DepositsBatchFile {
         private String achDate;
         private String sqMerchantId;
 
-        private DepositsBatchEntry(TntLocationDetails locationDetails) {
+        private CreditDebitEntry(TntLocationDetails locationDetails) {
             // initialize values that are currently static to row
             holdAmt = 0;
             achAmt = 0;
