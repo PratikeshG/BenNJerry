@@ -57,8 +57,8 @@ public class TransactionsBatchFile {
 
         // write file header
         String fileHeader = String.format(
-                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                "Payment Id", "Date", "Time", "Gross Sales", "Discounts", "Net Sales", "Tax", "Tip", "Tender Id",
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
+                "Payment Id", "Created At (UTC)", "Gross Sales", "Discounts", "Net Sales", "Tax", "Tip", "Tender Id",
                 "Refund Amount", "Total Collected", "Source", "Card Amount", "Entry Method", "Cash Amount",
                 "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State",
                 "RBU", "SA NAME");
@@ -66,12 +66,6 @@ public class TransactionsBatchFile {
         logger.info(fileHeader);
 
         for (TransactionEntry entry : transactionEntries) {
-            // convert created date to date/time parts
-            String dateFormat = "yyyy-MM-dd'T'HH:mm:ss";
-            String[] tzDate = TimeManager.dateFormatFromRFC3339(entry.createdAt, entry.timezone, dateFormat).split("T");
-            String date = tzDate[0];
-            String time = tzDate[1];
-
             for (Tender tender : entry.tenders) {
                 // initialize tender details
                 String source = "SQUARE POS";
@@ -90,9 +84,6 @@ public class TransactionsBatchFile {
                     case "CREDIT_CARD":
                         cardAmt = formatTotal(tender.getTotalMoney().getAmount());
                         break;
-                    case "CASH":
-                        cashAmt = formatTotal(tender.getTotalMoney().getAmount());
-                        break;
                     case "OTHER":
                         otherTenderAmt = formatTotal(tender.getTotalMoney().getAmount());
                         otherTenderType = "OTHER";
@@ -109,8 +100,8 @@ public class TransactionsBatchFile {
                         refundAmt = formatTotal(refund.getAmountMoney().getAmount());
                         // write file row
                         String fileRow = String.format(
-                                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                                entry.paymentId, date, time, formatTotal(entry.grossSales),
+                                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
+                                entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
                                 formatTotal(entry.discounts), formatTotal(entry.netSales), formatTotal(entry.tax),
                                 formatTotal(entry.tip), tender.getId(), refundAmt, formatTotal(entry.totalCollected),
                                 source, cardAmt, entryMethod, cashAmt, otherTenderAmt, otherTenderType,
@@ -122,8 +113,9 @@ public class TransactionsBatchFile {
                 } else {
                     // write file row
                     String fileRow = String.format(
-                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                            entry.paymentId, date, time, formatTotal(entry.grossSales), formatTotal(entry.discounts),
+                            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
+                            entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
+                            formatTotal(entry.discounts),
                             formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), tender.getId(),
                             refundAmt, formatTotal(entry.totalCollected), source, cardAmt, entryMethod, cashAmt,
                             otherTenderAmt, otherTenderType, formatTotal(entry.fees), formatTotal(entry.netTotal),
@@ -241,7 +233,7 @@ public class TransactionsBatchFile {
             // map tender ids to v2 tender fees
             for (Transaction transaction : locationDetails.getTransactions()) {
                 for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                    tenderToFees.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
+                    //        tenderToFees.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
                 }
             }
         }

@@ -27,7 +27,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <set-payload value="Settlements Report generated." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-trigger-abnormal-transactions-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abormal-transactions-report/${urlKey}" doc:name="HTTP"/>
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abnormal-transactions-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <flow-ref name="TNTFireworks-generate-abnormal-transactions-report" doc:name="TNTFireworks-generate-abnormal-transactions-report"/>

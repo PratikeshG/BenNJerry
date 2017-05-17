@@ -1,6 +1,5 @@
 package tntfireworks.reporting;
 
-import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -15,7 +14,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
@@ -30,17 +28,15 @@ public class AbnormalTransactionsFile {
      * 
      * Alert Level  | Description
      * -----------------------------------------------------------
-     *      1       | Card Present Transaction exceeds $3,000
-     *      2       | Card Not Present Transaction exceeds $1,500
-     *      3       | Card Not Present transaction more than 5 times in one day at same location
-     *      4       | Same card used 4 or more times across entire population during season (in one day?)
-     *      5       | Same dollar amount run consecutively at same location 3 or more times in one day
-     *      6       | Card Present Transaction exceeds $1,000
-     *      7       | Card Not Present Transaction exceeds $500
+     *      1       | Card Present Transaction exceeds $1,000
+     *      2       | Card Not Present Transaction exceeds $500
+     *      3       | Card Not Present transaction more than 3 times in one day at same location
+     *      4       | Same card used 4 or more times across entire population in one day (tentative for entire season)
+     *      5       | Same dollar amount run on card-tender consecutively at same location 3 or more times in one day
+     *      6       | Card Not Present Transaction exceeds $150
      *  
      */
     private List<AlertEntry> alerts;
-    private Map<String, String> tenderToEmployee;
     private String fileDate;
 
     public AbnormalTransactionsFile(List<List<TntLocationDetails>> deploymentsAggregate, DbConnection dbConnection)
@@ -50,7 +46,6 @@ public class AbnormalTransactionsFile {
 
         // initialize instances for alert entries and tender id to employee mapping
         alerts = new ArrayList<AlertEntry>();
-        tenderToEmployee = new HashMap<String, String>();
 
         // cache location data from tnt database to limit to 1 query submission
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
@@ -65,27 +60,26 @@ public class AbnormalTransactionsFile {
             for (TntLocationDetails locationDetails : deployment) {
                 List<Transaction> alert3Transactions = new ArrayList<Transaction>();
                 Map<String, List<Transaction>> alert5Transactions = new HashMap<String, List<Transaction>>();
+                List<Transaction> alert5Buffer = new ArrayList<Transaction>();
+
+                // used for alert type 5, initialize to negative value for start
+                int prevAmt = -1;
 
                 for (Transaction transaction : locationDetails.getTransactions()) {
-                    // alert 1 and 6 have same criteria, different thresholds
-                    // alert 1 > $3000, alert 6 > $1000
+                    // alert 1, threshold $1000
                     int alertLevel = 0;
-                    int alertThreshold1 = 10000;
-                    int alertThreshold6 = 1000;
-                    if (checkCpAlert(transaction, alertThreshold6)) {
-                        alertLevel = 6;
-                        if (checkCpAlert(transaction, alertThreshold1)) {
-                            alertLevel = 1;
-                        }
+                    int alertThreshold1 = 100000;
+                    if (checkCpAlert(transaction, alertThreshold1)) {
+                        alertLevel = 1;
                         alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
                     }
 
-                    // alert 2 and 7 have same criteria, different thresholds
-                    // alert 2 > $1500, alert 7 > $500
-                    int alertThreshold2 = 10000;
-                    int alertThreshold7 = 1000;
-                    if (checkCnpAlert(transaction, alertThreshold7)) {
-                        alertLevel = 7;
+                    // alert 2 and 6 have same criteria, different thresholds
+                    // alert 2 > $500, alert 7 > $150
+                    int alertThreshold2 = 50000;
+                    int alertThreshold6 = 15000;
+                    if (checkCnpAlert(transaction, alertThreshold6)) {
+                        alertLevel = 6;
                         if (checkCnpAlert(transaction, alertThreshold2)) {
                             alertLevel = 2;
                         }
@@ -109,49 +103,58 @@ public class AbnormalTransactionsFile {
 
                     // for alert 4, keep running list of cards (using 4 digits + brand)
                     for (Tender tender : transaction.getTenders()) {
-                        try {
-                            String last4 = tender.getCardDetails().getCard().getLast4();
-                            String cardBrand = tender.getCardDetails().getCard().getCardBrand();
+                        if (tender.getType().equals("CARD")) {
+                            try {
+                                String last4 = tender.getCardDetails().getCard().getLast4();
+                                String cardBrand = tender.getCardDetails().getCard().getCardBrand();
 
-                            // use last 4 digits and card brand as key to each card
-                            String key = String.format("%s%s", last4, cardBrand);
-                            if (alert4Entries.containsKey(key)) {
-                                List<AlertEntry> potentialAlerts = alert4Entries.get(key);
-                                potentialAlerts.add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
-                                alert4Entries.put(key, potentialAlerts);
-                            } else {
-                                List<AlertEntry> potentialAlerts = new ArrayList<AlertEntry>();
-                                potentialAlerts.add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
-                                alert4Entries.put(key, potentialAlerts);
+                                // use last 4 digits and card brand as key to each card
+                                String key = String.format("%s%s", last4, cardBrand);
+                                if (alert4Entries.containsKey(key)) {
+                                    List<AlertEntry> potentialAlerts = alert4Entries.get(key);
+                                    potentialAlerts
+                                            .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
+                                    alert4Entries.put(key, potentialAlerts);
+                                } else {
+                                    List<AlertEntry> potentialAlerts = new ArrayList<AlertEntry>();
+                                    potentialAlerts
+                                            .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
+                                    alert4Entries.put(key, potentialAlerts);
+                                }
+                            } catch (Exception e) {
+                                logger.warn("Card details missing to create unique key for alert 4 transactions.");
                             }
-                        } catch (Exception e) {
-                            logger.warn("Card details missing to create unique key for alert 4 transactions.");
-                        }
 
-                        // for alert 5, keep running list of transactions with same dollar amounts
-                        String key = Integer.toString(tender.getAmountMoney().getAmount());
+                            // for alert 5, keep consecutive list of transactions with same dollar amounts
+                            int currentAmt = tender.getAmountMoney().getAmount();
 
-                        if (alert5Transactions.containsKey(key)) {
-                            List<Transaction> transactions = alert5Transactions.get(key);
-                            transactions.add(transaction);
-                            alert5Transactions.put(key, transactions);
-                        } else {
-                            List<Transaction> transactions = new ArrayList<Transaction>();
-                            transactions.add(transaction);
-                            alert5Transactions.put(key, transactions);
+                            if (currentAmt == prevAmt) {
+                                alert5Buffer.add(transaction);
+                            } else {
+                                if (alert5Buffer.size() >= 3) {
+                                    // store buffer of consecutive transactions with same amount
+                                    // use transactionId as unique identifier
+                                    alert5Transactions.put(transaction.getId(), new ArrayList(alert5Buffer));
+                                }
+                                // clear buffer to start tracking new transaction amount
+                                alert5Buffer.clear();
+                                alert5Buffer.add(transaction);
+
+                                // store new amount for tracking
+                                prevAmt = currentAmt;
+                            }
                         }
                     }
-
                 } // for (transaction : transactions)
 
                 // for alert 3, check size of alert3Transactions list and add to alerts
-                if (alert3Transactions.size() > 5) {
+                if (alert3Transactions.size() > 3) {
                     for (Transaction transaction : alert3Transactions) {
                         alerts.add(new AlertEntry(locationDetails, transaction, 3, dbLocationRows));
                     }
                 }
 
-                // for alert 5, find same dollar amount >=3 times per day
+                // for alert 5, find same dollar amount consecutively >=3 times per day
                 for (String key : alert5Transactions.keySet()) {
                     if (alert5Transactions.get(key).size() >= 3) {
                         for (Transaction transaction : alert5Transactions.get(key)) {
@@ -159,29 +162,11 @@ public class AbnormalTransactionsFile {
                         }
                     }
                 }
-
-                // keep local cache of tender id to employee id mapping for later use
-                for (Payment payment : locationDetails.getPayments()) {
-                    for (com.squareup.connect.Tender tender : payment.getTender()) {
-                        if (tender.getEmployeeId() != null) {
-                            if (locationDetails.getEmployees().containsKey(tender.getEmployeeId())) {
-                                String employeeFName = locationDetails.getEmployees().get(tender.getEmployeeId())
-                                        .getFirstName();
-                                String employeeLName = locationDetails.getEmployees().get(tender.getEmployeeId())
-                                        .getLastName();
-                                String employeeName = String.format("%s %s", employeeLName, employeeFName);
-                                tenderToEmployee.put(tender.getId(), employeeName);
-                            }
-                        }
-                    }
-                }
             } // for (locationDetails : deployment) 
         } // for (deployment : deployments)
 
         // for alert 4, check size of alert4Transactions list and add to alerts
-        for (
-
-        String key : alert4Entries.keySet()) {
+        for (String key : alert4Entries.keySet()) {
             if (alert4Entries.get(key).size() >= 4) {
                 for (AlertEntry alert : alert4Entries.get(key)) {
                     alerts.add(alert);
@@ -198,10 +183,8 @@ public class AbnormalTransactionsFile {
          *      2. Entry Method: SWIPED
          *      3. Product: REGISTER only
          *      4. Tender Type: not CASH or NO_SALE (only valid tender types are passed to this function)
-         *      5. threshold > $3000.00
+         *      5. threshold > $1000.00
          *      
-         *  alert level 6 criteria
-         *      1. All of above except threshold > $1000
          */
 
         for (Tender tender : transaction.getTenders()) {
@@ -228,10 +211,10 @@ public class AbnormalTransactionsFile {
          *      2. Entry Method: MANUAL, WEB_FORM
          *      3. Product: EXTERNAL_API or REGISTER (does not matter)
          *      4. Tender Type: not CASH or NO_SALE (only valid tender types are passed to this function)
-         *      5. threshold > $1500.00
+         *      5. threshold > $500.00
          *  
-         *  alert level 7 criteria
-         *      1. All of above except threshold > $500
+         *  alert level 6 criteria
+         *      1. All of above except threshold > $150.00
          */
 
         for (Tender tender : transaction.getTenders()) {
@@ -280,18 +263,19 @@ public class AbnormalTransactionsFile {
         reportBuilder.append(fileHeader);
 
         // NOTE: WHEN COMPILING REPORT, LOOP THROUGH TENDERS FOR
-        //     1. sales associate id
-        //     2. card type
-        //     3. last 4 digits
-        //     4. entry method
-        //     5. transaction status
+        //     1. card brand
+        //     2. last 4 digits
+        //     3. entry method
+        //     4. transaction status
+        //     5. status
+        //     6. customerId
         for (AlertEntry alert : alerts) {
             for (Tender tender : alert.tenders) {
-                String salesAssociate = "";
                 String cardBrand = "";
                 String last4 = "";
                 String status = "";
                 String entryMethod = "";
+                String customerId = "";
 
                 /*
                  *  - occasional null values for card detail fields below from the API
@@ -300,38 +284,49 @@ public class AbnormalTransactionsFile {
                 if (tender.getType().equals("CARD")) {
                     try {
                         cardBrand = tender.getCardDetails().getCard().getCardBrand();
+                        if (cardBrand == null) {
+                            cardBrand = "";
+                        }
                     } catch (Exception e) {
                         logger.warn("Missing card type for tenderId: " + tender.getId());
-                        cardBrand = "";
                     }
                     try {
                         last4 = tender.getCardDetails().getCard().getLast4();
+                        if (last4 == null) {
+                            last4 = "";
+                        }
                     } catch (Exception e) {
                         logger.warn("Missing 4 digits for tenderId: " + tender.getId());
-                        last4 = "";
                     }
                     try {
                         status = tender.getCardDetails().getStatus();
+                        if (status == null) {
+                            status = "";
+                        }
                     } catch (Exception e) {
                         logger.warn("Missing status for tenderId: " + tender.getId());
-                        status = "";
                     }
                     try {
                         entryMethod = tender.getCardDetails().getEntryMethod();
+                        if (entryMethod == null) {
+                            entryMethod = "";
+                        }
                     } catch (Exception e) {
                         logger.warn("Missing entry method for tenderId: " + tender.getId());
-                        entryMethod = "";
+                    }
+                    try {
+                        customerId = tender.getCustomerId();
+                        if (customerId == null) {
+                            customerId = "";
+                        }
+                    } catch (Exception e) {
+                        logger.warn("No customerId associated with tender");
                     }
                 }
 
-                // get employee id using map
-                if (tenderToEmployee.containsKey(tender.getId())) {
-                    salesAssociate = tenderToEmployee.get(tender.getId());
-                }
-
                 String fileRow = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                        Integer.toString(alert.level), alert.type, alert.locationNumber, alert.customerId, alert.city,
-                        alert.state, salesAssociate, formatTotal(tender.getAmountMoney().getAmount()),
+                        Integer.toString(alert.level), alert.type, alert.locationNumber, customerId, alert.city,
+                        alert.state, alert.saName, formatTotal(tender.getAmountMoney().getAmount()),
                         alert.transactionDate, status, cardBrand, last4, alert.transactionId, entryMethod, alert.rbu);
                 reportBuilder.append(fileRow);
             }
@@ -340,39 +335,47 @@ public class AbnormalTransactionsFile {
     }
 
     private class AlertEntry {
+        private final String[] types = {
+                "CP transaction > $1000",
+                "CNP transaction > $500",
+                "CNP occurred more than 3 times at a single location",
+                "Same card used 4 or more times across all locations during season",
+                "Same dollar amount run consecutively at same location 3 or more times",
+                "CNP transaction > $150"
+        };
         private int level;
         private String type;
         private String locationNumber;
-        private String customerId;
         private String city;
         private String state;
         private List<Tender> tenders;
         private String transactionDate;
         private String transactionId;
         private String rbu;
+        private String saName;
 
         private AlertEntry(TntLocationDetails locationDetails, Transaction transaction, int level,
-                List<Map<String, String>> dbLocationRows) throws SQLException {
+                List<Map<String, String>> dbLocationRows) throws Exception {
             // initialize to context values
             this.level = level;
             this.locationNumber = findLocationNumber(locationDetails.getLocation().getName());
             this.transactionDate = transaction.getCreatedAt();
             this.transactionId = transaction.getId();
 
-            this.customerId = "";
-            try {
-                if (transaction.getCustomerId() != null || !transaction.getCustomerId().equals("null")) {
-                    this.customerId = transaction.getCustomerId();
-                }
-            } catch (Exception e) {
-                logger.warn("No customer_id associated with transction id: " + transaction.getId());
+            // set type description
+            this.type = "";
+            if (level > 0 && level <= types.length) {
+                this.type = types[level - 1];
+                logger.info("Alert TYPE: " + this.type);
+            } else {
+                throw new Exception("Invalid alert level for Abnormal Transactions Report");
             }
 
             // initialize to blank values
-            this.type = "";
             this.rbu = "";
             this.city = "";
             this.state = "";
+            this.saName = "";
 
             // copy tenders
             this.tenders = new ArrayList<Tender>();
@@ -386,6 +389,7 @@ public class AbnormalTransactionsFile {
                     this.city = row.get("city");
                     this.state = row.get("state");
                     this.rbu = row.get("rbu");
+                    this.saName = row.get("saName");
                 }
             }
         }
