@@ -12,6 +12,8 @@ import com.squareup.connect.v2.Money;
 public class CsvItem extends CsvRow implements Serializable {
 
     private static final String UNCATEGORIZED = "UNCATEGORIZED";
+    public static final String BOGO_TRUE = "Y";
+    public static final String BOGO_FALSE = "N";
 
     @Size(min = 1)
     @NotNull
@@ -186,9 +188,7 @@ public class CsvItem extends CsvRow implements Serializable {
     }
 
     public void setHalfOff(String halfOff) {
-        if (halfOff.equals("Y")) {
-            this.halfOff = halfOff;
-        } else if (halfOff.equals("N")) {
+        if (halfOff.equals(BOGO_TRUE) || halfOff.equals(BOGO_FALSE)) {
             this.halfOff = halfOff;
         } else {
             throw new IllegalArgumentException("Invalid half off status");

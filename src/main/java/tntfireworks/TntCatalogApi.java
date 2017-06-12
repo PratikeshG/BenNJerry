@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.squareup.connect.Merchant;
+import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
@@ -24,10 +26,12 @@ public class TntCatalogApi {
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
 
-    private SquareClientV2 client;
+    private SquareClient clientV1;
+    private SquareClientV2 clientV2;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
     public Catalog catalog;
+    public String defaultMasterLocationName;
 
     /*
      * Gets the full Catalog of items from Square and updates the local catalog instance var
@@ -42,11 +46,11 @@ public class TntCatalogApi {
      * @return the catalog from Square
      */
     public Catalog retrieveCatalogFromSquare() {
-        Preconditions.checkNotNull(client);
+        Preconditions.checkNotNull(clientV2);
 
         logger.info("Retrieving catalog...");
         try {
-            return client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+            return clientV2.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                     Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,14 +69,24 @@ public class TntCatalogApi {
         return catalog;
     }
 
-    public TntCatalogApi(SquareClientV2 client, HashMap<String, String> locationMarketingPlanCache,
+    public TntCatalogApi(SquareClient clientV1, SquareClientV2 clientV2,
+            HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
-        Preconditions.checkNotNull(client);
+
+        Preconditions.checkNotNull(clientV1);
+        Preconditions.checkNotNull(clientV2);
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        this.client = client;
-        marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, client);
+        this.clientV1 = clientV1;
+        this.clientV2 = clientV2;
+
+        // get master merchant location name to ignore when checking for valid names
+        //     - Default master location that is created to store bank account information but not take payments
+        //       does not follow TNT nicknaming convention and needs to be captured here to ignore later
+        defaultMasterLocationName = getDefaultMasterLocationName(clientV1);
+
+        marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
         this.marketingPlanItemsCache = marketingPlanItemsCache;
 
         catalog = retrieveCatalogFromSquare();
@@ -85,7 +99,7 @@ public class TntCatalogApi {
      */
     public Catalog batchUpsertItemsIntoCatalog() {
         Preconditions.checkNotNull(catalog);
-        Preconditions.checkNotNull(client);
+        Preconditions.checkNotNull(clientV2);
         Preconditions.checkNotNull(marketingPlanLocationsCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
@@ -95,7 +109,7 @@ public class TntCatalogApi {
 
         try {
             logger.info("Upsert latest catalog of items...");
-            client.catalog().batchUpsertObjects(catalogObjects);
+            clientV2.catalog().batchUpsertObjects(catalogObjects);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure upserting items into catalog");
@@ -113,7 +127,7 @@ public class TntCatalogApi {
      */
     public Catalog removeItemsNotPresentAtAnyLocations() {
         Preconditions.checkNotNull(catalog);
-        Preconditions.checkNotNull(client);
+        Preconditions.checkNotNull(clientV2);
         Preconditions.checkNotNull(marketingPlanLocationsCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
@@ -136,7 +150,7 @@ public class TntCatalogApi {
      */
     public Catalog batchUpsertCategoriesFromDatabaseToSquare() {
         Preconditions.checkNotNull(catalog);
-        Preconditions.checkNotNull(client);
+        Preconditions.checkNotNull(clientV2);
         Preconditions.checkNotNull(marketingPlanLocationsCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
@@ -151,7 +165,7 @@ public class TntCatalogApi {
             }
         }
 
-        batchUpsertCategoriesToSquare(catalog, client);
+        batchUpsertCategoriesToSquare(catalog, clientV2);
         catalog = retrieveCatalogFromSquare();
         return catalog;
     }
@@ -163,11 +177,11 @@ public class TntCatalogApi {
      */
     public Catalog clearCatalog() {
         Preconditions.checkNotNull(catalog);
-        Preconditions.checkNotNull(client);
+        Preconditions.checkNotNull(clientV2);
 
         for (CatalogObject catalogObject : catalog.getObjects()) {
             try {
-                client.catalog().deleteObject(catalogObject.getId());
+                clientV2.catalog().deleteObject(catalogObject.getId());
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException("failure to delete catalog object " + catalogObject.getId());
@@ -225,13 +239,19 @@ public class TntCatalogApi {
 
         CatalogObject squareItem = getOrCreateSquareItem(catalog, sku);
 
-        // add bogo to price description
-        if (csvItem.getHalfOff().equals("Y")) {
-            String modifiedDesc = String.format("%s - BOGO PRICE", csvItem.getDescription());
-            squareItem.getItemData().setName(modifiedDesc);
-        } else {
-            squareItem.getItemData().setName(csvItem.getDescription());
+        /*
+         *  add BOGO to price description
+         *      - for the 2017 season (and upcoming seasons), TNT will have a "half off" field
+         *        in the marketing programs specifying if the item is in a BOGO program
+         *      - all prices in the "selling price" column specify the actual selling price, even for 
+         *        BOGO items (BOGO item with MSRP 49.99 is set with selling price 25.00)
+         *      - for any BOGO item, the original item description is appended with BOGO PRICE suffix
+         */
+        String desc = csvItem.getDescription();
+        if (csvItem.getHalfOff().equals(CsvItem.BOGO_TRUE)) {
+            desc = String.format("%s - BOGO PRICE", desc);
         }
+        squareItem.getItemData().setName(desc);
 
         CatalogItemVariation squareItemVariation = getFirstItemVariation(squareItem);
         squareItemVariation.setSku(sku);
@@ -289,7 +309,7 @@ public class TntCatalogApi {
             logger.info(String.format("Delete this catalog object name/token %s/%s:", item.getItemData().getName(),
                     item.getId()));
             try {
-                client.catalog().deleteObject(item.getId());
+                clientV2.catalog().deleteObject(item.getId());
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException("Failure deleting unused items");
@@ -308,11 +328,11 @@ public class TntCatalogApi {
         catalog.addCategory(newCategory);
     }
 
-    private void batchUpsertCategoriesToSquare(Catalog catalog, SquareClientV2 client) {
+    private void batchUpsertCategoriesToSquare(Catalog catalog, SquareClientV2 clientV2) {
         logger.info("Updating categories in catalog...");
         CatalogObject[] allCategories = getAllCategories(catalog);
         try {
-            client.catalog().batchUpsertObjects(allCategories);
+            clientV2.catalog().batchUpsertObjects(allCategories);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("failure to upsert categories");
@@ -332,10 +352,11 @@ public class TntCatalogApi {
             throw new IllegalArgumentException("Invalid TNT location number/ID");
         }
 
-        if (!locationTNTId.contains("DEACTIVATED")) {
+        if (!locationTNTId.contains("DEACTIVATED") && !locationTNTId.contains(defaultMasterLocationName)) {
             if (marketingPlanId == null) {
                 throw new IllegalArgumentException(
-                        "Could not find mapping of location number (in existing SQ account) to a market plan");
+                        "Could not find mapping of location number (in existing SQ account) to a market plan, location name: "
+                                + locationTNTId);
             }
 
             List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
@@ -348,13 +369,13 @@ public class TntCatalogApi {
     }
 
     private HashMap<String, List<String>> generateMarketingPlanLocationsCache(
-            HashMap<String, String> locationMarketingPlanCache, SquareClientV2 client) {
+            HashMap<String, String> locationMarketingPlanCache, SquareClientV2 clientV2) {
         HashMap<String, List<String>> marketingPlanLocationsCache = new HashMap<String, List<String>>();
 
         Location[] locations;
         try {
             logger.info("Processing Catalog API updates");
-            locations = client.locations().list();
+            locations = clientV2.locations().list();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Square API call to list locations failed");
@@ -370,6 +391,20 @@ public class TntCatalogApi {
 
     private CatalogObject[] getAllCategories(Catalog catalog) {
         return catalog.getCategories().values().toArray(new CatalogObject[0]);
+    }
+
+    public String getDefaultMasterLocationName(SquareClient clientV1) {
+        Preconditions.checkNotNull(clientV1);
+        Merchant masterMerchant = null;
+
+        try {
+            masterMerchant = clientV1.businessLocations().retrieve();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Square API call to /v1/me failed");
+        }
+
+        return masterMerchant.getName();
     }
 
 }
