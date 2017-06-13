@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.SquarePayload;
@@ -67,10 +66,8 @@ public class DatabaseToSquareCallable implements Callable {
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        SquareClient clientV1 = new SquareClient(deployment.getAccessToken(), apiUrl);
         SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
-
-        TntCatalogApi tntCatalogApi = new TntCatalogApi(clientV1, clientV2, locationMarketingPlanCache,
+        TntCatalogApi tntCatalogApi = new TntCatalogApi(clientV2, locationMarketingPlanCache,
                 marketingPlanItemsCache);
 
         tntCatalogApi.batchUpsertCategoriesFromDatabaseToSquare();

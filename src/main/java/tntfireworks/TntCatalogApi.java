@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
@@ -32,7 +31,6 @@ public class TntCatalogApi {
     private static final String INACTIVE_LOCATION = "DEACTIVATED";
     private static final String DEFAULT_LOCATION = "DEFAULT";
 
-    private SquareClient clientV1;
     private SquareClientV2 clientV2;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
@@ -75,16 +73,14 @@ public class TntCatalogApi {
         return catalog;
     }
 
-    public TntCatalogApi(SquareClient clientV1, SquareClientV2 clientV2,
+    public TntCatalogApi(SquareClientV2 clientV2,
             HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
 
-        Preconditions.checkNotNull(clientV1);
         Preconditions.checkNotNull(clientV2);
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        this.clientV1 = clientV1;
         this.clientV2 = clientV2;
         marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
         this.marketingPlanItemsCache = marketingPlanItemsCache;
