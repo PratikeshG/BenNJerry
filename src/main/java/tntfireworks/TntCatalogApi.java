@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.squareup.connect.Merchant;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
@@ -25,6 +24,13 @@ public class TntCatalogApi {
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
+
+    // merchant location names to ignore when checking for valid names
+    //     - Default master location that is created to store bank account information but not take payments
+    //       does not follow TNT nicknaming convention and needs to be captured here to ignore later
+    //     - Deactivated locations exist within master accounts and need to be ignored
+    private static final String INACTIVE_LOCATION = "DEACTIVATED";
+    private static final String DEFAULT_LOCATION = "DEFAULT";
 
     private SquareClient clientV1;
     private SquareClientV2 clientV2;
@@ -80,15 +86,8 @@ public class TntCatalogApi {
 
         this.clientV1 = clientV1;
         this.clientV2 = clientV2;
-
-        // get master merchant location name to ignore when checking for valid names
-        //     - Default master location that is created to store bank account information but not take payments
-        //       does not follow TNT nicknaming convention and needs to be captured here to ignore later
-        defaultMasterLocationName = getDefaultMasterLocationName(clientV1);
-
         marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
         this.marketingPlanItemsCache = marketingPlanItemsCache;
-
         catalog = retrieveCatalogFromSquare();
     }
 
@@ -352,7 +351,7 @@ public class TntCatalogApi {
             throw new IllegalArgumentException("Invalid TNT location number/ID");
         }
 
-        if (!locationTNTId.contains("DEACTIVATED") && !locationTNTId.contains(defaultMasterLocationName)) {
+        if (!locationTNTId.contains(INACTIVE_LOCATION) && !locationTNTId.contains(DEFAULT_LOCATION)) {
             if (marketingPlanId == null) {
                 throw new IllegalArgumentException(
                         "Could not find mapping of location number (in existing SQ account) to a market plan, location name: "
@@ -392,19 +391,4 @@ public class TntCatalogApi {
     private CatalogObject[] getAllCategories(Catalog catalog) {
         return catalog.getCategories().values().toArray(new CatalogObject[0]);
     }
-
-    public String getDefaultMasterLocationName(SquareClient clientV1) {
-        Preconditions.checkNotNull(clientV1);
-        Merchant masterMerchant = null;
-
-        try {
-            masterMerchant = clientV1.businessLocations().retrieve();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Square API call to /v1/me failed");
-        }
-
-        return masterMerchant.getName();
-    }
-
 }
