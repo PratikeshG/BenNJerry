@@ -219,6 +219,26 @@ return sp;]]></scripting:script>
             </otherwise>
         </choice>
     </flow>
+    <flow name="Urbanspace:Times-Square">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-timessquare-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.timessquare.active}' == false]">
+                <logger message="Urbanspace:Times-Square disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: Times Square" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.timessquare.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.timessquare.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.timessquare.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.timessquare.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.timessquare.time.timeZone}" doc:name="Timezone"/>
+                <set-session-variable variableName="emails" value="${urbanspace.timessquare.email}" doc:name="Emails"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
+    </flow>
     <flow name="Urbanspace:Vanderbilt">
         <quartz:inbound-endpoint jobName="quartz-urbanspace-vanderbilt-1492553488" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
@@ -315,6 +335,26 @@ return sp;]]></scripting:script>
                 <set-session-variable variableName="offset" value="${urbanspace.turnstyle.time.offset}" doc:name="Time offset"/>
                 <set-session-variable variableName="timeZone" value="${urbanspace.turnstyle.time.timeZone}" doc:name="Timezone"/>
                 <set-session-variable variableName="emails" value="${urbanspace.turnstyle.email}" doc:name="Emails"/>
+                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="Urbanspace:NYPL">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="active?">
+            <when expression="#['${urbanspace.nypl.active}' == false]">
+                <logger message="Urbanspace:NYPL disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Starting Urbanspace: New York Public Library" level="INFO" doc:name="Logger"/>
+                <set-variable variableName="deployment" value="${urbanspace.nypl.deploymentId}" doc:name="Deployment ID"/>
+                <set-session-variable variableName="deploymentName" value="${urbanspace.nypl.deploymentName}" doc:name="Deployment Name"/>
+                <set-session-variable variableName="range" value="${urbanspace.nypl.time.range}" doc:name="Time range"/>
+                <set-session-variable variableName="offset" value="${urbanspace.nypl.time.offset}" doc:name="Time offset"/>
+                <set-session-variable variableName="timeZone" value="${urbanspace.nypl.time.timeZone}" doc:name="Timezone"/>
+                <set-session-variable variableName="emails" value="${urbanspace.nypl.email}" doc:name="Emails"/>
                 <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
             </otherwise>
         </choice>
