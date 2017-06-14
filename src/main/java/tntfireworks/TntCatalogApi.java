@@ -35,7 +35,6 @@ public class TntCatalogApi {
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
     public Catalog catalog;
-    public String defaultMasterLocationName;
 
     /*
      * Gets the full Catalog of items from Square and updates the local catalog instance var
