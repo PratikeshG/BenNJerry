@@ -90,9 +90,8 @@ public class InputParser {
 
         marketingPlan.setName(marketPlanId);
         if (!marketingPlan.getName().equals("")) {
-            removeExistingMarketingPlan(processingFile, marketingPlan);
-
             verifyHeaderRowAndAdvanceToNextLine(scanner, CsvMktPlan.HEADER_ROW, processingFile);
+            removeExistingMarketingPlan(processingFile, marketingPlan);
 
             while (scanner.hasNextLine()) {
                 totalRecordsProcessed++;
@@ -102,6 +101,7 @@ public class InputParser {
 
                 if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
                     insertMarketingPlanBatch(marketingPlan, processingFile, totalRecordsProcessed);
+                    marketingPlan.clearItems();
                 }
             }
         } else {
@@ -132,7 +132,6 @@ public class InputParser {
     private void insertMarketingPlanBatch(CsvMktPlan marketingPlan, String processingFile, int totalRecordsProcessed)
             throws ClassNotFoundException, SQLException {
         dbConnection.executeQuery(generateMktPlanSQLUpsert(marketingPlan.getName(), marketingPlan.getAllItems()));
-        marketingPlan.clearItems();
         logger.info(String.format("(%s) Processed %d records", processingFile, totalRecordsProcessed));
     }
 
@@ -224,8 +223,8 @@ public class InputParser {
 
         if (items.size() > 0) {
             updateStatement = "INSERT INTO tntfireworks_marketing_plans (mktPlan, itemNumber, cat, category, itemDescription, casePacking, unitPrice, pricingUOM,"
-                    + "suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, bogo, itemNum3, currency) VALUES ";
-            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+                    + "suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, bogo, itemNum3, currency, halfOff, sellingPrice) VALUES ";
+            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
 
             ArrayList<String> updates = new ArrayList<String>();
             for (CsvItem item : items) {
@@ -233,13 +232,14 @@ public class InputParser {
                         item.getCategory(), item.getDescription(), item.getCasePacking(), item.getUnitPrice(),
                         item.getPricingUOM(), item.getSuggestedPrice(), item.getSellingUOM(), item.getUPC(),
                         item.getNetItem(), item.getExpiredDate(), item.getEffectiveDate(), item.getBOGO(),
-                        item.getItemNum3(), item.getCurrency()));
+                        item.getItemNum3(), item.getCurrency(), item.getHalfOff(), item.getSellingPrice()));
             }
 
             updateStatement = appendWithListIterator(updateStatement, updates);
             updateStatement += " ON DUPLICATE KEY UPDATE cat=VALUES(cat), category=VALUES(category), itemDescription=VALUES(itemDescription), casePacking=VALUES(casePacking),"
                     + "unitPrice=VALUES(unitPrice), pricingUOM=VALUES(pricingUOM), suggestedPrice=VALUES(suggestedPrice), sellingUOM=VALUES(sellingUOM), upc=VALUES(upc),"
-                    + "netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency);";
+                    + "netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency), "
+                    + "halfOff=VALUES(halfOff), sellingPrice=VALUES(sellingPrice);";
         }
 
         return updateStatement;
@@ -252,8 +252,8 @@ public class InputParser {
 
         if (locations.size() > 0) {
             updateStatement = "INSERT INTO tntfireworks_locations (locationNumber, addressNumber, name, address, city, state, zip, county,"
-                    + "mktPlan, legal, disc, rbu, bp, co, saNum, saName, custNum, custName, season, year, machineType) VALUES ";
-            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+                    + "mktPlan, legal, disc, rbu, bp, co, saNum, saName, custNum, custName, season, year, machineType, sqDashboardEmail) VALUES ";
+            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
 
             ArrayList<String> updates = new ArrayList<String>();
             for (CsvLocation location : locations) {
@@ -262,13 +262,14 @@ public class InputParser {
                         location.getZip(), location.getCounty(), location.getMktPlan(), location.getLegal(),
                         location.getDisc(), location.getRbu(), location.getBp(), location.getCo(), location.getSaNum(),
                         location.getSaName(), location.getCustNum(), location.getCustName(), location.getSeason(),
-                        location.getYear(), location.getMachineType()));
+                        location.getYear(), location.getMachineType(), location.getSqDashboardEmail()));
             }
 
             updateStatement = appendWithListIterator(updateStatement, updates);
             updateStatement += " ON DUPLICATE KEY UPDATE addressNumber=VALUES(addressNumber), name=VALUES(name), address=VALUES(address), city=VALUES(city), state=VALUES(state),"
                     + "zip=VALUES(zip), county=VALUES(county), mktPlan=VALUES(mktPlan), legal=VALUES(legal), disc=VALUES(disc), rbu=VALUES(rbu), bp=VALUES(bp), co=VALUES(co),"
-                    + "saNum=VALUES(saNum), saName=VALUES(saName), custNum=VALUES(custNum), custName=VALUES(custName), season=VALUES(season), year=VALUES(year), machineType=VALUES(machineType);";
+                    + "saNum=VALUES(saNum), saName=VALUES(saName), custNum=VALUES(custNum), custName=VALUES(custName), season=VALUES(season), year=VALUES(year), machineType=VALUES(machineType),"
+                    + "sqDashboardEmail=VALUES(sqDashboardEmail);";
         } else {
             throw new EmptyLocationArrayException();
         }

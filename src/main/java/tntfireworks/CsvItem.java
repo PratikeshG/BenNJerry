@@ -12,6 +12,8 @@ import com.squareup.connect.v2.Money;
 public class CsvItem extends CsvRow implements Serializable {
 
     private static final String UNCATEGORIZED = "UNCATEGORIZED";
+    public static final String BOGO_TRUE = "Y";
+    public static final String BOGO_FALSE = "N";
 
     @Size(min = 1)
     @NotNull
@@ -24,8 +26,6 @@ public class CsvItem extends CsvRow implements Serializable {
     private String casePacking;
     private String unitPrice;
     private String pricingUOM;
-    @NotNull
-    @Size(min = 1)
     private String suggestedPrice;
     private String sellingUOM;
     @NotNull
@@ -42,6 +42,10 @@ public class CsvItem extends CsvRow implements Serializable {
     @NotNull
     @Size(min = 3)
     private String currency;
+    private String halfOff;
+    @NotNull
+    @Size(min = 1)
+    private String sellingPrice;
 
     public void setNumber(String number) {
         this.number = number;
@@ -179,6 +183,26 @@ public class CsvItem extends CsvRow implements Serializable {
         this.marketingPlan = marketingPlan;
     }
 
+    public String getHalfOff() {
+        return halfOff;
+    }
+
+    public void setHalfOff(String halfOff) {
+        if (halfOff.equals(BOGO_TRUE) || halfOff.equals(BOGO_FALSE)) {
+            this.halfOff = halfOff;
+        } else {
+            throw new IllegalArgumentException("Invalid half off status");
+        }
+    }
+
+    public String getSellingPrice() {
+        return sellingPrice;
+    }
+
+    public void setSellingPrice(String sellingPrice) {
+        this.sellingPrice = sellingPrice;
+    }
+
     /*
      * Creates a CsvItem object from an ordered array of Strings, and sets the marketing plan
      * 
@@ -201,20 +225,21 @@ public class CsvItem extends CsvRow implements Serializable {
      * 13 - bogo
      * 14 - itemNum3
      * 15 - currency
+     * 16 - halfOff
+     * 17 - sellingPrice
      * 
      * @return the newly created CsvItem
      */
     public static CsvItem fromCsvItemFields(String[] itemFields, String marketingPlan) {
+        if (itemFields.length != 18) {
+            throw new IllegalArgumentException("Invalid number of fields");
+        }
 
         CsvItem item = new CsvItem();
         // TODO(wtsang): determine more comprehensive cleaning operations based on prior CSV submissions
         for (int i = 0; i < itemFields.length; i++) {
             itemFields[i] = itemFields[i].trim();
             itemFields[i] = itemFields[i].replaceAll("'", "''");
-        }
-
-        if (itemFields.length != 16) {
-            throw new IllegalArgumentException("Missing fields");
         }
 
         item.setNumber(itemFields[0]);
@@ -234,6 +259,8 @@ public class CsvItem extends CsvRow implements Serializable {
         item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
         item.setMarketingPlan(marketingPlan);
+        item.setHalfOff(itemFields[16]);
+        item.setSellingPrice(itemFields[17]);
 
         if (!item.isValid()) {
             //TODO: wtsang - Add more validations
@@ -284,7 +311,7 @@ public class CsvItem extends CsvRow implements Serializable {
     }
 
     /*
-     * Converts the CsvItem suggestedPrice and currency Strings to a Square Money object (cents)
+     * Converts the CsvItem sellingPrice and currency Strings to a Square Money object (cents)
      * 
      * @return Square Money object including int of cents and currency
      * 
@@ -292,13 +319,13 @@ public class CsvItem extends CsvRow implements Serializable {
      * 
      */
     public Money getPriceAsSquareMoney() {
-        Preconditions.checkNotNull(this.getSuggestedPrice(), "price cannot be null" + this.getUniqueItemString());
-        Preconditions.checkArgument(Double.parseDouble(this.getSuggestedPrice()) > 0,
+        Preconditions.checkNotNull(this.getSellingPrice(), "price cannot be null" + this.getUniqueItemString());
+        Preconditions.checkArgument(Double.parseDouble(this.getSellingPrice()) > 0,
                 "must be positive " + this.getUniqueItemString());
         Preconditions.checkNotNull(this.getCurrency(), "missing currency " + this.getUniqueItemString());
-        Preconditions.checkArgument(isNumeric(this.getSuggestedPrice()));
+        Preconditions.checkArgument(isNumeric(this.getSellingPrice()));
 
-        BigDecimal dollars = new BigDecimal(this.getSuggestedPrice());
+        BigDecimal dollars = new BigDecimal(this.getSellingPrice());
         dollars = dollars.movePointRight(2);
         int cents = dollars.intValueExact();
         return new Money(cents, this.getCurrency());

@@ -66,13 +66,12 @@ public class DatabaseToSquareCallable implements Callable {
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken());
-
-        TntCatalogApi tntCatalogApi = new TntCatalogApi(client, locationMarketingPlanCache, marketingPlanItemsCache);
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
+        TntCatalogApi tntCatalogApi = new TntCatalogApi(clientV2, locationMarketingPlanCache,
+                marketingPlanItemsCache);
 
         tntCatalogApi.batchUpsertCategoriesFromDatabaseToSquare();
         tntCatalogApi.batchUpsertItemsIntoCatalog();
         tntCatalogApi.removeItemsNotPresentAtAnyLocations();
     }
-
 }
