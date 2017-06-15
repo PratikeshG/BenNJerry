@@ -23,6 +23,21 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="TNTFireworks:sftp-cron" doc:name="TNTFireworks:sftp-cron"/>
         <set-payload value="Triggered ingestion of CSV files on SFTP server" doc:name="Set Payload"/>
     </flow>
+    <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTP"/>
+        <logger message="Generating location file for bank account linking" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <component doc:name="GenerateBankLocationTokensCallable">
+                <prototype-object class="tntfireworks.GenerateBankLocationTokensCallable">    
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+	            <property key="databaseUser" value="${mysql.user}"/>
+	            <property key="databasePassword" value="${mysql.password}"/>
+	            <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>
+	            </prototype-object>
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="Source / Destination Location Tokens for Bank Account Linking" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
+        <set-payload value="Finished generating source/destination location ids for bank account linking (in SqWeb)" doc:name="Set Payload"/>
+    </flow>
     <flow name="TNTFireworks:sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tntfireworks-csv-sftp-cron-1480949912" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-TNT">
             <quartz:event-generator-job/>
