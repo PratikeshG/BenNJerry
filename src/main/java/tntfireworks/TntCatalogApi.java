@@ -247,11 +247,22 @@ public class TntCatalogApi {
         squareItem.setLocationPriceOverride(squareLocationIds, squareItemVariation.getPriceMoney(), FIXED_PRICING);
 
         // set catalog item data
-        squareItem.getItemData().setCategoryId(categories.get(csvItem.getCategory()).getId());
+        setSquareCategoryForItem(categories, csvItem, squareItem);
         squareItem.getItemData().setTaxIds(taxIds);
 
         // add final item to local catalog
         catalog.addItem(squareItem);
+    }
+
+    private void setSquareCategoryForItem(Map<String, CatalogObject> categories, CsvItem csvItem,
+            CatalogObject squareItem) {
+        // check for matching category, if found, add category id
+        if (categories.containsKey(csvItem.getCategory())) {
+            String categoryId = categories.get(csvItem.getCategory()).getId();
+            squareItem.getItemData().setCategoryId(categoryId);
+        } else {
+            throw new IllegalArgumentException("Missing category for itemNumber " + csvItem.getNumber());
+        }
     }
 
     private void generateItemUpdatesForMarketingPlan(HashMap<String, List<CsvItem>> marketingPlanItemsCache,
