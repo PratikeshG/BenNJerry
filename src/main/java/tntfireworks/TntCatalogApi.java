@@ -81,7 +81,7 @@ public class TntCatalogApi {
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
         this.clientV2 = clientV2;
-        marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
+        this.marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
         this.marketingPlanItemsCache = marketingPlanItemsCache;
         catalog = retrieveCatalogFromSquare();
     }
@@ -216,21 +216,9 @@ public class TntCatalogApi {
         return squareItem.getItemData().getVariations()[0].getItemVariationData();
     }
 
-    private void setSquareCategoryForItem(Map<String, CatalogObject> categories, CsvItem csvItem,
-            CatalogObject squareItem) {
-        // check for matching category, if found, add category id
-        if (categories.containsKey(csvItem.getCategory())) {
-            String categoryId = categories.get(csvItem.getCategory()).getId();
-            squareItem.getItemData().setCategoryId(categoryId);
-        } else {
-            throw new IllegalArgumentException("Missing category for itemNumber " + csvItem.getNumber());
-        }
-    }
-
     private void generateCatalogUpsertsForItem(CsvItem csvItem, String[] squareLocationIds, Catalog catalog,
-            Map<String, CatalogObject> categories) {
+            Map<String, CatalogObject> categories, String taxIds[]) {
         String sku = getSku(csvItem);
-
         CatalogObject squareItem = getOrCreateSquareItem(catalog, sku);
 
         /*
@@ -247,16 +235,22 @@ public class TntCatalogApi {
         }
         squareItem.getItemData().setName(desc);
 
+        // set item variation data
         CatalogItemVariation squareItemVariation = getFirstItemVariation(squareItem);
         squareItemVariation.setSku(sku);
         squareItemVariation.setName(csvItem.getNumber());
         Money priceMoney = csvItem.getPriceAsSquareMoney();
         squareItemVariation.setPriceMoney(priceMoney);
 
+        // set catalog object data
         squareItem.enableAtLocations(squareLocationIds);
         squareItem.setLocationPriceOverride(squareLocationIds, squareItemVariation.getPriceMoney(), FIXED_PRICING);
-        setSquareCategoryForItem(categories, csvItem, squareItem);
 
+        // set catalog item data
+        squareItem.getItemData().setCategoryId(categories.get(csvItem.getCategory()).getId());
+        squareItem.getItemData().setTaxIds(taxIds);
+
+        // add final item to local catalog
         catalog.addItem(squareItem);
     }
 
@@ -264,16 +258,16 @@ public class TntCatalogApi {
             String marketingPlanId, HashMap<String, List<String>> marketingPlanLocationsCache, Catalog catalog) {
         Map<String, CatalogObject> categories = getCategoriesAsHashmapFromSquare(catalog);
         String[] squareLocationIds = getSquareLocationIds(marketingPlanLocationsCache, marketingPlanId);
+        String[] masterTaxIds = catalog.getTaxes().keySet().toArray(new String[catalog.getTaxes().size()]);
 
         List<CsvItem> marketingPlanItems = marketingPlanItemsCache.get(marketingPlanId);
         if (marketingPlanItems != null && marketingPlanItems.size() > 0) {
             for (CsvItem updateItem : marketingPlanItems) {
-                generateCatalogUpsertsForItem(updateItem, squareLocationIds, catalog, categories);
+                generateCatalogUpsertsForItem(updateItem, squareLocationIds, catalog, categories, masterTaxIds);
             }
         } else {
             throw new IllegalArgumentException("Empty marketing plan: " + marketingPlanId);
         }
-
     }
 
     private String[] getTntFireworksCategories() {
