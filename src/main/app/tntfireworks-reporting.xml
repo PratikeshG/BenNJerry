@@ -40,6 +40,40 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <flow-ref name="TNTFireworks-generate-transactions-batch-report" doc:name="TNTFireworks-generate-transactions-batch-report"/>
         <set-payload doc:name="Set Payload" value="Generated transactions batch report."/>
     </flow>
+    <flow name="TNTFireworks-trigger-location-sales-batch-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/location-sales-batch-report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="5" doc:name="reportType"/>
+        <flow-ref name="TNTFireworks-generate-location-sales-batch-report" doc:name="TNTFireworks-generate-location-sales-batch-report"/>
+        <set-payload value="Generated locations sales batch report." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-trigger-item-sales-batch-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/item-sales-batch-report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="7" doc:name="reportType"/>
+        <flow-ref name="TNTFireworks-generate-item-sales-batch-report" doc:name="TNTFireworks-generate-item-sales-batch-report"/>
+        <set-payload value="Generated item sales report." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-generate-location-sales-batch-report">
+        <logger message="Begin generating location sales report" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
+        <component doc:name="Generate Location Sales Batch Report">
+        	<prototype-object class="tntfireworks.reporting.LocationSalesReportGeneratorCallable"/>        
+        </component>
+		<smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Location Sales Batch Report (Report 5 and 6) - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Location Sales Batch Report" to="wtsang@squareup.com"/>    
+    </flow>
+    <flow name="TNTFireworks-generate-item-sales-batch-report">
+        <logger message="Begin generating item sales report" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
+        <component doc:name="Generate Item Sales Batch Report">
+        	<prototype-object class="tntfireworks.reporting.ItemSalesReportGeneratorCallable"/>        
+        </component>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Item Sales Batch Report (Report 7) - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${tntfireworks.reporting.recipients}" responseTimeout="10000" doc:name="Email Item Sales Batch Report" to="wtsang@squareup.com"/>
+    </flow>
     <flow name="TNTFireworks-generate-settlements-batch-report">
         <logger message="Starting TNTFireworks-generate-settlements-batch-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -107,10 +141,30 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         </request-reply>
         <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
     </flow>
+    <flow name="TNTFireworks-aggregate-deployment-transactions-optimized">
+        <component doc:name="Get Deployment Payloads">
+            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable">
+                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>
+            </prototype-object>
+        </component>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-splitter"/>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-reply"/>
+        </request-reply>
+        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
+    </flow>
     <flow name="TNTFireworks-aggregate-transactions-queue-splitter">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-splitter"/>
         <collection-splitter doc:name="Collection Splitter" />
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-splitter">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-splitter"/>
+        <collection-splitter doc:name="Collection Splitter"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker"/>
     </flow>
     <flow name="TNTFireworks-aggregate-transactions-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
@@ -120,10 +174,28 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
     </flow>
+    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker"/>
+        <logger message="#[&quot;Retrieving account details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Aggregate report payloads ">
+        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsOptimizedCallable">
+        	    <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
+                <property key="databaseUser" value="${mysql.user}"/>
+                <property key="databasePassword" value="${mysql.password}"/>
+        	</singleton-object>
+        </component>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator"/>
+    </flow>
     <flow name="TNTFireworks-aggregate-transactions-queue-aggregator">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
         <logger message="Aggregating transaction details..." level="INFO" doc:name="Logger"/>
         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-reply"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator"/>
+        <logger message="Aggregating report payloads across accounts..." level="INFO" doc:name="Logger"/>
+        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-reply"/>
     </flow>
 </mule>
