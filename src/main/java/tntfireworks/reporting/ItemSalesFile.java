@@ -17,9 +17,9 @@ import util.TimeManager;
 public class ItemSalesFile extends TntReportFile {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesFile.class);
 
-    private static String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
+    private static String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description",
-            "Daily Sales Aggregate", "YTD Sales");
+            "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");
     private Map<String, ItemSalesFileEntry> itemSalesFileEntries;
     private Map<String, String> dayTimeInterval;
     private String locationNumber;
@@ -82,8 +82,9 @@ public class ItemSalesFile extends TntReportFile {
     public List<String> getFileEntries() {
         ArrayList<String> fileEntries = new ArrayList<String>();
         for (ItemSalesFileEntry fileEntry : itemSalesFileEntries.values()) {
-            String fileRow = String.format("%s, %s, %s, %s, %s, %s \n", locationNumber, rbu, fileEntry.itemNumber,
-                    fileEntry.itemDescription, formatTotal(fileEntry.dailySales), formatTotal(fileEntry.totalSales));
+            String fileRow = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
+                    fileEntry.itemNumber, fileEntry.itemDescription, formatTotal(fileEntry.dailySales),
+                    fileEntry.dailySalesCounter, formatTotal(fileEntry.totalSales), fileEntry.totalSalesCounter);
             fileEntries.add(fileRow);
         }
 
@@ -95,6 +96,8 @@ public class ItemSalesFile extends TntReportFile {
         private String itemDescription;
         private int dailySales;
         private int totalSales;
+        private int dailySalesCounter;
+        private int totalSalesCounter;
 
         private ItemSalesFileEntry(String itemNumber, String itemDesc,
                 int initialAmount) {
@@ -102,13 +105,17 @@ public class ItemSalesFile extends TntReportFile {
             this.itemDescription = itemDesc;
             this.dailySales = 0;
             this.totalSales = 0;
+            this.dailySalesCounter = 0;
+            this.totalSalesCounter = 0;
         }
 
         public void addDailySales(int amount) {
+            dailySalesCounter++;
             dailySales += amount;
         }
 
         public void addTotalSales(int amount) {
+            totalSalesCounter++;
             totalSales += amount;
         }
     }
