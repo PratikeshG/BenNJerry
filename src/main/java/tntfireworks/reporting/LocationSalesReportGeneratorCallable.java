@@ -30,12 +30,10 @@ public class LocationSalesReportGeneratorCallable implements Callable {
             for (LocationSalesFile locationPayload : masterPayload) {
                 if (addHeader) {
                     reportBuilder.append(locationPayload.getFileHeader());
-                    reportBuilder.append("\n");
                     addHeader = false;
                     fileDate = locationPayload.getFileDate();
                 }
                 reportBuilder.append(locationPayload.getFileEntry());
-                reportBuilder.append("\n");
             }
         }
 

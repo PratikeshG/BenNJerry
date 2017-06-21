@@ -51,7 +51,7 @@ public class LocationSalesFile extends TntReportFile {
                     }
                     cashTotalSales += tender.getAmountMoney().getAmount();
                 }
-                if (tender.getType().equals("CREDIT")) {
+                if (tender.getType().equals("CARD")) {
                     if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
                         creditDailySales += tender.getAmountMoney().getAmount();
                     }

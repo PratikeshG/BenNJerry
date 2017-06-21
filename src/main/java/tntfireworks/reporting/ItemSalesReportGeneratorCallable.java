@@ -30,13 +30,11 @@ public class ItemSalesReportGeneratorCallable implements Callable {
             for (ItemSalesFile locationPayload : masterPayload) {
                 if (addHeader) {
                     reportBuilder.append(locationPayload.getFileHeader());
-                    reportBuilder.append("\n");
                     addHeader = false;
                     fileDate = locationPayload.getFileDate();
                 }
                 for (String fileRow : locationPayload.getFileEntries()) {
                     reportBuilder.append(fileRow);
-                    reportBuilder.append("\n");
                 }
             }
         }

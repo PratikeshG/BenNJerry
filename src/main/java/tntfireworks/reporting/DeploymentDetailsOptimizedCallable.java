@@ -127,12 +127,12 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                     LocationSalesFile locationSalesFile = new LocationSalesFile(fileDate, dayTimeInterval,
                             locationNumber,
                             rbu);
-                    for (int i = 1; i <= range; i++) {
-                        Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(i, offset,
-                                location.getTimezone());
-                        for (Transaction transaction : getTransactions(squareClientV2, aggregateInterval)) {
-                            locationSalesFile.addTransaction(transaction);
-                        }
+                    Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
+                            location.getTimezone());
+                    aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
+
+                    for (Transaction transaction : getTransactions(squareClientV2, aggregateInterval)) {
+                        locationSalesFile.addTransaction(transaction);
                     }
                     masterPayload.add(locationSalesFile);
                 }
@@ -184,12 +184,12 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                     }
 
                     ItemSalesFile itemSalesFile = new ItemSalesFile(fileDate, dayTimeInterval, locationNumber, rbu);
-                    for (int i = 1; i <= range; i++) {
-                        Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(i, offset,
-                                location.getTimezone());
-                        for (Payment payment : getPayments(squareClientV1, aggregateInterval)) {
-                            itemSalesFile.addFileEntry(payment, dbItemRows);
-                        }
+                    Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
+                            location.getTimezone());
+                    aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
+
+                    for (Payment payment : getPayments(squareClientV1, aggregateInterval)) {
+                        itemSalesFile.addFileEntry(payment, dbItemRows);
                     }
                     masterPayload.add(itemSalesFile);
                 }
