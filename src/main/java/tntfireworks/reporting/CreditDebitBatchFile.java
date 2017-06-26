@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Tender;
 
 import tntfireworks.TntDatabaseApi;
 import util.DbConnection;
@@ -138,16 +139,21 @@ public class CreditDebitBatchFile {
 
             // compute debit/credit data
             for (Payment payment : locationDetails.getPayments()) {
-                // debits = total collected money without SQ fees but including tax
-                if (payment.getTotalCollectedMoney() != null && payment.getTotalCollectedMoney().getAmount() > 0) {
-                    debitCount++;
-                    debitAmt += payment.getTotalCollectedMoney().getAmount();
-                }
+                for (Tender tender : payment.getTender()) {
+                    if (tender.getType().equals("CREDIT_CARD")) {
+                        // debits = total collected money without SQ fees but including tax
+                        if (tender.getTotalMoney() != null
+                                && tender.getTotalMoney().getAmount() > 0) {
+                            debitCount++;
+                            debitAmt += tender.getTotalMoney().getAmount();
+                        }
 
-                // credits = refunds without discounts (credits are negative values)
-                if (payment.getRefundedMoney() != null && payment.getRefundedMoney().getAmount() < 0) {
-                    creditCount++;
-                    creditAmt += payment.getRefundedMoney().getAmount();
+                        // credits = refunds without discounts (credits are negative values)
+                        if (tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0) {
+                            creditCount++;
+                            creditAmt += tender.getRefundedMoney().getAmount();
+                        }
+                    }
                 }
             }
             ticketCount = debitCount + creditCount;

@@ -16,7 +16,7 @@ import util.TimeManager;
 
 public class ItemSalesFile extends TntReportFile {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesFile.class);
-
+    private static String START_OF_SEASON = "";
     private static String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description",
             "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");

@@ -33,6 +33,7 @@ public class DeploymentDetailsCallable implements Callable {
         // get session vars
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
+        int reportType = Integer.parseInt(message.getProperty("reportType", PropertyScope.SESSION));
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
@@ -53,11 +54,26 @@ public class DeploymentDetailsCallable implements Callable {
             squareV1Client.setLocation(location.getId());
             squareV2Client.setLocation(location.getId());
 
-            // get detailed payment / transaction data
-            Payment[] payments = getPayments(squareV1Client, params);
-            Transaction[] transactions = getTransactions(squareV2Client, params);
-            Settlement[] settlements = getSettlements(squareV1Client, params);
-            Map<String, Employee> employees = getEmployees(squareV1Client);
+            // get detailed payload data depending on reportType
+            Payment[] payments = new Payment[0];
+            Transaction[] transactions = new Transaction[0];
+            Settlement[] settlements = new Settlement[0];
+            Map<String, Employee> employees = new HashMap<String, Employee>();
+
+            switch (reportType) {
+                case 1:
+                    settlements = getSettlements(squareV1Client, params);
+                    break;
+                case 2:
+                    payments = getPayments(squareV1Client, params);
+                    // no break, reportType '2' (transactions report, needs both payments and transactions)
+                case 3:
+                    transactions = getTransactions(squareV2Client, params);
+                    break;
+                case 8:
+                    payments = getPayments(squareV1Client, params);
+                    break;
+            }
 
             deploymentDetails.add(
                     new TntLocationDetails(location, transactions, payments, settlements, employees,
@@ -106,16 +122,6 @@ public class DeploymentDetailsCallable implements Callable {
             }
         }
         return transactions.toArray(new Transaction[0]);
-    }
-
-    private Map<String, Employee> getEmployees(SquareClient squareClient) throws Exception {
-        Map<String, Employee> employeeMap = new HashMap<String, Employee>();
-
-        for (Employee employee : squareClient.employees().list()) {
-            employeeMap.put(employee.getId(), employee);
-        }
-
-        return employeeMap;
     }
 
     private Settlement[] getSettlements(SquareClient squareClient, Map<String, String> params) throws Exception {

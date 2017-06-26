@@ -75,7 +75,6 @@ public class InputParser {
         if (scanner.ioException() != null) {
             throw scanner.ioException();
         }
-
     }
 
     public void processMktPlan(DbConnection dbConnection, Scanner scanner, String processingFile, String marketPlanId)

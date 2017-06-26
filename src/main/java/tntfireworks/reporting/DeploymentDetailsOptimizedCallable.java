@@ -265,6 +265,7 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                 transactions.add(transaction);
             }
         }
+
         return transactions.toArray(new Transaction[0]);
     }
 
@@ -283,4 +284,4 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         return squareClient.settlements().list(params);
     }
 
-}
+};

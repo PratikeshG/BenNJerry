@@ -16,6 +16,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/credit-debit-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
         <flow-ref name="TNTFireworks-generate-credit-debit-batch-report" doc:name="TNTFireworks-generate-credit-debit-batch-report"/>
         <set-payload value="Credit/Debit Batch Report generated." doc:name="Set Payload"/>
     </flow>
@@ -23,6 +24,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/settlements-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
         <flow-ref name="TNTFireworks-generate-settlements-batch-report" doc:name="TNTFireworks-generate-settlements-batch-report"/>
         <set-payload value="Settlements Report generated." doc:name="Set Payload"/>
     </flow>
@@ -30,6 +32,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abnormal-transactions-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
         <flow-ref name="TNTFireworks-generate-abnormal-transactions-report" doc:name="TNTFireworks-generate-abnormal-transactions-report"/>
         <set-payload value="Abnormal Transactions Report generated." doc:name="Set Payload"/>
     </flow>
@@ -37,6 +40,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/transactions-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable doc:name="offset" value="#[message.inboundProperties.'http.query.params'.offset]" variableName="offset"/>
         <set-session-variable doc:name="range" value="#[message.inboundProperties.'http.query.params'.range]" variableName="range"/>
+        <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
         <flow-ref name="TNTFireworks-generate-transactions-batch-report" doc:name="TNTFireworks-generate-transactions-batch-report"/>
         <set-payload doc:name="Set Payload" value="Generated transactions batch report."/>
     </flow>
@@ -44,7 +48,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/location-sales-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="5" doc:name="reportType"/>
+        <set-session-variable variableName="reportType" value="5" doc:name="reportType (5 or 6)"/>
         <flow-ref name="TNTFireworks-generate-location-sales-batch-report" doc:name="TNTFireworks-generate-location-sales-batch-report"/>
         <set-payload value="Generated locations sales batch report." doc:name="Set Payload"/>
     </flow>
@@ -52,7 +56,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/item-sales-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="7" doc:name="reportType"/>
+        <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
         <flow-ref name="TNTFireworks-generate-item-sales-batch-report" doc:name="TNTFireworks-generate-item-sales-batch-report"/>
         <set-payload value="Generated item sales report." doc:name="Set Payload"/>
     </flow>
