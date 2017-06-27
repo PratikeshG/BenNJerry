@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -10,8 +10,12 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
-http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
 	<vm:connector name="TNTFIREWORKS_Reporting_VM" validateConnections="true" doc:name="VM"/>
+    <quartz:connector name="Quartz-TNT-reporting" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT-reporting"/>
+    </quartz:connector>
     <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
 	<flow name="TNTFireworks-trigger-credit-debit-batch-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/credit-debit-batch-report/${urlKey}" doc:name="HTTP"/>
@@ -21,6 +25,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="TNTFireworks-generate-credit-debit-batch-report-8" doc:name="TNTFireworks-generate-credit-debit-batch-report-8"/>
         <set-payload value="Credit/Debit Batch Report generated." doc:name="Set Payload"/>
     </flow>
+    <flow name="TNTFireworks-credit-debit-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
+                <flow-ref name="TNTFireworks-generate-credit-debit-batch-report-8" doc:name="TNTFireworks-generate-credit-debit-batch-report-8"/>
+            </otherwise>
+        </choice>
+    </flow>
     <flow name="TNTFireworks-trigger-settlements-batch-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/settlements-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
@@ -28,6 +48,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
         <flow-ref name="TNTFireworks-generate-settlements-batch-report-1" doc:name="TNTFireworks-generate-settlements-batch-report-1"/>
         <set-payload value="Settlements Report generated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-settlements-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 06 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:06 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="31" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
+                <flow-ref name="TNTFireworks-generate-settlements-batch-report-1" doc:name="TNTFireworks-generate-settlements-batch-report-1"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="TNTFireworks-trigger-abnormal-transactions-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abnormal-transactions-batch-report/${urlKey}" doc:name="HTTP"/>
@@ -37,6 +73,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="TNTFireworks-generate-abnormal-transactions-report-3" doc:name="TNTFireworks-generate-abnormal-transactions-report-3"/>
         <set-payload value="Abnormal Transactions Report generated." doc:name="Set Payload"/>
     </flow>
+    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1498546804" cronExpression="0 07 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:07 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
+                <flow-ref name="TNTFireworks-generate-abnormal-transactions-report-3" doc:name="TNTFireworks-generate-abnormal-transactions-report-3"/>
+            </otherwise>
+        </choice>
+    </flow>
     <flow name="TNTFireworks-trigger-transactions-batch-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/transactions-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable doc:name="offset" value="#[message.inboundProperties.'http.query.params'.offset]" variableName="offset"/>
@@ -44,6 +96,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
         <flow-ref name="TNTFireworks-generate-transactions-batch-report-2" doc:name="TNTFireworks-generate-transactions-batch-report-2"/>
         <set-payload doc:name="Set Payload" value="Generated transactions batch report."/>
+    </flow>
+    <flow name="TNTFireworks-transactions-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1498546933" cronExpression="0 08 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:08 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
+                <flow-ref name="TNTFireworks-generate-transactions-batch-report-2" doc:name="TNTFireworks-generate-transactions-batch-report-2"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="TNTFireworks-trigger-location-sales-batch-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/location-sales-batch-report/${urlKey}" doc:name="HTTP"/>
@@ -53,6 +121,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="TNTFireworks-generate-location-sales-batch-report-5" doc:name="TNTFireworks-generate-location-sales-batch-report-5"/>
         <set-payload value="Generated locations sales batch report." doc:name="Set Payload"/>
     </flow>
+    <flow name="TNTFireworks-location-sales-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1498547009" cronExpression="0 09 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:09 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="5" doc:name="reportType (5)"/>
+                <flow-ref name="TNTFireworks-generate-location-sales-batch-report-5" doc:name="TNTFireworks-generate-location-sales-batch-report-5"/>
+            </otherwise>
+        </choice>
+    </flow>
     <flow name="TNTFireworks-trigger-item-sales-batch-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/item-sales-batch-report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
@@ -60,6 +144,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
         <flow-ref name="TNTFireworks-generate-item-sales-batch-report-7" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
         <set-payload value="Generated item sales report." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-item-sales-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 10 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.reporting.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
+                <flow-ref name="TNTFireworks-generate-item-sales-batch-report-7" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
+            </otherwise>
+        </choice>
     </flow>
     <flow name="TNTFireworks-generate-location-sales-batch-report-5">
         <logger message="Begin generating location sales report" level="INFO" doc:name="Logger"/>
