@@ -178,7 +178,8 @@ public class TntCatalogApi {
                 clientV2.catalog().deleteObject(catalogObject.getId());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("failure to delete catalog object " + catalogObject.getId());
+                throw new RuntimeException(
+                        "Failure to delete catalog object " + catalogObject.getId());
             }
         }
 
@@ -261,7 +262,7 @@ public class TntCatalogApi {
             String categoryId = categories.get(csvItem.getCategory()).getId();
             squareItem.getItemData().setCategoryId(categoryId);
         } else {
-            throw new IllegalArgumentException("Missing category for itemNumber " + csvItem.getNumber());
+            logger.error("Missing category for itemNumber: " + csvItem.getNumber());
         }
     }
 
@@ -334,10 +335,10 @@ public class TntCatalogApi {
             clientV2.catalog().batchUpsertObjects(allCategories);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("failure to upsert categories");
+            throw new RuntimeException("Failure to upsert categories");
         }
-        logger.info("Done checking/adding categories");
 
+        logger.info("Done checking/adding categories");
     }
 
     private void addLocationToMarketingPlanLocationsCache(Location location,
@@ -353,17 +354,17 @@ public class TntCatalogApi {
 
         if (!locationTNTId.contains(INACTIVE_LOCATION) && !locationTNTId.contains(DEFAULT_LOCATION)) {
             if (marketingPlanId == null) {
-                throw new IllegalArgumentException(
-                        "Could not find mapping of location number (in existing SQ account) to a market plan, location name: "
+                logger.error(
+                        "Could not find mapping of location number (in existing SQ account) to a location in DB. Missing location in locations file: "
                                 + locationTNTId);
+            } else {
+                List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
+                if (locationsList == null) {
+                    locationsList = new ArrayList<String>();
+                    marketingPlanLocationsCache.put(marketingPlanId, locationsList);
+                }
+                locationsList.add(locationSquareId);
             }
-
-            List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
-            if (locationsList == null) {
-                locationsList = new ArrayList<String>();
-                marketingPlanLocationsCache.put(marketingPlanId, locationsList);
-            }
-            locationsList.add(locationSquareId);
         }
     }
 
@@ -385,7 +386,6 @@ public class TntCatalogApi {
         }
 
         return marketingPlanLocationsCache;
-
     }
 
     private CatalogObject[] getAllCategories(Catalog catalog) {
