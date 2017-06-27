@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +63,14 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
+        // compute YTD range if range = 365
+        if (range == 365) {
+            // - initialize startOfSeason as 03/01/2017
+            // - use default tz as Los Angeles
+            TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
+            range = computeSeasonInterval(02, 0, 2017, tz);
+        }
+
         // get deployment from queue-splitter
         SquarePayload deployment = (SquarePayload) message.getPayload();
 
@@ -84,7 +93,35 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         }
 
         return masterPayload;
+    }
 
+    public static int computeSeasonInterval(int month, int day, int year, TimeZone tz) {
+        int range = 0;
+
+        // calendar instances
+        Calendar startOfSeason = Calendar.getInstance(tz);
+        Calendar today = Calendar.getInstance(tz);
+
+        // set month day year according to params
+        startOfSeason.set(Calendar.YEAR, year);
+        startOfSeason.set(Calendar.MONTH, month);
+        startOfSeason.set(Calendar.DAY_OF_MONTH, day);
+
+        // set all calendars to start at midnight
+        startOfSeason.set(Calendar.HOUR_OF_DAY, 0);
+        startOfSeason.set(Calendar.MINUTE, 0);
+        startOfSeason.set(Calendar.SECOND, 0);
+        startOfSeason.set(Calendar.MILLISECOND, 0);
+
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
+
+        range = (int) TimeUnit.MILLISECONDS
+                .toDays(Math.abs(today.getTimeInMillis() - startOfSeason.getTimeInMillis()));
+
+        return range;
     }
 
     // sales total by location
@@ -104,8 +141,6 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
                     .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
-            List<Map<String, String>> dbItemRows = tntDatabaseApi
-                    .submitQuery(tntDatabaseApi.generateItemSQLSelect());
             tntDatabaseApi.close();
 
             for (Location location : squareClientV2.locations().list()) {
@@ -184,11 +219,11 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                     }
 
                     ItemSalesFile itemSalesFile = new ItemSalesFile(fileDate, dayTimeInterval, locationNumber, rbu);
-                    Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
+                    Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
-                    aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
+                    aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
 
-                    for (Payment payment : getPayments(squareClientV1, aggregateInterval)) {
+                    for (Payment payment : getPayments(squareClientV1, aggregateIntervalParams)) {
                         itemSalesFile.addFileEntry(payment, dbItemRows);
                     }
                     masterPayload.add(itemSalesFile);
@@ -283,5 +318,4 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         // V1 Settlements
         return squareClient.settlements().list(params);
     }
-
-};
+}

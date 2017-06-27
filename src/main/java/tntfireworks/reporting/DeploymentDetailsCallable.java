@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -37,6 +38,14 @@ public class DeploymentDetailsCallable implements Callable {
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
+        // compute YTD range if range = 365
+        if (range == 365) {
+            // - initialize startOfSeason as 03/01/2017 (02 month, 0 day, 2017 year)
+            // - use default tz as Los Angeles
+            TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
+            range = DeploymentDetailsOptimizedCallable.computeSeasonInterval(02, 0, 2017, tz);
+        }
+
         // get deployment from queue-splitter
         SquarePayload deployment = (SquarePayload) message.getPayload();
 
@@ -50,7 +59,10 @@ public class DeploymentDetailsCallable implements Callable {
         List<TntLocationDetails> deploymentDetails = new ArrayList<TntLocationDetails>();
 
         for (Location location : squareV2Client.locations().list()) {
-            Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
+            Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
+                    location.getTimezone());
+            aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
+
             squareV1Client.setLocation(location.getId());
             squareV2Client.setLocation(location.getId());
 
@@ -62,16 +74,16 @@ public class DeploymentDetailsCallable implements Callable {
 
             switch (reportType) {
                 case 1:
-                    settlements = getSettlements(squareV1Client, params);
+                    settlements = getSettlements(squareV1Client, aggregateIntervalParams);
                     break;
                 case 2:
-                    payments = getPayments(squareV1Client, params);
+                    payments = getPayments(squareV1Client, aggregateIntervalParams);
                     // no break, reportType '2' (transactions report, needs both payments and transactions)
                 case 3:
-                    transactions = getTransactions(squareV2Client, params);
+                    transactions = getTransactions(squareV2Client, aggregateIntervalParams);
                     break;
                 case 8:
-                    payments = getPayments(squareV1Client, params);
+                    payments = getPayments(squareV1Client, aggregateIntervalParams);
                     break;
             }
 

@@ -7,6 +7,7 @@ import javax.activation.DataHandler;
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +39,11 @@ public class AbnormalTransactionsCallable implements Callable {
         List<List<TntLocationDetails>> deploymentAggregate = (List<List<TntLocationDetails>>) message
                 .getPayload();
 
+        // get offset for dayTimeInterval calculation
+        int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
+
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
-        AbnormalTransactionsFile alertFile = new AbnormalTransactionsFile(deploymentAggregate, dbConnection);
+        AbnormalTransactionsFile alertFile = new AbnormalTransactionsFile(deploymentAggregate, dbConnection, offset);
 
         DataHandler dataHandler = new DataHandler(alertFile.generateBatchReport(), "text/plain; charset=UTF-8");
         eventContext.getMessage().addOutboundAttachment(alertFile.getFileDate() + "-abnormal-transactions-report.csv",

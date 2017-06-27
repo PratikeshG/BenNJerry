@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
@@ -23,6 +24,9 @@ import util.TimeManager;
 
 public class AbnormalTransactionsFile {
     private static Logger logger = LoggerFactory.getLogger(AbnormalTransactionsFile.class);
+    private static final int ALERT_THRESHOLD_1 = 100000;
+    private static final int ALERT_THRESHOLD_2 = 50000;
+    private static final int ALERT_THRESHOLD_6 = 15000;
 
     /* alert types
      * 
@@ -38,14 +42,20 @@ public class AbnormalTransactionsFile {
      */
     private List<AlertEntry> alerts;
     private String fileDate;
+    private int offset;
 
-    public AbnormalTransactionsFile(List<List<TntLocationDetails>> deploymentsAggregate, DbConnection dbConnection)
+    public AbnormalTransactionsFile(List<List<TntLocationDetails>> deploymentsAggregate, DbConnection dbConnection,
+            int offset)
             throws Exception {
+
+        // set offset for dayTimeInterval
+        this.offset = offset;
+
         // set file date
-        fileDate = getDate("America/Los_Angeles", "MM-dd-yy", 0);
+        this.fileDate = getDate("America/Los_Angeles", "MM-dd-yy", 0);
 
         // initialize instances for alert entries and tender id to employee mapping
-        alerts = new ArrayList<AlertEntry>();
+        this.alerts = new ArrayList<AlertEntry>();
 
         // cache location data from tnt database to limit to 1 query submission
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
@@ -58,46 +68,79 @@ public class AbnormalTransactionsFile {
 
         for (List<TntLocationDetails> deployment : deploymentsAggregate) {
             for (TntLocationDetails locationDetails : deployment) {
+                // dayTimeInterval for all alerts except for alert4
+                Location location = locationDetails.getLocation();
+                Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(1, offset,
+                        location.getTimezone());
+                // use calendar objects to daily interval
+                Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get("begin_time"));
+                Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get("end_time"));
+
                 List<Transaction> alert3Transactions = new ArrayList<Transaction>();
                 Map<String, List<Transaction>> alert5Transactions = new HashMap<String, List<Transaction>>();
                 List<Transaction> alert5Buffer = new ArrayList<Transaction>();
 
-                // used for alert type 5, initialize to negative value for start
-                int prevAmt = -1;
+                // used for alert type 5, initialize to 0 value for start
+                int prevAmt = 0;
 
                 for (Transaction transaction : locationDetails.getTransactions()) {
-                    // alert 1, threshold $1000
-                    int alertLevel = 0;
-                    int alertThreshold1 = 100000;
-                    if (checkCpAlert(transaction, alertThreshold1)) {
-                        alertLevel = 1;
-                        alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
-                    }
+                    // used to filter which transactions to use for daily alerts
+                    Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
 
-                    // alert 2 and 6 have same criteria, different thresholds
-                    // alert 2 > $500, alert 7 > $150
-                    int alertThreshold2 = 50000;
-                    int alertThreshold6 = 15000;
-                    if (checkCnpAlert(transaction, alertThreshold6)) {
-                        alertLevel = 6;
-                        if (checkCnpAlert(transaction, alertThreshold2)) {
-                            alertLevel = 2;
-                        }
-                        alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
-                    }
-
-                    // for alert 3, keep running list of transactions with CNP entry methods
-                    for (Tender tender : transaction.getTenders()) {
-                        String entryMethod = "";
-                        try {
-                            entryMethod = tender.getCardDetails().getEntryMethod();
-                        } catch (Exception e) {
-                            logger.warn("No entryMethod for this tender: " + tender.getId());
+                    // determine if this transaction should be included in "daily" totals
+                    if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
+                        // alert 1, threshold $1000
+                        int alertLevel = 0;
+                        if (checkCpAlert(transaction, ALERT_THRESHOLD_1)) {
+                            alertLevel = 1;
+                            alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
                         }
 
-                        if (entryMethod.equals("MANUAL") || entryMethod.equals("WEB_FORM")) {
-                            alert3Transactions.add(transaction);
-                            break;
+                        // alert 2 and 6 have same criteria, different thresholds
+                        // alert 2 > $500, alert 7 > $150
+                        if (checkCnpAlert(transaction, ALERT_THRESHOLD_6)) {
+                            alertLevel = 6;
+                            if (checkCnpAlert(transaction, ALERT_THRESHOLD_2)) {
+                                alertLevel = 2;
+                            }
+                            alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
+                        }
+
+                        for (Tender tender : transaction.getTenders()) {
+                            // for alert 3, keep running list of transactions with CNP entry methods
+                            String entryMethod = "";
+                            try {
+                                entryMethod = tender.getCardDetails().getEntryMethod();
+                            } catch (Exception e) {
+                                logger.warn("No entryMethod for this tender: " + tender.getId());
+                            }
+
+                            if (entryMethod.equals("MANUAL") || entryMethod.equals("WEB_FORM")) {
+                                alert3Transactions.add(transaction);
+                                break;
+                            }
+
+                            // alert 5
+                            if (tender.getType().equals("CARD")) {
+                                // for alert 5, keep consecutive list of transactions with same dollar amounts
+                                int currentAmt = tender.getAmountMoney().getAmount();
+
+                                if (currentAmt == prevAmt) {
+                                    alert5Buffer.add(transaction);
+                                } else {
+                                    if (alert5Buffer.size() >= 3) {
+                                        // store buffer of consecutive transactions with same amount
+                                        // use transactionId as unique identifier
+                                        alert5Transactions.put(transaction.getId(), new ArrayList(alert5Buffer));
+                                    }
+                                    // clear buffer to start tracking new transaction amount
+                                    alert5Buffer.clear();
+                                    alert5Buffer.add(transaction);
+
+                                    // store new amount for tracking
+                                    prevAmt = currentAmt;
+                                }
+                            }
                         }
                     }
 
@@ -123,25 +166,6 @@ public class AbnormalTransactionsFile {
                                 }
                             } catch (Exception e) {
                                 logger.warn("Card details missing to create unique key for alert 4 transactions.");
-                            }
-
-                            // for alert 5, keep consecutive list of transactions with same dollar amounts
-                            int currentAmt = tender.getAmountMoney().getAmount();
-
-                            if (currentAmt == prevAmt) {
-                                alert5Buffer.add(transaction);
-                            } else {
-                                if (alert5Buffer.size() >= 3) {
-                                    // store buffer of consecutive transactions with same amount
-                                    // use transactionId as unique identifier
-                                    alert5Transactions.put(transaction.getId(), new ArrayList(alert5Buffer));
-                                }
-                                // clear buffer to start tracking new transaction amount
-                                alert5Buffer.clear();
-                                alert5Buffer.add(transaction);
-
-                                // store new amount for tracking
-                                prevAmt = currentAmt;
                             }
                         }
                     }
