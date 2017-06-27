@@ -2,8 +2,6 @@ package tntfireworks.reporting;
 
 import java.util.List;
 
-import javax.activation.DataHandler;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
@@ -42,13 +40,16 @@ public class AbnormalTransactionsCallable implements Callable {
         // get offset for dayTimeInterval calculation
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
 
+        // process report data
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         AbnormalTransactionsFile alertFile = new AbnormalTransactionsFile(deploymentAggregate, dbConnection, offset);
 
-        DataHandler dataHandler = new DataHandler(alertFile.generateBatchReport(), "text/plain; charset=UTF-8");
-        eventContext.getMessage().addOutboundAttachment(alertFile.getFileDate() + "-abnormal-transactions-report.csv",
-                dataHandler);
+        // generate report into file
+        String reportName = alertFile.getFileDate() + "-report-3.csv";
+        String batchReport = alertFile.generateBatchReport();
+        message.setProperty("awsConnectorKey",
+                String.format("TNTFireworks/REPORTS/%s", reportName), PropertyScope.INVOCATION);
 
-        return "Abnormal Transactions Report attached.";
+        return batchReport;
     }
 }

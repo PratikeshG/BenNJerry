@@ -2,11 +2,10 @@ package tntfireworks.reporting;
 
 import java.util.List;
 
-import javax.activation.DataHandler;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +36,11 @@ public class LocationSalesReportGeneratorCallable implements Callable {
             }
         }
 
-        DataHandler dataHandler = new DataHandler(reportBuilder.toString(), "text/plain; charset=UTF-8");
-        eventContext.getMessage().addOutboundAttachment(fileDate + "-location-sales-report.csv",
-                dataHandler);
+        // generate report into file
+        String reportName = fileDate + "-report-5.csv";
+        message.setProperty("awsConnectorKey",
+                String.format("TNTFireworks/REPORTS/%s", reportName), PropertyScope.INVOCATION);
 
-        return "Location Sales Report attached (TNT Report 5 & 6).";
+        return reportBuilder.toString();
     }
 }

@@ -2,11 +2,10 @@ package tntfireworks.reporting;
 
 import java.util.List;
 
-import javax.activation.DataHandler;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +40,12 @@ public class TransactionsBatchCallable implements Callable {
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         TransactionsBatchFile batchFile = new TransactionsBatchFile(deploymentAggregate, dbConnection);
 
-        DataHandler dataHandler = new DataHandler(batchFile.generateBatchReport(), "text/plain; charset=UTF-8");
-        eventContext.getMessage().addOutboundAttachment(batchFile.getFileDate() + "-transactions-batch-report.csv",
-                dataHandler);
+        // generate report into file
+        String reportName = batchFile.getFileDate() + "-report-2.csv";
+        String batchReport = batchFile.generateBatchReport();
+        message.setProperty("awsConnectorKey",
+                String.format("TNTFireworks/REPORTS/%s", reportName), PropertyScope.INVOCATION);
 
-        return "Transactions Batch Report attached.";
+        return batchReport;
     }
 }
