@@ -27,6 +27,11 @@ import util.TimeManager;
 public class DeploymentDetailsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DeploymentDetailsCallable.class);
 
+    // start of season 03/01/2017
+    private static final int START_OF_SEASON_DAY = 0;
+    private static final int START_OF_SEASON_MONTH = 2;
+    private static final int START_OF_SEASON_YEAR = 2017;
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -43,7 +48,8 @@ public class DeploymentDetailsCallable implements Callable {
             // - initialize startOfSeason as 03/01/2017 (02 month, 0 day, 2017 year)
             // - use default tz as Los Angeles
             TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
-            range = DeploymentDetailsOptimizedCallable.computeSeasonInterval(02, 0, 2017, tz);
+            range = DeploymentDetailsOptimizedCallable.computeSeasonInterval(START_OF_SEASON_MONTH, START_OF_SEASON_DAY,
+                    START_OF_SEASON_YEAR, tz);
         }
 
         // get deployment from queue-splitter
