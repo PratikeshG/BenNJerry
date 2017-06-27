@@ -337,8 +337,8 @@ public class TntCatalogApi {
             e.printStackTrace();
             throw new RuntimeException("Failure to upsert categories");
         }
-        logger.info("Done checking/adding categories");
 
+        logger.info("Done checking/adding categories");
     }
 
     private void addLocationToMarketingPlanLocationsCache(Location location,
@@ -357,14 +357,14 @@ public class TntCatalogApi {
                 logger.error(
                         "Could not find mapping of location number (in existing SQ account) to a location in DB. Missing location in locations file: "
                                 + locationTNTId);
+            } else {
+                List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
+                if (locationsList == null) {
+                    locationsList = new ArrayList<String>();
+                    marketingPlanLocationsCache.put(marketingPlanId, locationsList);
+                }
+                locationsList.add(locationSquareId);
             }
-
-            List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
-            if (locationsList == null) {
-                locationsList = new ArrayList<String>();
-                marketingPlanLocationsCache.put(marketingPlanId, locationsList);
-            }
-            locationsList.add(locationSquareId);
         }
     }
 
