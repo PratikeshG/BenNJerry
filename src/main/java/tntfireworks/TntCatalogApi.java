@@ -240,6 +240,7 @@ public class TntCatalogApi {
         CatalogItemVariation squareItemVariation = getFirstItemVariation(squareItem);
         squareItemVariation.setSku(sku);
         squareItemVariation.setName(csvItem.getNumber());
+        squareItemVariation.setPricingType(FIXED_PRICING);
         Money priceMoney = csvItem.getPriceAsSquareMoney();
         squareItemVariation.setPriceMoney(priceMoney);
 
