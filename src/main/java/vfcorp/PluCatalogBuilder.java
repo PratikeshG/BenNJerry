@@ -132,12 +132,12 @@ public class PluCatalogBuilder {
             return; // Skip invalid location
         }
 
-        CatalogObject[] locationTaxes = objectsPresentAtLocation(
-                catalog.getTaxes().values().toArray(new CatalogObject[0]), location.getId());
+        CatalogObject[] locationEnabledTaxes = getEnabledTaxes(
+                objectsPresentAtLocation(catalog.getTaxes().values().toArray(new CatalogObject[0]), location.getId()));
 
-        if (locationTaxes.length > 0) {
-            applyLocationSpecificItemTaxes(catalog.getItems().values().toArray(new CatalogObject[0]), locationTaxes,
-                    deploymentId, location.getId());
+        if (locationEnabledTaxes.length > 0) {
+            applyLocationSpecificItemTaxes(catalog.getItems().values().toArray(new CatalogObject[0]),
+                    locationEnabledTaxes, deploymentId, location.getId());
         }
     }
 
@@ -193,6 +193,18 @@ public class PluCatalogBuilder {
         }
 
         return objectsForLocation.toArray(new CatalogObject[0]);
+    }
+
+    private CatalogObject[] getEnabledTaxes(CatalogObject[] objects) {
+        ArrayList<CatalogObject> enabledTaxes = new ArrayList<CatalogObject>();
+
+        for (CatalogObject object : objects) {
+            if (object.getTaxData() != null && object.getTaxData().isEnabled()) {
+                enabledTaxes.add(object);
+            }
+        }
+
+        return enabledTaxes.toArray(new CatalogObject[0]);
     }
 
     private boolean isObjectPresentAtAnyLocation(CatalogObject object) {
