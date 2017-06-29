@@ -1,10 +1,12 @@
 package tntfireworks;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.ItemVariationLocationOverride;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
@@ -103,7 +106,7 @@ public class TntCatalogApi {
         Preconditions.checkNotNull(marketingPlanLocationsCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        clearItemLocations(catalog);
+        clearManagedItemLocations(catalog);
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
 
         CatalogObject[] modifiedItems = catalog.getModifiedItems();
@@ -193,8 +196,27 @@ public class TntCatalogApi {
         return catalog;
     }
 
-    private Catalog clearItemLocations(Catalog catalog) {
-        catalog.clearItemLocations();
+    private Catalog clearManagedItemLocations(Catalog catalog) {
+        // - loop through catalog items and only update items with >1 locations
+        // - assume custom created items are isolated to 1 location
+        for (CatalogObject item : catalog.getItems().values()) {
+            if (item.getPresentAtLocationIds().length > 1) {
+                item.setPresentAtAllLocations(false);
+                item.setPresentAtLocationIds(new String[0]);
+                item.setAbsentAtLocationIds(new String[0]);
+
+                // - only clear first variation
+                // - assume first variation is managed item, following variations are custom
+                if (item.getItemData() != null) {
+                    CatalogObject variation = item.getItemData().getVariations()[0];
+                    variation.setPresentAtAllLocations(false);
+                    variation.setPresentAtLocationIds(new String[0]);
+                    variation.setAbsentAtLocationIds(new String[0]);
+                    variation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
+                }
+            }
+        }
+
         return catalog;
     }
 
@@ -250,9 +272,10 @@ public class TntCatalogApi {
         Money priceMoney = csvItem.getPriceAsSquareMoney();
         squareItemVariation.setPriceMoney(priceMoney);
 
-        // set catalog object data
-        squareItem.enableAtLocations(squareLocationIds);
-        squareItem.setLocationPriceOverride(squareLocationIds, squareItemVariation.getPriceMoney(), FIXED_PRICING);
+        // - set catalog object data
+        // - use TntCatalogApi class specific functions to update to ignore custom variations
+        enableItemAtLocations(squareItem, squareLocationIds);
+        setItemLocationPriceOverride(squareItem, squareLocationIds, squareItemVariation.getPriceMoney(), FIXED_PRICING);
 
         // set catalog item data
         setSquareCategoryForItem(categories, csvItem, squareItem);
@@ -260,6 +283,36 @@ public class TntCatalogApi {
 
         // add final item to local catalog
         catalog.addItem(squareItem);
+    }
+
+    private void setItemLocationPriceOverride(CatalogObject item, String[] locationIds, Money priceMoney,
+            String pricingType) {
+        // only set price override for first variation
+        if (item.getItemData() != null) {
+            CatalogObject variation = item.getItemData().getVariations()[0];
+            variation.setLocationPriceOverride(locationIds, priceMoney, pricingType);
+        }
+    }
+
+    private void enableItemAtLocations(CatalogObject item, String[] locationIds) {
+        Set<String> locationsSet = new HashSet<String>();
+
+        if (item.getPresentAtLocationIds() != null) {
+            locationsSet.addAll(Arrays.asList(item.getPresentAtLocationIds()));
+        }
+
+        if (locationIds != null) {
+            locationsSet.addAll(Arrays.asList(locationIds));
+        }
+
+        String[] locationsResult = locationsSet.toArray(new String[locationsSet.size()]);
+        item.setPresentAtLocationIds(locationsResult);
+
+        // only update first variation
+        if (item.getItemData() != null) {
+            CatalogObject variation = item.getItemData().getVariations()[0];
+            variation.setPresentAtLocationIds(locationsResult);
+        }
     }
 
     private void setSquareCategoryForItem(Map<String, CatalogObject> categories, CsvItem csvItem,
