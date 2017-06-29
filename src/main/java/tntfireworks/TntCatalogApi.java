@@ -20,6 +20,8 @@ import com.squareup.connect.v2.SquareClientV2;
 public class TntCatalogApi {
     private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
 
+    private static final int BATCH_UPSERT_SIZE = 20;
+
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
@@ -38,14 +40,14 @@ public class TntCatalogApi {
 
     /*
      * Gets the full Catalog of items from Square and updates the local catalog instance var
-     * 
+     *
      * Note: the primary keys for each CatalogObject type are as follows:
      *   Items: SKU
      *   Categories: Name
      *   Taxes: ID
      *   Discounts: Name
      *   Modifier Lists: Name
-     *   
+     *
      * @return the catalog from Square
      */
     public Catalog retrieveCatalogFromSquare() {
@@ -53,17 +55,22 @@ public class TntCatalogApi {
 
         logger.info("Retrieving catalog...");
         try {
-            return clientV2.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+            Catalog sourceCatalog = clientV2.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                     Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+
+            Catalog workingCatalog = new Catalog(sourceCatalog, Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
+                    Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+
+            return workingCatalog;
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Square API call to catalog failed");
         }
     }
 
-    /* 
+    /*
      * Getter for local catalog instance var
-     * 
+     *
      * @return local Catalog
      */
     public Catalog getLocalCatalog() {
@@ -72,8 +79,7 @@ public class TntCatalogApi {
         return catalog;
     }
 
-    public TntCatalogApi(SquareClientV2 clientV2,
-            HashMap<String, String> locationMarketingPlanCache,
+    public TntCatalogApi(SquareClientV2 clientV2, HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
 
         Preconditions.checkNotNull(clientV2);
@@ -88,7 +94,7 @@ public class TntCatalogApi {
 
     /*
      * Batch upserts CatalogItem objects found in the local DB into the Square Catalog
-     * 
+     *
      * @return the updated Catalog
      */
     public Catalog batchUpsertItemsIntoCatalog() {
@@ -99,11 +105,12 @@ public class TntCatalogApi {
 
         clearItemLocations(catalog);
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
-        CatalogObject[] catalogObjects = catalog.getObjects();
+
+        CatalogObject[] modifiedItems = catalog.getModifiedItems();
 
         try {
             logger.info("Upsert latest catalog of items...");
-            clientV2.catalog().batchUpsertObjects(catalogObjects);
+            clientV2.catalog().setBatchUpsertSize(BATCH_UPSERT_SIZE).batchUpsertObjects(modifiedItems);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure upserting items into catalog");
@@ -114,9 +121,9 @@ public class TntCatalogApi {
 
     /*
      * Removes items in the Square Catalog when not present at any locations
-     * 
+     *
      * This method does not currently use the Square batch delete operation
-     * 
+     *
      * @return the updated catalog
      */
     public Catalog removeItemsNotPresentAtAnyLocations() {
@@ -135,11 +142,11 @@ public class TntCatalogApi {
 
     /*
      * Upserts the categories found in the MySQL database into Square
-     * 
+     *
      * The existing categories from Square are pulled and compared with the categories in the local DB.
      * If the category is present in the local DB but not in Square, the category will be loaded into Square.
      * Note: this operation does not remove categories in Square that are no longer in the local DB.
-     *  
+     *
      * @return the updated catalog
      */
     public Catalog batchUpsertCategoriesFromDatabaseToSquare() {
@@ -164,9 +171,9 @@ public class TntCatalogApi {
         return catalog;
     }
 
-    /* 
+    /*
      * Clears the catalog in Square
-     * 
+     *
      * @return the updated catalog
      */
     public Catalog clearCatalog() {
@@ -178,8 +185,7 @@ public class TntCatalogApi {
                 clientV2.catalog().deleteObject(catalogObject.getId());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException(
-                        "Failure to delete catalog object " + catalogObject.getId());
+                throw new RuntimeException("Failure to delete catalog object " + catalogObject.getId());
             }
         }
 
@@ -226,7 +232,7 @@ public class TntCatalogApi {
          *  add BOGO to price description
          *      - for the 2017 season (and upcoming seasons), TNT will have a "half off" field
          *        in the marketing programs specifying if the item is in a BOGO program
-         *      - all prices in the "selling price" column specify the actual selling price, even for 
+         *      - all prices in the "selling price" column specify the actual selling price, even for
          *        BOGO items (BOGO item with MSRP 49.99 is set with selling price 25.00)
          *      - for any BOGO item, the original item description is appended with BOGO PRICE suffix
          */
@@ -330,10 +336,11 @@ public class TntCatalogApi {
     }
 
     private void batchUpsertCategoriesToSquare(Catalog catalog, SquareClientV2 clientV2) {
-        logger.info("Updating categories in catalog...");
-        CatalogObject[] allCategories = getAllCategories(catalog);
+        CatalogObject[] modifiedCategories = catalog.getModifiedCategories();
+
         try {
-            clientV2.catalog().batchUpsertObjects(allCategories);
+            logger.info("Updating categories in catalog...");
+            clientV2.catalog().batchUpsertObjects(modifiedCategories);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure to upsert categories");
@@ -387,9 +394,5 @@ public class TntCatalogApi {
         }
 
         return marketingPlanLocationsCache;
-    }
-
-    private CatalogObject[] getAllCategories(Catalog catalog) {
-        return catalog.getCategories().values().toArray(new CatalogObject[0]);
     }
 }
