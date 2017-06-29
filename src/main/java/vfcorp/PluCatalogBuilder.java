@@ -211,25 +211,23 @@ public class PluCatalogBuilder {
         databaseApi.close();
 
         // Only retrieve Square account categories for now
-        Catalog categoriesCatalog = retrieveCategoriesFromSquare();
+        Catalog categoriesSourceCatalog = new Catalog(client.catalog().listCategories(), Catalog.PrimaryKey.SKU,
+                Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+        Catalog categoriesWorkingCatalog = new Catalog(categoriesSourceCatalog, Catalog.PrimaryKey.SKU,
+                Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
         // Add missing categories
         for (String categoryName : allDatabaseCategoryNames) {
-            CatalogObject existingCategory = categoriesCatalog.getCategories().get(categoryName);
+            CatalogObject existingCategory = categoriesWorkingCatalog.getCategories().get(categoryName);
             if (existingCategory == null) {
                 CatalogObject newCategory = new CatalogObject(CATEGORY);
                 newCategory.getCategoryData().setName(categoryName);
-                categoriesCatalog.addCategory(newCategory);
+                categoriesWorkingCatalog.addCategory(newCategory);
             }
         }
 
-        upsertObjectsToSquare(categoriesCatalog.getCategories().values().toArray(new CatalogObject[0]), "category");
-    }
-
-    private Catalog retrieveCategoriesFromSquare() throws Exception {
-        Catalog catalog = new Catalog(client.catalog().listCategories(), Catalog.PrimaryKey.SKU,
-                Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
-        return catalog;
+        CatalogObject[] modifiedCategories = categoriesWorkingCatalog.getModifiedCategories();
+        upsertObjectsToSquare(modifiedCategories, "category");
     }
 
     private void deleteObjectsFromSquare(String[] objectIds) {
@@ -320,6 +318,7 @@ public class PluCatalogBuilder {
         updatedItem.getItemData().setName(itemName);
 
         // Variation SKU
+        updatedVariation.setPricingType("FIXED_PRICING");
         updatedVariation.setSku(sku);
 
         // Variation Price
