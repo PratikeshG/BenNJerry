@@ -205,14 +205,15 @@ public class TntCatalogApi {
         // - loop through catalog items and only update items with >1 locations
         // - assume custom created items are isolated to 1 location
         for (CatalogObject item : catalog.getItems().values()) {
-            if (item.getPresentAtLocationIds().length > 1) {
+            if (item.getPresentAtLocationIds() != null && item.getPresentAtLocationIds().length > 1) {
                 item.setPresentAtAllLocations(false);
                 item.setPresentAtLocationIds(new String[0]);
                 item.setAbsentAtLocationIds(new String[0]);
 
                 // - only clear first variation
                 // - assume first variation is managed item, following variations are custom
-                if (item.getItemData() != null) {
+                if (item.getItemData() != null && item.getItemData().getVariations() != null
+                        && item.getItemData().getVariations().length > 0) {
                     CatalogObject variation = item.getItemData().getVariations()[0];
                     variation.setPresentAtAllLocations(false);
                     variation.setPresentAtLocationIds(new String[0]);
@@ -293,7 +294,8 @@ public class TntCatalogApi {
     private void setItemLocationPriceOverride(CatalogObject item, String[] locationIds, Money priceMoney,
             String pricingType) {
         // only set price override for first variation
-        if (item.getItemData() != null) {
+        if (item.getItemData() != null && item.getItemData().getVariations() != null
+                && item.getItemData().getVariations().length > 0) {
             CatalogObject variation = item.getItemData().getVariations()[0];
             variation.setLocationPriceOverride(locationIds, priceMoney, pricingType);
         }
