@@ -75,7 +75,7 @@ public class TlogGenerator implements Callable {
         SquareClient squareV1Client = new SquareClient(tlogGeneratorPayload.getAccessToken(), apiUrl, "v1",
                 tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, tlogGeneratorPayload.getAccessToken(),
-                tlogGeneratorPayload.getLocationId());
+                tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
 
         // Locations
         Merchant[] locations = squareV1Client.businessLocations().list();

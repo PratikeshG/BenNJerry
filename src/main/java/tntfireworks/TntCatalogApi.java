@@ -56,7 +56,7 @@ public class TntCatalogApi {
     public Catalog retrieveCatalogFromSquare() {
         Preconditions.checkNotNull(clientV2);
 
-        logger.info("Retrieving catalog...");
+        logger.info(logString("Retrieving catalog..."));
         try {
             Catalog sourceCatalog = clientV2.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                     Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
@@ -67,7 +67,7 @@ public class TntCatalogApi {
             return workingCatalog;
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Square API call to catalog failed");
+            throw new RuntimeException(logString("Square API call to catalog failed"), e);
         }
     }
 
@@ -109,14 +109,18 @@ public class TntCatalogApi {
         clearManagedItemLocations(catalog);
         generateItemUpdates(marketingPlanLocationsCache, marketingPlanItemsCache, catalog);
 
+        logCatalogStats(catalog);
+
+        logger.info(logString("TOTAL ITEMS IN CATALOG: " + catalog.getItems().values().size()));
         CatalogObject[] modifiedItems = catalog.getModifiedItems();
+        logger.info(logString("TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length));
 
         try {
-            logger.info("Upsert latest catalog of items...");
+            logger.info(logString("Upsert latest catalog of items..."));
             clientV2.catalog().setBatchUpsertSize(BATCH_UPSERT_SIZE).batchUpsertObjects(modifiedItems);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Failure upserting items into catalog");
+            throw new RuntimeException(logString("Failure upserting items into catalog"));
         }
         catalog = retrieveCatalogFromSquare();
         return catalog;
@@ -140,6 +144,7 @@ public class TntCatalogApi {
             deleteItemIfNotPresentAtAnyLocation(item);
         }
         catalog = retrieveCatalogFromSquare();
+
         return catalog;
     }
 
@@ -188,7 +193,7 @@ public class TntCatalogApi {
                 clientV2.catalog().deleteObject(catalogObject.getId());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("Failure to delete catalog object " + catalogObject.getId());
+                throw new RuntimeException(logString("Failure to delete catalog object " + catalogObject.getId()));
             }
         }
 
@@ -333,7 +338,7 @@ public class TntCatalogApi {
             String categoryId = categories.get(csvItem.getCategory()).getId();
             squareItem.getItemData().setCategoryId(categoryId);
         } else {
-            logger.error("Missing category for itemNumber: " + csvItem.getNumber());
+            logger.error(logString("Missing category for itemNumber: " + csvItem.getNumber()));
         }
     }
 
@@ -349,7 +354,7 @@ public class TntCatalogApi {
                 generateCatalogUpsertsForItem(updateItem, squareLocationIds, catalog, categories, masterTaxIds);
             }
         } else {
-            throw new IllegalArgumentException("Empty marketing plan: " + marketingPlanId);
+            throw new IllegalArgumentException(logString("Empty marketing plan: " + marketingPlanId));
         }
     }
 
@@ -377,13 +382,13 @@ public class TntCatalogApi {
 
     private void deleteItemIfNotPresentAtAnyLocation(CatalogObject item) {
         if (item.getPresentAtLocationIds() == null || item.getPresentAtLocationIds().length == 0) {
-            logger.info(String.format("Delete this catalog object name/token %s/%s:", item.getItemData().getName(),
-                    item.getId()));
+            logger.info(logString(String.format("Delete this catalog object name/token %s/%s:",
+                    item.getItemData().getName(), item.getId())));
             try {
                 clientV2.catalog().deleteObject(item.getId());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("Failure deleting unused items");
+                throw new RuntimeException(logString("Failure deleting unused items"));
             }
         }
 
@@ -403,14 +408,14 @@ public class TntCatalogApi {
         CatalogObject[] modifiedCategories = catalog.getModifiedCategories();
 
         try {
-            logger.info("Updating categories in catalog...");
+            logger.info(logString("Updating categories in catalog..."));
             clientV2.catalog().batchUpsertObjects(modifiedCategories);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Failure to upsert categories");
+            throw new RuntimeException(logString("Failure to upsert categories"));
         }
 
-        logger.info("Done checking/adding categories");
+        logger.info(logString("Done checking/adding categories"));
     }
 
     private void addLocationToMarketingPlanLocationsCache(Location location,
@@ -421,14 +426,14 @@ public class TntCatalogApi {
         String marketingPlanId = locationMarketingPlanCache.get(locationTNTId);
 
         if (locationTNTId.length() < 1) {
-            throw new IllegalArgumentException("Invalid TNT location number/ID");
+            throw new IllegalArgumentException(logString("Invalid TNT location number/ID"));
         }
 
         if (!locationTNTId.contains(INACTIVE_LOCATION) && !locationTNTId.contains(DEFAULT_LOCATION)) {
             if (marketingPlanId == null) {
-                logger.error(
+                logger.error(logString(
                         "Could not find mapping of location number (in existing SQ account) to a location in DB. Missing location in locations file: "
-                                + locationTNTId);
+                                + locationTNTId));
             } else {
                 List<String> locationsList = marketingPlanLocationsCache.get(marketingPlanId);
                 if (locationsList == null) {
@@ -446,11 +451,11 @@ public class TntCatalogApi {
 
         Location[] locations;
         try {
-            logger.info("Processing Catalog API updates");
+            logger.info(logString("Processing Catalog API updates"));
             locations = clientV2.locations().list();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Square API call to list locations failed");
+            throw new RuntimeException(logString("Square API call to list locations failed"));
         }
 
         for (Location location : locations) {
@@ -458,5 +463,17 @@ public class TntCatalogApi {
         }
 
         return marketingPlanLocationsCache;
+    }
+
+    private void logCatalogStats(Catalog catalog) {
+        logger.info(logString(String.format("CATEGORIES: %d", catalog.getCategories().size())));
+        logger.info(logString(String.format("ITEMS: %d", catalog.getItems().size())));
+        logger.info(logString(String.format("TAXES: %d", catalog.getTaxes().size())));
+        logger.info(logString(String.format("DISCOUNTS: %d", catalog.getDiscounts().size())));
+        logger.info(logString(String.format("MODIFIER LISTS: %d", catalog.getModifierLists().size())));
+    }
+
+    private String logString(String message) {
+        return String.format("[%s] ::: %s", clientV2.getMerchantId(), message);
     }
 }
