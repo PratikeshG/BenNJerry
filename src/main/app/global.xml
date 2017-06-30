@@ -42,8 +42,6 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
                         <http:header headerName="Content-Type" value="application/json"/>
                     </http:request-builder>
                 </http:request>
-                <set-payload value="#[flowVars.exceptionPayload]" encoding="UTF-8" mimeType="text/plain" doc:name="Set email payload"/>
-                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.exception.sending.email}" password="${email.exception.sending.password}" connector-ref="Gmail" to="${email.exception.receiving.email}" from="Square Mule" subject="#['${mule.env}'.toUpperCase() + ' ALERT - Exception in Mule Application']" responseTimeout="10000" doc:name="Email on-call engineers"/>
             </otherwise>
         </choice>
     </catch-exception-strategy>
