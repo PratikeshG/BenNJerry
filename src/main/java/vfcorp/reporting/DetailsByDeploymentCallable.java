@@ -35,7 +35,7 @@ public class DetailsByDeploymentCallable implements Callable {
         SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(), apiUrl, apiVersion,
                 deployment.getMerchantId(), deployment.getLocationId());
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
-                deployment.getLocationId());
+                deployment.getMerchantId(), deployment.getLocationId());
 
         Location location = null;
 

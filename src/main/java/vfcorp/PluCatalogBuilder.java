@@ -336,7 +336,7 @@ public class PluCatalogBuilder {
         // Variation Price
         int price = Integer.parseInt(record.get("retailPrice"));
         Money locationPriceMoney = new Money(price);
-        if (price > 0) {
+        if (price > 0 || updatedVariation.getPriceMoney() == null) {
             // We can't discern which location's price is the master price, just override
             updatedVariation.setPriceMoney(locationPriceMoney);
         }

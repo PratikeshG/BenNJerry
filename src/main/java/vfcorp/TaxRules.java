@@ -190,6 +190,10 @@ public class TaxRules {
             }
         }
 
+        // ignore variable priced items
+        if (itemVariation.getPriceMoney() == null) {
+            return 0;
+        }
         return itemVariation.getPriceMoney().getAmount();
     }
 

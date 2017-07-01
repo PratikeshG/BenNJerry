@@ -53,7 +53,8 @@ public class PluDatabaseToSquareCallable implements Callable {
         // Retrieve a single deployment for credentials for master account
         VfcDeployment masterAccount = getMasterAccountDeployment(brand);
 
-        SquareClientV2 client = new SquareClientV2(apiUrl, masterAccount.getAccessToken());
+        SquareClientV2 client = new SquareClientV2(apiUrl, masterAccount.getAccessToken(),
+                masterAccount.getMerchantId());
 
         PluCatalogBuilder catalogBuilder = new PluCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
                 brand);
