@@ -1,11 +1,14 @@
 package tntfireworks.reporting;
 
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.squareup.connect.v2.Refund;
+import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
 import util.TimeManager;
@@ -43,22 +46,41 @@ public class LocationSalesFile extends TntReportFile {
             Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get("end_time"));
             Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
 
+            // loop through refunds to add to totals later
+            Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
+            for (Refund refund : transaction.getRefunds()) {
+                if (refund.getTenderId() != null) {
+                    tenderToRefund.put(refund.getTenderId(), refund.getAmountMoney().getAmount());
+                }
+            }
+
             // loop through tenders and add entries
-            for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
+            for (Tender tender : transaction.getTenders()) {
                 if (tender.getType().equals("CASH")) {
                     if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
                         cashDailySales += tender.getAmountMoney().getAmount();
+                        if (tenderToRefund.containsKey(tender.getId())) {
+                            cashDailySales -= tenderToRefund.get(tender.getId());
+                        }
                     }
                     cashTotalSales += tender.getAmountMoney().getAmount();
+                    if (tenderToRefund.containsKey(tender.getId())) {
+                        cashDailySales -= tenderToRefund.get(tender.getId());
+                    }
                 }
                 if (tender.getType().equals("CARD")) {
                     if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
                         creditDailySales += tender.getAmountMoney().getAmount();
+                        if (tenderToRefund.containsKey(tender.getId())) {
+                            creditDailySales -= tenderToRefund.get(tender.getId());
+                        }
                     }
                     creditTotalSales += tender.getAmountMoney().getAmount();
+                    if (tenderToRefund.containsKey(tender.getId())) {
+                        creditDailySales -= tenderToRefund.get(tender.getId());
+                    }
                 }
             }
-
         } catch (Exception e) {
             logger.error("Exception from aggregating sales data for SalesFile: " + e);
         }

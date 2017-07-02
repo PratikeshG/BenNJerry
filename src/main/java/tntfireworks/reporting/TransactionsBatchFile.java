@@ -25,6 +25,7 @@ public class TransactionsBatchFile {
     private String fileDate;
     private List<TransactionEntry> transactionEntries;
     private Map<String, String> tenderToFee;
+    private Map<String, String> tenderToEntryMethod;
 
     public TransactionsBatchFile(List<List<TntLocationDetails>> deploymentAggregate, DbConnection dbConnection)
             throws Exception {
@@ -46,6 +47,7 @@ public class TransactionsBatchFile {
                 for (Transaction transaction : locationDetails.getTransactions()) {
                     for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
                         tenderToFee.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
+                        tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
                     }
                 }
 
@@ -73,7 +75,7 @@ public class TransactionsBatchFile {
                 // initialize tender details
                 String source = "SQUARE POS";
                 String cardAmt = "";
-                String entryMethod = "";
+                String entryMethod = "NA";
                 String cashAmt = "";
                 String otherTenderAmt = "";
                 String otherTenderType = "";
@@ -86,10 +88,10 @@ public class TransactionsBatchFile {
                 }
 
                 // retrieve entry method, if null (for cash), set to NA
-                entryMethod = tender.getEntryMethod();
-                if (entryMethod == null) {
-                    entryMethod = "NA";
+                if (tenderToEntryMethod.containsKey(tender.getId())) {
+                    entryMethod = tenderToEntryMethod.get(tender.getId());
                 }
+
                 refundAmt = formatTotal(tender.getRefundedMoney().getAmount());
 
                 // get tender details
