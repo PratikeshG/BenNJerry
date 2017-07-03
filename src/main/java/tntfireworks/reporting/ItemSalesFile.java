@@ -54,7 +54,7 @@ public class ItemSalesFile extends TntReportFile {
 
                 // key = <locationNumber><itemNumber>
                 String key = String.format("%s%s", locationNumber, itemNumber);
-                int saleAmount = itemization.getGrossSalesMoney().getAmount();
+                int saleAmount = itemization.getTotalMoney().getAmount();
 
                 ItemSalesFileEntry updateEntry = null;
                 if (itemSalesFileEntries.containsKey(key)) {
