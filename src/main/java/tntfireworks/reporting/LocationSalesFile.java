@@ -48,12 +48,13 @@ public class LocationSalesFile extends TntReportFile {
 
             // loop through refunds to add to totals later
             Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
-            for (Refund refund : transaction.getRefunds()) {
-                if (refund.getTenderId() != null) {
-                    tenderToRefund.put(refund.getTenderId(), refund.getAmountMoney().getAmount());
+            if (transaction.getRefunds() != null) {
+                for (Refund refund : transaction.getRefunds()) {
+                    if (refund != null && refund.getTenderId() != null && refund.getAmountMoney() != null) {
+                        tenderToRefund.put(refund.getTenderId(), refund.getAmountMoney().getAmount());
+                    }
                 }
             }
-
             // loop through tenders and add entries
             for (Tender tender : transaction.getTenders()) {
                 if (tender.getType().equals("CASH")) {

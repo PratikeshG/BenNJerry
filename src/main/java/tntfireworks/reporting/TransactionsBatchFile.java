@@ -33,6 +33,7 @@ public class TransactionsBatchFile {
         fileDate = getDate("America/Los_Angeles", "MM-dd-yy", 0);
         transactionEntries = new ArrayList<TransactionEntry>();
         tenderToFee = new HashMap<String, String>();
+        tenderToEntryMethod = new HashMap<String, String>();
 
         // cache location data from tnt database to limit to 1 query submission
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
@@ -47,7 +48,9 @@ public class TransactionsBatchFile {
                 for (Transaction transaction : locationDetails.getTransactions()) {
                     for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
                         tenderToFee.put(tender.getId(), formatTotal(tender.getProcessingFeeMoney().getAmount()));
-                        tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+                        if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
+                            tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+                        }
                     }
                 }
 

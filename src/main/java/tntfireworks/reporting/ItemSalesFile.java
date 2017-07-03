@@ -66,13 +66,12 @@ public class ItemSalesFile extends TntReportFile {
 
                 // determine if this payment should be included in "daily" total
                 if (beginTime.compareTo(paymentTime) <= 0 && endTime.compareTo(paymentTime) > 0) {
-                    updateEntry.addDailySales(saleAmount);
+                    updateEntry.addDailySales(saleAmount, itemization.getQuantity());
                 }
 
                 // add to sale amount to total
-                updateEntry.addTotalSales(saleAmount);
+                updateEntry.addTotalSales(saleAmount, itemization.getQuantity());
                 itemSalesFileEntries.put(key, updateEntry);
-
             }
         } catch (Exception e) {
             logger.error("Exception from TimeManager: " + e);
@@ -96,8 +95,8 @@ public class ItemSalesFile extends TntReportFile {
         private String itemDescription;
         private int dailySales;
         private int totalSales;
-        private int dailySalesCounter;
-        private int totalSalesCounter;
+        private double dailySalesCounter;
+        private double totalSalesCounter;
 
         private ItemSalesFileEntry(String itemNumber, String itemDesc,
                 int initialAmount) {
@@ -109,13 +108,13 @@ public class ItemSalesFile extends TntReportFile {
             this.totalSalesCounter = 0;
         }
 
-        public void addDailySales(int amount) {
-            dailySalesCounter++;
+        public void addDailySales(int amount, double quantity) {
+            dailySalesCounter += quantity;
             dailySales += amount;
         }
 
-        public void addTotalSales(int amount) {
-            totalSalesCounter++;
+        public void addTotalSales(int amount, double quantity) {
+            totalSalesCounter += quantity;
             totalSales += amount;
         }
     }
