@@ -55,6 +55,7 @@ public class LocationSalesFile extends TntReportFile {
                     }
                 }
             }
+
             // loop through tenders and add entries
             for (Tender tender : transaction.getTenders()) {
                 if (tender.getType().equals("CASH")) {
@@ -66,7 +67,7 @@ public class LocationSalesFile extends TntReportFile {
                     }
                     cashTotalSales += tender.getAmountMoney().getAmount();
                     if (tenderToRefund.containsKey(tender.getId())) {
-                        cashDailySales -= tenderToRefund.get(tender.getId());
+                        cashTotalSales -= tenderToRefund.get(tender.getId());
                     }
                 }
                 if (tender.getType().equals("CARD")) {
@@ -78,7 +79,7 @@ public class LocationSalesFile extends TntReportFile {
                     }
                     creditTotalSales += tender.getAmountMoney().getAmount();
                     if (tenderToRefund.containsKey(tender.getId())) {
-                        creditDailySales -= tenderToRefund.get(tender.getId());
+                        creditTotalSales -= tenderToRefund.get(tender.getId());
                     }
                 }
             }

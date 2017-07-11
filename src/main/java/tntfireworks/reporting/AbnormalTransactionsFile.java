@@ -2,6 +2,7 @@ package tntfireworks.reporting;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,9 @@ public class AbnormalTransactionsFile {
     private static final int ALERT_THRESHOLD_1 = 100000;
     private static final int ALERT_THRESHOLD_2 = 50000;
     private static final int ALERT_THRESHOLD_6 = 15000;
+    private static final ArrayList<String> CP_ENTRY_METHODS = new ArrayList<String>(
+            Arrays.asList("SWIPED", "EMV", "CONTACTLESS"));
+    private static final ArrayList<String> CNP_ENTRY_METHODS = new ArrayList<String>(Arrays.asList("ON_FILE", "KEYED"));
 
     /* alert types
      * 
@@ -82,7 +86,6 @@ public class AbnormalTransactionsFile {
 
                 // used for alert type 5, initialize to 0 value for start
                 int prevAmt = 0;
-
                 for (Transaction transaction : locationDetails.getTransactions()) {
                     // used to filter which transactions to use for daily alerts
                     Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
@@ -106,66 +109,30 @@ public class AbnormalTransactionsFile {
                             alerts.add(new AlertEntry(locationDetails, transaction, alertLevel, dbLocationRows));
                         }
 
-                        for (Tender tender : transaction.getTenders()) {
-                            // for alert 3, keep running list of transactions with CNP entry methods
-                            String entryMethod = "";
-                            try {
-                                entryMethod = tender.getCardDetails().getEntryMethod();
-                            } catch (Exception e) {
-                                logger.warn("No entryMethod for this tender: " + tender.getId());
-                            }
+                        // note: using overloaded function name
+                        checkCnpAlert(alert3Transactions, transaction);
 
-                            if (entryMethod.equals("MANUAL") || entryMethod.equals("WEB_FORM")) {
-                                alert3Transactions.add(transaction);
-                                break;
-                            }
-
-                            // alert 5
-                            if (tender.getType().equals("CARD")) {
-                                // for alert 5, keep consecutive list of transactions with same dollar amounts
-                                int currentAmt = tender.getAmountMoney().getAmount();
-
-                                if (currentAmt == prevAmt) {
-                                    alert5Buffer.add(transaction);
-                                } else {
-                                    if (alert5Buffer.size() >= 3) {
-                                        // store buffer of consecutive transactions with same amount
-                                        // use transactionId as unique identifier
-                                        alert5Transactions.put(transaction.getId(), new ArrayList(alert5Buffer));
-                                    }
-                                    // clear buffer to start tracking new transaction amount
-                                    alert5Buffer.clear();
-                                    alert5Buffer.add(transaction);
-
-                                    // store new amount for tracking
-                                    prevAmt = currentAmt;
-                                }
-                            }
-                        }
-                    }
+                        prevAmt = checkAlert5(alert5Buffer, alert5Transactions, transaction, prevAmt);
+                    } // end daily alert checks
 
                     // for alert 4, keep running list of cards (using 4 digits + brand)
                     for (Tender tender : transaction.getTenders()) {
-                        if (tender.getType().equals("CARD")) {
-                            try {
-                                String last4 = tender.getCardDetails().getCard().getLast4();
-                                String cardBrand = tender.getCardDetails().getCard().getCardBrand();
+                        if (tender.getType().equals("CARD") && tender.getCardDetails() != null) {
+                            String last4 = tender.getCardDetails().getCard().getLast4();
+                            String cardBrand = tender.getCardDetails().getCard().getCardBrand();
 
-                                // use last 4 digits and card brand as key to each card
-                                String key = String.format("%s%s", last4, cardBrand);
-                                if (alert4Entries.containsKey(key)) {
-                                    List<AlertEntry> potentialAlerts = alert4Entries.get(key);
-                                    potentialAlerts
-                                            .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
-                                    alert4Entries.put(key, potentialAlerts);
-                                } else {
-                                    List<AlertEntry> potentialAlerts = new ArrayList<AlertEntry>();
-                                    potentialAlerts
-                                            .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
-                                    alert4Entries.put(key, potentialAlerts);
-                                }
-                            } catch (Exception e) {
-                                logger.warn("Card details missing to create unique key for alert 4 transactions.");
+                            // use last 4 digits and card brand as key to each card
+                            String key = String.format("%s%s", last4, cardBrand);
+                            if (alert4Entries.containsKey(key)) {
+                                List<AlertEntry> potentialAlerts = alert4Entries.get(key);
+                                potentialAlerts
+                                        .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
+                                alert4Entries.put(key, potentialAlerts);
+                            } else {
+                                List<AlertEntry> potentialAlerts = new ArrayList<AlertEntry>();
+                                potentialAlerts
+                                        .add(new AlertEntry(locationDetails, transaction, 4, dbLocationRows));
+                                alert4Entries.put(key, potentialAlerts);
                             }
                         }
                     }
@@ -197,30 +164,26 @@ public class AbnormalTransactionsFile {
                 }
             }
         }
-
     } // AbnormalTransactionsFile constructor
 
     private boolean checkCpAlert(Transaction transaction, int threshold) {
         /* 
          * alert level 1 criteria
          *      1. Card Present transaction
-         *      2. Entry Method: SWIPED
-         *      3. Product: REGISTER only
-         *      4. Tender Type: not CASH or NO_SALE (only valid tender types are passed to this function)
+         *      2. Entry Method: SWIPED, EMV, CONTACTLESS
+         *      3. Product: REGISTER 
+         *      4. Tender Type: not CASH or NO_SALE
          *      5. threshold > $1000.00
          *      
          */
-
         for (Tender tender : transaction.getTenders()) {
-            String entryMethod = "";
-            try {
-                entryMethod = tender.getCardDetails().getEntryMethod();
-            } catch (Exception e) {
-                logger.warn("No entryMethod for this tender: " + tender.getId());
-            }
-
-            if (transaction.getProduct().equals("REGISTER") && entryMethod.equals("SWIPED")) {
-                if (tender.getAmountMoney().getAmount() > threshold) {
+            if (tender.getType().equals("CARD") && transaction.getProduct().equals("REGISTER")) {
+                String entryMethod = "";
+                if (tender.getCardDetails() != null) {
+                    entryMethod = tender.getCardDetails().getEntryMethod();
+                }
+                if (CP_ENTRY_METHODS.contains(entryMethod)
+                        && tender.getAmountMoney().getAmount() > threshold) {
                     return true;
                 }
             }
@@ -232,9 +195,9 @@ public class AbnormalTransactionsFile {
         /* 
          * alert level 2 criteria
          *      1. Card NOT Present transaction
-         *      2. Entry Method: MANUAL, WEB_FORM
-         *      3. Product: EXTERNAL_API or REGISTER (does not matter)
-         *      4. Tender Type: not CASH or NO_SALE (only valid tender types are passed to this function)
+         *      2. Entry Method: KEYED, ON_FILE
+         *      3. Product: REGISTER 
+         *      4. Tender Type: not CASH or NO_SALE
          *      5. threshold > $500.00
          *  
          *  alert level 6 criteria
@@ -242,20 +205,60 @@ public class AbnormalTransactionsFile {
          */
 
         for (Tender tender : transaction.getTenders()) {
-            String entryMethod = "";
-
-            try {
-                entryMethod = tender.getCardDetails().getEntryMethod();
-            } catch (Exception e) {
-                logger.warn("No entryMethod for this tender: " + tender.getId());
-            }
-
-            if ((entryMethod.equals("MANUAL") || entryMethod.equals("WEB_FORM"))
-                    && tender.getAmountMoney().getAmount() > threshold) {
-                return true;
+            if (tender.getType().equals("CARD") && transaction.getProduct().equals("REGISTER")) {
+                String entryMethod = "";
+                if (tender.getCardDetails() != null) {
+                    entryMethod = tender.getCardDetails().getEntryMethod();
+                }
+                if (CNP_ENTRY_METHODS.contains(entryMethod)
+                        && tender.getAmountMoney().getAmount() > threshold) {
+                    return true;
+                }
             }
         }
         return false;
+    }
+
+    private void checkCnpAlert(List<Transaction> alert3Transactions, Transaction transaction) {
+        for (Tender tender : transaction.getTenders()) {
+            if (tender.getType().equals("CARD") && transaction.getProduct().equals("REGISTER")) {
+                // for alert 3, keep running list of transactions with CNP entry methods
+                String entryMethod = "";
+                if (tender.getCardDetails() != null) {
+                    entryMethod = tender.getCardDetails().getEntryMethod();
+                }
+                if (CNP_ENTRY_METHODS.contains(entryMethod)) {
+                    alert3Transactions.add(transaction);
+                    return;
+                }
+            }
+        }
+    }
+
+    private int checkAlert5(List<Transaction> alert5Buffer, Map<String, List<Transaction>> alert5Transactions,
+            Transaction transaction, int prevAmt) {
+        // for alert 5, keep consecutive list of transactions with same dollar amounts
+        for (Tender tender : transaction.getTenders()) {
+            if (tender.getType().equals("CARD")) {
+                int currentAmt = tender.getAmountMoney().getAmount();
+                if (currentAmt == prevAmt) {
+                    alert5Buffer.add(transaction);
+                } else {
+                    if (alert5Buffer.size() >= 3) {
+                        // store buffer of consecutive transactions with same amount
+                        // use transactionId as unique identifier
+                        alert5Transactions.put(transaction.getId(), new ArrayList(alert5Buffer));
+                    }
+                    // clear buffer to start tracking new transaction amount
+                    alert5Buffer.clear();
+                    alert5Buffer.add(transaction);
+
+                    // store new amount for tracking
+                    prevAmt = currentAmt;
+                }
+            }
+        }
+        return prevAmt;
     }
 
     private String getDate(String timezone, String dateFormat, int offset) throws Exception {

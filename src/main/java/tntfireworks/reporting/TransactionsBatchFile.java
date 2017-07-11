@@ -118,10 +118,12 @@ public class TransactionsBatchFile {
                 // write file row
                 String fileRow = String.format(
                         "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                        entry.paymentId, entry.createdAt, formatTotal(entry.grossSales), formatTotal(entry.discounts),
+                        entry.paymentId, entry.createdAt, formatTotal(entry.grossSales),
+                        formatTotal(entry.discounts),
                         formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), tender.getId(),
                         refundAmt, formatTotal(entry.totalCollected), source, cardAmt, entryMethod, cashAmt,
-                        otherTenderAmt, otherTenderType, tenderFee, formatTotal(entry.netTotal), entry.locationNumber,
+                        otherTenderAmt, otherTenderType, tenderFee, formatTotal(entry.netTotal),
+                        entry.locationNumber,
                         entry.city, entry.state, entry.rbu, entry.saName);
                 reportBuilder.append(fileRow);
             }
