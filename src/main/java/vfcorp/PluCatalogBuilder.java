@@ -334,10 +334,12 @@ public class PluCatalogBuilder {
         updatedVariation.setSku(sku);
 
         // Variation Price
-        int price = Integer.parseInt(record.get("retailPrice"));
+        String rawPrice = (record.get("retailPrice") != null && !record.get("retailPrice").isEmpty())
+                ? record.get("retailPrice") : "0";
+        int price = Integer.parseInt(rawPrice);
         Money locationPriceMoney = new Money(price);
         if (price > 0 || updatedVariation.getPriceMoney() == null) {
-            // We can't discern which location's price is the master price, just override
+            // We can't discern which location's price is the master price, so just override
             updatedVariation.setPriceMoney(locationPriceMoney);
         }
 
