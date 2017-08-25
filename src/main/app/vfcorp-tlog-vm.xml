@@ -19,6 +19,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </quartz:connector>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.tnf.archive.enabled}" doc:name="enableTlogArchive"/>
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.tnf.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.tnf.loyalty.group.existing}" doc:name="customerGroupExisting"/>
@@ -27,6 +28,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </sub-flow>
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
         <set-variable variableName="awsFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.kipling.archive.enabled}" doc:name="enableTlogArchive"/>
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.kipling.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
         <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.kipling.loyalty.group.existing}" doc:name="customerGroupExisting"/>
