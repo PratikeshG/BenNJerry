@@ -27,6 +27,71 @@ public class TaxRules {
     public final static String BAG_3039 = "040008783039";
     public final static String BAG_4632 = "040007174632";
 
+    // TAX HOLIDAY STORES
+    // AL
+    private static boolean ENABLE_TNF_AL_TAX_HOLIDAY = false;
+    private static final String TNF_AL_BIRMINGHAM = "vfcorp-tnf-00056";
+    private static final int AL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int AL_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 5000;
+
+    // TN
+    private static boolean ENABLE_TNF_TN_TAX_HOLIDAY = false;
+    private static final String TNF_TN_306 = "vfcorp-tnf-00306";
+    private static final String TNF_TN_505 = "vfcorp-tnf-00505";
+    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 10000;
+
+    // FL
+    private static boolean ENABLE_TNF_FL_TAX_HOLIDAY = false;
+    private static final String TNF_FL_69 = "vfcorp-tnf-00069";
+    private static final String TNF_FL_85 = "vfcorp-tnf-00085";
+    private static final String TNF_FL_87 = "vfcorp-tnf-00087";
+    private static final String TNF_FL_301 = "vfcorp-tnf-00301";
+    private static final int FL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 6000;
+    private static final int FL_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 1500;
+
+    // OH
+    private static boolean ENABLE_TNF_OH_TAX_HOLIDAY = false;
+    // private static final String TNF_OH_43 = "vfcorp-tnf-00043";
+    private static final String TNF_OH_75 = "vfcorp-tnf-00075";
+    private static final String TNF_OH_305 = "vfcorp-tnf-00305";
+    private static final String TNF_OH_320 = "vfcorp-tnf-00320";
+    private static final int OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 7500;
+    private static final int OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 2000;
+
+    // OK
+    private static boolean ENABLE_TNF_OK_TAX_HOLIDAY = false;
+    private static final String TNF_OK_312 = "vfcorp-tnf-00312";
+    private static final int OK_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+
+    // SC
+    private static boolean ENABLE_TNF_SC_TAX_HOLIDAY = false;
+    private static final String TNF_SC_82 = "vfcorp-tnf-00082";
+
+    // VA
+    private static boolean ENABLE_TNF_VA_TAX_HOLIDAY = false;
+    private static final String TNF_VA_17 = "vfcorp-tnf-00017";
+    private static final String TNF_VA_77 = "vfcorp-tnf-00077";
+    private static final String TNF_VA_310 = "vfcorp-tnf-00310";
+    private static final String TNF_VA_328 = "vfcorp-tnf-00328";
+    private static final int VA_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int VA_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 2000;
+
+    // TX
+    private static boolean ENABLE_TNF_TX_TAX_HOLIDAY = false;
+    private static final String TNF_TX_59 = "vfcorp-tnf-00059";
+    private static final String TNF_TX_83 = "vfcorp-tnf-00083";
+    private static final String TNF_TX_323 = "vfcorp-tnf-00323";
+    private static final String TNF_TX_327 = "vfcorp-tnf-00327";
+    private static final int TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 10000;
+
+    // MD
+    private static boolean ENABLE_TNF_MD_TAX_HOLIDAY = false;
+    private static final String TNF_MD_84 = "vfcorp-tnf-00084";
+    private static final int MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 4000;
+
     // New York, NY - TNF Stores #12, 18, 516
     // 0% on clothing & footwear below $110 per item
     // 8.875% on clothing & footwear $110 and above per item
@@ -78,6 +143,7 @@ public class TaxRules {
     public final static String TNF_PA_GROVE_CITY = "vfcorp-tnf-00079";
     public final static String TNF_PA_TANNERSVILLE = "vfcorp-tnf-00308";
     public final static String TNF_PA_PHILADELPHIA_OUTLET = "vfcorp-tnf-00316";
+    public final static String TNF_PA_LANCASTER = "vfcorp-tnf-00329";
 
     // NJ
     // 0% on clothing
@@ -181,6 +247,11 @@ public class TaxRules {
             "29  2931", "29  2932", "29  2933", "29  2934", "29  2935", "29  2936", "97  9700", "97  9701", "97  9702",
             "97  9710", "97  9711", "97  9712", "97  9720", "97  9721", "97  9722", "97  9730", "97  9732" }));
 
+    // Includes book bags -- day packs
+    private static final Set<String> TNF_SCHOOL_SUPPLIES_DEPT_CLASS = new HashSet<String>(
+            Arrays.asList(new String[] { "22  7010", "22  7011", "22  7012", "22  7013", "22  7014", "22  7015",
+                    "27  2821", "31  9146", "31  9147" }));
+
     private static int getLocationPrice(CatalogItemVariation itemVariation, String locationId) {
         if (itemVariation.getLocationOverrides() != null) {
             for (ItemVariationLocationOverride locationPrice : itemVariation.getLocationOverrides()) {
@@ -257,7 +328,8 @@ public class TaxRules {
                 return new String[] { highTax.getId() };
             }
         } else if (deployment.equals(TNF_PA_KING_OF_PRUSSIA) || deployment.equals(TNF_PA_GROVE_CITY)
-                || deployment.equals(TNF_PA_TANNERSVILLE) || deployment.equals(TNF_PA_PHILADELPHIA_OUTLET)) {
+                || deployment.equals(TNF_PA_TANNERSVILLE) || deployment.equals(TNF_PA_PHILADELPHIA_OUTLET)
+                || deployment.equals(TNF_PA_LANCASTER)) {
             if (taxes.length != 1) {
                 throw new Exception("Pennsylvania deployment with incorrect number of taxes: " + deployment);
             }
@@ -296,7 +368,105 @@ public class TaxRules {
             if (taxes.length != 2) {
                 throw new Exception("Columbus deployment with incorrect number of taxes: " + deployment);
             }
-            return new String[] { taxes[0].getId(), taxes[1].getId() };
+
+            if (isTaxHolidayItemOH(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId(), taxes[1].getId() };
+            }
+        } else if (deployment.equals(TNF_AL_BIRMINGHAM)) {
+            if (taxes.length != 1) {
+                throw new Exception("Alabama with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemAL(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_TN_306) || deployment.equals(TNF_TN_505)) {
+            if (taxes.length != 1) {
+                throw new Exception("TN with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemTN(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_FL_69) || deployment.equals(TNF_FL_85) || deployment.equals(TNF_FL_87)
+                || deployment.equals(TNF_FL_301)) {
+            if (taxes.length != 1) {
+                throw new Exception("FL with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemFL(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_OH_75) || deployment.equals(TNF_OH_305) || deployment.equals(TNF_OH_320)) {
+            if (taxes.length != 1) {
+                throw new Exception("OH with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemOH(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_OK_312)) {
+            if (taxes.length != 1) {
+                throw new Exception("OK with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemOK(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_SC_82)) {
+            if (taxes.length != 1) {
+                throw new Exception("SC with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemSC(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_VA_17) || deployment.equals(TNF_VA_77) || deployment.equals(TNF_VA_310)
+                || deployment.equals(TNF_VA_328)) {
+            if (taxes.length != 1) {
+                throw new Exception("VA with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemVA(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_TX_59) || deployment.equals(TNF_TX_83) || deployment.equals(TNF_TX_323)
+                || deployment.equals(TNF_TX_327)) {
+            if (taxes.length != 1) {
+                throw new Exception("TX with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemTX(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (deployment.equals(TNF_MD_84)) {
+            if (taxes.length != 1) {
+                throw new Exception("MD with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemMD(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
         } else if (taxes.length != 1) {
             throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
         }
@@ -306,6 +476,167 @@ public class TaxRules {
 
     public static boolean deptClassIsClothingTaxCategory(String deptClass) {
         return TNF_CLOTHING_DEPT_CLASS.contains(deptClass);
+    }
+
+    public static boolean deptClassIsSchoolSuppliesTaxCategory(String deptClass) {
+        return TNF_SCHOOL_SUPPLIES_DEPT_CLASS.contains(deptClass);
+    }
+
+    private static boolean isTaxHolidayItemAL(int price, String deptClass) {
+        if (!ENABLE_TNF_AL_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing $100 and less
+        if (price <= AL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies $50 and less
+        if (price <= AL_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemTN(int price, String deptClass) {
+        if (!ENABLE_TNF_TN_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing $100 and less
+        if (price <= TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies $100 and less
+        if (price <= TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemFL(int price, String deptClass) {
+        if (!ENABLE_TNF_FL_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing less than $60
+        if (price < FL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies $15 or less
+        if (price <= FL_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemOH(int price, String deptClass) {
+        if (!ENABLE_TNF_OH_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing less than or equal to $75
+        if (price <= OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies $20 or less
+        if (price <= OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemOK(int price, String deptClass) {
+        if (!ENABLE_TNF_OK_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing less than $100
+        if (price < OK_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemSC(int price, String deptClass) {
+        if (!ENABLE_TNF_SC_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing all
+        if (deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies all
+        if (deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemVA(int price, String deptClass) {
+        if (!ENABLE_TNF_VA_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing <= $100
+        if (price <= VA_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies <= $20
+        if (price <= VA_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemTX(int price, String deptClass) {
+        if (!ENABLE_TNF_TX_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing < $100
+        if (price < TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // School supplies < $100
+        if (price < TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemMD(int price, String deptClass) {
+        if (!ENABLE_TNF_MD_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing <= $100
+        if (price < MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // First $40 of backpack/bookbag -- not valid with Square
+        if (price <= MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static boolean isSpecialTaxCategoryNYS(int price, String deptClass) {
