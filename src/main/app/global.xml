@@ -38,7 +38,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
                 <logger message="DEVELOPMENT - #[flowVars.exceptionPayload]" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <set-payload value="exceptionPayload" doc:name="Set Payload"/>
+                <set-payload value="#[flowVars.exceptionPayload]" doc:name="Set Payload"/>
                 <http:request config-ref="Pagerduty_HTTPS_Config" path="v2/enqueue" method="POST" doc:name="Pagerduty">
                     <http:request-builder>
                         <http:header headerName="Content-Type" value="application/json"/>
