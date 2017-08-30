@@ -55,7 +55,7 @@ public class TlogUploadToSftpCallable implements Callable {
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
-        String uploadPattern = TLOG_PREFIX + vfcorpStoreNumber + TLOG_SUFFIX;
+        String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
         InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
         sftpChannel.cd(deployment.getTlogPath());
         sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
@@ -69,17 +69,11 @@ public class TlogUploadToSftpCallable implements Callable {
             String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
                     "yyyy-MM-dd-HH-mm-ss");
 
-            String archiveUploadPattern = currentDate + "_" + TLOG_PREFIX + vfcorpStoreNumber + TLOG_SUFFIX;
+            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX, vfcorpStoreNumber,
+                    TLOG_SUFFIX);
 
             String archiveDirectory = deployment.getTlogPath() + "/Archive";
             sftpChannel.cd(archiveDirectory);
-
-            try {
-                sftpChannel.put(archiveUploadStream, archiveUploadPattern, ChannelSftp.OVERWRITE);
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException(e.getMessage() + " " + archiveDirectory + " " + archiveUploadPattern);
-            }
             sftpChannel.put(archiveUploadStream, archiveUploadPattern, ChannelSftp.OVERWRITE);
         }
 

@@ -369,7 +369,7 @@ public class TaxRules {
                 throw new Exception("Columbus deployment with incorrect number of taxes: " + deployment);
             }
 
-            if (ENABLE_TNF_OH_TAX_HOLIDAY && isTaxHolidayItemOH(itemPrice, itemDeptClass)) {
+            if (isTaxHolidayItemOH(itemPrice, itemDeptClass)) {
                 return new String[0];
             } else {
                 return new String[] { taxes[0].getId(), taxes[1].getId() };
