@@ -150,9 +150,10 @@ public class TaxRules {
     // Standard rate on all other items (non- clothing)
     public final static String TNF_NJ_CHERRY_HILL = "vfcorp-tnf-00055";
 
-    // MN - TNF Stores #315, 513
+    // MN - TNF Stores #22, 315, 513
     // 0% on clothing/apparel
     // Standard rate on all other items (non- clothing)
+    public final static String TNF_MN_MINNEAPOLIS = "vfcorp-tnf-00022";
     public final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
     public final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
 
@@ -349,7 +350,8 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
-        } else if (deployment.equals(TNF_MN_ALBERTVILLE) || deployment.equals(TNF_MN_MALL_OF_AMERICA)) {
+        } else if (deployment.equals(TNF_MN_MINNEAPOLIS) || deployment.equals(TNF_MN_ALBERTVILLE)
+                || deployment.equals(TNF_MN_MALL_OF_AMERICA)) {
             if (taxes.length != 1) {
                 throw new Exception("Minnesota deployment with incorrect number of taxes: " + deployment);
             }
