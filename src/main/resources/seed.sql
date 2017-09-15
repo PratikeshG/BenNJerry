@@ -1,60 +1,157 @@
 -- Seed the MySQL databases used by the managed integrations platform.
 
-DROP DATABASE IF EXISTS `development`;
-CREATE DATABASE `development`;
-DROP DATABASE IF EXISTS `staging`;
-CREATE DATABASE `staging`;
+-- Create syntax for TABLE 'tntfireworks_locations'
+CREATE TABLE `tntfireworks_locations` (
+  `locationNumber` varchar(20) NOT NULL,
+  `addressNumber` varchar(20) DEFAULT NULL,
+  `name` varchar(40) DEFAULT NULL,
+  `address` varchar(50) DEFAULT NULL,
+  `city` varchar(40) DEFAULT NULL,
+  `state` varchar(30) DEFAULT NULL,
+  `zip` varchar(20) DEFAULT NULL,
+  `county` varchar(40) DEFAULT NULL,
+  `mktPlan` varchar(20) DEFAULT '',
+  `legal` varchar(11) DEFAULT NULL,
+  `disc` varchar(11) DEFAULT NULL,
+  `rbu` varchar(11) DEFAULT NULL,
+  `bp` varchar(11) DEFAULT NULL,
+  `co` varchar(20) DEFAULT NULL,
+  `saNum` varchar(20) DEFAULT NULL,
+  `saName` varchar(30) DEFAULT NULL,
+  `custNum` varchar(20) DEFAULT NULL,
+  `custName` varchar(50) DEFAULT NULL,
+  `season` varchar(20) DEFAULT NULL,
+  `year` varchar(11) DEFAULT NULL,
+  `machineType` varchar(11) DEFAULT NULL,
+  `deployment` varchar(20) DEFAULT '',
+  `sqDashboardEmail` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`locationNumber`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-USE `staging`;
+-- Create syntax for TABLE 'tntfireworks_marketing_plans'
+CREATE TABLE `tntfireworks_marketing_plans` (
+  `mktPlan` varchar(20) NOT NULL DEFAULT '',
+  `itemNumber` varchar(20) NOT NULL DEFAULT '',
+  `cat` varchar(20) DEFAULT NULL,
+  `category` varchar(40) DEFAULT '',
+  `itemDescription` varchar(50) DEFAULT NULL,
+  `casePacking` varchar(20) DEFAULT NULL,
+  `unitPrice` varchar(20) DEFAULT NULL,
+  `pricingUOM` varchar(20) DEFAULT NULL,
+  `suggestedPrice` varchar(20) NOT NULL DEFAULT '',
+  `sellingUOM` varchar(20) DEFAULT NULL,
+  `upc` varchar(20) DEFAULT NULL,
+  `netItem` varchar(20) DEFAULT NULL,
+  `expiredDate` varchar(20) DEFAULT NULL,
+  `effectiveDate` varchar(20) DEFAULT NULL,
+  `bogo` varchar(20) DEFAULT NULL,
+  `itemNum3` varchar(20) DEFAULT NULL,
+  `currency` varchar(20) DEFAULT NULL,
+  `halfOff` varchar(20) DEFAULT NULL,
+  `sellingPrice` varchar(20) NOT NULL DEFAULT '',
+  PRIMARY KEY (`mktPlan`,`itemNumber`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `token`;
+-- Create syntax for TABLE 'tntfireworks_reports_load_number'
+CREATE TABLE `tntfireworks_reports_load_number` (
+  `reportName` varchar(40) NOT NULL DEFAULT '',
+  `count` varchar(11) DEFAULT NULL,
+  PRIMARY KEY (`reportName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- Create syntax for TABLE 'token'
 CREATE TABLE `token` (
-  `id` INTEGER NULL AUTO_INCREMENT DEFAULT NULL,
-  `deployment` VARCHAR(45) NULL DEFAULT NULL,
-  `connectApp` VARCHAR(45) NULL DEFAULT NULL,
-  `token` VARCHAR(45) NULL DEFAULT NULL,
-  `merchantId` VARCHAR(45) NULL DEFAULT NULL,
-  `locationId` VARCHAR(45) NULL DEFAULT NULL,
-  `legacy` BOOLEAN NOT NULL DEFAULT FALSE,
-  `expiryDate` VARCHAR(45) NULL DEFAULT NULL,
-  `merchantName` VARCHAR(45) NULL DEFAULT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `deployment` varchar(45) DEFAULT NULL,
+  `connectApp` varchar(45) DEFAULT NULL,
+  `token` varchar(45) DEFAULT NULL,
+  `merchantId` varchar(45) DEFAULT NULL,
+  `locationId` varchar(45) DEFAULT NULL,
+  `legacy` tinyint(1) NOT NULL DEFAULT '0',
+  `expiryDate` varchar(45) DEFAULT NULL,
+  `merchantAlias` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
-);
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `vfcorp-transaction-number` (
-  `lastTransactionNumber` INTEGER,
-  PRIMARY KEY (`lastTransactionNumber`)
-);
+-- Create syntax for TABLE 'vfcorp_deployments'
+CREATE TABLE `vfcorp_deployments` (
+  `deployment` varchar(20) NOT NULL,
+  `deploymentGroup` varchar(20) DEFAULT NULL,
+  `storeId` varchar(5) DEFAULT NULL,
+  `name` varchar(40) DEFAULT NULL,
+  `timeZone` varchar(20) DEFAULT NULL,
+  `enablePLU` tinyint(1) DEFAULT NULL,
+  `enableTLOG` tinyint(1) DEFAULT NULL,
+  `pluPath` varchar(100) DEFAULT NULL,
+  `pluFiltered` tinyint(1) DEFAULT NULL,
+  `tlogPath` varchar(100) DEFAULT NULL,
+  `tlogRange` int(11) DEFAULT NULL,
+  `tlogOffset` int(11) DEFAULT NULL,
+  PRIMARY KEY (`deployment`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-USE `development`;
+-- Create syntax for TABLE 'vfcorp_plu_dept_class'
+CREATE TABLE `vfcorp_plu_dept_class` (
+  `deployment` varchar(20) DEFAULT NULL,
+  `merchantId` varchar(20) DEFAULT NULL,
+  `locationId` varchar(20) NOT NULL,
+  `deptNumber` varchar(4) NOT NULL,
+  `classNumber` varchar(4) NOT NULL,
+  `description` varchar(24) DEFAULT NULL,
+  `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`locationId`,`deptNumber`,`classNumber`),
+  KEY `locationId` (`locationId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `token`;
+-- Create syntax for TABLE 'vfcorp_plu_items'
+CREATE TABLE `vfcorp_plu_items` (
+  `deployment` varchar(20) DEFAULT NULL,
+  `merchantId` varchar(20) DEFAULT '',
+  `locationId` varchar(20) NOT NULL,
+  `itemNumber` varchar(24) NOT NULL DEFAULT '',
+  `deptNumber` varchar(4) DEFAULT NULL,
+  `classNumber` varchar(4) DEFAULT NULL,
+  `styleNumber` varchar(24) DEFAULT NULL,
+  `activateDate` varchar(8) DEFAULT NULL,
+  `deactivateDate` varchar(8) DEFAULT NULL,
+  `description` varchar(24) DEFAULT NULL,
+  `alternateDescription` varchar(40) DEFAULT NULL,
+  `retailPrice` varchar(10) DEFAULT NULL,
+  `originalPrice` varchar(10) DEFAULT NULL,
+  `salePrice` varchar(10) DEFAULT NULL,
+  `dateSaleBegins` varchar(8) DEFAULT NULL,
+  `dateSaleEnds` varchar(8) DEFAULT NULL,
+  `timeSaleBegins` varchar(8) DEFAULT NULL,
+  `timeSaleEnds` varchar(8) DEFAULT NULL,
+  `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`locationId`,`itemNumber`),
+  KEY `locationId` (`locationId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE `token` (
-  `id` INTEGER NULL AUTO_INCREMENT DEFAULT NULL,
-  `deployment` VARCHAR(45) NULL DEFAULT NULL,
-  `connectApp` VARCHAR(45) NULL DEFAULT NULL,
-  `token` VARCHAR(45) NULL DEFAULT NULL,
-  `merchantId` VARCHAR(45) NULL DEFAULT NULL,
-  `locationId` VARCHAR(45) NULL DEFAULT NULL,
-  `legacy` BOOLEAN NOT NULL DEFAULT FALSE,
-  `expiryDate` VARCHAR(45) NULL DEFAULT NULL,
-  `merchantName` VARCHAR(45) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-);
+-- Create syntax for TABLE 'vfcorp_plu_sale_events'
+CREATE TABLE `vfcorp_plu_sale_events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `deployment` varchar(20) DEFAULT NULL,
+  `merchantId` varchar(20) DEFAULT NULL,
+  `locationId` varchar(20) NOT NULL,
+  `itemNumber` varchar(24) NOT NULL,
+  `salePrice` varchar(10) DEFAULT NULL,
+  `dateSaleBegins` varchar(8) NOT NULL,
+  `dateSaleEnds` varchar(8) NOT NULL,
+  `timeSaleBegins` varchar(8) DEFAULT NULL,
+  `timeSaleEnds` varchar(8) DEFAULT NULL,
+  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_sales` (`locationId`,`itemNumber`,`salePrice`,`dateSaleBegins`,`dateSaleEnds`),
+  KEY `locationId` (`locationId`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `vfcorp-transaction-number` (
-  `lastTransactionNumber` INTEGER,
-  PRIMARY KEY (`lastTransactionNumber`)
-);
-
--- Staging data
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`) VALUES ("urbanspace","vYMYVXtyvWU0JkTDD_EYLw","daT6X7kSZj38L70iMELIsw","7PZ8TKDZB8B54");
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`) VALUES ("urbanspace","vYMYVXtyvWU0JkTDD_EYLw","lXZLAyxqKCNXy3UoYTVQ2w","3ABWWE16MAK89");
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`) VALUES ("urbanspace","vYMYVXtyvWU0JkTDD_EYLw","z4l1RRiOMCRoICv01pFuNg","BTMHQ5RW1A6EA");
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`,`locationId`) VALUES ("vfcorp","vYMYVXtyvWU0JkTDD_EYLw","s_CHLS8yYTsu3Ts9Rngd2Q","5PEBESGVQ95BC","D67SWP5DZ9AWG");
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`,`locationId`) VALUES ("vfcorp","sq0idp-xD8FBJLi38w3CdUBsu2hlQ","sq0atp-eWyKq9VkPuj-ZKuwi6XYew","DS7QMM3ETABZM","E8V3AF2CWMNWV"); -- VFCorp test location
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`,`locationId`) VALUES ("vfcorp","vYMYVXtyvWU0JkTDD_EYLw","sq0ats-hqRgaU2PkvwxBOqIcdfGYg","me","D67SWP5DZ9AWG"); -- colinlam+eldmmaster
--- INSERT INTO `token` (`deployment`,`connectApp`,`token`,`merchantId`,`locationId`) VALUES ("urbanspace","vYMYVXtyvWU0JkTDD_EYLw","sq0ats-hqRgaU2PkvwxBOqIcdfGYg","me","D67SWP5DZ9AWG"); -- colinlam+eldmmaster
--- INSERT INTO `vfcorp-transaction-number` (`lastTransactionNumber`) VALUES (4);
+-- Create syntax for TABLE 'vfcorp_preferred_customer_counter'
+CREATE TABLE `vfcorp_preferred_customer_counter` (
+  `deployment` varchar(30) NOT NULL DEFAULT '',
+  `storeId` varchar(5) NOT NULL DEFAULT '',
+  `registerId` varchar(3) NOT NULL DEFAULT '',
+  `nextPreferredCustomerNumber` int(11) NOT NULL,
+  `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `deployment` (`deployment`,`storeId`,`registerId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
