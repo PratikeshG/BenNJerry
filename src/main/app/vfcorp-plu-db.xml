@@ -55,9 +55,12 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <flow name="VFC:plu-sync-to-database" processingStrategy="VFC_PLU_SyncToDatabase_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
-        <choice doc:name="Kipling or TNF">
+        <choice doc:name="Kipling, Nautica, TNF">
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
                 <set-variable variableName="brand" value="Kipling" doc:name="brand: Kipling"/>
+            </when>
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-nautica-&quot;)]">
+                <set-variable variableName="brand" value="Nautica" doc:name="brand: Nautica"/>
             </when>
             <otherwise>
                 <set-variable variableName="brand" value="TNF" doc:name="brand: TNF"/>
@@ -130,6 +133,14 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for Kipling" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="kipling" doc:name="Set brand: kipling"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+    </flow>
+        <flow name="VFC:Nautica:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-nautica-PLU-daily-1490636326" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: PLU Database to Square for Nautica" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="nautica" doc:name="Set brand: nautica"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
     <flow name="VFC:clean-plu-sale-db" processingStrategy="synchronous">

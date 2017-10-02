@@ -22,9 +22,9 @@ import com.squareup.connect.v2.Customer;
 
 import vfcorp.tlog.Address;
 import vfcorp.tlog.Associate;
-import vfcorp.tlog.CrmLoyaltyIndicator;
 import vfcorp.tlog.CashierRegisterIdentification;
 import vfcorp.tlog.CreditCardTender;
+import vfcorp.tlog.CrmLoyaltyIndicator;
 import vfcorp.tlog.DiscountTypeIndicator;
 import vfcorp.tlog.EmployeeDiscount;
 import vfcorp.tlog.EventGiveback;
@@ -316,8 +316,8 @@ public class Tlog {
             newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerPayments));
             newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD, registerPayments));
 
-            // Catch all for "other" - only used by Kipling?
-            if (deployment.contains("kipling")) {
+            // Catch all for "other" - not used by TNF
+            if (!deployment.contains("tnf")) {
                 newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments));
             }
 
