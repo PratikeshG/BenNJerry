@@ -35,6 +35,15 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
         <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.kipling.storeforce}" doc:name="storeforceArchiveDirectory"/>
     </sub-flow>
+    <sub-flow name="VFC:Nautica:generate-tlog-for-location-settings">
+        <set-variable variableName="awsFolder" value="#['Nautica/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.nautica.archive.enabled}" doc:name="enableTlogArchive"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.nautica.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.nautica.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.nautica.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.nautica.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.nautica.storeforce}" doc:name="storeforceArchiveDirectory"/>
+    </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
@@ -62,6 +71,9 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <choice doc:name="Choice">
             <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
                 <flow-ref name="VFC:Kipling:generate-tlog-for-location-settings" doc:name="VFC:Kipling:generate-tlog-for-location-settings"/>
+            </when>
+            <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-nautica-&quot;)]">
+                <flow-ref name="VFC:Nautica:generate-tlog-for-location-settings" doc:name="VFC:Nautica:generate-tlog-for-location-settings"/>
             </when>
             <otherwise>
                 <flow-ref name="VFC:TNF:generate-tlog-for-location-settings" doc:name="VFC:TNF:generate-tlog-for-location-settings"/>
@@ -147,6 +159,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="kipling-east" doc:name="Set deploymentGroup: kipling-east"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Nautica:tlog-trigger-EAST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-nautica-east-1490636325" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 3:30am UTC / 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="nautica-east" doc:name="Set deploymentGroup: nautica-east"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-deploymentGroup">
