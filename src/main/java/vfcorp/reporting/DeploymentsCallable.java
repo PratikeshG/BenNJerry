@@ -23,7 +23,7 @@ public class DeploymentsCallable implements Callable {
         for (Map<String, Object> merchantDatabaseEntry : merchantDatabaseEntries) {
             SquarePayload deploymentPayload = new SquarePayload();
 
-            deploymentPayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
+            deploymentPayload.setEncryptedAccessToken((String) merchantDatabaseEntry.get("encryptedAccessToken"));
             deploymentPayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
             deploymentPayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
             deploymentPayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));

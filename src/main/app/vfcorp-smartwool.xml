@@ -31,7 +31,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <component doc:name="Generate and Send Links">
-            <singleton-object class="vfcorp.SmartWoolReportLinks"/>
+            <prototype-object class="vfcorp.SmartWoolReportLinksCallable"/>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Reports" subject="#['Square Daily SmartWool Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.smartwool.recipients}" responseTimeout="10000" doc:name="Email SmartWool Cohort"/>
     </sub-flow>

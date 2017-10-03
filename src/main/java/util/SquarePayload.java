@@ -1,10 +1,11 @@
 package util;
 
-public class SquarePayload {
+import org.jasypt.util.text.BasicTextEncryptor;
 
+public class SquarePayload {
     private String merchantId;
     private String locationId;
-    private String accessToken;
+    private String encryptedAccessToken;
     private String merchantAlias;
     private boolean legacySingleLocationSquareAccount;
 
@@ -24,12 +25,12 @@ public class SquarePayload {
         this.locationId = locationId;
     }
 
-    public String getAccessToken() {
-        return accessToken;
+    public String getEncryptedAccessToken() {
+        return encryptedAccessToken;
     }
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
+    public void setEncryptedAccessToken(String encryptedAccessToken) {
+        this.encryptedAccessToken = encryptedAccessToken;
     }
 
     public String getMerchantAlias() {
@@ -46,5 +47,17 @@ public class SquarePayload {
 
     public void setLegacySingleLocationSquareAccount(boolean legacy) {
         this.legacySingleLocationSquareAccount = legacy;
+    }
+
+    public void encryptAccessToken(String accessToken, String encryptionKey) {
+        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+        textEncryptor.setPassword(encryptionKey);
+        this.encryptedAccessToken = textEncryptor.encrypt(accessToken);
+    }
+
+    public String getAccessToken(String encryptionKey) {
+        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+        textEncryptor.setPassword(encryptionKey);
+        return textEncryptor.decrypt(this.encryptedAccessToken);
     }
 }

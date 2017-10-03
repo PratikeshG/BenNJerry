@@ -7,22 +7,16 @@ import java.util.Map;
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.OAuthURIParams;
 import com.squareup.connect.SquareClient;
 
 public class StateVariableGenerator implements Callable {
-
+    @Value("${api.url}")
     private String apiUrl;
+    @Value("${connect.legacy.id}")
     private String legacyAppId;
-
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
-    }
-
-    public void setLegacyAppId(String legacyAppId) {
-        this.legacyAppId = legacyAppId;
-    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {

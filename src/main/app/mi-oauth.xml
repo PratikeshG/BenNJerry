@@ -27,10 +27,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
             </when>
             <otherwise>
                 <component doc:name="Generate state variable">
-                    <singleton-object class="util.oauth.StateVariableGenerator">
-                        <property key="apiUrl" value="${api.url}"/>
-                        <property key="legacyAppId" value="${connect.legacy.id}"/>
-                    </singleton-object>
+                    <prototype-object class="util.oauth.StateVariableGenerator"/>
                 </component>
                 <parse-template location="static/bridge-oauth-redirect-state.html" doc:name="Parse Template"/>
             </otherwise>
@@ -42,17 +39,11 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         <choice doc:name="Route based on valid state variable">
             <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">
                 <component doc:name="Convert OAuth code to token">
-                    <singleton-object class="util.oauth.CodeToTokenConverter">
-                        <property key="apiUrl" value="${api.url}"/>
-                        <property key="multiUnitAppId" value="${connect.multiunit.id}"/>
-                        <property key="multiUnitAppSecret" value="${connect.multiunit.secret}"/>
-                        <property key="legacyAppId" value="${connect.legacy.id}"/>
-                        <property key="legacyAppSecret" value="${connect.legacy.secret}"/>
-                    </singleton-object>
-		        </component>
+					<prototype-object class="util.oauth.CodeToTokenConverter"/>
+                </component>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
-                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, token, merchantId, locationId, legacy, expiryDate)
-VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken], #[payload.merchantId], #[payload.merchantId], #[flowVars.legacy], #[payload.expiresAt]);]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, encryptedAccessToken, merchantId, legacy, expiryDate)
+VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAccessToken], #[flowVars.merchantId], #[flowVars.legacy], #[flowVars.expiresAt]);]]></db:parameterized-query>
                 </db:insert>
                 <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
             </when>
@@ -71,7 +62,7 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
 %output application/java
 ---
 {
-	accessToken: payload[0].token as :string,
+	encryptedAccessToken: payload[0].encryptedAccessToken as :string,
 	legacySingleLocationSquareAccount: true when payload[0].legacy == 1 otherwise false,
 	locationId: payload[0].locationId,
 	merchantAlias: payload[0].merchantAlias,
@@ -96,17 +87,11 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[payload.accessToken]
         </db:select>
         <foreach doc:name="For each expiring token">
             <component doc:name="Renew token">
-                <singleton-object class="util.oauth.TokenRenewer">
-                    <property key="apiUrl" value="${api.url}"/>
-                    <property key="multiunitId" value="${connect.multiunit.id}"/>
-                    <property key="multiunitSecret" value="${connect.multiunit.secret}"/>
-                    <property key="legacyId" value="${connect.legacy.id}"/>
-                    <property key="legacySecret" value="${connect.legacy.secret}"/>
-                </singleton-object>
+                <prototype-object class="util.oauth.TokenRenewer"/>
             </component>
             <db:update config-ref="MySQL_Configuration" doc:name="Update token in database">
                 <db:parameterized-query><![CDATA[UPDATE `token`
-SET token = #[payload.accessToken], expiryDate = #[payload.expiresAt]
+SET encryptedAccessToken = #[flowVars.encryptedAccessToken], expiryDate = #[flowVars.expiresAt]
 WHERE id = #[flowVars.tokenId];]]></db:parameterized-query>
             </db:update>
         </foreach>

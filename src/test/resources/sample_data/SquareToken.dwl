@@ -5,7 +5,7 @@
 	id: 1,
 	deployment: "deployment",
 	connectApp: "connectApp",
-	token: "token",
+	encryptedAccessToken: "encryptedAccessToken",
 	merchantId: "merchantId",
 	locationId: "locationId",
 	legacy: 0,

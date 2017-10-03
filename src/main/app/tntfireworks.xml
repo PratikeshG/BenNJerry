@@ -28,16 +28,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check SFTP folders for CSV files">
-		    <prototype-object class="tntfireworks.PollSFTPCallable">
-                <property key="sftpHost" value="${tntfireworks.sftp.host}"/>
-                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>
-                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>
-                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/>
-                <property key="sftpInputPath" value="${tntfireworks.sftp.inputpath}"/>
-                <property key="sftpBasePath" value="${tntfireworks.sftp.basepath}"/>
-                <property key="sftpArchivePath" value="${tntfireworks.sftp.archivepath}"/>
-                <property key="sftpProcessingPath" value="${tntfireworks.sftp.processingpath}"/>
-		    </prototype-object>  
+		    <prototype-object class="tntfireworks.PollSFTPCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
@@ -80,15 +71,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync CSV to Database">
-            <prototype-object class="tntfireworks.SyncToDatabaseCallable">
-	            <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-	            <property key="databaseUser" value="${mysql.user}"/>
-	            <property key="databasePassword" value="${mysql.password}"/>
-	            <property key="sftpHost" value="${tntfireworks.sftp.host}"/>  
-                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>  
-                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>  
-                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/> 
-		    </prototype-object>
+            <prototype-object class="tntfireworks.SyncToDatabaseCallable"/>
         </component>
         <set-property propertyName="MULE_CORRELATION_GROUP_SIZE" value="#[flowVars.originalProperties.MULE_CORRELATION_GROUP_SIZE]" doc:name="MULE_CORRELATION_GROUP_SIZE"/>
         <set-property propertyName="MULE_CORRELATION_SEQUENCE" value="#[flowVars.originalProperties.MULE_CORRELATION_SEQUENCE]" doc:name="MULE_CORRELATION_SEQUENCE"/>
@@ -106,13 +89,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:sync-db-to-square"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
-            <prototype-object class="tntfireworks.DeploymentsCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
-                <property key="apiUrl" value="${api.url}"/>  
-                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
-            </prototype-object>
+            <prototype-object class="tntfireworks.DeploymentsCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
@@ -137,9 +114,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
         <logger message="#[&quot;Processing Catalog API updated for account: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square API Updates">
-        	<prototype-object class="tntfireworks.DatabaseToSquareCallable"> 
-                <property key="apiUrl" value="${api.url}"/>  
-            </prototype-object>
+            <prototype-object class="tntfireworks.DatabaseToSquareCallable"/> 
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-aggregator" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-aggregator"/>
     </flow>

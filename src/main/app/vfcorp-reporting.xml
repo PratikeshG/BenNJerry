@@ -27,8 +27,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment LIKE #[flowVars.deploymentPattern];]]></db:parameterized-query>
         </db:select>
         <component doc:name="Create deployment payloads">
-            <singleton-object class="vfcorp.reporting.DeploymentsCallable">
-            </singleton-object>
+            <singleton-object class="vfcorp.reporting.DeploymentsCallable"/>
         </component>
         <request-reply doc:name="Request-Reply">
             <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-queue-splitter" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-queue-splitter"/>
@@ -45,7 +44,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-async-worker"/>
         <logger message="#[&quot;Obtaining transactions for location: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Retrieve Transaction Details By Deployment">
-            <singleton-object class="vfcorp.reporting.DetailsByDeploymentCallable"/>
+            <prototype-object class="vfcorp.reporting.DetailsByDeploymentCallable"/>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-queue-aggregator" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-queue-aggregator"/>
     </flow>
@@ -58,8 +57,9 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <set-variable variableName="deploymentPattern" value="vfcorp-tnf-%" doc:name="deploymentPattern vfcorp-tnf-%"/>
         <flow-ref name="VFC:generate-aggregate-transactions-report" doc:name="VFC:generate-aggregate-transactions-report"/>
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
         <component doc:name="Aggregate and process all locations">
-            <singleton-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
+            <prototype-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
         </component>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
@@ -73,13 +73,13 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-daily-summary-email">
         <component doc:name="Daily Summary Logic">
-            <singleton-object class="vfcorp.reporting.DailySummaryCallable"/>
+            <prototype-object class="vfcorp.reporting.DailySummaryCallable"/>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML"  from="Square Bridge" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" bcc="${vfcorp.tnf.summary.email}"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-daily-category-summary-email">
         <component doc:name="Daily Category Summary Logic">
-            <singleton-object class="vfcorp.reporting.DailyCategoriesSummaryCallable"/>
+            <prototype-object class="vfcorp.reporting.DailyCategoriesSummaryCallable"/>
         </component>
         <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.tnf.summary.email}" responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary"/>
     </sub-flow>
@@ -116,12 +116,12 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment LIKE 'vfcorp-tnf-%';]]></db:parameterized-query>
         </db:select>
         <component doc:name="Create deployment payloads">
-            <singleton-object class="vfcorp.reporting.DeploymentsCallable"/>
+            <prototype-object class="vfcorp.reporting.DeploymentsCallable"/>
         </component>
         <component doc:name="Deposits Aggregation Logic">
-            <singleton-object class="vfcorp.reporting.DepositsAggregateCallable"/>
+            <prototype-object class="vfcorp.reporting.DepositsAggregateCallable"/>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="#[sessionVars.emails]" from="Square Bridge" subject="#['TNF Square Deposits - generated ' + server.dateTime.format('EEE, d MMM yyyy')]" bcc="bhartard@squareup.com" responseTimeout="10000" mimeType="text/html" doc:name="Email Summary"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="#[sessionVars.emails]" from="Square Bridge" subject="#['TNF Square Deposits - generated ' + server.dateTime.format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Summary"/>
         <set-payload value="Deposits Report generated for #[sessionVars.emails]" doc:name="Set Payload"/>
     </flow>
 </mule>

@@ -29,10 +29,11 @@ import util.SquarePayload;
 
 public class TntCatalogApiTest extends TestCase {
 
+    private static final String ENCRYPTION_KEY = "TeStInG";
     private static final String apiUrl = "https://connect.squareupstaging.com";
 
     // deployment to test
-    private static final String deploymentJson = "{\"merchantId\":\"3M4YT8JKYHAVJ\",\"accessToken\":\"sq0ats-RSCJWip1Slxf71xI4YKI1w\",\"merchantAlias\":\"Tnt Fireworks 1\",\"legacySingleLocationSquareAccount\":false}";
+    private static final String deploymentJson = "{\"merchantId\":\"3M4YT8JKYHAVJ\",\"encryptedAccessToken\":\"NNE4+Mx5ymxloCSGW4Uba1hC3LU+KrQLjf0pMcUeSLExFj6unMQSjg==\",\"merchantAlias\":\"Tnt Fireworks 1\",\"legacySingleLocationSquareAccount\":false}";
 
     // first run - input
     private static final String locationMarketingPlanCache1stRunJson = "{\"FAL0004\":\"2TNTC\",\"FAL0002\":\"2TNTC\",\"AZP0002\":\"2TNTC\",\"TX 0489\":\"6LAR\",\"AZP0001\":\"6LAR\"}";
@@ -71,7 +72,6 @@ public class TntCatalogApiTest extends TestCase {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
 
-        SquarePayload deployment = gson.fromJson(deploymentJson, SquarePayload.class);
         HashMap<String, String> locationMarketingPlanCache = gson.fromJson(locationMarketingPlanCache1stRunJson,
                 hashmapStringString);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = gson.fromJson(marketingPlanItemsCache1stRunJson,
@@ -155,7 +155,7 @@ public class TntCatalogApiTest extends TestCase {
      *  We convert to JSON to do the comparison, as the JSONAssert library will
      *  compare ignoring the order of the nested arrays, Square IDs and Square versions
      *  and also ignores added JSON elements.
-     *  
+     *
      *  Note: We do the comparison inside cloned objects as to not modify the caller's catalog when
      *  stripping the IDs
      */
@@ -240,7 +240,7 @@ public class TntCatalogApiTest extends TestCase {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
         SquarePayload deployment = gson.fromJson(deploymentJson, SquarePayload.class);
-        SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken());
+        SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken(ENCRYPTION_KEY));
         HashMap<String, String> locationMarketingPlanCache = gson.fromJson(locationMarketingPlanCache1stRunJson,
                 hashmapStringString);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = gson.fromJson(marketingPlanItemsCache1stRunJson,
@@ -255,7 +255,7 @@ public class TntCatalogApiTest extends TestCase {
 
     }
 
-    /* 
+    /*
      * Full integration test - calling the Square API
      * We do one run, upserting objects on 12/22 to two marketing plans
      * We then do another run, upserting objects on 12/23 on two marketing plans, and deleting items not present
@@ -264,7 +264,7 @@ public class TntCatalogApiTest extends TestCase {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
         SquarePayload deployment = gson.fromJson(deploymentJson, SquarePayload.class);
-        SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken());
+        SquareClientV2 client = new SquareClientV2(apiUrl, deployment.getAccessToken(ENCRYPTION_KEY));
 
         // load 1st run
         HashMap<String, String> locationMarketingPlanCache = gson.fromJson(locationMarketingPlanCache1stRunJson,

@@ -1,5 +1,7 @@
 package vfcorp;
 
+import util.SquarePayload;
+
 public class VfcDeployment {
     private String deployment;
     private String storeId;
@@ -9,9 +11,7 @@ public class VfcDeployment {
     private String tlogPath;
     private int tlogRange;
     private int tlogOffset;
-    private String merchantId;
-    private String locationId;
-    private String accessToken;
+    private SquarePayload squarePayload;
 
     public String getDeployment() {
         return deployment;
@@ -77,27 +77,11 @@ public class VfcDeployment {
         this.tlogOffset = tlogOffset;
     }
 
-    public String getMerchantId() {
-        return merchantId;
+    public SquarePayload getSquarePayload() {
+        return squarePayload;
     }
 
-    public void setMerchantId(String merchantId) {
-        this.merchantId = merchantId;
-    }
-
-    public String getLocationId() {
-        return locationId;
-    }
-
-    public void setLocationId(String locationId) {
-        this.locationId = locationId;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
+    public void setSquarePayload(SquarePayload squarePayload) {
+        this.squarePayload = squarePayload;
     }
 }

@@ -14,6 +14,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -26,41 +27,21 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PluPollSyncToDatabaseCallable.class);
     private static final String PROCESSING_DIRECTORY = "processing";
 
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
+    @Value("${mysql.user}")
     private String databaseUser;
+    @Value("${mysql.password}")
     private String databasePassword;
+
+    @Value("${vfcorp.sftp.host}")
     private String sftpHost;
+    @Value("${vfcorp.sftp.port}")
     private int sftpPort;
+    @Value("${vfcorp.sftp.username}")
     private String sftpUser;
+    @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
-
-    public void setDatabaseUrl(String databaseUrl) {
-        this.databaseUrl = databaseUrl;
-    }
-
-    public void setDatabaseUser(String databaseUser) {
-        this.databaseUser = databaseUser;
-    }
-
-    public void setDatabasePassword(String databasePassword) {
-        this.databasePassword = databasePassword;
-    }
-
-    public void setSftpHost(String sftpHost) {
-        this.sftpHost = sftpHost;
-    }
-
-    public void setSftpPort(int sftpPort) {
-        this.sftpPort = sftpPort;
-    }
-
-    public void setSftpUser(String sftpUser) {
-        this.sftpUser = sftpUser;
-    }
-
-    public void setSftpPassword(String sftpPassword) {
-        this.sftpPassword = sftpPassword;
-    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -68,8 +49,9 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 databaseUser, databasePassword, "enablePLU = 1");
 
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        logger.info("VFC: SFTP session created");
 
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
         logger.info("VFC: SFTP channel created");
 

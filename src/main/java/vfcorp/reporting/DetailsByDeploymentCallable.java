@@ -9,6 +9,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
@@ -24,6 +25,9 @@ import util.TimeManager;
 
 public class DetailsByDeploymentCallable implements Callable {
 
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -32,9 +36,9 @@ public class DetailsByDeploymentCallable implements Callable {
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
-        SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(), apiUrl, apiVersion,
+        SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                 deployment.getMerchantId(), deployment.getLocationId());
-        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
+        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
                 deployment.getMerchantId(), deployment.getLocationId());
 
         Location location = null;

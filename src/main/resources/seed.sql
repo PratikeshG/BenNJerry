@@ -64,7 +64,7 @@ CREATE TABLE `token` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `deployment` varchar(45) DEFAULT NULL,
   `connectApp` varchar(45) DEFAULT NULL,
-  `token` varchar(45) DEFAULT NULL,
+  `encryptedAccessToken` varchar(45) DEFAULT NULL,
   `merchantId` varchar(45) DEFAULT NULL,
   `locationId` varchar(45) DEFAULT NULL,
   `legacy` tinyint(1) NOT NULL DEFAULT '0',

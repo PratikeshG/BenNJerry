@@ -5,61 +5,59 @@ import java.util.Map;
 import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.OAuthToken;
 import com.squareup.connect.SquareClient;
 
+import util.SquarePayload;
+
 public class TokenRenewer implements Callable {
+    @Value("${api.url}")
+    private String apiUrl;
+    @Value("${connect.multiunit.id}")
+    private String multiunitId;
+    @Value("${connect.multiunit.secret}")
+    private String multiunitSecret;
+    @Value("${connect.legacy.id}")
+    private String legacyId;
+    @Value("${connect.legacy.secret}")
+    private String legacySecret;
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
-	private String apiUrl;
-	private String multiunitId;
-	private String multiunitSecret;
-	private String legacyId;
-	private String legacySecret;
-	
-	public void setApiUrl(String apiUrl) {
-		this.apiUrl = apiUrl;
-	}
-	
-	public void setMultiunitId(String multiunitId) {
-		this.multiunitId = multiunitId;
-	}
+    @Override
+    public Object onCall(MuleEventContext eventContext) throws Exception {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> m = (Map<String, Object>) eventContext.getMessage().getPayload();
 
-	public void setMultiunitSecret(String multiunitSecret) {
-		this.multiunitSecret = multiunitSecret;
-	}
+        Integer id = (Integer) m.get("id");
+        String encryptedAccessToken = (String) m.get("encryptedAccessToken");
+        String connectApp = (String) m.get("connectApp");
 
-	public void setLegacyId(String legacyId) {
-		this.legacyId = legacyId;
-	}
+        String secret = "";
+        if (connectApp != null && connectApp.equals(multiunitId)) {
+            secret = multiunitSecret;
+        } else if (connectApp != null && connectApp.equals(legacyId)) {
+            secret = legacySecret;
+        } else {
+            throw new Exception("connect app '" + connectApp
+                    + "' associated with this token is not an official Managed Integrations application");
+        }
 
-	public void setLegacySecret(String legacySecret) {
-		this.legacySecret = legacySecret;
-	}
+        SquarePayload tokenEncryption = new SquarePayload();
+        tokenEncryption.setEncryptedAccessToken(encryptedAccessToken);
 
-	@Override
-	public Object onCall(MuleEventContext eventContext) throws Exception {
-		@SuppressWarnings("unchecked")
-		Map<String,Object> m = (Map<String, Object>) eventContext.getMessage().getPayload();
+        SquareClient client = new SquareClient(tokenEncryption.getAccessToken(encryptionKey), apiUrl);
+        OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
 
-		Integer id = (Integer) m.get("id");
-		String token = (String) m.get("token");
-		String connectApp = (String) m.get("connectApp");
+        tokenEncryption.encryptAccessToken(newToken.getAccessToken(), encryptionKey);
 
-		String secret = "";
-		if (connectApp != null && connectApp.equals(multiunitId)) {
-			secret = multiunitSecret;
-		} else if (connectApp != null && connectApp.equals(legacyId)) {
-			secret = legacySecret;
-		} else {
-			throw new Exception("connect app '" + connectApp + "' associated with this token is not an official Managed Integrations application");
-		}
+        eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
+                PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("expiresAt", newToken.getExpiresAt(), PropertyScope.INVOCATION);
 
-		SquareClient client = new SquareClient(token, apiUrl);
-		OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
-
-		eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
-
-		return newToken;
-	}
+        return true;
+    }
 }

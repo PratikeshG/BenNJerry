@@ -8,6 +8,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
@@ -16,13 +17,21 @@ import com.jcraft.jsch.SftpException;
 import util.DbConnection;
 
 public class SyncToDatabaseCallable implements Callable {
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
+    @Value("${mysql.user}")
     private String databaseUser;
+    @Value("{mysql.password}")
     private String databasePassword;
+    @Value("${tntfireworks.sftp.host}")
     private String sftpHost;
+    @Value("${tntfireworks.sftp.port}")
     private int sftpPort;
+    @Value("${tntfireworks.sftp.username}")
     private String sftpUser;
+    @Value("${tntfireworks.sftp.password}")
     private String sftpPassword;
+
     private static final int SYNC_GROUP_SIZE = 2500;
 
     public void setDatabaseUrl(String databaseUrl) {

@@ -23,36 +23,10 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
     <flow name="Urbanspace:generate-individual-and-aggregate-reports">
         <logger message="Starting Urbanspace:generate-individual-and-aggregate-reports (#[flowVars.deployment])" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="MI:OAuth:retrieve-tokens" doc:name="retrieveToken"/>
-        <scripting:transformer doc:name="Create payload objects">
-            <scripting:script engine="Groovy"><![CDATA[import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import urbanspace.ReportGeneratorPayload;
-import util.TimeManager;
-
-List<Map<String,Object>> merchantDatabaseEntries = (List<Map<String,Object>>) payload;
-List<ReportGeneratorPayload> reportGeneratorPayloads = new ArrayList<ReportGeneratorPayload>();
-
-for (Map<String,Object> merchantDatabaseEntry : merchantDatabaseEntries) {
-	ReportGeneratorPayload reportGeneratorPayload = new ReportGeneratorPayload();
-	
-	reportGeneratorPayload.setAccessToken((String) merchantDatabaseEntry.get("token"));
-	reportGeneratorPayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
-	reportGeneratorPayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
-	reportGeneratorPayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
-	reportGeneratorPayload.setLegacy((Boolean) merchantDatabaseEntry.get("legacy"));
-
-	int offset = Integer.parseInt(sessionVars["offset"]);
-	int range = Integer.parseInt(sessionVars["range"]);
-
-	reportGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, sessionVars["timeZone"]));
-	reportGeneratorPayloads.add(reportGeneratorPayload);
-}
-
-return reportGeneratorPayloads;]]></scripting:script>
-        </scripting:transformer>
+        <flow-ref name="MI:OAuth:retrieve-tokens" doc:name="retrieveTokens"/>
+        <component doc:name="Configure deployment payloads">
+            <prototype-object class="urbanspace.ReportGeneratorPayloadCallable"/>
+        </component>
         <request-reply doc:name="Request-Reply">
             <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-splitter" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
             <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-reply" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
@@ -67,90 +41,9 @@ return reportGeneratorPayloads;]]></scripting:script>
     </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports-async-worker" processingStrategy="Urbanspace_Report_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
-        <scripting:transformer doc:name="Get payments for location">
-            <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
-import com.squareup.connect.Payment;
-import com.squareup.connect.SquareClient;
-
-ReportGeneratorPayload sp = (ReportGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Payment[] payments = client.payments().list(sp.getParams());
-
-sp.setPayments(payments);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get refunds for location">
-            <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
-import com.squareup.connect.Refund;
-import com.squareup.connect.SquareClient;
-
-ReportGeneratorPayload sp = (ReportGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Refund[] refunds = client.refunds().list(sp.getParams());
-
-sp.setRefunds(refunds);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get payments for all refunds for location">
-            <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
-import com.squareup.connect.Payment;
-import com.squareup.connect.Refund;
-import com.squareup.connect.SquareClient;
-
-ReportGeneratorPayload sp = (ReportGeneratorPayload) payload;
-
-if (sp.getRefunds() != null) {
-	Refund[] squareRefunds = (Refund[]) sp.getRefunds();
-	
-	SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-	
-    List<Payment> squareRefundPayments = new LinkedList<Payment>();
-    
-    for (Refund squareRefund : squareRefunds) {
-    	squareRefundPayments.add(client.payments().retrieve(squareRefund.getPaymentId()));
-    }
-    
-    sp.setRefundPayments(squareRefundPayments.toArray(new Payment[squareRefundPayments.size()]));
-}
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get categories for location">
-            <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
-import com.squareup.connect.Category;
-import com.squareup.connect.SquareClient;
-
-ReportGeneratorPayload sp = (ReportGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Category[] categories = client.categories().list();
-
-sp.setCategories(categories);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
-        <scripting:transformer doc:name="Get discounts for location">
-            <scripting:script engine="Groovy"><![CDATA[import urbanspace.ReportGeneratorPayload;
-import com.squareup.connect.Discount;
-import com.squareup.connect.SquareClient;
-
-ReportGeneratorPayload sp = (ReportGeneratorPayload) payload;
-
-SquareClient client = new SquareClient(sp.getAccessToken(), sessionVars['apiUrl'], sessionVars['apiVersion'], sp.getMerchantId(), sp.getLocationId());
-
-Discount[] discounts = client.discounts().list();
-
-sp.setDiscounts(discounts);
-
-return sp;]]></scripting:script>
-        </scripting:transformer>
+        <component doc:name="Get payments, refunds, categories, discounts for location">
+            <prototype-object class="urbanspace.IndividualLocationRequestsCallable"/>
+        </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
     </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator">
@@ -160,8 +53,7 @@ return sp;]]></scripting:script>
     </flow>
     <sub-flow name="Urbanspace:convert-api-results-to-csvs">
         <component doc:name="Calculate UrbanSpace Aggregate Totals">
-            <singleton-object class="urbanspace.ReportGenerator">
-            </singleton-object>
+            <singleton-object class="urbanspace.ReportGenerator"/>
         </component>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <set-payload value="Attached." doc:name="Set Payload"/>
@@ -260,7 +152,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:Garment-District">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-garment-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-garment-1490537532" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -340,7 +232,7 @@ return sp;]]></scripting:script>
         </choice>
     </flow>
     <flow name="Urbanspace:NYPL">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1490537532" cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
