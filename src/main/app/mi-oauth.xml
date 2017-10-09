@@ -2,7 +2,7 @@
 
 <mule xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -34,7 +34,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         </choice>
     </flow>
     <flow name="MI:OAuth:callback">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/callback" doc:name="HTTP"/>
+        <http:listener config-ref="${oauth.http.config}" path="/callback" doc:name="HTTPS"/>
         <component class="util.oauth.StateVariableParser" doc:name="Verify State Token"/>
         <choice doc:name="Route based on valid state variable">
             <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">

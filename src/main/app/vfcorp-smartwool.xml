@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -42,4 +42,48 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <flow-ref name="VFC:SmartWool:email-report-links" doc:name="VFC:SmartWool:email-report-links"/>
         <set-payload value="Triggered VFC:SmartWool:email-report-links flow" doc:name="Set Payload"/>
     </flow>
+    <flow name="VFC:SmartWool:GenerateReports">
+        <quartz:inbound-endpoint jobName="quartz-smartwool-generate-xml" cronExpression="0 30 12 * * ? *" repeatInterval="0" connector-ref="Quartz-Smartwool" responseTimeout="10000" doc:name="Run every day at 12:30 UTC (7:30am EST)" repeatCount="1">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="VFC:SmartWool:setRangeOffsetTimeInterval" doc:name="VFC:SmartWool:setRangeOffsetTimeInterval"/>
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
+        <set-session-variable variableName="merchantDetails" value="#[payload]" doc:name="Set Merchant Details"/>
+        <component class="vfcorp.smartwool.GetLocationDetailsCallable" doc:name="VFC:SmartWool:Get-Location-Details"/>
+        <scatter-gather doc:name="All">
+            <threading-profile maxThreadsActive="50" poolExhaustedAction="RUN"/>
+            <flow-ref name="VFC:SmartWool:generate-payments-file" doc:name="VFC:SmartWool:generate-payments-file"/>
+            <flow-ref name="VFC:SmartWool:generate-refunds" doc:name="VFC:SmartWool:generate-refunds"/>
+        </scatter-gather>
+    </flow>
+    <sub-flow name="VFC:SmartWool:setRangeOffsetTimeInterval">
+        <set-session-variable variableName="range" value="${vfcorp.smartwool.range}" doc:name="Set Range"/>
+        <set-session-variable variableName="offset" value="${vfcorp.smartwool.offset}" doc:name="Set Offset"/>
+    </sub-flow>
+    <sub-flow name="VFC:SmartWool:generate-refunds">
+        <component class="vfcorp.smartwool.AggregateLocationsPreviousDayRefundsCallable" doc:name="VFC:SmartWool:Get-Refunds"/>
+        <dw:transform-message doc:name="Transform Refund to XML" metadata:id="0007cd53-1d12-4851-9178-0c062573bf10">
+            <dw:input-payload mimeType="application/java" doc:sample="sample_data/list_Refund_1.dwl"/>
+            <dw:input-session-variable mimeType="application/java" variableName="merchantDetails" doc:sample="sample_data/list_Map.dwl"/>
+            <dw:set-payload resource="classpath:smartwool/dwl/refund-transform.dwl"/>
+        </dw:transform-message>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="Transfer to GC SFTP" duplicateHandling="overwrite"/>
+    </sub-flow>
+    <sub-flow name="VFC:SmartWool:generate-payments-file">
+        <component class="vfcorp.smartwool.AggregateLocationsPreviousDayPaymentsCallable" doc:name="VFC:SmartWool:Get-Payments" metadata:id="8d49463b-609d-4080-ad4d-4db87b90e477"/>
+        <dw:transform-message doc:name="Transform Payment to XML" metadata:id="7fc86e91-0750-4318-98ff-b84b35cbb46f">
+            <dw:input-payload doc:sample="sample_data/list_Payment_1.dwl" mimeType="application/java"/>
+            <dw:input-variable mimeType="application/java" variableName="currLocationId"/>
+            <dw:input-variable mimeType="application/java" variableName="locationName"/>
+            <dw:input-variable variableName="counter"/>
+            <dw:input-session-variable variableName="currLocationId"/>
+            <dw:input-session-variable variableName="currLocationName"/>
+            <dw:input-session-variable  mimeType="application/java" variableName="paymentIdToLocationId"/>
+            <dw:input-session-variable doc:sample="sample_data/LinkedHashMap_1.dwl" mimeType="application/java" variableName="merchantId"/>
+            <dw:set-payload resource="classpath:smartwool/dwl/payment-transform.dwl"/>
+        </dw:transform-message>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-payments-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="Transfer GC to SFTP" duplicateHandling="overwrite"/>
+    </sub-flow>
 </mule>
