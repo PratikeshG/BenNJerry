@@ -7,6 +7,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.v2.Location;
 
@@ -15,11 +16,14 @@ import util.TimeManager;
 import util.reports.PaymentsReportBuilder;
 
 public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
+	@Value("${vfcorp.smartwool.range}")
+	private String VAR_RANGE;
+	@Value("${vfcorp.smartwool.offset}")
+	private String VAR_OFFSET;
+
 	private final String VAR_API_URL = "apiUrl";
 	private final String VAR_CREATED_AT = "createdAt";
-	private final String VAR_RANGE = "range";
 	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
-	private final String VAR_OFFSET = "offset";
 
 	private final String UTC = "UTC";
 	/**
@@ -38,8 +42,8 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 		String merchantId = merchantDetails.getMerchantId();
 		String accessToken = merchantDetails.getAccessToken();
 
-		int range = message.getProperty(VAR_RANGE, PropertyScope.SESSION);
-		int offset = message.getProperty(VAR_OFFSET, PropertyScope.SESSION);
+		int range = Integer.parseInt(VAR_RANGE);
+		int offset = Integer.parseInt(VAR_OFFSET);
 
 		message.setProperty(VAR_CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC), PropertyScope.SESSION);
 

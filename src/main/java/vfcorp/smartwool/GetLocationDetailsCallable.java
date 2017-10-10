@@ -9,6 +9,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Merchant;
 import com.squareup.connect.SquareClient;
@@ -19,8 +20,11 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class GetLocationDetailsCallable implements Callable {
-	private final String VAR_RANGE = "range";
-	private final String VAR_OFFSET = "offset";
+	@Value("${vfcorp.smartwool.range}")
+	private String VAR_RANGE;
+	@Value("${vfcorp.smartwool.offset}")
+	private String VAR_OFFSET;
+
 	private final String VAR_APIURL = "apiUrl";
 	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
 	private final String VAR_LOCATION_DETAILS_MAP = "locationDetailsMap";
@@ -33,8 +37,8 @@ public class GetLocationDetailsCallable implements Callable {
 		MuleMessage message = eventContext.getMessage();
 		SquarePayload merchantDetails = (SquarePayload) message.getProperty("merchantDetails", PropertyScope.SESSION);
 
-		int range = message.getProperty(VAR_RANGE, PropertyScope.SESSION);
-		int offset = message.getProperty(VAR_OFFSET, PropertyScope.SESSION);
+		int range = Integer.parseInt(VAR_RANGE);
+		int offset = Integer.parseInt(VAR_OFFSET);
 
 		String apiUrl = message.getProperty(VAR_APIURL, PropertyScope.SESSION);
 		String merchantId = merchantDetails.getMerchantId();

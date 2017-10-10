@@ -48,7 +48,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </quartz:inbound-endpoint>
         <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="VFC:SmartWool:setRangeOffsetTimeInterval" doc:name="VFC:SmartWool:setRangeOffsetTimeInterval"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <set-session-variable variableName="merchantDetails" value="#[payload]" doc:name="Set Merchant Details"/>
         <component class="vfcorp.smartwool.GetLocationDetailsCallable" doc:name="VFC:SmartWool:Get-Location-Details"/>
@@ -58,10 +57,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <flow-ref name="VFC:SmartWool:generate-refunds" doc:name="VFC:SmartWool:generate-refunds"/>
         </scatter-gather>
     </flow>
-    <sub-flow name="VFC:SmartWool:setRangeOffsetTimeInterval">
-        <set-session-variable variableName="range" value="${vfcorp.smartwool.range}" doc:name="Set Range"/>
-        <set-session-variable variableName="offset" value="${vfcorp.smartwool.offset}" doc:name="Set Offset"/>
-    </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-refunds">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayRefundsCallable" doc:name="VFC:SmartWool:Get-Refunds"/>
         <dw:transform-message doc:name="Transform Refund to XML" metadata:id="0007cd53-1d12-4851-9178-0c062573bf10">
