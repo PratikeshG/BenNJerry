@@ -43,7 +43,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-payload value="Triggered VFC:SmartWool:email-report-links flow" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:SmartWool:GenerateReports">
-        <quartz:inbound-endpoint jobName="quartz-smartwool-generate-xml" cronExpression="0 30 12 * * ? *" repeatInterval="0" connector-ref="Quartz-Smartwool" responseTimeout="10000" doc:name="Run every day at 12:30 UTC (7:30am EST)" repeatCount="1">
+        <quartz:inbound-endpoint jobName="quartz-smartwool-generate-xml-1507740186" cronExpression="0 30 12 * * ? *" repeatInterval="0" connector-ref="Quartz-Smartwool" responseTimeout="10000" doc:name="Run every day at 12:30 UTC (7:30am EST)" >
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
@@ -52,7 +52,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="merchantDetails" value="#[payload]" doc:name="Set Merchant Details"/>
         <component class="vfcorp.smartwool.GetLocationDetailsCallable" doc:name="VFC:SmartWool:Get-Location-Details"/>
         <scatter-gather doc:name="All">
-            <threading-profile maxThreadsActive="50" poolExhaustedAction="RUN"/>
             <flow-ref name="VFC:SmartWool:generate-payments-file" doc:name="VFC:SmartWool:generate-payments-file"/>
             <flow-ref name="VFC:SmartWool:generate-refunds" doc:name="VFC:SmartWool:generate-refunds"/>
         </scatter-gather>
