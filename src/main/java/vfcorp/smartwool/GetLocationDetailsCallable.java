@@ -27,6 +27,7 @@ public class GetLocationDetailsCallable implements Callable {
 
 	private final String VAR_APIURL = "apiUrl";
 	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
+	private final String VAR_NAME = "name";
 	private final String VAR_LOCATION_DETAILS_MAP = "locationDetailsMap";
 	/**
 	 * Get merchants {@code Location}'s for inclusion in report. Sets {@code merchantDetails}
@@ -35,7 +36,7 @@ public class GetLocationDetailsCallable implements Callable {
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		MuleMessage message = eventContext.getMessage();
-		SquarePayload merchantDetails = (SquarePayload) message.getProperty("merchantDetails", PropertyScope.SESSION);
+		SquarePayload merchantDetails = (SquarePayload) message.getProperty(VAR_MERCHANT_DETAILS, PropertyScope.SESSION);
 
 		int range = Integer.parseInt(VAR_RANGE);
 		int offset = Integer.parseInt(VAR_OFFSET);
@@ -57,7 +58,7 @@ public class GetLocationDetailsCallable implements Callable {
 		HashMap<String, Map<String, String>> locationIdToLocationDetails = new HashMap<String, Map<String, String>>();
 		for (Location location : locations) {
 			Map<String, String> locationDetails = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
-			locationDetails.put("name", location.getName());
+			locationDetails.put(VAR_NAME, location.getName());
 			locationIdToLocationDetails.put(location.getId(), locationDetails);
 		}
 		return locationIdToLocationDetails;
