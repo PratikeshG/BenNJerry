@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mysql.jdbc.ResultSet;
 
 import util.SquarePayload;
@@ -22,8 +25,10 @@ public class EncryptDatabaseAccessTokens {
     private final static String SELECT_QUERY = "SELECT id, token FROM token WHERE token IS NOT NULL;";
     private final static String UPDATE_QUERY_TEMPLATE = "UPDATE `token` SET encryptedAccessToken = '%s' WHERE id = '%s';";
 
+    private static Logger logger = LoggerFactory.getLogger(EncryptDatabaseAccessTokens.class);
+
     public static void main(String[] args) throws Exception {
-        System.out.println("Running script to encrypt database tokens...");
+        logger.info("Running script to encrypt database tokensX...");
 
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
@@ -43,9 +48,9 @@ public class EncryptDatabaseAccessTokens {
             Statement updateStatement = conn.createStatement();
             updateStatement.executeUpdate(updateString);
 
-            System.out.println(String.format("Updating token ID %s", id));
+            logger.info(String.format("Updating token ID %s", id));
         }
 
-        System.out.println("Done.");
+        logger.info("Done.");
     }
 }
