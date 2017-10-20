@@ -11,6 +11,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
@@ -26,19 +27,14 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class TlogGenerator implements Callable {
-
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
+    @Value("${vfcorp.itemNumberLookupLength}")
     private int itemNumberLookupLength;
+    @Value("${api.url}")
     private String apiUrl;
-
-    public void setItemNumberLookupLength(int itemNumberLookupLength) {
-        this.itemNumberLookupLength = itemNumberLookupLength;
-    }
-
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
-    }
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -48,12 +44,7 @@ public class TlogGenerator implements Callable {
         SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
         TlogGeneratorPayload tlogGeneratorPayload = new TlogGeneratorPayload();
-
-        tlogGeneratorPayload.setAccessToken(squarePayload.getAccessToken());
-        tlogGeneratorPayload.setMerchantId(squarePayload.getMerchantId());
-        tlogGeneratorPayload.setLocationId(squarePayload.getLocationId());
-        tlogGeneratorPayload.setMerchantAlias(squarePayload.getMerchantAlias());
-        tlogGeneratorPayload.setLegacy(squarePayload.isLegacySingleLocationSquareAccount());
+        tlogGeneratorPayload.setSquarePayload(squarePayload);
 
         String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
 
@@ -72,10 +63,14 @@ public class TlogGenerator implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
-        SquareClient squareV1Client = new SquareClient(tlogGeneratorPayload.getAccessToken(), apiUrl, "v1",
-                tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
-        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, tlogGeneratorPayload.getAccessToken(),
-                tlogGeneratorPayload.getMerchantId(), tlogGeneratorPayload.getLocationId());
+        SquareClient squareV1Client = new SquareClient(
+                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
+                tlogGeneratorPayload.getSquarePayload().getMerchantId(),
+                tlogGeneratorPayload.getSquarePayload().getLocationId());
+        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl,
+                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey),
+                tlogGeneratorPayload.getSquarePayload().getMerchantId(),
+                tlogGeneratorPayload.getSquarePayload().getLocationId());
 
         // Locations
         Merchant[] locations = squareV1Client.businessLocations().list();
@@ -194,7 +189,7 @@ public class TlogGenerator implements Callable {
 
         Merchant matchingMerchant = null;
         for (Merchant merchant : tlogGeneratorPayload.getLocations()) {
-            if (merchant.getId().equals(tlogGeneratorPayload.getLocationId())) {
+            if (merchant.getId().equals(tlogGeneratorPayload.getSquarePayload().getLocationId())) {
                 matchingMerchant = merchant;
             }
         }

@@ -13,6 +13,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
 
+import util.SquarePayload;
+
 public class Util {
 
     public static String getValueBetweenChars(String input, char c, char d) {
@@ -100,7 +102,7 @@ public class Util {
         Statement stmt = conn.createStatement();
 
         String query = "SELECT vfcorp_deployments.deployment as deployment, storeId, timeZone, "
-                + "pluPath, pluFiltered, tlogPath, tlogRange, tlogOffset, token, merchantId, locationId FROM vfcorp_deployments "
+                + "pluPath, pluFiltered, tlogPath, tlogRange, tlogOffset, encryptedAccessToken, merchantId, locationId FROM vfcorp_deployments "
                 + "LEFT JOIN token ON vfcorp_deployments.deployment = token.deployment WHERE " + whereFilter + ";";
 
         ResultSet result = (ResultSet) stmt.executeQuery(query);
@@ -116,9 +118,12 @@ public class Util {
             deployment.setTlogPath(result.getString("tlogPath"));
             deployment.setTlogRange(result.getInt("tlogRange"));
             deployment.setTlogOffset(result.getInt("tlogOffset"));
-            deployment.setAccessToken(result.getString("token"));
-            deployment.setMerchantId(result.getString("merchantId"));
-            deployment.setLocationId(result.getString("locationId"));
+
+            SquarePayload sp = new SquarePayload();
+            sp.setEncryptedAccessToken(result.getString("encryptedAccessToken"));
+            sp.setMerchantId(result.getString("merchantId"));
+            sp.setLocationId(result.getString("locationId"));
+            deployment.setSquarePayload(sp);
 
             deployments.add(deployment);
         }

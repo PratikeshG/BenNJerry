@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -10,7 +10,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
-http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
     <vm:connector name="TNTFIREWORKS_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_DatabaseToSquare_Async_Strategy" maxThreads="${tntfireworks.databaseToSquare.maxThreads}" minThreads="${tntfireworks.databaseToSquare.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
@@ -28,16 +29,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check SFTP folders for CSV files">
-		    <prototype-object class="tntfireworks.PollSFTPCallable">
-                <property key="sftpHost" value="${tntfireworks.sftp.host}"/>
-                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>
-                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>
-                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/>
-                <property key="sftpInputPath" value="${tntfireworks.sftp.inputpath}"/>
-                <property key="sftpBasePath" value="${tntfireworks.sftp.basepath}"/>
-                <property key="sftpArchivePath" value="${tntfireworks.sftp.archivepath}"/>
-                <property key="sftpProcessingPath" value="${tntfireworks.sftp.processingpath}"/>
-		    </prototype-object>  
+		    <prototype-object class="tntfireworks.PollSFTPCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
@@ -67,7 +59,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
             <prototype-object class="tntfireworks.AwsS3Callable"></prototype-object>
         </component>
         <set-payload value="Started csv to database sync: #[flowVars.syncToDatabaseRequest.getProcessingFilename()]" doc:name="Email Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB STARTED  [' + flowVars.syncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Started"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB STARTED  [' + flowVars.syncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Started"/>
         <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" content-ref="#[flowVars.sftpInputStream]" doc:name="Initiate copy to Amazon S3"/>
         <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
@@ -80,22 +72,14 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync CSV to Database">
-            <prototype-object class="tntfireworks.SyncToDatabaseCallable">
-	            <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-	            <property key="databaseUser" value="${mysql.user}"/>
-	            <property key="databasePassword" value="${mysql.password}"/>
-	            <property key="sftpHost" value="${tntfireworks.sftp.host}"/>  
-                <property key="sftpPort" value="${tntfireworks.sftp.port}"/>  
-                <property key="sftpUser" value="${tntfireworks.sftp.username}"/>  
-                <property key="sftpPassword" value="${tntfireworks.sftp.password}"/> 
-		    </prototype-object>
+            <prototype-object class="tntfireworks.SyncToDatabaseCallable"/>
         </component>
         <set-property propertyName="MULE_CORRELATION_GROUP_SIZE" value="#[flowVars.originalProperties.MULE_CORRELATION_GROUP_SIZE]" doc:name="MULE_CORRELATION_GROUP_SIZE"/>
         <set-property propertyName="MULE_CORRELATION_SEQUENCE" value="#[flowVars.originalProperties.MULE_CORRELATION_SEQUENCE]" doc:name="MULE_CORRELATION_SEQUENCE"/>
         <set-property propertyName="MULE_CORRELATION_ID" value="#[flowVars.originalProperties.MULE_CORRELATION_ID]" doc:name="MULE_CORRELATION_ID"/>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-aggregator" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:sftp-to-db-queue-aggregator"/>
         <set-payload value="Completed csv to database sync #[flowVars.syncToDatabaseRequest.getProcessingFilename()]" doc:name="Email Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB COMPLETED  [' + flowVars.syncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Completed"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - SYNC TO DB COMPLETED  [' + flowVars.syncToDatabaseRequest.getOriginalFilename()  +']']" responseTimeout="10000" doc:name="Email File Ingestion Completed"/>
     </flow>
     <flow name="TNTFireworks:sftp-to-db-queue-aggregator">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-aggregator" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:sftp-to-db-queue-aggregator"/>
@@ -106,13 +90,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:sync-db-to-square"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
-            <prototype-object class="tntfireworks.DeploymentsCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
-                <property key="apiUrl" value="${api.url}"/>  
-                <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/> 
-            </prototype-object>
+            <prototype-object class="tntfireworks.DeploymentsCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
@@ -124,7 +102,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
                     <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-reply"/>
                 </request-reply>
                 <set-payload value="Completed Catalog API updates to all TNT deployments." doc:name="Email Payload"/>
-                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - Catalog API UPDATES COMPLETE']" responseTimeout="10000" doc:name="Email DB to SQ Completed"/>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Catalog API UPDATES COMPLETE']" responseTimeout="10000" doc:name="Email DB to SQ Completed"/>
             </otherwise>
         </choice>
     </flow>
@@ -137,9 +115,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
         <logger message="#[&quot;Processing Catalog API updated for account: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square API Updates">
-        	<prototype-object class="tntfireworks.DatabaseToSquareCallable"> 
-                <property key="apiUrl" value="${api.url}"/>  
-            </prototype-object>
+            <prototype-object class="tntfireworks.DatabaseToSquareCallable"/> 
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-aggregator" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-aggregator"/>
     </flow>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -15,7 +15,8 @@ http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/ba
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
     <vm:connector name="VFC_VM_PLU" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_PLU_SyncToDatabase_Async_Strategy" maxThreads="${vfcorp.plu.syncToDatabase.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="43200000"/>
     <quartz:connector name="Quartz-VFC-plu" validateConnections="true" doc:name="Quartz">
@@ -26,15 +27,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">
-		    <prototype-object class="vfcorp.PluPollSyncToDatabaseCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-                <property key="sftpHost" value="${vfcorp.sftp.host}"/>
-                <property key="sftpPort" value="${vfcorp.sftp.port}"/>
-                <property key="sftpUser" value="${vfcorp.sftp.username}"/>
-                <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-		    </prototype-object>
+		    <prototype-object class="vfcorp.PluPollSyncToDatabaseCallable"/>
 		</component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
@@ -58,12 +51,15 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         <choice doc:name="Kipling, Nautica, TNF">
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
                 <set-variable variableName="brand" value="Kipling" doc:name="brand: Kipling"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.kipling.encryption.key}" doc:name="Set encryptionKey"/>
             </when>
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-nautica-&quot;)]">
                 <set-variable variableName="brand" value="Nautica" doc:name="brand: Nautica"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.nautica.encryption.key}" doc:name="Set encryptionKey"/>
             </when>
             <otherwise>
                 <set-variable variableName="brand" value="TNF" doc:name="brand: TNF"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="Set encryptionKey"/>
             </otherwise>
         </choice>
         <set-variable variableName="awsFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="AWS bucket folder"/>
@@ -85,30 +81,16 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </component>
         <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
         <component doc:name="Sync PLU To Database">
-            <prototype-object class="vfcorp.PluSyncToDatabaseCallable">
-		    	<property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-                <property key="databaseUser" value="${mysql.user}"/>
-                <property key="databasePassword" value="${mysql.password}"/>
-                <property key="sftpHost" value="${vfcorp.sftp.host}"/>
-                <property key="sftpPort" value="${vfcorp.sftp.port}"/>
-                <property key="sftpUser" value="${vfcorp.sftp.username}"/>
-                <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-		    </prototype-object>
+            <prototype-object class="vfcorp.PluSyncToDatabaseCallable"/>
         </component>
     </flow>
     <sub-flow name="VFC:plu-database-to-square-for-brand">
         <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square Catalog Update">
-            <prototype-object class="vfcorp.PluDatabaseToSquareCallable"> 
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>  
-                <property key="databaseUser" value="${mysql.user}"/>  
-                <property key="databasePassword" value="${mysql.password}"/>  
-                <property key="itemNumberLookupLength" value="${vfcorp.itemNumberLookupLength}"/>  
-                <property key="apiUrl" value="${api.url}"/>  
-            </prototype-object>
+            <prototype-object class="vfcorp.PluDatabaseToSquareCallable"/>
         </component>
         <set-payload value="Completed Database to Square updates for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail" to="${email.info.receiving.email}" from="Square Bridge" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.brand]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="bhartard@squareup.com" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.brand]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
     <flow name="VFC:trigger-plu-database-to-square-for-brand">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{brand}" doc:name="/vfc/plu/square/KEY/BRAND"/>

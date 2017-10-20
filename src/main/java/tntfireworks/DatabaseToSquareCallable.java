@@ -9,6 +9,7 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.SquareClientV2;
@@ -16,14 +17,12 @@ import com.squareup.connect.v2.SquareClientV2;
 import util.SquarePayload;
 
 public class DatabaseToSquareCallable implements Callable {
-
     private static Logger logger = LoggerFactory.getLogger(DatabaseToSquareCallable.class);
-    private String apiUrl;
 
-    public void setApiUrl(String apiUrl) {
-        Preconditions.checkNotNull(apiUrl);
-        this.apiUrl = apiUrl;
-    }
+    @Value("${api.url}")
+    private String apiUrl;
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
     private <T> T getSessionProperty(String propertyName, MuleMessage message) {
         return message.getProperty(propertyName, PropertyScope.SESSION);
@@ -66,7 +65,8 @@ public class DatabaseToSquareCallable implements Callable {
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
 
-        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(), deployment.getMerchantId());
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
+                deployment.getMerchantId());
         TntCatalogApi tntCatalogApi = new TntCatalogApi(clientV2, locationMarketingPlanCache, marketingPlanItemsCache);
 
         tntCatalogApi.batchUpsertCategoriesFromDatabaseToSquare();

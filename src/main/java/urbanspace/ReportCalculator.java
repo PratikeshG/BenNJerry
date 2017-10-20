@@ -6,116 +6,117 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import util.TimeManager;
-
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.Refund;
 import com.squareup.connect.Tender;
 
+import util.TimeManager;
+
 public class ReportCalculator {
 
-	private String timeZone;
-	private int offset;
-	private int range;
-	
-	public ReportCalculator(int range, int offset, String timeZone) {
-		this.range = range;
-		this.offset = offset;
-		this.timeZone = timeZone;
-	}
+    private String timeZone;
+    private int offset;
+    private int range;
 
-	public int totalTaxMoney(Payment[] payments) {
-    	int total = 0;
-        
+    public ReportCalculator(int range, int offset, String timeZone) {
+        this.range = range;
+        this.offset = offset;
+        this.timeZone = timeZone;
+    }
+
+    public int totalTaxMoney(Payment[] payments) {
+        int total = 0;
+
         if (payments != null) {
-	        for (Payment payment : payments) {
-	            if (payment.getTaxMoney() != null) {
-	                total += payment.getTaxMoney().getAmount();
-	            }
-	        }
+            for (Payment payment : payments) {
+                if (payment.getTaxMoney() != null) {
+                    total += payment.getTaxMoney().getAmount();
+                }
+            }
         }
-        
+
         return total;
     }
-    
-	public int totalTaxMoneyRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					total += refundsInRange.get(0).getRefundedAdditiveTaxMoney().getAmount() + refundsInRange.get(0).getRefundedInclusiveTaxMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
-    
+
+    public int totalTaxMoneyRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    total += refundsInRange.get(0).getRefundedAdditiveTaxMoney().getAmount()
+                            + refundsInRange.get(0).getRefundedInclusiveTaxMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
+
     public int totalTipMoney(Payment[] payments) {
         int total = 0;
-        
+
         if (payments != null) {
-	        for (Payment payment : payments) {
-	            if (payment.getTipMoney() != null) {
-	            	total += payment.getTipMoney().getAmount();
-	            }
-	        }
+            for (Payment payment : payments) {
+                if (payment.getTipMoney() != null) {
+                    total += payment.getTipMoney().getAmount();
+                }
+            }
         }
-        
+
         return total;
     }
 
-	public int totalTipMoneyRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					total += refundsInRange.get(0).getRefundedTipMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
+    public int totalTipMoneyRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
 
-	public int totalPartialRefundsRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refund : refundsInRange) {
-					if (refund.getType().equals("PARTIAL")) {
-						total += refund.getRefundedMoney().getAmount();
-					}
-				}
-			}
-		}
-		
-		return total;
-	}
-    
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    total += refundsInRange.get(0).getRefundedTipMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalPartialRefundsRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refund : refundsInRange) {
+                    if (refund.getType().equals("PARTIAL")) {
+                        total += refund.getRefundedMoney().getAmount();
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
     public int totalDiscountMoney(Payment[] payments) {
         int total = 0;
 
@@ -126,29 +127,29 @@ public class ReportCalculator {
                 }
             }
         }
-        
+
         return total;
     }
 
-	public int totalDiscountMoneyRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					total += refundsInRange.get(0).getRefundedDiscountMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
+    public int totalDiscountMoneyRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    total += refundsInRange.get(0).getRefundedDiscountMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
 
     public int totalTotalCollectedMoney(Payment[] payments) {
         int total = 0;
@@ -160,29 +161,29 @@ public class ReportCalculator {
                 }
             }
         }
-        
+
         return total;
     }
 
-	public int totalTotalCollectedMoneyRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refundInRange : refundsInRange) {
-					total += refundInRange.getRefundedMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
+    public int totalTotalCollectedMoneyRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refundInRange : refundsInRange) {
+                    total += refundInRange.getRefundedMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
 
     public int totalProcessingFeeMoney(Payment[] payments) {
         int total = 0;
@@ -194,326 +195,339 @@ public class ReportCalculator {
                 }
             }
         }
-        
+
         return total;
     }
 
-	public int totalProcessingFeeMoneyRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refundInRange : refundsInRange) {
-					total += refundInRange.getRefundedProcessingFeeMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
-    
+    public int totalProcessingFeeMoneyRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refundInRange : refundsInRange) {
+                    total += refundInRange.getRefundedProcessingFeeMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
+
     public int totalMoneyCollectedForTender(Payment[] payments, String tenderType) {
         int total = 0;
-        
+
         if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (Tender tender : payment.getTender()) {
-	                if (tenderType.equals(tender.getType())) {
-	                    if (tender.getTotalMoney() != null) {
-	                    	total += tender.getTotalMoney().getAmount();
-	                    }
-	                }
-	            }
-	        }
+            for (Payment payment : payments) {
+                for (Tender tender : payment.getTender()) {
+                    if (tenderType.equals(tender.getType())) {
+                        if (tender.getTotalMoney() != null) {
+                            total += tender.getTotalMoney().getAmount();
+                        }
+                    }
+                }
+            }
         }
-        
+
         return total;
     }
 
-	public int totalMoneyCollectedForTenderRefunds(Payment[] refundPayments, String tenderType) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refundInRange : refundsInRange) {
-					for (Tender tender : refundPayment.getTender()) {
-						if (refundInRange.getPaymentId().equals(tender.getId()) && tenderType.equals(tender.getType())) {
-							total += refundInRange.getRefundedMoney().getAmount();
-							break;
-						}
-					}
-				}
-			}
-		}
-		
-		return total;
-	}
-    
+    public int totalMoneyCollectedForTenderRefunds(Payment[] refundPayments, String tenderType) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refundInRange : refundsInRange) {
+                    for (Tender tender : refundPayment.getTender()) {
+                        if (refundInRange.getPaymentId().equals(tender.getId())
+                                && tenderType.equals(tender.getType())) {
+                            total += refundInRange.getRefundedMoney().getAmount();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
     public int totalMoneyCollectedForGiftCards(Payment[] payments) {
-    	int total = 0;
-    	
-    	if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-	                if (paymentItemization.getItemizationType().contains("GIFT_CARD") && paymentItemization.getTotalMoney() != null) {
-	                	total += paymentItemization.getGrossSalesMoney().getAmount();
-	                }
-	            }
-	        }
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                for (PaymentItemization paymentItemization : payment.getItemizations()) {
+                    if (paymentItemization.getItemizationType().contains("GIFT_CARD")
+                            && paymentItemization.getTotalMoney() != null) {
+                        total += paymentItemization.getGrossSalesMoney().getAmount();
+                    }
+                }
+            }
         }
-        
+
         return total;
     }
-    
-	public int totalMoneyCollectedForGiftCardsRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
-		                if (paymentItemization.getItemizationType().contains("GIFT_CARD") && paymentItemization.getTotalMoney() != null) {
-		                	total -= paymentItemization.getGrossSalesMoney().getAmount();
-		                }
-		            }
-				}
-			}
-		}
-		
-		return total;
-	}
-	
-	public int totalGrossSales(Payment[] payments) {
-		int total = 0;
-		
-		if (payments != null) {
-			for (Payment payment : payments) {
-				total += payment.getTotalCollectedMoney().getAmount() - payment.getDiscountMoney().getAmount() - payment.getTaxMoney().getAmount() - payment.getTipMoney().getAmount();
-			}
-		}
-		
-		return total;
-	}
 
-	public int totalGrossSalesRefunds(Payment[] refundPayments) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					Refund refundInRange = refundsInRange.get(0);
-					total += refundInRange.getRefundedMoney().getAmount() - refundInRange.getRefundedDiscountMoney().getAmount() - refundInRange.getRefundedAdditiveTaxMoney().getAmount() - refundInRange.getRefundedInclusiveTaxMoney().getAmount() - refundInRange.getRefundedTipMoney().getAmount();
-				}
-			}
-		}
-		
-		return total;
-	}
-	
-	public int totalMoneyCollectedForCardEntryMethod(Payment[] payments, String method) {
-	    int total = 0;
-	    
-	    if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (Tender tender : payment.getTender()) {
-	                if (method.equals(tender.getEntryMethod())) {
-	                    if (tender.getTotalMoney() != null) {
-	                        total += tender.getTotalMoney().getAmount();
-	                    }
-	                }
-	            }
-	        }
-	    }
-	    
-	    return total;
-	}
-	
-	public int totalMoneyCollectedForCardEntryMethodRefunds(Payment[] refundPayments, String method) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refundInRange : refundsInRange) {
-					for (Tender tender : refundPayment.getTender()) {
-						if (refundInRange.getPaymentId().equals(tender.getId()) && method.equals(tender.getEntryMethod())) {
-							total += refundInRange.getRefundedMoney().getAmount();
-							break;
-						}
-					}
-				}
-			}
-		}
-		
-		return total;
-	}
+    public int totalMoneyCollectedForGiftCardsRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
 
-	public int totalMoneyCollectedForCardBrand(Payment[] payments, String brand) {
-	    int total = 0;
-	    
-	    if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (Tender tender : payment.getTender()) {
-	                if (brand.equals(tender.getCardBrand())) {
-	                    if (tender.getTotalMoney() != null) {
-	                        total += tender.getTotalMoney().getAmount();
-	                    }
-	                }
-	            }
-	        }
-	    }
-	    
-	    return total;
-	}
-	
-	public int totalMoneyCollectedForCardBrandRefunds(Payment[] refundPayments, String brand) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				for (Refund refundInRange : refundsInRange) {
-					for (Tender tender : refundPayment.getTender()) {
-						if (refundInRange.getPaymentId().equals(tender.getId()) && brand.equals(tender.getCardBrand())) {
-							total += refundInRange.getRefundedMoney().getAmount();
-							break;
-						}
-					}
-				}
-			}
-		}
-		
-		return total;
-	}
-	
-	public int totalMoneyCollectedForCategory(Payment[] payments, String category) {
-		int total = 0;
-		
-		if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-	            	if (category.equals(paymentItemization.getItemDetail().getCategoryName())) {
-	            		total += paymentItemization.getGrossSalesMoney().getAmount();
-	            	}
-	            }
-	        }
-	    }
-		
-		return total;
-	}
-	
-	public int totalMoneyCollectedForCategoryRefunds(Payment[] refundPayments, String category) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
-		                if (category.equals(paymentItemization.getItemDetail().getCategoryName()) && paymentItemization.getTotalMoney() != null) {
-		                	total -= paymentItemization.getGrossSalesMoney().getAmount();
-		                }
-		            }
-				}
-			}
-		}
-		
-		return total;
-	}
-	
-	public int totalMoneyCollectedForDiscount(Payment[] payments, String discount) {
-		int total = 0;
-		
-		if (payments != null) {
-	        for (Payment payment : payments) {
-	            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-	            	for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
-	            		if (discount.equals(paymentDiscount.getName())) {
-	            			total += paymentDiscount.getAppliedMoney().getAmount();
-	            		}
-	            	}
-	            }
-	        }
-	    }
-		
-		return total;
-	}
-	
-	public int totalMoneyCollectedForDiscountRefunds(Payment[] refundPayments, String discount) throws ParseException {
-		int total = 0;
-		
-		Map<String,String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
-		Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
-		Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
-		
-		if (refundPayments != null) {
-			for (Payment refundPayment : refundPayments) {
-				List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
-				
-				if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-					for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
-						for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
-		            		if (discount.equals(paymentDiscount.getName())) {
-		            			total -= paymentDiscount.getAppliedMoney().getAmount();
-		            		}
-		            	}
-		            }
-				}
-			}
-		}
-		
-		return total;
-	}
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
 
-	private List<Refund> getRefundsInRange(Calendar beginTime, Calendar endTime, Payment refundPayment) throws ParseException {
-		List<Refund> refundsInRange = new LinkedList<Refund>();
-		
-		for (Refund refund : refundPayment.getRefunds()) {
-			Calendar refundTime = TimeManager.toCalendar(refund.getCreatedAt());
-			if (beginTime.compareTo(refundTime) <= 0 && endTime.compareTo(refundTime) >= 0) {
-				refundsInRange.add(refund);
-			}
-		}
-		
-		return refundsInRange;
-	}
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
+                        if (paymentItemization.getItemizationType().contains("GIFT_CARD")
+                                && paymentItemization.getTotalMoney() != null) {
+                            total -= paymentItemization.getGrossSalesMoney().getAmount();
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalGrossSales(Payment[] payments) {
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                total += payment.getTotalCollectedMoney().getAmount() - payment.getDiscountMoney().getAmount()
+                        - payment.getTaxMoney().getAmount() - payment.getTipMoney().getAmount();
+            }
+        }
+
+        return total;
+    }
+
+    public int totalGrossSalesRefunds(Payment[] refundPayments) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    Refund refundInRange = refundsInRange.get(0);
+                    total += refundInRange.getRefundedMoney().getAmount()
+                            - refundInRange.getRefundedDiscountMoney().getAmount()
+                            - refundInRange.getRefundedAdditiveTaxMoney().getAmount()
+                            - refundInRange.getRefundedInclusiveTaxMoney().getAmount()
+                            - refundInRange.getRefundedTipMoney().getAmount();
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCardEntryMethod(Payment[] payments, String method) {
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                for (Tender tender : payment.getTender()) {
+                    if (method.equals(tender.getEntryMethod())) {
+                        if (tender.getTotalMoney() != null) {
+                            total += tender.getTotalMoney().getAmount();
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCardEntryMethodRefunds(Payment[] refundPayments, String method)
+            throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refundInRange : refundsInRange) {
+                    for (Tender tender : refundPayment.getTender()) {
+                        if (refundInRange.getPaymentId().equals(tender.getId())
+                                && method.equals(tender.getEntryMethod())) {
+                            total += refundInRange.getRefundedMoney().getAmount();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCardBrand(Payment[] payments, String brand) {
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                for (Tender tender : payment.getTender()) {
+                    if (brand.equals(tender.getCardBrand())) {
+                        if (tender.getTotalMoney() != null) {
+                            total += tender.getTotalMoney().getAmount();
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCardBrandRefunds(Payment[] refundPayments, String brand) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                for (Refund refundInRange : refundsInRange) {
+                    for (Tender tender : refundPayment.getTender()) {
+                        if (refundInRange.getPaymentId().equals(tender.getId())
+                                && brand.equals(tender.getCardBrand())) {
+                            total += refundInRange.getRefundedMoney().getAmount();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCategory(Payment[] payments, String category) {
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                for (PaymentItemization paymentItemization : payment.getItemizations()) {
+                    if (category.equals(paymentItemization.getItemDetail().getCategoryName())) {
+                        total += paymentItemization.getGrossSalesMoney().getAmount();
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForCategoryRefunds(Payment[] refundPayments, String category) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
+                        if (category.equals(paymentItemization.getItemDetail().getCategoryName())
+                                && paymentItemization.getTotalMoney() != null) {
+                            total -= paymentItemization.getGrossSalesMoney().getAmount();
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForDiscount(Payment[] payments, String discount) {
+        int total = 0;
+
+        if (payments != null) {
+            for (Payment payment : payments) {
+                for (PaymentItemization paymentItemization : payment.getItemizations()) {
+                    for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
+                        if (discount.equals(paymentDiscount.getName())) {
+                            total += paymentDiscount.getAppliedMoney().getAmount();
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    public int totalMoneyCollectedForDiscountRefunds(Payment[] refundPayments, String discount) throws ParseException {
+        int total = 0;
+
+        Map<String, String> beginEndTime = TimeManager.getPastDayInterval(range, offset, timeZone);
+        Calendar beginTime = TimeManager.toCalendar(beginEndTime.get("begin_time"));
+        Calendar endTime = TimeManager.toCalendar(beginEndTime.get("end_time"));
+
+        if (refundPayments != null) {
+            for (Payment refundPayment : refundPayments) {
+                List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
+
+                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
+                    for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
+                        for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
+                            if (discount.equals(paymentDiscount.getName())) {
+                                total -= paymentDiscount.getAppliedMoney().getAmount();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    private List<Refund> getRefundsInRange(Calendar beginTime, Calendar endTime, Payment refundPayment)
+            throws ParseException {
+        List<Refund> refundsInRange = new LinkedList<Refund>();
+
+        for (Refund refund : refundPayment.getRefunds()) {
+            Calendar refundTime = TimeManager.toCalendar(refund.getCreatedAt());
+            if (beginTime.compareTo(refundTime) <= 0 && endTime.compareTo(refundTime) >= 0) {
+                refundsInRange.add(refund);
+            }
+        }
+
+        return refundsInRange;
+    }
 }

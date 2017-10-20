@@ -14,6 +14,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
@@ -24,6 +25,9 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class DepositsAggregateCallable implements Callable {
+
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -42,9 +46,9 @@ public class DepositsAggregateCallable implements Callable {
         builder.append("\"Date\",\"Deposit ID\",\"Store Number\",\"Amount\"\n");
 
         for (SquarePayload deployment : deploymentPayloads) {
-            SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(), apiUrl, apiVersion,
+            SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                     deployment.getMerchantId(), deployment.getLocationId());
-            SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(),
+            SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
                     deployment.getMerchantId(), deployment.getLocationId());
 
             Location location = squareV2Client.locations().retrieve(deployment.getLocationId());

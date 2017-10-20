@@ -9,6 +9,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
@@ -19,26 +20,15 @@ public class TlogUploadToSftpCallable implements Callable {
     private static final String TLOG_PREFIX = "SA";
     private static final String TLOG_SUFFIX = ".NEW";
 
+    @Value("${vfcorp.sftp.host}")
     private String sftpHost;
+    @Value("${vfcorp.sftp.port}")
     private int sftpPort;
+    @Value("${vfcorp.sftp.username}")
     private String sftpUser;
+    @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
 
-    public void setSftpHost(String sftpHost) {
-        this.sftpHost = sftpHost;
-    }
-
-    public void setSftpPort(int sftpPort) {
-        this.sftpPort = sftpPort;
-    }
-
-    public void setSftpUser(String sftpUser) {
-        this.sftpUser = sftpUser;
-    }
-
-    public void setSftpPassword(String sftpPassword) {
-        this.sftpPassword = sftpPassword;
-    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {

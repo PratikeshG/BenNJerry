@@ -16,6 +16,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.lifecycle.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -24,50 +25,24 @@ import com.jcraft.jsch.SftpException;
 import util.TimeManager;
 
 public class PollSFTPCallable implements Callable {
-    // logger
     private static Logger logger = LoggerFactory.getLogger(PollSFTPCallable.class);
 
-    // sftp config
+    @Value("${tntfireworks.sftp.host}")
     private static String sftpHost;
+    @Value("${tntfireworks.sftp.port}")
     private static int sftpPort;
+    @Value("${tntfireworks.sftp.username}}")
     private static String sftpUser;
+    @Value("${tntfireworks.sftp.password}")
     private static String sftpPassword;
+    @Value("${tntfireworks.sftp.inputpath}")
     private static String sftpBasePath;
+    @Value("${tntfireworks.sftp.basepath}")
     private static String sftpArchivePath;
+    @Value("${tntfireworks.sftp.archivepath}")
     private static String sftpInputPath;
+    @Value("${tntfireworks.sftp.processingpath}")
     private static String sftpProcessingPath;
-
-    public void setSftpHost(String sftpHost) {
-        this.sftpHost = sftpHost;
-    }
-
-    public void setSftpPort(int sftpPort) {
-        this.sftpPort = sftpPort;
-    }
-
-    public void setSftpUser(String sftpUser) {
-        this.sftpUser = sftpUser;
-    }
-
-    public void setSftpPassword(String sftpPassword) {
-        this.sftpPassword = sftpPassword;
-    }
-
-    public void setSftpBasePath(String sftpBasePath) {
-        this.sftpBasePath = sftpBasePath;
-    }
-
-    public void setSftpArchivePath(String sftpArchivePath) {
-        this.sftpArchivePath = sftpArchivePath;
-    }
-
-    public void setSftpInputPath(String sftpInputPath) {
-        this.sftpInputPath = sftpInputPath;
-    }
-
-    public void setSftpProcessingPath(String sftpProcessingPath) {
-        this.sftpProcessingPath = sftpProcessingPath;
-    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
