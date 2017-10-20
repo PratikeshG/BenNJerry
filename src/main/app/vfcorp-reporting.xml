@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -13,7 +13,8 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
 http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
-http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
     <vm:connector name="VFC_VM_Loyalty" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_Loyalty_Async_Processing_Strategy" maxThreads="${vfcorp.loyalty.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
     <sftp:connector name="SFTP-VFC-reporting" validateConnections="true" doc:name="SFTP"/>
@@ -75,13 +76,13 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <component doc:name="Daily Summary Logic">
             <prototype-object class="vfcorp.reporting.DailySummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML"  from="Square Bridge" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" bcc="${vfcorp.tnf.summary.email}"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML"  from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${vfcorp.tnf.summary.email}"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-daily-category-summary-email">
         <component doc:name="Daily Category Summary Logic">
             <prototype-object class="vfcorp.reporting.DailyCategoriesSummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" from="Square Bridge" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" bcc="${vfcorp.tnf.summary.email}" responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary" to="${vfcorp.tnf.summary.email}"/>
     </sub-flow>
     <flow name="VFC:TNF:trigger-generate-loyalty-file">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
@@ -121,7 +122,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
         <component doc:name="Deposits Aggregation Logic">
             <prototype-object class="vfcorp.reporting.DepositsAggregateCallable"/>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="#[sessionVars.emails]" from="Square Bridge" subject="#['TNF Square Deposits - generated ' + server.dateTime.format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Summary"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="#[sessionVars.emails]" from="${email.info.sending.from.reports}" subject="#['TNF Square Deposits - generated ' + server.dateTime.format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Summary"/>
         <set-payload value="Deposits Report generated for #[sessionVars.emails]" doc:name="Set Payload"/>
     </flow>
 </mule>
