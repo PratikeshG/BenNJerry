@@ -28,7 +28,7 @@ public class EncryptDatabaseAccessTokens {
     private static Logger logger = LoggerFactory.getLogger(EncryptDatabaseAccessTokens.class);
 
     public static void main(String[] args) throws Exception {
-        logger.info("Running script to encrypt database tokensX...");
+        logger.info("Running script to encrypt database tokens...");
 
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
