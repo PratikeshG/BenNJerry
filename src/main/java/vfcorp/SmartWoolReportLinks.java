@@ -7,6 +7,7 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
@@ -15,6 +16,8 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class SmartWoolReportLinks implements Callable {
+	@Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -26,7 +29,7 @@ public class SmartWoolReportLinks implements Callable {
 
         // set SquareClientV2 for API calls
         SquarePayload payload = (SquarePayload) message.getPayload();
-        SquareClientV2 client = new SquareClientV2(apiUrl, payload.getAccessToken(), payload.getMerchantId());
+        SquareClientV2 client = new SquareClientV2(apiUrl, payload.getAccessToken(this.encryptionKey), payload.getMerchantId());
 
         // final payload as emailBody in html
         StringBuilder emailBody = new StringBuilder();

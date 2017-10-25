@@ -59,8 +59,8 @@ public class PluSyncToDatabaseCallable implements Callable {
                 .getProperty("pluSyncToDatabaseRequest", PropertyScope.INVOCATION);
 
         String deploymentId = pluSyncToDatabaseRequest.getDeployment().getDeployment();
-        String merchantId = pluSyncToDatabaseRequest.getDeployment().getMerchantId();
-        String locationId = pluSyncToDatabaseRequest.getDeployment().getLocationId();
+        String merchantId = pluSyncToDatabaseRequest.getDeployment().getSquarePayload().getMerchantId();
+        String locationId = pluSyncToDatabaseRequest.getDeployment().getSquarePayload().getLocationId();
 
         InputStream is = message.getProperty("pluInputStream", PropertyScope.INVOCATION);
         BufferedInputStream bis = new BufferedInputStream(is);
