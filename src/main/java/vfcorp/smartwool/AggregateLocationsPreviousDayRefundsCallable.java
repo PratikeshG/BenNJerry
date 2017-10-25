@@ -20,6 +20,8 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 	private String VAR_RANGE;
 	@Value("${vfcorp.smartwool.offset}")
 	private String VAR_OFFSET;
+	@Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
 	private final String VAR_APIURL = "apiUrl";
 	private final String VAR_CREATED_AT = "createdAt";
@@ -40,7 +42,7 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 
 		String apiUrl = message.getProperty(VAR_APIURL, PropertyScope.SESSION);
 		String merchantId = merchantDetails.getMerchantId();
-		String accessToken = merchantDetails.getAccessToken();
+		String accessToken = merchantDetails.getAccessToken(this.encryptionKey);
 
 		int range = Integer.parseInt(VAR_RANGE);
 		int offset = Integer.parseInt(VAR_OFFSET);

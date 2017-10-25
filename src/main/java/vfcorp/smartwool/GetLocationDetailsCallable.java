@@ -24,6 +24,8 @@ public class GetLocationDetailsCallable implements Callable {
 	private String VAR_RANGE;
 	@Value("${vfcorp.smartwool.offset}")
 	private String VAR_OFFSET;
+	@Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
 	private final String VAR_APIURL = "apiUrl";
 	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
@@ -43,7 +45,7 @@ public class GetLocationDetailsCallable implements Callable {
 
 		String apiUrl = message.getProperty(VAR_APIURL, PropertyScope.SESSION);
 		String merchantId = merchantDetails.getMerchantId();
-		String accessToken = merchantDetails.getAccessToken();
+		String accessToken = merchantDetails.getAccessToken(this.encryptionKey);
 
 		SquareClientV2 client = new SquareClientV2(apiUrl, accessToken, merchantId);
 		merchantDetails.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
