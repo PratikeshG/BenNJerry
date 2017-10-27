@@ -1,0 +1,14 @@
+{
+    "account_capabilities": [
+        "EMPLOYEE_MANAGEMENT",
+        "TIMECARD_MANAGEMENT"
+    ],
+    "id": "FE9Y3Q6AEFD4M",
+    "name": "Test Business Name",
+    "email": "test@squareup.com",
+    "country_code": "US",
+    "language_code": "en-US",
+    "business_type": "OTHER",
+    "account_type": "BUSINESS",
+    "currency_code": "USD"
+}
