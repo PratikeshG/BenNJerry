@@ -34,12 +34,14 @@
 								netTotalMoney: $.netTotalMoney,
 								grossSalesMoney: $.grossSalesMoney,
 								netSalesMoney: $.netSalesMoney,
-								inclusiveTaxes: {
-									inclusiveTax: $.appliedMoney
+								inclusiveTax: {
+									($.inclusiveTax default [] map {
+										inclusiveTax: ($)
+									})
 								},
 								additiveTax: {
 									($.additiveTax default [] map {
-										additiveTax: $.additiveTax
+										additiveTax: ($)
 									})
 								},
 								tenders: {
