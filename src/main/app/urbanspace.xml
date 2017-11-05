@@ -73,7 +73,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-payload value="Done." doc:name="Set Payload"/>
     </flow>
     <flow name="Urbanspace:Broadway-Bites">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-bbites-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-bbites-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -93,7 +93,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Madison-Square-Eats">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-mse-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-mse-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -113,7 +113,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Times-Square">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-timessquare-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-timessquare-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -133,7 +133,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Vanderbilt">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-vanderbilt-1492553488" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-vanderbilt-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -153,7 +153,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Garment-District">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-garment-1490537532" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-garment-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -173,7 +173,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Bryant-Park">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-bryantpark-1490537531" cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-bryantpark-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -193,7 +193,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Roosevelt">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-roosevelt-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)" connector-ref="Quartz-Urbanspace">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-roosevelt-1509907119 " cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -213,7 +213,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:Turnstyle">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-turnstyle-1490537531 " cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-turnstyle-1509907119 " cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
@@ -233,7 +233,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="Urbanspace:NYPL">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1490537532" cronExpression="0 0 7 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 7:00am UTC (2:00am EST)">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="active?">
