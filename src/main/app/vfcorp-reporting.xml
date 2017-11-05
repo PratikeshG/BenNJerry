@@ -58,14 +58,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-variable variableName="deploymentPattern" value="vfcorp-tnf-%" doc:name="deploymentPattern vfcorp-tnf-%"/>
         <flow-ref name="VFC:generate-aggregate-transactions-report" doc:name="VFC:generate-aggregate-transactions-report"/>
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
         <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
+        <set-variable variableName="archiveFolder" value="TNF/LOYALTY/" doc:name="archiveFolder"/>
         <component doc:name="Aggregate and process all locations">
             <prototype-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
         </component>
-        <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
         </sftp:outbound-endpoint>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
         <flow-ref name="VFC:TNF:generate-daily-summary-email" doc:name="VFC:TNF:generate-daily-summary-email"/>
         <flow-ref name="VFC:TNF:generate-daily-category-summary-email" doc:name="VFC:TNF:generate-daily-category-summary-email"/>
         <set-payload value="#['Done processing ' + flowVars.filenameDateStamp]" doc:name="Set Payload"/>

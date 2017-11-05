@@ -18,6 +18,12 @@
 	<classpathentry kind="lib" path="resources/mule-module-security-property-placeholder-1.6.1.jar"/>
 	<classpathentry kind="lib" path="resources/jsonassert-1.4.0.jar"/>
 	<classpathentry kind="lib" path="resources/jasypt-1.9.2.jar"/>
+	<classpathentry kind="lib" path="resources/google-api-client-1.22.0.jar"/>
+	<classpathentry kind="lib" path="resources/google-api-services-storage-v1-rev112-1.22.0.jar"/>
+	<classpathentry kind="lib" path="resources/google-http-client-1.22.0.jar"/>
+	<classpathentry kind="lib" path="resources/google-oauth-client-1.22.0.jar"/>
+	<classpathentry kind="lib" path="resources/jsr305-1.3.9.jar"/>
+	<classpathentry kind="lib" path="resources/google-http-client-jackson2-1.22.0.jar"/>
 	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.9.0.ee"/>
 	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>

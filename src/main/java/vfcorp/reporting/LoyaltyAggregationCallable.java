@@ -11,6 +11,7 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
@@ -18,12 +19,18 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
 import com.squareup.connect.v2.Transaction;
 
+import util.CloudStorageApi;
 import vfcorp.Util;
 
 public class LoyaltyAggregationCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(LoyaltyAggregationCallable.class);
 
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
+
+    @Value("${google.storage.bucket.archive}")
+    private String archiveBucket;
+    @Value("${google.storage.account.credentials}")
+    private String storageCredentials;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -37,7 +44,6 @@ public class LoyaltyAggregationCallable implements Callable {
 
         // Temporary use this loyalty process to generate daily email summaries
         // TODO(bhartard): Remove once emails are no longer required by VFC
-        // corporate
         message.setProperty("transactionDetailsByLocation", transactionDetailsByLocation, PropertyScope.INVOCATION);
 
         HashMap<String, LoyaltyEntryPayload> loyaltyPayloadSet = new HashMap<String, LoyaltyEntryPayload>();
@@ -120,6 +126,17 @@ public class LoyaltyAggregationCallable implements Callable {
             builder.append(entry.toString() + "\r\n");
         }
 
-        return builder.toString();
+        String output = builder.toString();
+        String filenameDateStamp = message.getProperty("filenameDateStamp", PropertyScope.INVOCATION);
+
+        // Archive to Google Cloud Storage
+        String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
+        String archiveFolder = message.getProperty("archiveFolder", PropertyScope.INVOCATION);
+        String fileKey = String.format("%s%s.secure", archiveFolder, filenameDateStamp);
+
+        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
+        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, output);
+
+        return output;
     }
 }

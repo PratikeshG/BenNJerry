@@ -132,10 +132,6 @@ public class PollSFTPCallable implements Callable {
                 // create request object to be processed by VM
                 SyncToDatabaseRequest newRequest = new SyncToDatabaseRequest(currentFilename, processingFilename,
                         processingFullPath, archiveFullPath);
-                newRequest.setSftpHost(sftpHost);
-                newRequest.setSftpPort(sftpPort);
-                newRequest.setSftpUser(sftpUser);
-                newRequest.setSftpPassword(sftpPassword);
 
                 sftpRequests.add(newRequest);
             }
