@@ -76,6 +76,26 @@ public class TimeManager {
         return m;
     }
 
+    public static Map<String, String> getYearToDateInterval(String timeZoneId) {
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZoneId));
+
+        String endTime = toIso8601(c, timeZoneId);
+
+        c.set(Calendar.MILLISECOND, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.DAY_OF_YEAR, 1);
+
+        String beginTime = toIso8601(c, timeZoneId);
+
+        HashMap<String, String> m = new HashMap<String, String>();
+        m.put("begin_time", beginTime);
+        m.put("end_time", endTime);
+
+        return m;
+    }
+
     public static Map<String, String> getPastTimeInterval(int seconds, int offset, String timeZoneId) {
         // timeZoneId is expected to be "GMT-08:00", or something similar, as
         // outlined at

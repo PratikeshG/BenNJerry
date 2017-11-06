@@ -38,8 +38,8 @@ public class DailySummaryCallable implements Callable {
         builder.append("<td><b>Unique Devices</b></td>");
         builder.append("<td><b>Unique Employees</b></td>");
         builder.append("<td><b>Loyalty Customers</b></td>");
-        builder.append("<td><b>Cumulative Transactions</b></td>");
-        builder.append("<td><b>Cumulative Sales</b></td>");
+        builder.append("<td><b>YTD Transactions</b></td>");
+        builder.append("<td><b>YTD Sales</b></td>");
         builder.append("</tr>");
 
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
@@ -84,15 +84,15 @@ public class DailySummaryCallable implements Callable {
             }
             int numCustomers = customerCache.size();
 
-            int cumulativeTransactions = 0;
-            int cumulativeGPV = 0;
-            for (Payment cumulativePayment : locationTransactionDetails.getCumulativePayments()) {
-                cumulativeTransactions += 1;
-                cumulativeGPV += cumulativePayment.getGrossSalesMoney().getAmount();
+            int yearToDateTransactions = 0;
+            int yearToDateGPV = 0;
+            for (Payment yearToDatePayment : locationTransactionDetails.getYearToDatePayments()) {
+                yearToDateTransactions += 1;
+                yearToDateGPV += yearToDatePayment.getGrossSalesMoney().getAmount();
             }
 
             builder.append(appendRow(locationTransactionDetails.getLocation().getName(), numTransactions, totalGPV,
-                    numDevices, numEmployees, numCustomers, cumulativeTransactions, cumulativeGPV));
+                    numDevices, numEmployees, numCustomers, yearToDateTransactions, yearToDateGPV));
         }
 
         builder.append("</table></body></html>");
@@ -100,11 +100,11 @@ public class DailySummaryCallable implements Callable {
     }
 
     private String appendRow(String store, int numTransactions, int totalGPV, int numDevices, int numEmployees,
-            int numCustomers, int cumulativeTransactions, int cumulativeGPV) {
+            int numCustomers, int yearToDateTransactions, int yearToDateGPV) {
         return String.format(
                 "<tr><td>%s</td><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%s</td></tr>",
                 store, numTransactions, formatTotal(totalGPV), numDevices, numEmployees, numCustomers,
-                cumulativeTransactions, formatTotal(cumulativeGPV));
+                yearToDateTransactions, formatTotal(yearToDateGPV));
     }
 
     private String formatTotal(int gpv) {

@@ -24,7 +24,7 @@
 	<classpathentry kind="lib" path="resources/google-oauth-client-1.22.0.jar"/>
 	<classpathentry kind="lib" path="resources/jsr305-1.3.9.jar"/>
 	<classpathentry kind="lib" path="resources/google-http-client-jackson2-1.22.0.jar"/>
-	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.9.0.ee"/>
+	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.8.0.ee"/>
 	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
 	<classpathentry kind="output" path="target/classes"/>

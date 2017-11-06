@@ -113,49 +113,49 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
     </sub-flow>
     <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-hawaii-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="Pacific/Honolulu">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-hawaii-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="Pacific/Honolulu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-ALASKA" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-alaska-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm AKDT / 12:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Anchorage">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-alaska-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm AKDT / 12:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Anchorage">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-alaska" doc:name="Set deploymentGroup: tnf-alaska"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-west-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-west-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-CENTRAL" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-central-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Chicago">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-central-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Chicago">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-east-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-east-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Kipling:tlog-trigger-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-east-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-east-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="kipling-east" doc:name="Set deploymentGroup: kipling-east"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Nautica:tlog-trigger-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-nautica-east-1509907119" cronExpression="0 30 11 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-nautica-east-1509921313" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="nautica-east" doc:name="Set deploymentGroup: nautica-east"/>
