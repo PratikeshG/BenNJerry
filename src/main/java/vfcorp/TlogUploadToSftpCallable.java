@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
 
+import util.CloudStorageApi;
 import util.TimeManager;
 
 public class TlogUploadToSftpCallable implements Callable {
@@ -29,6 +30,10 @@ public class TlogUploadToSftpCallable implements Callable {
     @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
 
+    @Value("${google.storage.bucket.archive}")
+    private String archiveBucket;
+    @Value("${google.storage.account.credentials}")
+    private String storageCredentials;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -41,11 +46,20 @@ public class TlogUploadToSftpCallable implements Callable {
         VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
         String storeforceArchiveDirectory = message.getProperty("storeforceArchiveDirectory", PropertyScope.INVOCATION);
 
+        String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
+
+        // Archive to Google Cloud Storage
+        String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
+        String cloudArchiveFolder = message.getProperty("cloudArchiveFolder", PropertyScope.INVOCATION);
+        String fileKey = String.format("%s%s.secure", cloudArchiveFolder, uploadPattern);
+
+        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
+        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
+
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
-        String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
         InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
         sftpChannel.cd(deployment.getTlogPath());
         sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);

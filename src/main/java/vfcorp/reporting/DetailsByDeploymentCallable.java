@@ -110,12 +110,11 @@ public class DetailsByDeploymentCallable implements Callable {
             }
         }
 
-        // V1 Cumulative Payments - ignore no-sale and cash-only payments -
-        // lookback 365 days
-        Map<String, String> cumulativeParams = TimeManager.getPastDayInterval(365, 1, location.getTimezone());
-        Payment[] allCumulativePayments = squareV1Client.payments().list(cumulativeParams);
-        List<Payment> validCumulativePayments = new ArrayList<Payment>();
-        for (Payment payment : allCumulativePayments) {
+        // V1 YTD Payments - ignore no-sale and cash-only payments
+        Map<String, String> yearToDateParams = TimeManager.getYearToDateInterval(location.getTimezone());
+        Payment[] allYearToDatePayments = squareV1Client.payments().list(yearToDateParams);
+        List<Payment> validYearToDatePayments = new ArrayList<Payment>();
+        for (Payment payment : allYearToDatePayments) {
             boolean hasValidPaymentTender = false;
             for (com.squareup.connect.Tender tender : payment.getTender()) {
                 if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
@@ -123,14 +122,14 @@ public class DetailsByDeploymentCallable implements Callable {
                 }
             }
             if (hasValidPaymentTender) {
-                validCumulativePayments.add(payment);
+                validYearToDatePayments.add(payment);
             }
         }
 
         LocationTransactionDetails details = new LocationTransactionDetails(location,
                 validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), employees,
                 customers);
-        details.setCumulativePayments(validCumulativePayments.toArray(new Payment[0]));
+        details.setYearToDatePayments(validYearToDatePayments.toArray(new Payment[0]));
 
         return details;
     }

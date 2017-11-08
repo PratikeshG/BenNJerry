@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-payload value="Ran PLU SFTP Cron" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:plu-sync-to-database" processingStrategy="VFC_PLU_SyncToDatabase_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vm://vfc-plu-sync-to-db"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-plu-sync-to-db" connector-ref="VFC_VM_PLU" name="vfcPLUSyncVM" doc:name="vfcPLUSyncVM"/>
         <logger message="Initiating PLU (#[payload.getOriginalFileName()]) ingestion for deployment #[payload.getDeployment().getDeployment()] -- with database updates" level="INFO" doc:name="Logger"/>
         <choice doc:name="Kipling, Nautica, TNF">
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-kipling-&quot;)]">
@@ -62,24 +62,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="Set encryptionKey"/>
             </otherwise>
         </choice>
-        <set-variable variableName="awsFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="AWS bucket folder"/>
-        <component doc:name="Prepare stream to move PLU from SFTP To AWS">
-            <prototype-object class="vfcorp.PluSyncToAwsPrepareCallable">
-		    	<property key="sftpHost" value="${vfcorp.sftp.host}"/>
-				<property key="sftpPort" value="${vfcorp.sftp.port}"/>
-                <property key="sftpUser" value="${vfcorp.sftp.username}"/>
-                <property key="sftpPassword" value="${vfcorp.sftp.password}"/>
-		    </prototype-object>
-        </component>
-        <logger message="Saving file to S3..." level="INFO" doc:name="Logger"/>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" content-ref="#[flowVars.pluStreamReaderAws]" doc:name="Initiate copy to Amazon S3"/>
-        <logger message="File saved to S3. Establishing new input stream from S3..." level="INFO" doc:name="Logger"/>
-        <s3:get-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.pluAwsKey]" doc:name="Read new stream from S3"/>
-        <set-variable variableName="pluInputStream" value="#[payload.objectContent]" doc:name="Save PLU stream reader"/>
-        <component doc:name="Close SFTP connections">
-            <singleton-object class="vfcorp.PluSyncToAwsCleanupCallable"/>
-        </component>
-        <logger message="Retrieved new inputStream from S3. Beginning syncing to database..." level="INFO" doc:name="Logger"/>
+        <set-variable variableName="archiveFolder" value="#[flowVars.brand + '/' + payload.getDeployment().getStoreId() + '/PLU']" doc:name="Archive bucket/folder"/>
         <component doc:name="Sync PLU To Database">
             <prototype-object class="vfcorp.PluSyncToDatabaseCallable"/>
         </component>
@@ -118,9 +101,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
         <flow name="VFC:Nautica:plu-trigger-database-to-square" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-nautica-PLU-daily-1490636326" cronExpression="0 0 8 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run every day at 4:00am EST / 8:00am UTC ">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for Nautica" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="nautica" doc:name="Set brand: nautica"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>

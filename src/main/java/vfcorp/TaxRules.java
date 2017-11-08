@@ -52,10 +52,8 @@ public class TaxRules {
 
     // OH
     private static boolean ENABLE_TNF_OH_TAX_HOLIDAY = false;
-    // private static final String TNF_OH_43 = "vfcorp-tnf-00043";
     private static final String TNF_OH_75 = "vfcorp-tnf-00075";
     private static final String TNF_OH_305 = "vfcorp-tnf-00305";
-    private static final String TNF_OH_320 = "vfcorp-tnf-00320";
     private static final int OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 7500;
     private static final int OH_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 2000;
 
@@ -162,10 +160,11 @@ public class TaxRules {
     // 1.95 Occupancy Tax
     public final static String TNF_NE_NEBRASKA_CROSSING = "vfcorp-tnf-00317";
 
-    // Columbus, OH TNF Stores #43
+    // Columbus, OH TNF Stores #43 and #320
     // 7.0 Sales Tax
     // 0.50 Mall Tax
     public final static String TNF_OH_COLUMBUS = "vfcorp-tnf-00043";
+    public final static String TNF_OH_COLUMBUS_OUTLET = "vfcorp-tnf-00320";
 
     // TODO(bhartard): Remove from source, load from DB or CSV
     private static final Set<String> TNF_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
@@ -366,7 +365,7 @@ public class TaxRules {
                 throw new Exception("Nebraska Crossing deployment with incorrect number of taxes: " + deployment);
             }
             return new String[] { taxes[0].getId(), taxes[1].getId() };
-        } else if (deployment.equals(TNF_OH_COLUMBUS)) {
+        } else if (deployment.equals(TNF_OH_COLUMBUS) || deployment.equals(TNF_OH_COLUMBUS_OUTLET)) {
             if (taxes.length != 2) {
                 throw new Exception("Columbus deployment with incorrect number of taxes: " + deployment);
             }
@@ -407,7 +406,7 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
-        } else if (deployment.equals(TNF_OH_75) || deployment.equals(TNF_OH_305) || deployment.equals(TNF_OH_320)) {
+        } else if (deployment.equals(TNF_OH_75) || deployment.equals(TNF_OH_305)) {
             if (taxes.length != 1) {
                 throw new Exception("OH with incorrect number of taxes: " + deployment);
             }

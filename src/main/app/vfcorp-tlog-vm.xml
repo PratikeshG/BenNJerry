@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-tlog"/>
     </quartz:connector>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
-        <set-variable variableName="awsFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="cloudArchiveFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.tnf.archive.enabled}" doc:name="enableTlogArchive"/>
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.tnf.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.tnf.loyalty.group.new}" doc:name="customerGroupNew"/>
@@ -28,7 +28,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
     </sub-flow>
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
-        <set-variable variableName="awsFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="cloudArchiveFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.kipling.archive.enabled}" doc:name="enableTlogArchive"/>
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.kipling.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.kipling.loyalty.group.new}" doc:name="customerGroupNew"/>
@@ -38,7 +38,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.kipling.encryption.key}" doc:name="encryptionKey"/>
     </sub-flow>
     <sub-flow name="VFC:Nautica:generate-tlog-for-location-settings">
-        <set-variable variableName="awsFolder" value="#['Nautica/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="AWS bucket folder"/>
+        <set-variable variableName="cloudArchiveFolder" value="#['Nautica/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.nautica.archive.enabled}" doc:name="enableTlogArchive"/>
         <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.nautica.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
         <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.nautica.loyalty.group.new}" doc:name="customerGroupNew"/>
@@ -80,7 +80,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </otherwise>
         </choice>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsFolder + '${vfcorp.tlog.namePrefix}' + flowVars.vfcorpStoreNumber + '${vfcorp.tlog.nameSuffix}']" content-ref="#[flowVars.tlog]" doc:name="Copy to Amazon S3"/>
         <component doc:name="Upload TLOG to archive and SFTP">
             <prototype-object class="vfcorp.TlogUploadToSftpCallable"/>
         </component>
