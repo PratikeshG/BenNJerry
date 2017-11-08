@@ -10,7 +10,7 @@
 			merchantName: sessionVars.merchantDetails.merchantAlias
 		},
 		locations: { (payload pluck ({
-			location: { 
+			(location: { 
 				locationId: ($$),
 				beginTime: sessionVars['locationDetailsMap'][($$)].begin_time,
 				endTime: sessionVars['locationDetailsMap'][($$)].end_time,
@@ -26,7 +26,7 @@
 						locationId: sessionVars.refundLocationMap[($.paymentId)]
 					}
 				})}
-			}
+			}) when (sizeOf $) > 0
 		}))}
 	}
 }

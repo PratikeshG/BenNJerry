@@ -1,9 +1,12 @@
 package util;
 
+import java.io.Serializable;
+
 import org.jasypt.util.text.BasicTextEncryptor;
 
-public class SquarePayload {
-    private String merchantId;
+public class SquarePayload implements Serializable {
+	private static final long serialVersionUID = 1L;
+	private String merchantId;
     private String locationId;
     private String encryptedAccessToken;
     private String merchantAlias;
