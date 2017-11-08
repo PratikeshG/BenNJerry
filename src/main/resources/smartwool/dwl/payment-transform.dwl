@@ -11,7 +11,7 @@
 		},
 		locations: {
 			(payload pluck ({
-				location: {
+				(location: {
 					locationId: ($$),
 					beginTime: sessionVars['locationDetailsMap'][($$)].begin_time,
 					endTime: sessionVars['locationDetailsMap'][($$)].end_time,
@@ -87,7 +87,7 @@
 							}
 						})
 					}
-				}
+				}) when (sizeOf $) > 0
 			}
 		))
 		}
