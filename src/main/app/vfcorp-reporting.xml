@@ -64,7 +64,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </component>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.tnf}${vfcorp.sftp.path.tnf.loyalty}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP">
-            <reconnect-forever/>
         </sftp:outbound-endpoint>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#['TNF/LOYALTY/' + flowVars.filenameDateStamp]" doc:name="Copy to Amazon S3"/>
         <flow-ref name="VFC:TNF:generate-daily-summary-email" doc:name="VFC:TNF:generate-daily-summary-email"/>
@@ -91,7 +90,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1490636322" cronExpression="0 0 10 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1509907119" cronExpression="0 0 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger message="ATTEMPTING TO RUN TNF loyalty..." level="INFO" doc:name="debug Logger"/>

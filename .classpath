@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.7.3.ee"/>
 	<classpathentry kind="src" path="src/main/app"/>
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry kind="src" path="src/main/resources"/>
@@ -9,18 +8,18 @@
 	<classpathentry kind="src" output="target/test-classes" path="src/test/resources"/>
 	<classpathentry kind="src" path="src/main/api"/>
 	<classpathentry exported="true" kind="lib" path="resources/mysql-connector-java-5.0.8-bin.jar"/>
-	<classpathentry exported="true" kind="con" path="MUNIT_RUNTIME"/>
-	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
 	<classpathentry exported="true" kind="con" path="MULE_LIB/ObjectStore/org.mule.tooling.ui.contribution.objectstore"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/connect-v1-java-sdk"/>
 	<classpathentry exported="true" kind="con" path="MULE_LIB/Secure Property Placeholder/org.mule.tooling.ui.contribution.secure-property-placeholder.3.5.0"/>
 	<classpathentry exported="true" kind="con" path="MULE_LIB/Amazon S3/org.mule.tooling.ui.contribution.s3.3.5.0"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/square-connect-v2-java-sdk"/>
-	<classpathentry kind="lib" path="resources/guava-gwt-22.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="resources/hibernate-validator-4.3.2.Final.jar"/>
 	<classpathentry kind="lib" path="resources/mockito-all-3.0.0-beta.1.jar"/>
 	<classpathentry kind="lib" path="resources/mule-module-security-property-placeholder-1.6.1.jar"/>
 	<classpathentry kind="lib" path="resources/jsonassert-1.4.0.jar"/>
 	<classpathentry kind="lib" path="resources/jasypt-1.9.2.jar"/>
+	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.9.0.ee"/>
+	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

@@ -28,21 +28,21 @@ public class PollSFTPCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PollSFTPCallable.class);
 
     @Value("${tntfireworks.sftp.host}")
-    private static String sftpHost;
+    private String sftpHost;
     @Value("${tntfireworks.sftp.port}")
-    private static int sftpPort;
-    @Value("${tntfireworks.sftp.username}}")
-    private static String sftpUser;
+    private int sftpPort;
+    @Value("${tntfireworks.sftp.username}")
+    private String sftpUser;
     @Value("${tntfireworks.sftp.password}")
-    private static String sftpPassword;
-    @Value("${tntfireworks.sftp.inputpath}")
-    private static String sftpBasePath;
+    private String sftpPassword;
     @Value("${tntfireworks.sftp.basepath}")
-    private static String sftpArchivePath;
+    private String sftpBasePath;
     @Value("${tntfireworks.sftp.archivepath}")
-    private static String sftpInputPath;
+    private String sftpArchivePath;
+    @Value("${tntfireworks.sftp.inputpath}")
+    private String sftpInputPath;
     @Value("${tntfireworks.sftp.processingpath}")
-    private static String sftpProcessingPath;
+    private String sftpProcessingPath;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
