@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -29,14 +29,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <logger message="Generating location file for bank account linking" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <component doc:name="GenerateBankLocationTokensCallable">
-                <prototype-object class="tntfireworks.GenerateBankLocationTokensCallable">    
+                <prototype-object class="tntfireworks.GenerateBankLocationTokensCallable">
                 <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
 	            <property key="databaseUser" value="${mysql.user}"/>
 	            <property key="databasePassword" value="${mysql.password}"/>
 	            <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>
 	            </prototype-object>
         </component>
-        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="Gmail_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="Source / Destination Location Tokens for Bank Account Linking" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="${email.info.sending.email}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${tntfireworks.saleseng.recipients}" from="Square Bridge" subject="Source / Destination Location Tokens for Bank Account Linking" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
         <set-payload value="Finished generating source/destination location ids for bank account linking (in SqWeb)" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:sftp-cron" processingStrategy="synchronous">
@@ -113,7 +113,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
         <logger message="#[&quot;Processing Catalog API updated for account: &quot; + payload.getLocationId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square API Updates">
-            <prototype-object class="tntfireworks.DatabaseToSquareCallable"/> 
+            <prototype-object class="tntfireworks.DatabaseToSquareCallable"/>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-aggregator" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-queue-aggregator"/>
     </flow>
@@ -123,4 +123,4 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_VM" doc:name="TNTFireworks:db-sync-reply"/>
     </flow>
 </mule>
- 
+
