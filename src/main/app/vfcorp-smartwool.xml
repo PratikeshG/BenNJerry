@@ -79,7 +79,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <dw:input-session-variable mimeType="application/java" variableName="merchantDetails" doc:sample="sample_data/list_Map.dwl"/>
             <dw:set-payload resource="classpath:smartwool/dwl/refund-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="Transfer to GC SFTP" duplicateHandling="overwrite"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" doc:name="Transfer to GC SFTP" duplicateHandling="overwrite"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-payments-file">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayPaymentsCallable" doc:name="VFC:SmartWool:Get-Payments" metadata:id="8d49463b-609d-4080-ad4d-4db87b90e477"/>
