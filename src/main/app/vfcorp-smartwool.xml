@@ -94,6 +94,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <dw:input-session-variable doc:sample="sample_data/LinkedHashMap_1.dwl" mimeType="application/java" variableName="merchantId"/>
             <dw:set-payload resource="classpath:smartwool/dwl/payment-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-payments-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="Transfer GC to SFTP" duplicateHandling="overwrite"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.merchantDetails.merchantId]-payments-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" doc:name="Transfer GC to SFTP" duplicateHandling="overwrite"/>
     </sub-flow>
 </mule>
