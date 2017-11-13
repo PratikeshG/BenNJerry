@@ -28,8 +28,8 @@ import util.DbConnection;
 import util.SquarePayload;
 import util.TimeManager;
 
-public class DeploymentDetailsOptimizedCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(DeploymentDetailsOptimizedCallable.class);
+public class RetrieveMerchantPayloadCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(RetrieveMerchantPayloadCallable.class);
     private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
     private String timeZone;
 
@@ -77,19 +77,8 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
 
         // retrieve location details according to reportType and store into abstracted object (reportPayload)
-        List<TntReportPayload> masterPayload = null;
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
-        switch (reportType) {
-            case 5:
-            case 6:
-                masterPayload = getLocationSalesPayloads(squareClientV2, dbConnection, offset, range);
-                break;
-            case 7:
-                masterPayload = getItemSalesPayloads(squareClientV1, squareClientV2, dbConnection, offset, range);
-                break;
-        }
-
-        return masterPayload;
+        return getMerchantPayload(reportType, squareClientV1, squareClientV2, dbConnection, offset, range);
     }
 
     public static int computeSeasonInterval(String startOfSeason, TimeZone tz) {
@@ -133,61 +122,11 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         return range;
     }
 
-    // sales total by location
-    private List<TntReportPayload> getLocationSalesPayloads(SquareClientV2 squareClientV2, DbConnection dbConnection,
-    		int offset, int range) {
-
-        // initialize payload to store LocationSalesFile objects
-        List<TntReportPayload> masterPayload = new ArrayList<TntReportPayload>();
-        try {
-            // get db information for later lookup
-            TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
-            List<Map<String, String>> dbLocationRows = tntDatabaseApi
-                    .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
-            tntDatabaseApi.close();
-
-            for (Location location : squareClientV2.locations().list()) {
-                if (!location.getName().contains("DEACTIVATED") && !location.getName().contains("DEFAULT")) {
-                    // define time intervals to pull payment data
-                    Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(1, offset,
-                            location.getTimezone());
-                    squareClientV2.setLocation(location.getId());
-
-                    // lookup TNT location specific data
-                    String locationNumber = findLocationNumber(location.getName());
-                    String rbu = "";
-                    for (Map<String, String> row : dbLocationRows) {
-                        if (locationNumber.equals(row.get("locationNumber"))) {
-                            rbu = row.get("rbu");
-                            break;
-                        }
-                    }
-
-                    LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
-                            locationNumber, rbu);
-                    Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
-                            location.getTimezone());
-                    aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
-
-                    for (Transaction transaction : getTransactions(squareClientV2, aggregateInterval)) {
-                        locationSalesPayload.addTransaction(transaction);
-                    }
-                    masterPayload.add(locationSalesPayload);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("ERROR: caught exception while aggregating 'Report 5/6' details: " + e);
-        }
-
-        return masterPayload;
-    }
-
-    // item sale totals by location
-    private List<TntReportPayload> getItemSalesPayloads(SquareClient squareClientV1, SquareClientV2 squareClientV2,
+    private List<TntReportPayload> getMerchantPayload(int reportType, SquareClient squareClientV1, SquareClientV2 squareClientV2,
             DbConnection dbConnection, int offset, int range) {
 
         // initialize payload to store ItemSalesFile objects
-        List<TntReportPayload> masterPayload = new ArrayList<TntReportPayload>();
+        List<TntReportPayload> merchantPayload = new ArrayList<TntReportPayload>();
 
         try {
             // get db information for later lookup
@@ -198,11 +137,17 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                     .submitQuery(tntDatabaseApi.generateItemSQLSelect());
             tntDatabaseApi.close();
 
+            // iterate through each location in merchant and aggregate account data
             for (Location location : squareClientV2.locations().list()) {
                 if (!location.getName().contains("DEACTIVATED") && !location.getName().contains("DEFAULT")) {
                     // define time intervals to pull payment data
                     Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(1, offset,
                             location.getTimezone());
+                    Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
+                            location.getTimezone());
+                    aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
+
+                    // set locations for squareClient SDK
                     squareClientV1.setLocation(location.getId());
                     squareClientV2.setLocation(location.getId());
 
@@ -215,22 +160,37 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                         }
                     }
 
-                    ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationNumber, rbu);
-                    Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
-                            location.getTimezone());
-                    aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
+                    switch (reportType) {
+                        case 5:
+                        case 6:
+                        	// get transaction data for location payload
+                            LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
+                                    locationNumber, rbu);
+                            for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                                locationSalesPayload.addTransaction(transaction);
+                            }
 
-                    for (Payment payment : getPayments(squareClientV1, aggregateIntervalParams)) {
-                        itemSalesPayload.addPayloadEntry(payment, dbItemRows);
+                            merchantPayload.add(locationSalesPayload);
+                            break;
+                        case 7:
+                        	// get item sales payload for single location
+                            ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationNumber, rbu);
+                            for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                                itemSalesPayload.addPayloadEntry(payment, dbItemRows);
+                            }
+
+                        	merchantPayload.add(itemSalesPayload);
+                            break;
+                        case 8: // "credit debit" report
+                        	break;
                     }
-                    masterPayload.add(itemSalesPayload);
                 }
             }
         } catch (Exception e) {
-            logger.error("ERROR: caught exception while aggregating 'Report 7' details: " + e);
+            logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e);
         }
 
-        return masterPayload;
+        return merchantPayload;
     }
 
     /*
@@ -258,47 +218,5 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         }
 
         return locationNumber;
-    }
-
-    private Payment[] getPayments(SquareClient squareClient, Map<String, String> params)
-            throws Exception {
-        // V1 Payments - ignore no-sale and cash-only payments
-        Payment[] allPayments = squareClient.payments().list(params);
-        List<Payment> payments = new ArrayList<Payment>();
-
-        for (Payment payment : allPayments) {
-            boolean hasValidPaymentTender = false;
-            for (com.squareup.connect.Tender tender : payment.getTender()) {
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidPaymentTender = true;
-                }
-            }
-            if (hasValidPaymentTender) {
-                payments.add(payment);
-            }
-        }
-        return payments.toArray(new Payment[0]);
-    }
-
-    private Transaction[] getTransactions(SquareClientV2 squareClient, Map<String, String> params)
-            throws Exception {
-        // V2 Transactions - ignore no-sales and cash-only transactions
-        params.put("sort_order", "ASC"); // v2 default is DESC
-        Transaction[] allTransactions = squareClient.transactions().list(params);
-        List<Transaction> transactions = new ArrayList<Transaction>();
-
-        for (Transaction transaction : allTransactions) {
-            boolean hasValidTransactionTender = false;
-            for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                if (!tender.getType().equals("NO_SALE")) {
-                    hasValidTransactionTender = true;
-                }
-            }
-            if (hasValidTransactionTender) {
-                transactions.add(transaction);
-            }
-        }
-
-        return transactions.toArray(new Transaction[0]);
     }
 }

@@ -257,7 +257,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker"/>
         <logger message="#[&quot;Retrieving account details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Aggregate report payloads ">
-        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsOptimizedCallable"/>
+        	<singleton-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator"/>
     </flow>

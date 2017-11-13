@@ -13,8 +13,6 @@ import com.squareup.connect.v2.Transaction;
 /*
  * tntfireworks.reporting.TntLocationDetails class
  *
- * NOTE: This class is similar to vfcorp.reporting.LocationTransactionDetails
- *       and should be merged into a central package
  */
 public class TntLocationDetails {
     private Location location;

@@ -48,7 +48,7 @@ public class DeploymentDetailsCallable implements Callable {
             // - initialize startOfSeason as 03/01/2017 (02 month, 0 day, 2017 year)
             // - use default tz as Los Angeles
             TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
-            range = DeploymentDetailsOptimizedCallable.computeSeasonInterval(startOfSeason, tz);
+            range = RetrieveMerchantPayloadCallable.computeSeasonInterval(startOfSeason, tz);
         }
 
         // get deployment from queue-splitter
