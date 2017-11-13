@@ -9,8 +9,8 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocationSalesReportGeneratorCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(LocationSalesReportGeneratorCallable.class);
+public class LocationSalesReportAggregatorCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(LocationSalesReportAggregatorCallable.class);
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -18,21 +18,21 @@ public class LocationSalesReportGeneratorCallable implements Callable {
         logger.info("Start location sales report generation");
 
         // build report from payloads
-        List<List<LocationSalesFile>> payloadAggregate = (List<List<LocationSalesFile>>) message
+        List<List<LocationSalesPayload>> payloadAggregate = (List<List<LocationSalesPayload>>) message
                 .getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
 
         // add file rows
-        for (List<LocationSalesFile> masterPayload : payloadAggregate) {
-            for (LocationSalesFile locationPayload : masterPayload) {
+        for (List<LocationSalesPayload> masterPayload : payloadAggregate) {
+            for (LocationSalesPayload locationPayload : masterPayload) {
                 if (addHeader) {
-                    reportBuilder.append(locationPayload.getFileHeader());
+                    reportBuilder.append(locationPayload.getPayloadHeader());
                     addHeader = false;
-                    fileDate = locationPayload.getFileDate();
+                    fileDate = locationPayload.getPayloadDate();
                 }
-                reportBuilder.append(locationPayload.getFileEntry());
+                reportBuilder.append(locationPayload.getPayloadEntry());
             }
         }
 

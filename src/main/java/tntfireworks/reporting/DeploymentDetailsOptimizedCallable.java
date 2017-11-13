@@ -15,6 +15,7 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
@@ -26,8 +27,6 @@ import tntfireworks.TntDatabaseApi;
 import util.DbConnection;
 import util.SquarePayload;
 import util.TimeManager;
-
-import org.springframework.beans.factory.annotation.Value;
 
 public class DeploymentDetailsOptimizedCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DeploymentDetailsOptimizedCallable.class);
@@ -78,15 +77,15 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
 
         // retrieve location details according to reportType and store into abstracted object (reportPayload)
-        List<TntReportFile> masterPayload = null;
+        List<TntReportPayload> masterPayload = null;
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
         switch (reportType) {
             case 5:
             case 6:
-                masterPayload = getLocationSalesPayload(squareClientV2, dbConnection, offset, range);
+                masterPayload = getLocationSalesPayloads(squareClientV2, dbConnection, offset, range);
                 break;
             case 7:
-                masterPayload = getItemSalesPayload(squareClientV1, squareClientV2, dbConnection, offset, range);
+                masterPayload = getItemSalesPayloads(squareClientV1, squareClientV2, dbConnection, offset, range);
                 break;
         }
 
@@ -135,11 +134,11 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
     }
 
     // sales total by location
-    private List<TntReportFile> getLocationSalesPayload(SquareClientV2 squareClientV2, DbConnection dbConnection,
+    private List<TntReportPayload> getLocationSalesPayloads(SquareClientV2 squareClientV2, DbConnection dbConnection,
     		int offset, int range) {
 
         // initialize payload to store LocationSalesFile objects
-        List<TntReportFile> masterPayload = new ArrayList<TntReportFile>();
+        List<TntReportPayload> masterPayload = new ArrayList<TntReportPayload>();
         try {
             // get db information for later lookup
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
@@ -164,16 +163,16 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                         }
                     }
 
-                    LocationSalesFile locationSalesFile = new LocationSalesFile(timeZone, dayTimeInterval,
+                    LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
                             locationNumber, rbu);
                     Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
                     aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
 
                     for (Transaction transaction : getTransactions(squareClientV2, aggregateInterval)) {
-                        locationSalesFile.addTransaction(transaction);
+                        locationSalesPayload.addTransaction(transaction);
                     }
-                    masterPayload.add(locationSalesFile);
+                    masterPayload.add(locationSalesPayload);
                 }
             }
         } catch (Exception e) {
@@ -184,11 +183,11 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
     }
 
     // item sale totals by location
-    private List<TntReportFile> getItemSalesPayload(SquareClient squareClientV1, SquareClientV2 squareClientV2,
+    private List<TntReportPayload> getItemSalesPayloads(SquareClient squareClientV1, SquareClientV2 squareClientV2,
             DbConnection dbConnection, int offset, int range) {
 
         // initialize payload to store ItemSalesFile objects
-        List<TntReportFile> masterPayload = new ArrayList<TntReportFile>();
+        List<TntReportPayload> masterPayload = new ArrayList<TntReportPayload>();
 
         try {
             // get db information for later lookup
@@ -216,15 +215,15 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                         }
                     }
 
-                    ItemSalesFile itemSalesFile = new ItemSalesFile(timeZone, dayTimeInterval, locationNumber, rbu);
+                    ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationNumber, rbu);
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
                     aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
 
                     for (Payment payment : getPayments(squareClientV1, aggregateIntervalParams)) {
-                        itemSalesFile.addFileEntry(payment, dbItemRows);
+                        itemSalesPayload.addPayloadEntry(payment, dbItemRows);
                     }
-                    masterPayload.add(itemSalesFile);
+                    masterPayload.add(itemSalesPayload);
                 }
             }
         } catch (Exception e) {

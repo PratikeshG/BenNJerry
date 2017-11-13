@@ -166,7 +166,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
         <component doc:name="Generate Location Sales Batch Report">
-        	<prototype-object class="tntfireworks.reporting.LocationSalesReportGeneratorCallable"/>
+        	<prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
         </component>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
     </flow>
@@ -175,7 +175,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
         <component doc:name="Generate Item Sales Batch Report">
-        	<prototype-object class="tntfireworks.reporting.ItemSalesReportGeneratorCallable"/>
+        	<prototype-object class="tntfireworks.reporting.ItemSalesReportAggregatorCallable"/>
         </component>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
     </flow>

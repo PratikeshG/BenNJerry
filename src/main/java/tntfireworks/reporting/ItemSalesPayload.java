@@ -14,25 +14,25 @@ import com.squareup.connect.PaymentItemization;
 
 import util.TimeManager;
 
-public class ItemSalesFile extends TntReportFile {
-    private static Logger logger = LoggerFactory.getLogger(ItemSalesFile.class);
+public class ItemSalesPayload extends TntReportPayload {
+    private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
     private static String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description",
             "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");
-    private Map<String, ItemSalesFileEntry> itemSalesFileEntries;
+    private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;
     private Map<String, String> dayTimeInterval;
     private String locationNumber;
     private String rbu;
 
-    public ItemSalesFile(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
+    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
         super(timeZone, ITEM_SALES_FILE_HEADER);
-        this.itemSalesFileEntries = new HashMap<String, ItemSalesFileEntry>();
+        this.itemSalesPayloadEntries = new HashMap<String, ItemSalesPayloadEntry>();
         this.dayTimeInterval = dayTimeInterval;
         this.locationNumber = locationNumber;
         this.rbu = rbu;
     }
 
-    public void addFileEntry(Payment payment, List<Map<String, String>> dbItemRows) {
+    public void addPayloadEntry(Payment payment, List<Map<String, String>> dbItemRows) {
         try {
             // loop through payment itemizations and add to map
             for (PaymentItemization itemization : payment.getItemizations()) {
@@ -55,11 +55,11 @@ public class ItemSalesFile extends TntReportFile {
                 String key = String.format("%s%s", locationNumber, itemNumber);
                 int saleAmount = itemization.getTotalMoney().getAmount();
 
-                ItemSalesFileEntry updateEntry = null;
-                if (itemSalesFileEntries.containsKey(key)) {
-                    updateEntry = itemSalesFileEntries.get(key);
+                ItemSalesPayloadEntry updateEntry = null;
+                if (itemSalesPayloadEntries.containsKey(key)) {
+                    updateEntry = itemSalesPayloadEntries.get(key);
                 } else {
-                    updateEntry = new ItemSalesFileEntry(itemNumber,
+                    updateEntry = new ItemSalesPayloadEntry(itemNumber,
                             itemDesc, saleAmount);
                 }
 
@@ -70,26 +70,26 @@ public class ItemSalesFile extends TntReportFile {
 
                 // add to sale amount to total
                 updateEntry.addTotalSales(saleAmount, itemization.getQuantity());
-                itemSalesFileEntries.put(key, updateEntry);
+                itemSalesPayloadEntries.put(key, updateEntry);
             }
         } catch (Exception e) {
             logger.error("Exception from TimeManager: " + e);
         }
     }
 
-    public List<String> getFileEntries() {
-        ArrayList<String> fileEntries = new ArrayList<String>();
-        for (ItemSalesFileEntry fileEntry : itemSalesFileEntries.values()) {
-            String fileRow = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
-                    fileEntry.itemNumber, fileEntry.itemDescription, formatTotal(fileEntry.dailySales),
-                    fileEntry.dailySalesCounter, formatTotal(fileEntry.totalSales), fileEntry.totalSalesCounter);
-            fileEntries.add(fileRow);
+    public List<String> getPayloadEntries() {
+        ArrayList<String> payloadEntries = new ArrayList<String>();
+        for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
+            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
+                    payloadEntry.itemNumber, payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales),
+                    payloadEntry.dailySalesCounter, formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter);
+            payloadEntries.add(row);
         }
 
-        return fileEntries;
+        return payloadEntries;
     }
 
-    private class ItemSalesFileEntry {
+    private class ItemSalesPayloadEntry {
         private String itemNumber;
         private String itemDescription;
         private int dailySales;
@@ -97,7 +97,7 @@ public class ItemSalesFile extends TntReportFile {
         private double dailySalesCounter;
         private double totalSalesCounter;
 
-        private ItemSalesFileEntry(String itemNumber, String itemDesc,
+        private ItemSalesPayloadEntry(String itemNumber, String itemDesc,
                 int initialAmount) {
             this.itemNumber = itemNumber;
             this.itemDescription = itemDesc;

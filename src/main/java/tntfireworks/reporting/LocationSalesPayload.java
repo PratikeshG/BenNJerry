@@ -13,10 +13,10 @@ import com.squareup.connect.v2.Transaction;
 
 import util.TimeManager;
 
-public class LocationSalesFile extends TntReportFile {
-    private static Logger logger = LoggerFactory.getLogger(LocationSalesFile.class);
+public class LocationSalesPayload extends TntReportPayload {
+    private static Logger logger = LoggerFactory.getLogger(LocationSalesPayload.class);
 
-    private static String SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
+    private static String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Daily Sales (CREDIT ONLY)", "YTD Sales (CREDIT ONLY)",
             "Daily Sales (CASH/CREDIT)",
             "YTD Sales (CASH/CREDIT)");
@@ -28,8 +28,8 @@ public class LocationSalesFile extends TntReportFile {
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesFile(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
-        super(timeZone, SALES_FILE_HEADER);
+    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
+        super(timeZone, LOCATION_SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.locationNumber = locationNumber;
         this.rbu = rbu;
@@ -84,7 +84,7 @@ public class LocationSalesFile extends TntReportFile {
                 }
             }
         } catch (Exception e) {
-            logger.error("Exception from aggregating sales data for SalesFile: " + e);
+            logger.error("Exception from aggregating sales/payload data for LoationSales: " + e);
         }
     }
 
@@ -96,9 +96,9 @@ public class LocationSalesFile extends TntReportFile {
         return creditTotalSales + cashTotalSales;
     }
 
-    public String getFileEntry() {
-        String fileRow = String.format("%s, %s, %s, %s, %s, %s \n", locationNumber, rbu, formatTotal(creditDailySales),
+    public String getPayloadEntry() {
+        String row = String.format("%s, %s, %s, %s, %s, %s \n", locationNumber, rbu, formatTotal(creditDailySales),
                 formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()), formatTotal(getCashCreditTotal()));
-        return fileRow;
+        return row;
     }
 }
