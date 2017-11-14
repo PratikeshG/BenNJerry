@@ -135,6 +135,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
             List<Map<String, String>> dbItemRows = tntDatabaseApi
                     .submitQuery(tntDatabaseApi.generateItemSQLSelect());
+    	    List<Map<String, String>> dbLoadNumbers = tntDatabaseApi
+    	            .submitQuery(tntDatabaseApi.generateLoadNumberSQLSelect());
             tntDatabaseApi.close();
 
             // iterate through each location in merchant and aggregate account data
@@ -162,6 +164,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
                     switch (reportType) {
                         case 5:
+                        	break;
                         case 6:
                         	// get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
@@ -181,7 +184,23 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
                         	merchantPayload.add(itemSalesPayload);
                             break;
-                        case 8: // "credit debit" report
+                        case 8:
+                        	// "credit debit" report, payload is per location
+
+                    	    // loadNumber represents the total number of credit debit reports sent and is tracked in DB
+                    	    int loadNumber = 0;
+                    	    for (Map<String, String> row : dbLoadNumbers) {
+                    	        if (row.get("reportName").equals(CreditDebitPayload.DB_REPORT_NAME)) {
+                    	            loadNumber = Integer.parseInt(row.get("count"));
+                    	        }
+                    	    }
+
+                            CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, location.getName(), rbu);
+                        	for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                        		creditDebitPayload.addPayment(payment);
+                        	}
+
+                        	merchantPayload.add(creditDebitPayload);
                         	break;
                     }
                 }

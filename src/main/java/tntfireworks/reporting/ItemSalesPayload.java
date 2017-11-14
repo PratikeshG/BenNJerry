@@ -16,7 +16,7 @@ import util.TimeManager;
 
 public class ItemSalesPayload extends TntReportPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
-    private static String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
+    private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description",
             "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");
     private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;

@@ -16,7 +16,7 @@ import util.TimeManager;
 public class LocationSalesPayload extends TntReportPayload {
     private static Logger logger = LoggerFactory.getLogger(LocationSalesPayload.class);
 
-    private static String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
+    private static final String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Daily Sales (CREDIT ONLY)", "YTD Sales (CREDIT ONLY)",
             "Daily Sales (CASH/CREDIT)",
             "YTD Sales (CASH/CREDIT)");

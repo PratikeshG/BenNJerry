@@ -209,9 +209,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     <flow name="TNTFireworks-generate-credit-debit-batch-report-8">
         <logger message="Starting TNTFireworks-generate-credit-debit-report" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions" doc:name="TNTFireworks-aggregate-deployment-transactions"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
         <component doc:name="Generate Credit Debit Batch Report">
-        	<prototype-object class="tntfireworks.reporting.CreditDebitBatchCallable"/>
+        	<prototype-object class="tntfireworks.reporting.CreditDebitReportAggregatorCallable"/>
         </component>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
     </flow>
