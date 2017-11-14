@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
@@ -130,6 +131,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
         try {
             // get db information for later lookup
+        	// initialized TntDatabaseApi for information lookup
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
                     .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
@@ -143,13 +145,15 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             for (Location location : squareClientV2.locations().list()) {
                 if (!location.getName().contains("DEACTIVATED") && !location.getName().contains("DEFAULT")) {
                     // define time intervals to pull payment data
+                	//     - dayTimeInterval is currently only used for report 5/6 and report 7
+                	//     - aggregateInterval is used by remaining flows
                     Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(1, offset,
                             location.getTimezone());
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
                     aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
 
-                    // set locations for squareClient SDK
+                    // set squareClient to specific location
                     squareClientV1.setLocation(location.getId());
                     squareClientV2.setLocation(location.getId());
 
@@ -163,8 +167,20 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     }
 
                     switch (reportType) {
+                    	case 1:
+                    		// settlements report
+                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationNumber, dbLocationRows);
+                    		for (Settlement settlement : TntLocationDetailsHelper.getSettlements(squareClientV1, aggregateIntervalParams)) {
+                    			settlementsPayload.addSettlement(settlement);
+                    		}
+
+                            merchantPayload.add(settlementsPayload);
+                    		break;
+                    	case 4:
+                    		// report 4 is currently generated from a different source
+                    	    break;
                         case 5:
-                        	break;
+                        	// report 5 and 6 are the same, added separate case statement for clarity
                         case 6:
                         	// get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
@@ -186,7 +202,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                             break;
                         case 8:
                         	// "credit debit" report, payload is per location
-
                     	    // loadNumber represents the total number of credit debit reports sent and is tracked in DB
                     	    int loadNumber = 0;
                     	    for (Map<String, String> row : dbLoadNumbers) {

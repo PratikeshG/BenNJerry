@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Transaction;
@@ -50,5 +51,10 @@ public class TntLocationDetailsHelper {
         }
 
         return transactions.toArray(new Transaction[0]);
+    }
+
+    public static Settlement[] getSettlements(SquareClient squareClientV1, Map<String, String> params) throws Exception {
+        // V1 Settlements
+        return squareClientV1.settlements().list(params);
     }
 }
