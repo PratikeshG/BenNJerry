@@ -44,7 +44,7 @@ public class CreditDebitReportAggregatorCallable implements Callable {
                     fileDate = locationPayload.getPayloadDate();
                 	loadNumber = locationPayload.loadNumber;
                 }
-                reportBuilder.append(locationPayload.getPayloadEntry());
+                reportBuilder.append(locationPayload.getRow());
             }
         }
 

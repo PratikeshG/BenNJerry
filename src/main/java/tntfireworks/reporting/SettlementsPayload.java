@@ -46,8 +46,8 @@ public class SettlementsPayload extends TntReportPayload {
         payloadEntries.add(new SettlementsPayloadEntry(settlement));
     }
 
-    public String getPayloadEntries() {
-        StringBuilder reportBuilder = new StringBuilder();
+    public List<String> getRows() {
+        ArrayList<String> rows = new ArrayList<String>();
 
         for (SettlementsPayloadEntry payloadEntry : payloadEntries) {
             for (SettlementEntry settlementEntry : payloadEntry.settlementEntries) {
@@ -57,11 +57,11 @@ public class SettlementsPayload extends TntReportPayload {
                         formatTotal(settlementEntry.getAmountMoney().getAmount()),
                         formatTotal(settlementEntry.getFeeMoney().getAmount()),
                         settlementEntry.getType(), rbu, city, state, zip);
-                reportBuilder.append(row);
+                rows.add(row);
             }
         }
 
-        return reportBuilder.toString();
+        return rows;
     }
 
     // each SettlementsPayloadEntry represents a single settlement

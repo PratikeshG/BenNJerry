@@ -31,7 +31,9 @@ public class SettlementsReportAggregatorCallable implements Callable {
                     addHeader = false;
                     fileDate = locationPayload.getPayloadDate();
                 }
-                reportBuilder.append(locationPayload.getPayloadEntries());
+                for (String fileRow : locationPayload.getRows()) {
+                    reportBuilder.append(fileRow);
+                }
             }
         }
 

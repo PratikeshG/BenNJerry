@@ -9,35 +9,37 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocationSalesReportAggregatorCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(LocationSalesReportAggregatorCallable.class);
+public class TransactionsReportAggregatorCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(TransactionsReportAggregatorCallable.class);
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-        logger.info("Start location sales report generation");
+        logger.info("Start transactions report generation");
 
         // build report from payloads
-        List<List<LocationSalesPayload>> payloadAggregate = (List<List<LocationSalesPayload>>) message
+        List<List<TransactionsPayload>> payloadAggregate = (List<List<TransactionsPayload>>) message
                 .getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
 
         // add file rows
-        for (List<LocationSalesPayload> masterPayload : payloadAggregate) {
-            for (LocationSalesPayload locationPayload : masterPayload) {
+        for (List<TransactionsPayload> masterPayload : payloadAggregate) {
+            for (TransactionsPayload locationPayload : masterPayload) {
                 if (addHeader) {
                     reportBuilder.append(locationPayload.getPayloadHeader());
                     addHeader = false;
                     fileDate = locationPayload.getPayloadDate();
                 }
-                reportBuilder.append(locationPayload.getRow());
+                for (String fileRow : locationPayload.getRows()) {
+                    reportBuilder.append(fileRow);
+                }
             }
         }
 
         // generate report into file
-        String reportName = fileDate + "-report-5.csv";
+        String reportName = fileDate + "-report-2.csv";
         message.setProperty("awsConnectorKey",
                 String.format("TNTFireworks/REPORTS/%s", reportName), PropertyScope.INVOCATION);
 

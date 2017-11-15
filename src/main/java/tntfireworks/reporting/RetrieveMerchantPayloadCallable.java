@@ -2,6 +2,7 @@ package tntfireworks.reporting;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -22,6 +23,7 @@ import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
+import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
 import tntfireworks.TntDatabaseApi;
@@ -32,6 +34,14 @@ import util.TimeManager;
 public class RetrieveMerchantPayloadCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(RetrieveMerchantPayloadCallable.class);
     private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
+    private static final int SETTLEMENTS_REPORT_TYPE = 1;
+    private static final int TRANSACTIONS_REPORT_TYPE = 2;
+    private static final int FRAUD_REPORT_TYPE = 3;
+    private static final int CHARGEBACK_REPORT_TYPE = 4;
+    private static final int LOCATION_SALES_REPORT_TYPE = 5;
+    private static final int ITEM_SALES_REPORT_TYPE = 7;
+    private static final int CREDIT_DEBIT_REPORT_TYPE = 8;
+
     private String timeZone;
 
     @Value("${tntfireworks.startOfSeason}")
@@ -166,8 +176,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         }
                     }
 
+
                     switch (reportType) {
-                    	case 1:
+                    	case SETTLEMENTS_REPORT_TYPE:
                     		// settlements report
                             SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationNumber, dbLocationRows);
                     		for (Settlement settlement : TntLocationDetailsHelper.getSettlements(squareClientV1, aggregateIntervalParams)) {
@@ -176,12 +187,40 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
                             merchantPayload.add(settlementsPayload);
                     		break;
-                    	case 4:
+                    	case TRANSACTIONS_REPORT_TYPE:
+
+                    	    // - each TransactionsPayload includes transaction data from a single location
+                    	    // - while the payload object name may imply V2 Transactions data, the payload mainly consists of V1 Payments data
+                    	    //   and is called a TransactionsPayload because the report name is defined by TNT as 'Transactions Report'
+                    	    TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, locationNumber, dbLocationRows);
+
+                    	    // need to obtain Connect V2 Tender Fees and V2 Tender Entry Methods to map to V1 Tenders
+                    	    Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
+                    	    Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
+
+                    	    for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                    	        for (Tender tender : transaction.getTenders()) {
+                                    tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
+                                    if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
+                                        tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+                                    }
+                    	        }
+                    	    }
+
+                    	    for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                    	        transactionsPayload.addPayment(payment, tenderToFee, tenderToEntryMethod);
+                    	    }
+
+                    	    merchantPayload.add(transactionsPayload);
+
+                    	    break;
+                    	case FRAUD_REPORT_TYPE:
+                    	    break;
+                    	case CHARGEBACK_REPORT_TYPE:
                     		// report 4 is currently generated from a different source
                     	    break;
-                        case 5:
-                        	// report 5 and 6 are the same, added separate case statement for clarity
-                        case 6:
+                        case LOCATION_SALES_REPORT_TYPE:
+                        	// added separate case statement for clarity
                         	// get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
                                     locationNumber, rbu);
@@ -191,16 +230,16 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
                             merchantPayload.add(locationSalesPayload);
                             break;
-                        case 7:
+                        case ITEM_SALES_REPORT_TYPE:
                         	// get item sales payload for single location
                             ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationNumber, rbu);
                             for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
-                                itemSalesPayload.addPayloadEntry(payment, dbItemRows);
+                                itemSalesPayload.addPayment(payment, dbItemRows);
                             }
 
                         	merchantPayload.add(itemSalesPayload);
                             break;
-                        case 8:
+                        case CREDIT_DEBIT_REPORT_TYPE:
                         	// "credit debit" report, payload is per location
                     	    // loadNumber represents the total number of credit debit reports sent and is tracked in DB
                     	    int loadNumber = 0;

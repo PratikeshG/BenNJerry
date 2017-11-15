@@ -32,7 +32,7 @@ public class ItemSalesReportAggregatorCallable implements Callable {
                     addHeader = false;
                     fileDate = locationPayload.getPayloadDate();
                 }
-                for (String fileRow : locationPayload.getPayloadEntries()) {
+                for (String fileRow : locationPayload.getRows()) {
                     reportBuilder.append(fileRow);
                 }
             }

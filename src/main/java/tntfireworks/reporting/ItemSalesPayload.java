@@ -32,7 +32,7 @@ public class ItemSalesPayload extends TntReportPayload {
         this.rbu = rbu;
     }
 
-    public void addPayloadEntry(Payment payment, List<Map<String, String>> dbItemRows) {
+    public void addPayment(Payment payment, List<Map<String, String>> dbItemRows) {
         try {
             // loop through payment itemizations and add to map
             for (PaymentItemization itemization : payment.getItemizations()) {
@@ -77,16 +77,17 @@ public class ItemSalesPayload extends TntReportPayload {
         }
     }
 
-    public List<String> getPayloadEntries() {
-        ArrayList<String> payloadEntries = new ArrayList<String>();
+    public List<String> getRows() {
+        ArrayList<String> rows = new ArrayList<String>();
+
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
             String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
                     payloadEntry.itemNumber, payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales),
                     payloadEntry.dailySalesCounter, formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter);
-            payloadEntries.add(row);
+            rows.add(row);
         }
 
-        return payloadEntries;
+        return rows;
     }
 
     private class ItemSalesPayloadEntry {
@@ -107,12 +108,12 @@ public class ItemSalesPayload extends TntReportPayload {
             this.totalSalesCounter = 0;
         }
 
-        public void addDailySales(int amount, double quantity) {
+        private void addDailySales(int amount, double quantity) {
             dailySalesCounter += quantity;
             dailySales += amount;
         }
 
-        public void addTotalSales(int amount, double quantity) {
+        private void addTotalSales(int amount, double quantity) {
             totalSalesCounter += quantity;
             totalSales += amount;
         }

@@ -69,7 +69,7 @@ public class CreditDebitPayload extends TntReportPayload {
         netDepositAmt = debitAmt + creditAmt;
     }
 
-	public String getPayloadEntry() {
+	public String getRow() {
         String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
                 SOURCE_TYPE, Integer.toString(loadNumber), this.getPayloadDate(), formatTotal(netDepositAmt),
                 Integer.toString(ticketCount), Integer.toString(debitCount), formatTotal(debitAmt),
