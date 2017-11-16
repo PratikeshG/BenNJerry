@@ -23,9 +23,10 @@ import org.slf4j.LoggerFactory;
 import util.TimeManager;
 
 public class VfcDatabaseApi {
-
     private static Logger logger = LoggerFactory.getLogger(VfcDatabaseApi.class);
     private Connection connection;
+
+    private static String SKU_FILTER_PATH = "/vfc-plu-filters/vfcorp-%s-onhand-sku.csv";
 
     public VfcDatabaseApi(Connection connection) {
         this.connection = connection;
@@ -79,9 +80,9 @@ public class VfcDatabaseApi {
         return executeQuery(generatePluDeptClassSQLSelect(brand));
     }
 
-    public ArrayList<Map<String, String>> queryDbItems(String locationId, boolean pluFiltered)
+    public ArrayList<Map<String, String>> queryDbItems(String locationId, boolean pluFiltered, String brand)
             throws SQLException, IOException {
-        return executeQuery(generatePluItemsSQLSelect(locationId, pluFiltered));
+        return executeQuery(generatePluItemsSQLSelect(locationId, pluFiltered, brand));
     }
 
     public ArrayList<Map<String, String>> queryDbItemSaleEvents(String locationId, String timeZone)
@@ -99,12 +100,12 @@ public class VfcDatabaseApi {
         return query;
     }
 
-    public String generatePluItemsSQLSelect(String locationId, boolean pluFiltered) throws IOException {
+    public String generatePluItemsSQLSelect(String locationId, boolean pluFiltered, String brand) throws IOException {
         String query = String.format("SELECT * FROM vfcorp_plu_items WHERE locationId = '%s'", locationId);
 
         if (pluFiltered) {
             logger.info("Applying SKU whitelist filter");
-            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString());
+            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString(brand));
         }
         logger.debug(String.format("Generated query for location %s: %s", locationId, query));
 
@@ -128,10 +129,10 @@ public class VfcDatabaseApi {
         return query;
     }
 
-    private String getFilteredSKUQueryString() throws IOException {
+    private String getFilteredSKUQueryString(String brand) throws IOException {
         HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
 
-        String filterSKUPath = "/vfc-plu-filters/vfcorp-tnf-onhand-sku.csv";
+        String filterSKUPath = String.format(SKU_FILTER_PATH, brand);
         InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
         BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
         try {
