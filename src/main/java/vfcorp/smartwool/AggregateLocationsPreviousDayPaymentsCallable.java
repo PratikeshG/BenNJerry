@@ -17,15 +17,11 @@ import util.reports.PaymentsReportBuilder;
 
 public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 	@Value("${vfcorp.smartwool.range}")
-	private String VAR_RANGE;
+	private String RANGE;
 	@Value("${vfcorp.smartwool.offset}")
-	private String VAR_OFFSET;
+	private String OFFSET;
 	@Value("${encryption.key.tokens}")
     private String encryptionKey;
-
-	private final String VAR_API_URL = "apiUrl";
-	private final String VAR_CREATED_AT = "createdAt";
-	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
 
 	private final String UTC = "UTC";
 	/**
@@ -38,16 +34,16 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 
 		@SuppressWarnings("unchecked")
 		List<Location> locations = (List<Location>) message.getPayload();
-		SquarePayload merchantDetails = (SquarePayload) message.getProperty(VAR_MERCHANT_DETAILS, PropertyScope.SESSION);
+		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
-		String apiUrl = message.getProperty(VAR_API_URL, PropertyScope.SESSION);
-		String merchantId = merchantDetails.getMerchantId();
-		String accessToken = merchantDetails.getAccessToken(this.encryptionKey);
+		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
+		String merchantId = sqPayload.getMerchantId();
+		String accessToken = sqPayload.getAccessToken(this.encryptionKey);
 
-		int range = Integer.parseInt(VAR_RANGE);
-		int offset = Integer.parseInt(VAR_OFFSET);
+		int range = Integer.parseInt(RANGE);
+		int offset = Integer.parseInt(OFFSET);
 
-		message.setProperty(VAR_CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC), PropertyScope.SESSION);
+		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC), PropertyScope.SESSION);
 
 		return new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
 				.forLocations(locations)

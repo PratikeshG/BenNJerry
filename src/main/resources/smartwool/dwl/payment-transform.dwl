@@ -6,16 +6,16 @@
 	report: {
 		createdAt: sessionVars.createdAt,
 		merchant: {
-			merchantId: sessionVars.merchantDetails.merchantId,
-			businessName: sessionVars.merchantDetails.merchantAlias
+			merchantId: sessionVars['vfcorp.smartwool.SwConstants.SQUARE_PAYLOAD'].merchantId,
+			businessName: sessionVars['vfcorp.smartwool.SwConstants.SQUARE_PAYLOAD'].merchantAlias
 		},
 		locations: {
 			(payload pluck ({
 				(location: {
 					locationId: ($$),
-					beginTime: sessionVars['locationDetailsMap'][($$)].begin_time,
-					endTime: sessionVars['locationDetailsMap'][($$)].end_time,
-					locationName: sessionVars['locationDetailsMap'][($$)].name,
+					beginTime: sessionVars.locationContextMap[($$)].begin_time,
+					endTime: sessionVars.locationContextMap[($$)].end_time,
+					locationName: sessionVars.locationContextMap[($$)].name,
 					payments: {
 						($ default [] map {
 							payment: {
