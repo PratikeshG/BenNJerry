@@ -66,13 +66,14 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
                 <set-session-variable variableName="#[vfcorp.smartwool.Constants.SQUARE_PAYLOAD]" value="#[payload]" doc:name="Set Merchant Details"/>
                 <component class="vfcorp.smartwool.GetLocationDetailsCallable" doc:name="VFC:SmartWool:Get-Location-Details"/>
                 <scatter-gather doc:name="All">
-                    <flow-ref name="VFC:SmartWool:generate-payments-file" doc:name="VFC:SmartWool:generate-payments-file"/>
-                    <flow-ref name="VFC:SmartWool:generate-refunds" doc:name="VFC:SmartWool:generate-refunds"/>
+                    <flow-ref name="VFC:SmartWool:generate-payments-transactions-files" doc:name="VFC:SmartWool:generate-payments-transactions-files"/>
+                    <flow-ref name="VFC:SmartWool:generate-refunds-xml" doc:name="VFC:SmartWool:generate-refunds-x"/>
+                    <flow-ref name="VFC:SmartWool:generate-refunds-csv" doc:name="VFC:SmartWool:generate-refunds-csv"/>
                 </scatter-gather>
             </otherwise>
         </choice>
     </flow>
-    <sub-flow name="VFC:SmartWool:generate-payments-file">
+    <sub-flow name="VFC:SmartWool:generate-payments-transactions-files">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayPaymentsCallable" doc:name="VFC:SmartWool:Get-Payments"/>
         <scatter-gather doc:name="All">
             <processor-chain>
@@ -99,11 +100,15 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
             </processor-chain>
         </scatter-gather>
     </sub-flow>
-    <sub-flow name="VFC:SmartWool:generate-refunds">
+    <sub-flow name="VFC:SmartWool:generate-refunds-csv">
+        <component class="vfcorp.smartwool.TransformRefundsToCsvCallable" doc:name="VFC:SmartWool:TransformRefundsToCsv"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+    </sub-flow>
+    <sub-flow name="VFC:SmartWool:generate-refunds-xml">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayRefundsCallable" doc:name="VFC:SmartWool:Get-Refunds"/>
         <dw:transform-message doc:name="Transform Refund to XML">
             <dw:set-payload resource="classpath:smartwool/dwl/refund-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" doc:name="Transfer to GC SFTP" duplicateHandling="overwrite"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
     </sub-flow>
 </mule>

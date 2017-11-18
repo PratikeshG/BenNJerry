@@ -14,8 +14,10 @@ import com.squareup.connect.PaymentModifier;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.Transaction;
 
+import util.LocationContext;
 import util.TimeManager;
 
 public class DashboardCsvRowFactory {
@@ -96,6 +98,21 @@ public class DashboardCsvRowFactory {
 
 		return fields;
 	}
+	//Date,Time,Time Zone,Total Collected,Fees,Details,Location
+	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId) throws Exception {
+		ArrayList<String> fields = new ArrayList<String>();
+		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
+		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
+		fields.add(getTimeZoneLabel(timeZoneId));
+		fields.add(getCurrencyString(Math.negateExact(refund.getAmountMoney().getAmount())));
+		fields.add(getCurrencyString(Math.negateExact(refund.getProcessingFeeMoney().getAmount())));
+		fields.add(refund.getTransactionId());
+		fields.add(refund.getTenderId());
+		fields.add(getDetailsUrl(refund));
+		fields.add(locationCtx.getName());
+
+		return fields;
+	}
 	private String getPaymentIds(Payment payment) {
 		if (payment.getTender().length > 1) {
 			ArrayList<String> paymentIds = new ArrayList<String>();
@@ -119,6 +136,9 @@ public class DashboardCsvRowFactory {
 	}
 	private String getDetailsUrl(Transaction transaction) {
 		return DETAILS_URL_PREFIX + transaction.getId() + DETAULS_URL_DELIMETER + transaction.getLocationId();
+	}
+	private String getDetailsUrl(Refund refund) {
+		return DETAILS_URL_PREFIX + refund.getTransactionId() + DETAULS_URL_DELIMETER + refund.getLocationId();
 	}
 	private String getDeviceName(Payment payment) {
 		if (payment.getDevice() != null && payment.getDevice().getName() != null) {
