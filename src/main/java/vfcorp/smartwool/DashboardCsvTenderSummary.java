@@ -1,7 +1,6 @@
 package vfcorp.smartwool;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,16 @@ public class DashboardCsvTenderSummary {
     		.put(TenderCardDetails.ENTRY_METHOD_EMV, DIPPED_LABEL)
     		.put(TenderCardDetails.ENTRY_METHOD_ON_FILE, ONFILE_LABEL)
     		.put(TenderCardDetails.ENTRY_METHOD_CONTACTLESS, TAPPED_LABEL)
+    		.build();
+
+    private static Map<String, String> cardBrandLabelMap = ImmutableMap.<String, String>builder()
+    		.put("AMERICAN_EXPRESS", "American Express")
+    		.put("VISA", "Visa")
+    		.put("MASTERCARD", "MasterCard")
+    		.put("DISCOVER", "Discover")
+    		.put("DISCOVER_DINERS", "Discover Diners")
+    		.put("SQUARE_GIFT_CARD", "Square Gift Card")
+    		.put("OTHER_BRAND", "Other")
     		.build();
 
 	private int cash = 0;
@@ -79,7 +88,7 @@ public class DashboardCsvTenderSummary {
 		for (String panSuffix : this.panSuffi) {
 			panSuffi.add(panSuffix);
 		}
-		return StringUtils.join(panSuffi, ",");
+		return StringUtils.join(panSuffi, ", ");
 	}
 	public static DashboardCsvTenderSummary generateTenderSummary(Transaction transaction) throws Exception {
 		DashboardCsvTenderSummary summary = new DashboardCsvTenderSummary();
@@ -88,8 +97,10 @@ public class DashboardCsvTenderSummary {
 			if (tender.getType().equals(TENDER_TYPE_CARD) || tender.getType().equals(TENDER_TYPE_SQUARE_GIFT_CARD)) {
 				String entryMethod = tender.getCardDetails().getEntryMethod();
 				String entryMethodLabel = entryMethodLabelMap.get(entryMethod);
+				String cardBrandLabel = cardBrandLabelMap.get(tender.getCardDetails().getCard().getCardBrand());
+
 				summary.cardEntryMethods.add(entryMethodLabel);
-				summary.cardBrands.add(tender.getCardDetails().getCard().getCardBrand());
+				summary.cardBrands.add(cardBrandLabel);
 				summary.panSuffi.add(tender.getCardDetails().getCard().getLast4());
 			}
 			switch (tender.getType()) {

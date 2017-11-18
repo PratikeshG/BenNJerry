@@ -86,12 +86,13 @@ public class DashboardCsvRowFactory {
 		fields.add(transaction.getId());//Transaction ID
 		fields.add(payment.getId());//Payment ID
 		fields.add(getDeviceName(payment));//Device name
-		fields.add(itemization.getNotes());//Notes
+		fields.add(emptyStringIfNull(itemization.getNotes()));//Notes
 		fields.add(getDetailsUrl(transaction));//Details
 		fields.add(Constants.EVENT_TYPE_PAYMENT); //Event Type
 		fields.add(locationName); //Location
 		fields.add(""); //TODO: Dining Option
 		fields.addAll(getCustomerInfo(customer)); //Customer ID, Name & Reference ID
+		fields.add(""); //Device nickname
 
 		return fields;
 	}
@@ -141,6 +142,12 @@ public class DashboardCsvRowFactory {
 		List<String> itemizationSummary = new ArrayList<String>();
 		for (PaymentItemization itemization : payment.getItemizations()) {
 			StringBuilder buff = new StringBuilder();
+
+			if (itemization.getQuantity().intValue() > 1) {
+				buff.append(itemization.getQuantity().intValue());
+				buff.append(" x ");
+			}
+
 			buff.append(itemization.getName());
 			buff.append(" (");
 			buff.append(itemization.getItemVariationName());
@@ -156,7 +163,7 @@ public class DashboardCsvRowFactory {
 	}
 	private String getTimeZoneLabel(String timeZoneId) throws Exception {
 		if (!timeZoneId.equals(Constants.PST_TIME_ZONE_ID)) {
-			throw new Exception("Unknown timezone Id");
+			throw new Exception("Unknown timezone Id: " + timeZoneId);
 		}
 		return Constants.PST_TIME_ZONE_LABEL;
 	}
