@@ -17,13 +17,13 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT-reporting"/>
     </quartz:connector>
     <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
-	<flow name="TNTFireworks-trigger-credit-debit-batch-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/credit-debit-batch-report/${urlKey}" doc:name="HTTP"/>
+    <flow name="TNTFireworks-trigger-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/report/${urlKey}" doc:name="HTTP"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
-        <flow-ref name="TNTFireworks-generate-credit-debit-batch-report-8" doc:name="TNTFireworks-generate-credit-debit-batch-report-8"/>
-        <set-payload value="Credit/Debit Batch Report generated." doc:name="Set Payload"/>
+        <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.report_type]" doc:name="reportType"/>
+        <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+        <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-credit-debit-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -37,17 +37,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
-                <flow-ref name="TNTFireworks-generate-credit-debit-batch-report-8" doc:name="TNTFireworks-generate-credit-debit-batch-report-8"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="TNTFireworks-trigger-settlements-batch-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/settlements-batch-report/${urlKey}" doc:name="HTTP"/>
-        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
-        <flow-ref name="TNTFireworks-generate-settlements-batch-report-1" doc:name="TNTFireworks-generate-settlements-batch-report-1"/>
-        <set-payload value="Settlements Report generated." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-settlements-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 10 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -61,17 +53,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="31" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
-                <flow-ref name="TNTFireworks-generate-settlements-batch-report-1" doc:name="TNTFireworks-generate-settlements-batch-report-1"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="TNTFireworks-trigger-abnormal-transactions-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/abnormal-transactions-batch-report/${urlKey}" doc:name="HTTP"/>
-        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
-        <flow-ref name="TNTFireworks-generate-abnormal-transactions-report-3" doc:name="TNTFireworks-generate-abnormal-transactions-report-3"/>
-        <set-payload value="Abnormal Transactions Report generated." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-abnormal-transactions-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1498546804" cronExpression="0 15 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:15 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -85,17 +69,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
-                <flow-ref name="TNTFireworks-generate-abnormal-transactions-report-3" doc:name="TNTFireworks-generate-abnormal-transactions-report-3"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="TNTFireworks-trigger-transactions-batch-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/transactions-batch-report/${urlKey}" doc:name="HTTP"/>
-        <set-session-variable doc:name="offset" value="#[message.inboundProperties.'http.query.params'.offset]" variableName="offset"/>
-        <set-session-variable doc:name="range" value="#[message.inboundProperties.'http.query.params'.range]" variableName="range"/>
-        <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
-        <flow-ref name="TNTFireworks-generate-transactions-batch-report-2" doc:name="TNTFireworks-generate-transactions-batch-report-2"/>
-        <set-payload doc:name="Set Payload" value="Generated transactions batch report."/>
     </flow>
     <flow name="TNTFireworks-transactions-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1498546933" cronExpression="0 20 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:20 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -109,17 +85,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
-                <flow-ref name="TNTFireworks-generate-transactions-batch-report-2" doc:name="TNTFireworks-generate-transactions-batch-report-2"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="TNTFireworks-trigger-location-sales-batch-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/location-sales-batch-report/${urlKey}" doc:name="HTTP"/>
-        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="5" doc:name="reportType (5 or 6)"/>
-        <flow-ref name="TNTFireworks-generate-location-sales-batch-report-5" doc:name="TNTFireworks-generate-location-sales-batch-report-5"/>
-        <set-payload value="Generated locations sales batch report." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-location-sales-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1498547009" cronExpression="0 25 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:25 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -133,17 +101,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="5" doc:name="reportType (5)"/>
-                <flow-ref name="TNTFireworks-generate-location-sales-batch-report-5" doc:name="TNTFireworks-generate-location-sales-batch-report-5"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-    </flow>
-    <flow name="TNTFireworks-trigger-item-sales-batch-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/item-sales-batch-report/${urlKey}" doc:name="HTTP"/>
-        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-        <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
-        <flow-ref name="TNTFireworks-generate-item-sales-batch-report-7" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
-        <set-payload value="Generated item sales report." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-item-sales-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
@@ -157,120 +117,78 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
-                <flow-ref name="TNTFireworks-generate-item-sales-batch-report-7" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-generate-location-sales-batch-report-5">
-        <logger message="Begin generating location sales report" level="INFO" doc:name="Logger"/>
+    <flow name="TNTFireworks-generate-report">
+        <logger message="Begin generating '#[sessionVars.reportType]'" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Location Sales Batch Report">
-        	<prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
-        </component>
+        <flow-ref name="TNTFireworks-aggregate-deployment-payloads" doc:name="TNTFireworks-aggregate-deployment-payloads"/>
+        <choice doc:name="Choice">
+            <when expression="#[sessionVars.reportType == 1]">
+		        <component doc:name="Generate Location Sales Batch Report">
+		            <prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
+		        </component>
+		    </when>
+            <when expression="#[sessionVars.reportType == 2]">
+                <component doc:name="Generate Transactions Batch Report">
+                    <prototype-object class="tntfireworks.reporting.TransactionsReportAggregatorCallable"/>
+                </component>
+            </when>
+            <when expression="#[sessionVars.reportType == 3]">
+                <component doc:name="Generate Abnormal Transactions Batch Report">
+                    <prototype-object class="tntfireworks.reporting.AbnormalTransactionsReportAggregatorCallable"/>
+                </component>
+            </when>
+            <when expression="#[sessionVars.reportType == 5]">
+                <component doc:name="Generate Location Sales Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
+                </component>
+            </when>
+            <when expression="#[sessionVars.reportType == 7]">
+                <component doc:name="Generate Item Sales Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.ItemSalesReportAggregatorCallable"/>
+                </component>
+            </when>
+            <when expression="#[sessionVars.reportType == 8]">
+                <component doc:name="Generate Credit Debit Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.CreditDebitReportAggregatorCallable"/>
+                </component>
+            </when>
+            <otherwise>
+                <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
         <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
     </flow>
-    <flow name="TNTFireworks-generate-item-sales-batch-report-7">
-        <logger message="Begin generating item sales report" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Item Sales Batch Report">
-        	<prototype-object class="tntfireworks.reporting.ItemSalesReportAggregatorCallable"/>
-        </component>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
-    </flow>
-    <flow name="TNTFireworks-generate-settlements-batch-report-1">
-        <logger message="Starting TNTFireworks-generate-settlements-batch-report" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Settlements Batch Report">
-            <prototype-object class="tntfireworks.reporting.SettlementsReportAggregatorCallable"/>
-        </component>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
-    </flow>
-    <flow name="TNTFireworks-generate-transactions-batch-report-2">
-        <logger level="INFO" doc:name="Logger" message="Starting TNTFireworks-generate-transactions-batch-report"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Transactions Batch Report">
-            <prototype-object class="tntfireworks.reporting.TransactionsReportAggregatorCallable"/>
-        </component>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
-    </flow>
-    <flow name="TNTFireworks-generate-abnormal-transactions-report-3">
-        <logger message="Starting TNTFireworks-generate-abnormal-transactions-report" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Abnormal Transactions Batch Report">
-            <prototype-object class="tntfireworks.reporting.AbnormalTransactionsReportAggregatorCallable"/>
-        </component>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
-    </flow>
-    <flow name="TNTFireworks-generate-credit-debit-batch-report-8">
-        <logger message="Starting TNTFireworks-generate-credit-debit-report" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <flow-ref name="TNTFireworks-aggregate-deployment-transactions-optimized" doc:name="TNTFireworks-aggregate-deployment-transactions-optimized"/>
-        <component doc:name="Generate Credit Debit Batch Report">
-        	<prototype-object class="tntfireworks.reporting.CreditDebitReportAggregatorCallable"/>
-        </component>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-deployment-transactions">
-        <component doc:name="Get Deployment Payloads">
+    <flow name="TNTFireworks-aggregate-deployment-payloads">
+        <component doc:name="Get Deployments">
             <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
         </component>
         <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-splitter"/>
-            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-reply"/>
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-splitter"/>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply"/>
         </request-reply>
         <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="TNTFireworks-aggregate-deployment-transactions-optimized">
-        <component doc:name="Get Deployment Payloads">
-            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
-        </component>
-        <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-splitter"/>
-            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-reply"/>
-        </request-reply>
-        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-transactions-queue-splitter">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-splitter"/>
-        <collection-splitter doc:name="Collection Splitter" />
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-splitter">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-splitter"/>
+    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-splitter">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-splitter"/>
         <collection-splitter doc:name="Collection Splitter"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
     </flow>
-    <flow name="TNTFireworks-aggregate-transactions-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-async-worker"/>
-        <logger message="#[&quot;Retrieving Transaction details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Aggregate deployment details">
-        	<singleton-object class="tntfireworks.reporting.DeploymentDetailsCallable"/>
-        </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-async-worker"/>
+    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
         <logger message="#[&quot;Retrieving account details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Aggregate report payloads ">
+        <component doc:name="Retrieve merchant payload">
         	<singleton-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
         </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator"/>
     </flow>
-    <flow name="TNTFireworks-aggregate-transactions-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-aggregator"/>
-        <logger message="Aggregating transaction details..." level="INFO" doc:name="Logger"/>
-        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-queue-reply"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-aggregator"/>
+    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator"/>
         <logger message="Aggregating report payloads across accounts..." level="INFO" doc:name="Logger"/>
         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-transactions-optimized-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-transactions-optimized-queue-reply"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply"/>
     </flow>
 </mule>

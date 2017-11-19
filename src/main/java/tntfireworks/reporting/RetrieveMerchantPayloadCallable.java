@@ -169,7 +169,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	case SETTLEMENTS_REPORT_TYPE:
                     		// settlements report
                             SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, location.getName(), dbLocationRows);
-                    		for (Settlement settlement : TntLocationDetailsHelper.getSettlements(squareClientV1, aggregateIntervalParams)) {
+                    		for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1, aggregateIntervalParams)) {
                     			settlementsPayload.addEntry(settlement);
                     		}
 
@@ -186,7 +186,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	    Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
                     	    Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
 
-                    	    for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                    	    for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
                     	        for (Tender tender : transaction.getTenders()) {
                                     tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
                                     if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
@@ -195,7 +195,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	        }
                     	    }
 
-                    	    for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                    	    for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
                     	        transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
                     	    }
 
@@ -205,7 +205,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	    // detect anomaly transactions across locations / per merchant account
                             AbnormalTransactionsPayload abnormalTransactionsPayload =
                                 new AbnormalTransactionsPayload(timeZone, aggregateIntervalParams, location.getName(), dbLocationRows);
-                            for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                            for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
                                 abnormalTransactionsPayload.addEntry(transaction);
                             }
 
@@ -219,7 +219,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         	// get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
                                     location.getName(), dbLocationRows);
-                            for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                            for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
                                 locationSalesPayload.addEntry(transaction);
                             }
 
@@ -228,7 +228,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         case ITEM_SALES_REPORT_TYPE:
                         	// get item sales payload for single location
                             ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, location.getName(), dbLocationRows);
-                            for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                            for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
                                 itemSalesPayload.addEntry(payment, dbItemRows);
                             }
 
@@ -245,7 +245,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	    }
 
                             CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, location.getName(), dbLocationRows);
-                        	for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
+                        	for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
                         		creditDebitPayload.addEntry(payment);
                         	}
 
