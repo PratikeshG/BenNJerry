@@ -21,6 +21,7 @@ public class TestCSVGenerator {
 	private final String timeZoneId = "America/Los_Angeles";
 	private List<String> columnWhitelist = Arrays.asList(new String[]{"Partial Refunds", "Staff Name", "Device Nickname"});
 	private List<String> multiValueColumnList = Arrays.asList(new String[]{"Card Entry Methods", "Payment ID", "Card Brand", "Description"});
+	private String domainUrl = "http://squareup.com";
 
 	@Test
 	public void testTransactionWithCustomer() throws Exception {
@@ -34,7 +35,7 @@ public class TestCSVGenerator {
 
 		DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionsCsv1)).getRecords().get(0);
-		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId);
+		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId, domainUrl);
 
 		test(headersCsv, transactionCsvExpected, transactionCsvActual);
 	}
@@ -50,7 +51,7 @@ public class TestCSVGenerator {
 
 		DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionCsv2)).getRecords().get(0);
-		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, null, locationName, timeZoneId);
+		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, null, locationName, timeZoneId, domainUrl);
 
 		test(transactionHeadersCsv, transactionCsvExpected, transactionCsvActual);
 	}
@@ -69,7 +70,7 @@ public class TestCSVGenerator {
 		List<CSVRecord> itemsCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testItemsCsv1)).getRecords();
 
 		for (int index = 0; index < payment.getItemizations().length; index++) {
-			List<String> itemizationCsvActual = csvRowFactory.generateItemCsvRow(payment, payment.getItemizations()[index], transaction, customer, locationName, timeZoneId);
+			List<String> itemizationCsvActual = csvRowFactory.generateItemCsvRow(payment, payment.getItemizations()[index], transaction, customer, locationName, timeZoneId, domainUrl);
 			CSVRecord itemExpected = itemsCsvExpected.get(index);
 			test(headersCsv, itemExpected, itemizationCsvActual);
 		}
@@ -95,7 +96,7 @@ public class TestCSVGenerator {
 
 			DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
-			List<String> actual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId);
+			List<String> actual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId, domainUrl);
 			test(transactionHeadersCsv, expected, actual);
 		}
 	}

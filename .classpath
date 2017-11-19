@@ -26,6 +26,6 @@
 	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.8.0.ee"/>
 	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
-	<classpathentry kind="lib" path="/Users/finci/Development/sales-eng/managed-integrations/resources/commons-csv-1.5.jar"/>
+	<classpathentry kind="lib" path="resources/commons-csv-1.5.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

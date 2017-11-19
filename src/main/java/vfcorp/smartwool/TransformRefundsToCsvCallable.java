@@ -11,13 +11,27 @@ import org.springframework.beans.factory.annotation.Value;
 import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.SquareClientV2;
 
+import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
 
 public class TransformRefundsToCsvCallable implements Callable {
-	@Value("${vfcorp.smartwool.csv.refunds.headers}")
-	public String[] HEADERS;
+
+	public final String[] HEADERS = new String[] {
+			"Date",
+			"Time",
+			"Time Zone",
+			"Total Collected",
+			"Fees",
+			"Transaction ID",
+			"Payment ID",
+			"Details",
+			"Location"
+	};
+
+	@Value("${domain.url}")
+	private String DOMAIN_URL;
 	@Value("${vfcorp.smartwool.range}")
 	private String RANGE;
 	@Value("${vfcorp.smartwool.offset}")
@@ -45,7 +59,7 @@ public class TransformRefundsToCsvCallable implements Callable {
 
 			Refund[] refunds = clientv2.refunds().list(locationCtx.generateQueryParamMap());
 			for (Refund refund : refunds) {
-				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID));
+				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();

@@ -6,8 +6,6 @@ import java.util.Map;
 
 import com.squareup.connect.v2.Location;
 
-import vfcorp.smartwool.Constants;
-
 public class LocationContext implements Serializable {
 	/**
 	 *

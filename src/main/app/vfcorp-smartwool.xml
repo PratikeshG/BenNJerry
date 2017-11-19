@@ -63,11 +63,11 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
                 <set-variable variableName="deployment" value="${vfcorp.smartwool.deploymentId}" doc:name="Deployment ID"/>
                 <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
                 <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
-                <set-session-variable variableName="#[vfcorp.smartwool.Constants.SQUARE_PAYLOAD]" value="#[payload]" doc:name="Set Merchant Details"/>
+                <set-session-variable variableName="#[util.Constants.SQUARE_PAYLOAD]" value="#[payload]" doc:name="Set Merchant Details"/>
                 <component class="vfcorp.smartwool.GetLocationDetailsCallable" doc:name="VFC:SmartWool:Get-Location-Details"/>
                 <scatter-gather doc:name="All">
                     <flow-ref name="VFC:SmartWool:generate-payments-transactions-files" doc:name="VFC:SmartWool:generate-payments-transactions-files"/>
-                    <flow-ref name="VFC:SmartWool:generate-refunds-xml" doc:name="VFC:SmartWool:generate-refunds-x"/>
+                    <flow-ref name="VFC:SmartWool:generate-refunds-xml" doc:name="VFC:SmartWool:generate-refunds-xml"/>
                     <flow-ref name="VFC:SmartWool:generate-refunds-csv" doc:name="VFC:SmartWool:generate-refunds-csv"/>
                 </scatter-gather>
             </otherwise>
@@ -88,27 +88,27 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
                     <dw:input-session-variable doc:sample="sample_data/LinkedHashMap_1.dwl" mimeType="application/java" variableName="merchantId"/>
                     <dw:set-payload resource="classpath:smartwool/dwl/payment-transform.dwl"/>
                 </dw:transform-message>
-                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-payments-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-payments-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
             </processor-chain>
             <processor-chain>
                 <component class="vfcorp.smartwool.TransformItemsToCsvCallable" doc:name="VFC:SmartWool:Transform Items to CSV"/>
-                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-items-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-items-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
             </processor-chain>
             <processor-chain>
                 <component class="vfcorp.smartwool.TransformTransactionsToCsvCallable" doc:name="VFC:SmartWool:TransformTransactionsToCsvCallable"/>
-                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-transactions-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-transactions-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
             </processor-chain>
         </scatter-gather>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-refunds-csv">
         <component class="vfcorp.smartwool.TransformRefundsToCsvCallable" doc:name="VFC:SmartWool:TransformRefundsToCsv"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-refunds-xml">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayRefundsCallable" doc:name="VFC:SmartWool:Get-Refunds"/>
         <dw:transform-message doc:name="Transform Refund to XML">
             <dw:set-payload resource="classpath:smartwool/dwl/refund-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[vfcorp.smartwool.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[function:datestamp:MM-dd-yy].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
     </sub-flow>
 </mule>

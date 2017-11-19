@@ -1,4 +1,4 @@
-package vfcorp.smartwool;
+package util;
 
 public class Constants {
 	public static final String PST_TIME_ZONE_ID = "America/Los_Angeles";

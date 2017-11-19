@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentModifier;
@@ -17,6 +19,7 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.Transaction;
 
+import util.Constants;
 import util.LocationContext;
 import util.TimeManager;
 
@@ -24,10 +27,10 @@ public class DashboardCsvRowFactory {
 	public static final String PRODUCT_TYPE_REGISTER = "REGISTER";
 	public static final String PRODUCT_TYPE_REGISTER_LABEL = "Point of Sale";
 
-	private final String DETAILS_URL_PREFIX = "http://squareup.com/dashboard/sales/transactions/";
+	private final String DETAILS_URL_ROUTE = "/dashboard/sales/transactions/";
     private final String DETAULS_URL_DELIMETER = "/by-unit/";
 
-	public List<String> generateTransactionCsvRow(Payment payment, Transaction transaction, Customer customer, String locationName, String timeZoneId) throws Exception {
+	public List<String> generateTransactionCsvRow(Payment payment, Transaction transaction, Customer customer, String locationName, String timeZoneId, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(transaction);
 
@@ -59,7 +62,7 @@ public class DashboardCsvRowFactory {
 		fields.add(emptyStringIfNull(payment.getDevice().getName()));
 		fields.add("");
 		fields.add("");
-		fields.add(getDetailsUrl(transaction));
+		fields.add(getDetailsUrl(transaction, domainUrl));
 		fields.add(getItemizationSummary(payment));
 		fields.add(Constants.EVENT_TYPE_PAYMENT);
 		fields.add(locationName);
@@ -69,7 +72,7 @@ public class DashboardCsvRowFactory {
 
 		return fields;
 	}
-	public List<String> generateItemCsvRow(Payment payment, PaymentItemization itemization, Transaction transaction, Customer customer, String locationName, String timeZoneId) throws Exception {
+	public List<String> generateItemCsvRow(Payment payment, PaymentItemization itemization, Transaction transaction, Customer customer, String locationName, String timeZoneId, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 
 		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
@@ -89,7 +92,7 @@ public class DashboardCsvRowFactory {
 		fields.add(payment.getId());//Payment ID
 		fields.add(getDeviceName(payment));//Device name
 		fields.add(emptyStringIfNull(itemization.getNotes()));//Notes
-		fields.add(getDetailsUrl(transaction));//Details
+		fields.add(getDetailsUrl(transaction, domainUrl));//Details
 		fields.add(Constants.EVENT_TYPE_PAYMENT); //Event Type
 		fields.add(locationName); //Location
 		fields.add(""); //TODO: Dining Option
@@ -98,7 +101,7 @@ public class DashboardCsvRowFactory {
 
 		return fields;
 	}
-	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId) throws Exception {
+	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
 		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
@@ -107,7 +110,7 @@ public class DashboardCsvRowFactory {
 		fields.add(getCurrencyString(Math.negateExact(refund.getProcessingFeeMoney().getAmount())));
 		fields.add(refund.getTransactionId());
 		fields.add(refund.getTenderId());
-		fields.add(getDetailsUrl(refund));
+		fields.add(getDetailsUrl(refund, domainUrl));
 		fields.add(locationCtx.getName());
 
 		return fields;
@@ -133,11 +136,11 @@ public class DashboardCsvRowFactory {
 	private String getDateWithFormat(String iso8601string, String timeZoneId, String format) throws ParseException {
 		return TimeManager.toSimpleDateTimeInTimeZone(iso8601string, timeZoneId, format);
 	}
-	private String getDetailsUrl(Transaction transaction) {
-		return DETAILS_URL_PREFIX + transaction.getId() + DETAULS_URL_DELIMETER + transaction.getLocationId();
+	private String getDetailsUrl(Transaction transaction, String domainUrl) {
+		return domainUrl + DETAILS_URL_ROUTE + transaction.getId() + DETAULS_URL_DELIMETER + transaction.getLocationId();
 	}
-	private String getDetailsUrl(Refund refund) {
-		return DETAILS_URL_PREFIX + refund.getTransactionId() + DETAULS_URL_DELIMETER + refund.getLocationId();
+	private String getDetailsUrl(Refund refund, String domainUrl) {
+		return domainUrl + DETAILS_URL_ROUTE + refund.getTransactionId() + DETAULS_URL_DELIMETER + refund.getLocationId();
 	}
 	private String getDeviceName(Payment payment) {
 		if (payment.getDevice() != null && payment.getDevice().getName() != null) {

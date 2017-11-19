@@ -6,8 +6,8 @@
 	report: {
 		createdAt: sessionVars.createdAt,
 		merchant: {
-			merchantId: sessionVars['vfcorp.smartwool.SwConstants.SQUARE_PAYLOAD'].merchantId,
-			businessName: sessionVars['vfcorp.smartwool.SwConstants.SQUARE_PAYLOAD'].merchantAlias
+			merchantId: sessionVars['squarePayload'].merchantId,
+			businessName: sessionVars['squarePayload'].merchantAlias
 		},
 		locations: {
 			(payload pluck ({

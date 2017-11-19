@@ -16,13 +16,41 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Transaction;
 
+import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
 
 public class TransformItemsToCsvCallable implements Callable {
-	@Value("${vfcorp.smartwool.csv.items.headers}")
-	public String[] HEADERS;
+
+	public String[] HEADERS = new String[] {
+			"Date",
+			"Time",
+			"Time Zone",
+			"Category",
+			"Item",
+			"Qty",
+			"Price Point Name",
+			"SKU,Modifiers Applied",
+			"Gross Sales",
+			"Discounts",
+			"Net Sales",
+			"Tax",
+			"Transaction ID",
+			"Payment ID",
+			"Device Name",
+			"Notes",
+			"Details",
+			"Event Type",
+			"Location",
+			"Dining Option",
+			"Customer ID",
+			"Customer Name",
+			"Customer Reference ID"
+	};
+
+	@Value("${domain.url}")
+	private String DOMAIN_URL;
 	@Value("${vfcorp.smartwool.range}")
 	private String RANGE;
 	@Value("${vfcorp.smartwool.offset}")
@@ -65,7 +93,7 @@ public class TransformItemsToCsvCallable implements Callable {
 				Transaction transaction = tenderTransactionMap.get(tenderId);
 				Customer customer = getCustomer(transaction, clientv2); // TODO: refactor when bulk customers endpoint available
 				for (PaymentItemization itemization : payment.getItemizations()) {
-					csvGenerator.addRecord(csvRowFactorty.generateItemCsvRow(payment, itemization, transaction, customer, locationCtx.getName(), this.TIME_ZONE_ID));
+					csvGenerator.addRecord(csvRowFactorty.generateItemCsvRow(payment, itemization, transaction, customer, locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
 				}
 			}
 		}

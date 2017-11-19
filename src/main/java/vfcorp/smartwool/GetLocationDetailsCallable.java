@@ -16,6 +16,7 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
 
+import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.TimeManager;

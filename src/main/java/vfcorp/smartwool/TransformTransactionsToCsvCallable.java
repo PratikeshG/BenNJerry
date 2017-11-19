@@ -15,13 +15,55 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Transaction;
 
+import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
 
 public class TransformTransactionsToCsvCallable implements Callable {
-	@Value("${vfcorp.smartwool.csv.transactions.headers}")
-	public String[] HEADERS;
+
+	public final String[] HEADERS = new String[] {
+			"Date",
+			"Time",
+			"Time Zone",
+			"Gross Sales",
+			"Discounts",
+			"Net Sales",
+			"Gift Card Sales",
+			"Tax",
+			"Tip",
+			"Partial Refunds",
+			"Total Collected",
+			"Source",
+			"Card",
+			"Card Entry Methods",
+			"Cash",
+			"Square Gift Card",
+			"Other Tender",
+			"Other Tender Type",
+			"Other Tender Note",
+			"Fees",
+			"Net Total",
+			"Transaction ID",
+			"Payment ID",
+			"Card Brand",
+			"PAN Suffix",
+			"Device Name",
+			"Staff Name",
+			"Staff ID",
+			"Details",
+			"Description",
+			"Event Type",
+			"Location",
+			"Dining Option",
+			"Customer ID",
+			"Customer Name",
+			"Customer Reference ID",
+			"Device Nickname"
+	};
+
+	@Value("${domain.url}")
+	private String DOMAIN_URL;
 	@Value("${vfcorp.smartwool.range}")
 	private String RANGE;
 	@Value("${vfcorp.smartwool.offset}")
@@ -63,7 +105,7 @@ public class TransformTransactionsToCsvCallable implements Callable {
 				String tenderId = payment.getTender()[0].getId();
 				Transaction transaction = tenderTransactionMap.get(tenderId);
 				Customer customer = getCustomer(transaction, clientv2); // TODO: refactor when bulk customers endpoint available
-				csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(payment, transaction, customer, locationCtx.getName(), this.TIME_ZONE_ID));
+				csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(payment, transaction, customer, locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();
