@@ -48,7 +48,7 @@ public class TransformRefundsToCsvCallable implements Callable {
 				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID));
 			}
 		}
-		return csvGenerator.toString();
+		return csvGenerator.build();
 	}
 
 }

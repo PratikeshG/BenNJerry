@@ -69,7 +69,7 @@ public class TransformItemsToCsvCallable implements Callable {
 				}
 			}
 		}
-		return csvGenerator.toString();
+		return csvGenerator.build();
 	}
 	private Customer getCustomer(Transaction transaction, SquareClientV2 clientv2) throws Exception {
 		if (transaction.getTenders()[0].getCustomerId() != null) {

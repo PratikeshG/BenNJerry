@@ -52,7 +52,7 @@ public class DashboardCsvTenderSummary {
 
 	private HashSet<String> cardEntryMethods = new HashSet<>();
 	private ArrayList<String> cardBrands = new ArrayList<>();
-	private HashSet<String> panSuffi = new HashSet<String>();
+	private HashSet<String> panSuffixes = new HashSet<String>();
 
 	public int getGiftCard() {
 		return giftCard;
@@ -83,12 +83,12 @@ public class DashboardCsvTenderSummary {
 		}
 		return StringUtils.join(entryMethods, ", ");
 	}
-	public String getPanSuffi() {
-		List<String> panSuffi = new ArrayList<String>();
-		for (String panSuffix : this.panSuffi) {
-			panSuffi.add(panSuffix);
+	public String getPanSuffixes() {
+		List<String> panSuffixes = new ArrayList<String>();
+		for (String panSuffix : this.panSuffixes) {
+			panSuffixes.add(panSuffix);
 		}
-		return StringUtils.join(panSuffi, ", ");
+		return StringUtils.join(panSuffixes, ", ");
 	}
 	public static DashboardCsvTenderSummary generateTenderSummary(Transaction transaction) throws Exception {
 		DashboardCsvTenderSummary summary = new DashboardCsvTenderSummary();
@@ -101,7 +101,7 @@ public class DashboardCsvTenderSummary {
 
 				summary.cardEntryMethods.add(entryMethodLabel);
 				summary.cardBrands.add(cardBrandLabel);
-				summary.panSuffi.add(tender.getCardDetails().getCard().getLast4());
+				summary.panSuffixes.add(tender.getCardDetails().getCard().getLast4());
 			}
 			switch (tender.getType()) {
 			case TENDER_TYPE_CASH:

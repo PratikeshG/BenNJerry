@@ -53,9 +53,9 @@ public class DashboardCsvRowFactory {
 		fields.add(getCurrencyString(payment.getProcessingFeeMoney().getAmount()));
 		fields.add(getCurrencyString(payment.getNetTotalMoney().getAmount()));
 		fields.add(transaction.getId());
-		fields.add(getPaymentIds(payment));
+		fields.add(getTenderIds(payment));
 		fields.add(emptyStringIfNull(tenders.getCardBrands()));
-		fields.add(emptyStringIfNull(tenders.getPanSuffi()));
+		fields.add(emptyStringIfNull(tenders.getPanSuffixes()));
 		fields.add(emptyStringIfNull(payment.getDevice().getName()));
 		fields.add("");
 		fields.add("");
@@ -98,7 +98,6 @@ public class DashboardCsvRowFactory {
 
 		return fields;
 	}
-	//Date,Time,Time Zone,Total Collected,Fees,Details,Location
 	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
@@ -113,7 +112,7 @@ public class DashboardCsvRowFactory {
 
 		return fields;
 	}
-	private String getPaymentIds(Payment payment) {
+	private String getTenderIds(Payment payment) {
 		if (payment.getTender().length > 1) {
 			ArrayList<String> paymentIds = new ArrayList<String>();
 			for (Tender tender : payment.getTender()) {
