@@ -1,9 +1,12 @@
 package tntfireworks.reporting;
 
+import java.util.List;
+import java.util.Map;
+
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
-public class CreditDebitPayload extends TntReportPayload {
+public class CreditDebitPayload extends TntReportLocationPayload {
 
 	// constant payload fields
 	private static final String CREDIT_DEBIT_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
@@ -22,12 +25,11 @@ public class CreditDebitPayload extends TntReportPayload {
     private int creditCount;
     private int creditAmt;
     private int holdAmt;
-    private String locationName;
     private int achAmt;
     private String achDate;
 
-    public CreditDebitPayload(String timeZone, int loadNumber, String locationName, String rbu) {
-    	super(timeZone, CREDIT_DEBIT_FILE_HEADER);
+    public CreditDebitPayload(String timeZone, int loadNumber, String locationName, List<Map<String, String>> dbLocationRows) {
+    	super(timeZone, locationName, dbLocationRows, CREDIT_DEBIT_FILE_HEADER);
 
         // initialize values that are currently static
     	// (may change in the future depending on TNT requirements)
@@ -42,11 +44,10 @@ public class CreditDebitPayload extends TntReportPayload {
         debitAmt = 0;
         creditCount = 0;
         creditAmt = 0;
-        this.locationName = locationName.replaceAll(",", "");
         this.loadNumber = loadNumber;
     }
 
-    public void addPayment(Payment payment) {
+    public void addEntry(Payment payment) {
         // compute debit/credit data based on interval specified in RetrieveMerchantPayloadCallable
         for (Tender tender : payment.getTender()) {
             if (tender.getType().equals("CREDIT_CARD")) {

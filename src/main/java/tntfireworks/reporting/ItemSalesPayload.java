@@ -14,25 +14,23 @@ import com.squareup.connect.PaymentItemization;
 
 import util.TimeManager;
 
-public class ItemSalesPayload extends TntReportPayload {
+public class ItemSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
     private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description",
             "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");
     private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;
     private Map<String, String> dayTimeInterval;
-    private String locationNumber;
-    private String rbu;
+    private Calendar beginTime;
+    private Calendar endTime;
 
-    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
-        super(timeZone, ITEM_SALES_FILE_HEADER);
+    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName, List<Map<String, String>> dbLocationRows) {
+        super(timeZone, locationName, dbLocationRows, ITEM_SALES_FILE_HEADER);
         this.itemSalesPayloadEntries = new HashMap<String, ItemSalesPayloadEntry>();
         this.dayTimeInterval = dayTimeInterval;
-        this.locationNumber = locationNumber;
-        this.rbu = rbu;
     }
 
-    public void addPayment(Payment payment, List<Map<String, String>> dbItemRows) {
+    public void addEntry(Payment payment, List<Map<String, String>> dbItemRows) {
         try {
             // loop through payment itemizations and add to map
             for (PaymentItemization itemization : payment.getItemizations()) {

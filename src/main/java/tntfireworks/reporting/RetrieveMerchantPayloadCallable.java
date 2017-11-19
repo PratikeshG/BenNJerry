@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -36,7 +34,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
     private static final int SETTLEMENTS_REPORT_TYPE = 1;
     private static final int TRANSACTIONS_REPORT_TYPE = 2;
-    private static final int FRAUD_REPORT_TYPE = 3;
+    private static final int ABNORMAL_TRANSACTIONS_REPORT_TYPE = 3;
     private static final int CHARGEBACK_REPORT_TYPE = 4;
     private static final int LOCATION_SALES_REPORT_TYPE = 5;
     private static final int ITEM_SALES_REPORT_TYPE = 7;
@@ -133,11 +131,11 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return range;
     }
 
-    private List<TntReportPayload> getMerchantPayload(int reportType, SquareClient squareClientV1, SquareClientV2 squareClientV2,
+    private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClient squareClientV1, SquareClientV2 squareClientV2,
             DbConnection dbConnection, int offset, int range) {
 
         // initialize payload to store ItemSalesFile objects
-        List<TntReportPayload> merchantPayload = new ArrayList<TntReportPayload>();
+        List<TntReportLocationPayload> merchantPayload = new ArrayList<TntReportLocationPayload>();
 
         try {
             // get db information for later lookup
@@ -167,22 +165,12 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     squareClientV1.setLocation(location.getId());
                     squareClientV2.setLocation(location.getId());
 
-                    // lookup TNT location specific data
-                    String locationNumber = findLocationNumber(location.getName());
-                    String rbu = "";
-                    for (Map<String, String> row : dbLocationRows) {
-                        if (locationNumber.equals(row.get("locationNumber"))) {
-                            rbu = row.get("rbu");
-                        }
-                    }
-
-
                     switch (reportType) {
                     	case SETTLEMENTS_REPORT_TYPE:
                     		// settlements report
-                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationNumber, dbLocationRows);
+                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, location.getName(), dbLocationRows);
                     		for (Settlement settlement : TntLocationDetailsHelper.getSettlements(squareClientV1, aggregateIntervalParams)) {
-                    			settlementsPayload.addSettlement(settlement);
+                    			settlementsPayload.addEntry(settlement);
                     		}
 
                             merchantPayload.add(settlementsPayload);
@@ -192,7 +180,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	    // - each TransactionsPayload includes transaction data from a single location
                     	    // - while the payload object name may imply V2 Transactions data, the payload mainly consists of V1 Payments data
                     	    //   and is called a TransactionsPayload because the report name is defined by TNT as 'Transactions Report'
-                    	    TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, locationNumber, dbLocationRows);
+                    	    TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, location.getName(), dbLocationRows);
 
                     	    // need to obtain Connect V2 Tender Fees and V2 Tender Entry Methods to map to V1 Tenders
                     	    Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
@@ -208,13 +196,20 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	    }
 
                     	    for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
-                    	        transactionsPayload.addPayment(payment, tenderToFee, tenderToEntryMethod);
+                    	        transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
                     	    }
 
                     	    merchantPayload.add(transactionsPayload);
-
                     	    break;
-                    	case FRAUD_REPORT_TYPE:
+                    	case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
+                    	    // detect anomaly transactions across locations / per merchant account
+                            AbnormalTransactionsPayload abnormalTransactionsPayload =
+                                new AbnormalTransactionsPayload(timeZone, aggregateIntervalParams, location.getName(), dbLocationRows);
+                            for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
+                                abnormalTransactionsPayload.addEntry(transaction);
+                            }
+
+                            merchantPayload.add(abnormalTransactionsPayload);
                     	    break;
                     	case CHARGEBACK_REPORT_TYPE:
                     		// report 4 is currently generated from a different source
@@ -223,18 +218,18 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         	// added separate case statement for clarity
                         	// get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
-                                    locationNumber, rbu);
+                                    location.getName(), dbLocationRows);
                             for (Transaction transaction : TntLocationDetailsHelper.getTransactions(squareClientV2, aggregateIntervalParams)) {
-                                locationSalesPayload.addTransaction(transaction);
+                                locationSalesPayload.addEntry(transaction);
                             }
 
                             merchantPayload.add(locationSalesPayload);
                             break;
                         case ITEM_SALES_REPORT_TYPE:
                         	// get item sales payload for single location
-                            ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationNumber, rbu);
+                            ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, location.getName(), dbLocationRows);
                             for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
-                                itemSalesPayload.addPayment(payment, dbItemRows);
+                                itemSalesPayload.addEntry(payment, dbItemRows);
                             }
 
                         	merchantPayload.add(itemSalesPayload);
@@ -249,9 +244,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     	        }
                     	    }
 
-                            CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, location.getName(), rbu);
+                            CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, location.getName(), dbLocationRows);
                         	for (Payment payment : TntLocationDetailsHelper.getPayments(squareClientV1, aggregateIntervalParams)) {
-                        		creditDebitPayload.addPayment(payment);
+                        		creditDebitPayload.addEntry(payment);
                         	}
 
                         	merchantPayload.add(creditDebitPayload);
@@ -264,32 +259,5 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         }
 
         return merchantPayload;
-    }
-
-    /*
-    * Helper function to parse location number
-    *
-    * - per TNT spec, all upcoming seasons will follow new naming convention
-    *   location name = TNT location number
-    * - old seasons followed convention of 'NAME (#LocationNumber)'
-    *
-    */
-    protected String findLocationNumber(String locationName) {
-        String locationNumber = "";
-
-        // old location name =  'NAME (#Location Number)'
-        String oldPattern = "\\w+\\s*\\(#([a-zA-Z0-9\\s]+)\\)";
-        Pattern p = Pattern.compile(oldPattern);
-        Matcher m = p.matcher(locationName);
-
-        if (m.find()) {
-            locationNumber = m.group(1);
-        } else {
-            if (!locationName.equals("")) {
-                locationNumber = locationName;
-            }
-        }
-
-        return locationNumber;
     }
 }

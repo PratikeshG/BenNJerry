@@ -2,6 +2,7 @@ package tntfireworks.reporting;
 
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -13,7 +14,7 @@ import com.squareup.connect.v2.Transaction;
 
 import util.TimeManager;
 
-public class LocationSalesPayload extends TntReportPayload {
+public class LocationSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(LocationSalesPayload.class);
 
     private static final String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
@@ -21,25 +22,21 @@ public class LocationSalesPayload extends TntReportPayload {
             "Daily Sales (CASH/CREDIT)",
             "YTD Sales (CASH/CREDIT)");
     private Map<String, String> dayTimeInterval;
-    private String locationNumber;
-    private String rbu;
     private int creditDailySales;
     private int cashDailySales;
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
-        super(timeZone, LOCATION_SALES_FILE_HEADER);
+    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName, List<Map<String, String>> dbLocationRows) {
+        super(timeZone, locationName, dbLocationRows, LOCATION_SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
-        this.locationNumber = locationNumber;
-        this.rbu = rbu;
         this.creditDailySales = 0;
         this.creditTotalSales = 0;
         this.cashDailySales = 0;
         this.cashTotalSales = 0;
     }
 
-    public void addTransaction(Transaction transaction) {
+    public void addEntry(Transaction transaction) {
         try {
             // use calendar objects to daily interval
             Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get("begin_time"));
@@ -84,7 +81,7 @@ public class LocationSalesPayload extends TntReportPayload {
                 }
             }
         } catch (Exception e) {
-            logger.error("Exception from aggregating sales/payload data for LoationSales: " + e);
+            logger.error("Calendar Exception from aggregating sales/payload data for LocationSales: " + e);
         }
     }
 

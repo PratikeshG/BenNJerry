@@ -10,13 +10,8 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
-public class TransactionsPayload extends TntReportPayload {
+public class TransactionsPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
-    private String locationNumber;
-    private String rbu;
-    private String city;
-    private String state;
-    private String saName;
     private List<TransactionsPayloadEntry> transactionsPayloadEntries;
 
     private static final String TRANSACTIONS_FILE_HEADER = String.format(
@@ -26,29 +21,12 @@ public class TransactionsPayload extends TntReportPayload {
             "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State",
             "RBU", "SA NAME");
 
-    public TransactionsPayload(String timeZone, String locationNumber, List<Map<String, String>> dbLocationRows) {
-        super (timeZone, TRANSACTIONS_FILE_HEADER);
-        this.locationNumber = locationNumber;
+    public TransactionsPayload(String timeZone, String locationName, List<Map<String, String>> dbLocationRows) {
+        super (timeZone, locationName, dbLocationRows, TRANSACTIONS_FILE_HEADER);
         transactionsPayloadEntries = new ArrayList<TransactionsPayloadEntry>();
-
-        // initialize tnt location-specific information
-        rbu = "";
-        city = "";
-        state = "";
-        saName = "";
-
-        // get data from location rows in db
-        for (Map<String, String> row : dbLocationRows) {
-            if (this.locationNumber.equals(row.get("locationNumber"))) {
-                this.city = row.get("city");
-                this.state = row.get("state");
-                this.rbu = row.get("rbu");
-                this.saName = row.get("saName");
-            }
-        }
     }
 
-    public void addPayment(Payment payment, Map<String, Integer> tenderToFee, Map<String, String> tenderToEntryMethod) {
+    public void addEntry(Payment payment, Map<String, Integer> tenderToFee, Map<String, String> tenderToEntryMethod) {
         // - tender fee and tender entry method currently only available in Connect V2
         // - use V2 map to obtain values
         String tenderFee = "";
@@ -111,7 +89,7 @@ public class TransactionsPayload extends TntReportPayload {
         private String refundAmt;
         private String tenderFee;
 
-        public TransactionsPayloadEntry(Payment payment, Tender tender, String tenderFee, String tenderEntryMethod) {
+        private TransactionsPayloadEntry(Payment payment, Tender tender, String tenderFee, String tenderEntryMethod) {
             // initialize payment data
             paymentId = payment.getId();
             createdAt = payment.getCreatedAt();
