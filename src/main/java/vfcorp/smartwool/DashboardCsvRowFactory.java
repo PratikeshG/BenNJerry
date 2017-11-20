@@ -121,7 +121,6 @@ public class DashboardCsvRowFactory {
 			for (Tender tender : payment.getTender()) {
 				paymentIds.add(tender.getId());
 			}
-			Collections.sort(paymentIds);
 			return String.join(", ", paymentIds);
 		};
 		return payment.getTender()[0].getId();
