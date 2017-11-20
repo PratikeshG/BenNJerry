@@ -16,52 +16,51 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
 
+import util.Constants;
+import util.LocationContext;
 import util.SquarePayload;
 import util.TimeManager;
 
 public class GetLocationDetailsCallable implements Callable {
 	@Value("${vfcorp.smartwool.range}")
-	private String VAR_RANGE;
+	private String RANGE;
 	@Value("${vfcorp.smartwool.offset}")
-	private String VAR_OFFSET;
+	private String OFFSET;
 	@Value("${encryption.key.tokens}")
     private String encryptionKey;
 
-	private final String VAR_APIURL = "apiUrl";
-	private final String VAR_MERCHANT_DETAILS = "merchantDetails";
-	private final String VAR_NAME = "name";
-	private final String VAR_LOCATION_DETAILS_MAP = "locationDetailsMap";
 	/**
 	 * Get merchants {@code Location}'s for inclusion in report. Sets {@code merchantDetails}
 	 * session var and {@code locationDetailsMap} of location {@code Id} to {@code Location}.
 	 */
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
+		String apiUrl, accessToken, merchantId;
+
+		int range = Integer.parseInt(RANGE);
+		int offset = Integer.parseInt(OFFSET);
+
 		MuleMessage message = eventContext.getMessage();
-		SquarePayload merchantDetails = (SquarePayload) message.getProperty(VAR_MERCHANT_DETAILS, PropertyScope.SESSION);
+		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
+		apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 
-		int range = Integer.parseInt(VAR_RANGE);
-		int offset = Integer.parseInt(VAR_OFFSET);
-
-		String apiUrl = message.getProperty(VAR_APIURL, PropertyScope.SESSION);
-		String merchantId = merchantDetails.getMerchantId();
-		String accessToken = merchantDetails.getAccessToken(this.encryptionKey);
+		accessToken = sqPayload.getAccessToken(this.encryptionKey);
+		merchantId = sqPayload.getMerchantId();
 
 		SquareClientV2 client = new SquareClientV2(apiUrl, accessToken, merchantId);
-		merchantDetails.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
-		message.setProperty(VAR_MERCHANT_DETAILS, merchantDetails, PropertyScope.SESSION);
+		sqPayload.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
 
 		List<Location> locations = Arrays.asList(client.locations().list());
-		message.setProperty(VAR_LOCATION_DETAILS_MAP, this.toLocationsMetadataMap(locations, range, offset), PropertyScope.SESSION);
+		message.setProperty(Constants.LOCATION_CONTEXT_MAP, this.generateLocationContextMap(locations, range, offset), PropertyScope.SESSION);
 
 		return locations;
 	}
-	private HashMap<String, Map<String, String>> toLocationsMetadataMap(List<Location> locations, int range, int offset) {
-		HashMap<String, Map<String, String>> locationIdToLocationDetails = new HashMap<String, Map<String, String>>();
+	private HashMap<String, LocationContext> generateLocationContextMap(List<Location> locations, int range, int offset) {
+		HashMap<String, LocationContext> locationIdToLocationDetails = new HashMap<String, LocationContext>();
 		for (Location location : locations) {
-			Map<String, String> locationDetails = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
-			locationDetails.put(VAR_NAME, location.getName());
-			locationIdToLocationDetails.put(location.getId(), locationDetails);
+			Map<String, String> queryParams = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
+			LocationContext context = new LocationContext(location, queryParams);
+			locationIdToLocationDetails.put(location.getId(), context);
 		}
 		return locationIdToLocationDetails;
 	}
