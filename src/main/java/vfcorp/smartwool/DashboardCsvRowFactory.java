@@ -124,7 +124,7 @@ public class DashboardCsvRowFactory {
 			Collections.sort(paymentIds);
 			return String.join(", ", paymentIds);
 		};
-		return payment.getId();
+		return payment.getTender()[0].getId();
 	}
 	private String emptyStringIfNull(String str) {
 		if (str == null) {
