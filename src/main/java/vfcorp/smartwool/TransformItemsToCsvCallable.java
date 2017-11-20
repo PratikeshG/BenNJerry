@@ -40,11 +40,11 @@ public class TransformItemsToCsvCallable implements Callable {
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		MuleMessage message = eventContext.getMessage();
 		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
-				PropertyScope.SESSION);
+				PropertyScope.INVOCATION);
 
 		@SuppressWarnings("unchecked")
 		HashMap<String, List<Payment>> locationsPayments = (HashMap<String, List<Payment>>) message
-				.getProperty(Constants.PAYMENTS, PropertyScope.SESSION);
+				.getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 		SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);

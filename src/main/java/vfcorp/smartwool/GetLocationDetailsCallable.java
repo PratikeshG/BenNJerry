@@ -49,9 +49,9 @@ public class GetLocationDetailsCallable implements Callable {
 		sqPayload.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
 
 		List<Location> locations = Arrays.asList(client.locations().list());
-		message.setProperty(Constants.LOCATIONS, locations, PropertyScope.SESSION);
+		message.setProperty(Constants.LOCATIONS, locations, PropertyScope.INVOCATION);
 		message.setProperty(Constants.LOCATION_CONTEXT_MAP, this.generateLocationContextMap(locations, range, offset),
-				PropertyScope.SESSION);
+				PropertyScope.INVOCATION);
 
 		return message.getPayload();
 	}

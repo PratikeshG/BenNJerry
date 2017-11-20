@@ -36,7 +36,7 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 		int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
 
 		@SuppressWarnings("unchecked")
-		List<Location> locations = (List<Location>) message.getProperty(Constants.LOCATIONS, PropertyScope.SESSION);
+		List<Location> locations = (List<Location>) message.getProperty(Constants.LOCATIONS, PropertyScope.INVOCATION);
 		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
@@ -47,7 +47,7 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 				PropertyScope.SESSION);
 
 		message.setProperty(Constants.PAYMENTS, new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
-				.forLocations(locations).forPastDayInterval(range, offset).build(), PropertyScope.SESSION);
+				.forLocations(locations).forPastDayInterval(range, offset).build(), PropertyScope.INVOCATION);
 
 		return message.getPayload();
 	}

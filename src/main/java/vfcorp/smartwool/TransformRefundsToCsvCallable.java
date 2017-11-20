@@ -18,8 +18,12 @@ import util.reports.CSVGenerator;
 
 public class TransformRefundsToCsvCallable implements Callable {
 
-	public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Total Collected", "Fees",
-			"Transaction ID", "Payment ID", "Details", "Location" };
+	public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Gross Sales", "Discounts", "Net Sales",
+			"Gift Card Sales", "Tax", "Tip", "Partial Refunds", "Total Collected", "Source", "Card",
+			"Card Entry Methods", "Cash", "Square Gift Card", "Other Tender", "Other Tender Type", "Other Tender Note",
+			"Fees", "Net Total", "Transaction ID", "Payment ID", "Card Brand", "PAN Suffix", "Device Name",
+			"Staff Name", "Staff ID", "Details", "Description", "Event Type", "Location", "Dining Option",
+			"Customer ID", "Customer Name", "Customer Reference ID", "Device Nickname" };
 
 	@Value("${domain.url}")
 	private String DOMAIN_URL;
@@ -32,7 +36,7 @@ public class TransformRefundsToCsvCallable implements Callable {
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		MuleMessage message = eventContext.getMessage();
 		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
-				PropertyScope.SESSION);
+				PropertyScope.INVOCATION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 		SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);

@@ -12,9 +12,9 @@
         locations: { (payload pluck ({
             (location: { 
                 locationId: ($$),
-                beginTime: sessionVars.locationContextMap[($$)].begin_time,
-                endTime: sessionVars.locationContextMap[($$)].end_time,
-                locationName: sessionVars.locationContextMap[($$)].name,
+                beginTime: flowVars.locationContextMap[($$)].begin_time,
+                endTime: flowVars.locationContextMap[($$)].end_time,
+                locationName: flowVars.locationContextMap[($$)].name,
                 refunds: { ($ default [] map {
                     refund: {
                         type: $.type,
@@ -23,7 +23,7 @@
                         reason: $.reason,
                         refundedMoney: $.refundedMoney,
                         paymentId: $.paymentId,
-                        locationId: sessionVars.refundLocationMap[($.paymentId)]
+                        locationId: flowVars.refundLocationMap[($.paymentId)]
                     }
                 })}
             }) when (sizeOf $) > 0
