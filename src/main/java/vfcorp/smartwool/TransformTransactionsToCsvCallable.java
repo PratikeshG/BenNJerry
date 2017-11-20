@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.SquareClientV2;
+import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
 import util.Constants;
@@ -97,7 +98,9 @@ public class TransformTransactionsToCsvCallable implements Callable {
 
 			Transaction[] transactions = clientv2.transactions().list(locationCtx.generateQueryParamMap());
 			for(Transaction transaction : transactions) {
-				tenderTransactionMap.put(transaction.getTenders()[0].getId(), transaction);
+				for (Tender tender : transaction.getTenders()) {
+					tenderTransactionMap.put(tender.getId(), transaction);
+				}
 			}
 
 			// loop through payments and generate csv row entries for each itemization
