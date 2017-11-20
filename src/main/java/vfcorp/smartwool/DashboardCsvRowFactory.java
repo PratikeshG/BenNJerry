@@ -4,11 +4,8 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
@@ -33,7 +30,6 @@ public class DashboardCsvRowFactory {
 	public List<String> generateTransactionCsvRow(Payment payment, Transaction transaction, Customer customer, String locationName, String timeZoneId, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(transaction);
-
 		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
 		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
 		fields.add(getTimeZoneLabel(timeZoneId));
@@ -69,12 +65,10 @@ public class DashboardCsvRowFactory {
 		fields.add(""); //Dining options
 		fields.addAll(getCustomerInfo(customer));
 		fields.add("");//Device nickname, can't get this
-
 		return fields;
 	}
 	public List<String> generateItemCsvRow(Payment payment, PaymentItemization itemization, Transaction transaction, Customer customer, String locationName, String timeZoneId, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
-
 		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
 		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
 		fields.add(getTimeZoneLabel(timeZoneId));
@@ -98,7 +92,6 @@ public class DashboardCsvRowFactory {
 		fields.add(""); //TODO: Dining Option
 		fields.addAll(getCustomerInfo(customer)); //Customer ID, Name & Reference ID
 		fields.add(""); //Device nickname
-
 		return fields;
 	}
 	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId, String domainUrl) throws Exception {
@@ -112,7 +105,6 @@ public class DashboardCsvRowFactory {
 		fields.add(refund.getTenderId());
 		fields.add(getDetailsUrl(refund, domainUrl));
 		fields.add(locationCtx.getName());
-
 		return fields;
 	}
 	private String getTenderIds(Payment payment) {
