@@ -12,5 +12,10 @@ public class Constants {
 	public static final String EVENT_TYPE_PAYMENT = "Payment";
 	public static final String LOCATION_CONTEXT_MAP = "locationContextMap";
 	public static final String LOCATION_NAME_KEY = "name";
+	public static final String LOCATIONS = "locations";
 	public static final String SQUARE_PAYLOAD = "squarePayload";
+	public static final String PAYMENTS = "payments";
+	public static final String RANGE = "range";
+	public static final String OFFSET = "offset";
+
 }

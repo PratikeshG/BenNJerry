@@ -23,45 +23,12 @@ import util.reports.CSVGenerator;
 
 public class TransformTransactionsToCsvCallable implements Callable {
 
-	public final String[] HEADERS = new String[] {
-			"Date",
-			"Time",
-			"Time Zone",
-			"Gross Sales",
-			"Discounts",
-			"Net Sales",
-			"Gift Card Sales",
-			"Tax",
-			"Tip",
-			"Partial Refunds",
-			"Total Collected",
-			"Source",
-			"Card",
-			"Card Entry Methods",
-			"Cash",
-			"Square Gift Card",
-			"Other Tender",
-			"Other Tender Type",
-			"Other Tender Note",
-			"Fees",
-			"Net Total",
-			"Transaction ID",
-			"Payment ID",
-			"Card Brand",
-			"PAN Suffix",
-			"Device Name",
-			"Staff Name",
-			"Staff ID",
-			"Details",
-			"Description",
-			"Event Type",
-			"Location",
-			"Dining Option",
-			"Customer ID",
-			"Customer Name",
-			"Customer Reference ID",
-			"Device Nickname"
-	};
+	public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Gross Sales", "Discounts", "Net Sales",
+			"Gift Card Sales", "Tax", "Tip", "Partial Refunds", "Total Collected", "Source", "Card",
+			"Card Entry Methods", "Cash", "Square Gift Card", "Other Tender", "Other Tender Type", "Other Tender Note",
+			"Fees", "Net Total", "Transaction ID", "Payment ID", "Card Brand", "PAN Suffix", "Device Name",
+			"Staff Name", "Staff ID", "Details", "Description", "Event Type", "Location", "Dining Option",
+			"Customer ID", "Customer Name", "Customer Reference ID", "Device Nickname" };
 
 	@Value("${domain.url}")
 	private String DOMAIN_URL;
@@ -70,17 +37,19 @@ public class TransformTransactionsToCsvCallable implements Callable {
 	@Value("${vfcorp.smartwool.offset}")
 	private String OFFSET;
 	@Value("${encryption.key.tokens}")
-    private String ENCRYPTION_KEY;
+	private String ENCRYPTION_KEY;
 	@Value("${vfcorp.smartwool.csv.zoneId}")
 	private String TIME_ZONE_ID;
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		MuleMessage message = eventContext.getMessage();
-		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP, PropertyScope.SESSION);
+		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
+				PropertyScope.SESSION);
 
 		@SuppressWarnings("unchecked")
-		HashMap<String, List<Payment>> locationsPayments = (HashMap<String, List<Payment>>) message.getPayload();
+		HashMap<String, List<Payment>> locationsPayments = (HashMap<String, List<Payment>>) message
+				.getProperty(Constants.PAYMENTS, PropertyScope.SESSION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 		SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
@@ -94,25 +63,30 @@ public class TransformTransactionsToCsvCallable implements Callable {
 		for (String locationId : locationsPayments.keySet()) {
 			List<Payment> payments = locationsPayments.get(locationId);
 			LocationContext locationCtx = locationContexts.get(locationId);
-			SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), sqPayload.getMerchantId(), locationId);
+			SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY),
+					sqPayload.getMerchantId(), locationId);
 
 			Transaction[] transactions = clientv2.transactions().list(locationCtx.generateQueryParamMap());
-			for(Transaction transaction : transactions) {
+			for (Transaction transaction : transactions) {
 				for (Tender tender : transaction.getTenders()) {
 					tenderTransactionMap.put(tender.getId(), transaction);
 				}
 			}
 
-			// loop through payments and generate csv row entries for each itemization
-			for(Payment payment : payments) {
+			// loop through payments and generate csv row entries for each
+			// itemization
+			for (Payment payment : payments) {
 				String tenderId = payment.getTender()[0].getId();
 				Transaction transaction = tenderTransactionMap.get(tenderId);
-				Customer customer = getCustomer(transaction, clientv2); // TODO: refactor when bulk customers endpoint available
-				csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(payment, transaction, customer, locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
+				Customer customer = getCustomer(transaction, clientv2);
+
+				csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(payment, transaction, customer,
+						locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();
 	}
+
 	private Customer getCustomer(Transaction transaction, SquareClientV2 clientv2) throws Exception {
 		if (transaction.getTenders()[0].getCustomerId() != null) {
 			return clientv2.customers().retrieve(transaction.getTenders()[0].getCustomerId());

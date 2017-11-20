@@ -18,33 +18,21 @@ import util.reports.CSVGenerator;
 
 public class TransformRefundsToCsvCallable implements Callable {
 
-	public final String[] HEADERS = new String[] {
-			"Date",
-			"Time",
-			"Time Zone",
-			"Total Collected",
-			"Fees",
-			"Transaction ID",
-			"Payment ID",
-			"Details",
-			"Location"
-	};
+	public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Total Collected", "Fees",
+			"Transaction ID", "Payment ID", "Details", "Location" };
 
 	@Value("${domain.url}")
 	private String DOMAIN_URL;
-	@Value("${vfcorp.smartwool.range}")
-	private String RANGE;
-	@Value("${vfcorp.smartwool.offset}")
-	private String OFFSET;
 	@Value("${encryption.key.tokens}")
-    private String ENCRYPTION_KEY;
+	private String ENCRYPTION_KEY;
 	@Value("${vfcorp.smartwool.csv.zoneId}")
 	private String TIME_ZONE_ID;
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
 		MuleMessage message = eventContext.getMessage();
-		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP, PropertyScope.SESSION);
+		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
+				PropertyScope.SESSION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 		SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
@@ -55,11 +43,13 @@ public class TransformRefundsToCsvCallable implements Callable {
 
 		for (String locationId : locationContexts.keySet()) {
 			LocationContext locationCtx = locationContexts.get(locationId);
-			SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), sqPayload.getMerchantId(), locationId);
+			SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY),
+					sqPayload.getMerchantId(), locationId);
 
 			Refund[] refunds = clientv2.refunds().list(locationCtx.generateQueryParamMap());
 			for (Refund refund : refunds) {
-				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID, this.DOMAIN_URL));
+				csvGenerator.addRecord(
+						csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();
