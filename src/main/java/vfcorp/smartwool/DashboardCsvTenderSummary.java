@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TenderCardDetails;
 import com.squareup.connect.v2.Transaction;
@@ -17,6 +15,8 @@ public class DashboardCsvTenderSummary {
 	private static final String TENDER_TYPE_CASH = "CASH";
 	private static final String TENDER_TYPE_SQUARE_GIFT_CARD = "SQUARE_GIFT_CARD";
 	private static final String TENDER_TYPE_CARD = "CARD";
+	private static final String TENDER_TYPE_NO_SALE = "NO_SALE";
+	private static final String TENDER_TYPE_OTHER = "OTHER";
 
     private static final String DIPPED_LABEL = "Dipped";
     private static final String TAPPED_LABEL = "Tapped";
@@ -74,21 +74,21 @@ public class DashboardCsvTenderSummary {
 	}
 
 	public String getCardBrands() {
-		return StringUtils.join(this.cardBrands, ", ");
+		return String.join(", ", this.cardBrands);
 	}
 	public String getCardEntryMethods() {
 		List<String> entryMethods = new ArrayList<String>();
 		for (String entryMethod : this.cardEntryMethods) {
 			entryMethods.add(entryMethod);
 		}
-		return StringUtils.join(entryMethods, ", ");
+		return String.join(", ", entryMethods);
 	}
 	public String getPanSuffixes() {
 		List<String> panSuffixes = new ArrayList<String>();
 		for (String panSuffix : this.panSuffixes) {
 			panSuffixes.add(panSuffix);
 		}
-		return StringUtils.join(panSuffixes, ", ");
+		return String.join(", ", panSuffixes);
 	}
 	public static DashboardCsvTenderSummary generateTenderSummary(Transaction transaction) throws Exception {
 		DashboardCsvTenderSummary summary = new DashboardCsvTenderSummary();
@@ -112,6 +112,10 @@ public class DashboardCsvTenderSummary {
 				break;
 			case TENDER_TYPE_CARD:
 				summary.card += totalMoney;
+				break;
+			case TENDER_TYPE_OTHER:
+				summary.other += totalMoney;
+			case TENDER_TYPE_NO_SALE:
 				break;
 			default:
 				throw new Exception("Unknown tender type: " + tender.getType());
