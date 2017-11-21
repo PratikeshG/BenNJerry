@@ -50,6 +50,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private String databaseUser;
     @Value("${mysql.password}")
     private String databasePassword;
+    @Value("${api.url}")
+    private String apiUrl;
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -81,9 +85,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         SquarePayload deployment = (SquarePayload) message.getPayload();
 
         // initialize connect v1/v2 api clients
-        SquareClient squareClientV1 = new SquareClient(deployment.getAccessToken(), apiUrl, apiVersion,
+        SquareClient squareClientV1 = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                 deployment.getMerchantId());
-        SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
+        SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
 
         // retrieve location details according to reportType and store into abstracted object (reportPayload)
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());

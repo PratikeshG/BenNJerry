@@ -52,11 +52,12 @@ public class TntDeploymentsCallable implements Callable {
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
         for (Map<String, String> row : rows) {
             SquarePayload deploymentPayload = new SquarePayload();
-            deploymentPayload.setAccessToken(row.get("token"));
+            deploymentPayload.setEncryptedAccessToken(row.get("encryptedAccessToken"));
             deploymentPayload.setMerchantId(row.get("merchantId"));
             deploymentPayload.setMerchantAlias(row.get("merchantAlias"));
             deploymentPayloads.add(deploymentPayload);
         }
+
         return deploymentPayloads;
     }
 }
