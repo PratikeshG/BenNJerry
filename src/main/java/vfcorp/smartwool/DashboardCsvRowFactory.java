@@ -244,6 +244,9 @@ public class DashboardCsvRowFactory {
 
 	private String getCurrencyString(int num) {
 		NumberFormat defaultFormat = NumberFormat.getCurrencyInstance(Locale.US);
+		if (num < 0) {
+			return "(" + defaultFormat.format(Math.abs(num) / 100.0) + ")";
+		}
 		return defaultFormat.format(num / 100.0);
 	}
 
