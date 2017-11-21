@@ -10,12 +10,12 @@
 			businessName: sessionVars['squarePayload'].merchantAlias
 		},
 		locations: {
-			(payload pluck ({
+			(flowVars.payments pluck ({
 				(location: {
 					locationId: ($$),
-					beginTime: sessionVars.locationContextMap[($$)].begin_time,
-					endTime: sessionVars.locationContextMap[($$)].end_time,
-					locationName: sessionVars.locationContextMap[($$)].name,
+					beginTime: flowVars.locationContextMap[($$)].begin_time,
+					endTime: flowVars.locationContextMap[($$)].end_time,
+					locationName: flowVars.locationContextMap[($$)].name,
 					payments: {
 						($ default [] map {
 							payment: {
