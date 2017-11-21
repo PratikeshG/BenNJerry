@@ -127,40 +127,45 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <flow-ref name="TNTFireworks-aggregate-deployment-payloads" doc:name="TNTFireworks-aggregate-deployment-payloads"/>
         <choice doc:name="Choice">
             <when expression="#[sessionVars.reportType == 1]">
-		        <component doc:name="Generate Location Sales Batch Report">
-		            <prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
+		        <component doc:name="Generate Settlements Sales Batch Report">
+		            <prototype-object class="tntfireworks.reporting.SettlementsReportAggregatorCallable"/>
 		        </component>
+		        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 1 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report1.recipients}"/>
 		    </when>
             <when expression="#[sessionVars.reportType == 2]">
                 <component doc:name="Generate Transactions Batch Report">
                     <prototype-object class="tntfireworks.reporting.TransactionsReportAggregatorCallable"/>
                 </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 2 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report2.recipients}"/>
             </when>
             <when expression="#[sessionVars.reportType == 3]">
                 <component doc:name="Generate Abnormal Transactions Batch Report">
                     <prototype-object class="tntfireworks.reporting.AbnormalTransactionsReportAggregatorCallable"/>
                 </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 3 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report3.recipients}"/>
             </when>
             <when expression="#[sessionVars.reportType == 5]">
                 <component doc:name="Generate Location Sales Batch Report">
         	        <prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
                 </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 5 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report5.recipients}"/>
             </when>
             <when expression="#[sessionVars.reportType == 7]">
                 <component doc:name="Generate Item Sales Batch Report">
         	        <prototype-object class="tntfireworks.reporting.ItemSalesReportAggregatorCallable"/>
                 </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 7 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report7.recipients}"/>
             </when>
             <when expression="#[sessionVars.reportType == 8]">
                 <component doc:name="Generate Credit Debit Batch Report">
         	        <prototype-object class="tntfireworks.reporting.CreditDebitReportAggregatorCallable"/>
                 </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 8 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report8.recipients}"/>
             </when>
             <otherwise>
                 <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
-        <s3:create-object config-ref="Amazon_S3__Configuration" bucketName="${aws.bucket}" key="#[flowVars.awsConnectorKey]" doc:name="Copy to Amazon S3"/>
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads">
         <component doc:name="Get Deployments">
