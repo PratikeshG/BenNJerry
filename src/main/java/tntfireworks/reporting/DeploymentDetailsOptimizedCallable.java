@@ -2,7 +2,6 @@ package tntfireworks.reporting;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -17,9 +16,7 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
-import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
@@ -30,36 +27,28 @@ import util.DbConnection;
 import util.SquarePayload;
 import util.TimeManager;
 
+import org.springframework.beans.factory.annotation.Value;
+
 public class DeploymentDetailsOptimizedCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(DeploymentDetailsCallable.class);
+    private static Logger logger = LoggerFactory.getLogger(DeploymentDetailsOptimizedCallable.class);
+    private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
+    private String timeZone;
 
-    // start of season 03/01/2017
-    private static final int START_OF_SEASON_DAY = 0;
-    private static final int START_OF_SEASON_MONTH = 2;
-    private static final int START_OF_SEASON_YEAR = 2017;
-
+    @Value("${tntfireworks.startOfSeason}")
+    private String startOfSeason;
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
+    @Value("${mysql.user}")
     private String databaseUser;
+    @Value("${mysql.password}")
     private String databasePassword;
-
-    public void setDatabaseUrl(String databaseUrl) {
-        this.databaseUrl = databaseUrl;
-    }
-
-    public void setDatabaseUser(String databaseUser) {
-        this.databaseUser = databaseUser;
-    }
-
-    public void setDatabasePassword(String databasePassword) {
-        this.databasePassword = databasePassword;
-    }
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        // initialize db connection
-        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        // initialize dbConnection
+		DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
 
         // get session vars
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
@@ -68,12 +57,16 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
-        // compute YTD range if range = 365
+        // get time zone for file
+        timeZone = DEFAULT_TIME_ZONE;
+        String cronTimeZone = message.getProperty("cronTimeZone", PropertyScope.INVOCATION);
+        if (cronTimeZone != null && !cronTimeZone.isEmpty()) {
+        	timeZone = cronTimeZone;
+        }
+
+        // compute season range if range = 365
         if (range == 365) {
-            // - initialize startOfSeason as 03/01/2017
-            // - use default tz as Los Angeles
-            TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
-            range = computeSeasonInterval(START_OF_SEASON_MONTH, START_OF_SEASON_DAY, START_OF_SEASON_YEAR, tz);
+            range = computeSeasonInterval(startOfSeason, TimeZone.getTimeZone(timeZone));
         }
 
         // get deployment from queue-splitter
@@ -84,7 +77,7 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                 deployment.getMerchantId());
         SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken());
 
-        // retrieve location details according to reportType and store into abstracted object (reportPayload) 
+        // retrieve location details according to reportType and store into abstracted object (reportPayload)
         List<TntReportFile> masterPayload = null;
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
         switch (reportType) {
@@ -100,23 +93,35 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         return masterPayload;
     }
 
-    public static int computeSeasonInterval(int month, int day, int year, TimeZone tz) {
+    public static int computeSeasonInterval(String startOfSeason, TimeZone tz) {
         int range = 0;
 
+        // parse season month, day, year and offset day/month by 1
+        // startOfSeason format yyyy-mm-dd
+        String[] dateParams = startOfSeason.split("-");
+        int month, day, year;
+        if (dateParams.length == 3) {
+        	year = Integer.parseInt(dateParams[0]);
+        	month = Integer.parseInt(dateParams[1]) - 1;
+        	day = Integer.parseInt(dateParams[2]) - 1;
+        } else {
+            throw new RuntimeException("Invalid format for startOfSeason (yyyy-mm-dd)");
+        }
+
         // calendar instances
-        Calendar startOfSeason = Calendar.getInstance(tz);
+        Calendar startOfSeasonCal = Calendar.getInstance(tz);
         Calendar today = Calendar.getInstance(tz);
 
         // set month day year according to params
-        startOfSeason.set(Calendar.YEAR, year);
-        startOfSeason.set(Calendar.MONTH, month);
-        startOfSeason.set(Calendar.DAY_OF_MONTH, day);
+        startOfSeasonCal.set(Calendar.YEAR, year);
+        startOfSeasonCal.set(Calendar.MONTH, month);
+        startOfSeasonCal.set(Calendar.DAY_OF_MONTH, day);
 
         // set all calendars to start at midnight
-        startOfSeason.set(Calendar.HOUR_OF_DAY, 0);
-        startOfSeason.set(Calendar.MINUTE, 0);
-        startOfSeason.set(Calendar.SECOND, 0);
-        startOfSeason.set(Calendar.MILLISECOND, 0);
+        startOfSeasonCal.set(Calendar.HOUR_OF_DAY, 0);
+        startOfSeasonCal.set(Calendar.MINUTE, 0);
+        startOfSeasonCal.set(Calendar.SECOND, 0);
+        startOfSeasonCal.set(Calendar.MILLISECOND, 0);
 
         today.set(Calendar.HOUR_OF_DAY, 0);
         today.set(Calendar.MINUTE, 0);
@@ -124,24 +129,18 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         today.set(Calendar.MILLISECOND, 0);
 
         range = (int) TimeUnit.MILLISECONDS
-                .toDays(Math.abs(today.getTimeInMillis() - startOfSeason.getTimeInMillis()));
+                .toDays(Math.abs(today.getTimeInMillis() - startOfSeasonCal.getTimeInMillis()));
 
         return range;
     }
 
     // sales total by location
     private List<TntReportFile> getLocationSalesPayload(SquareClientV2 squareClientV2, DbConnection dbConnection,
-            int offset, int range) {
+    		int offset, int range) {
 
         // initialize payload to store LocationSalesFile objects
         List<TntReportFile> masterPayload = new ArrayList<TntReportFile>();
         try {
-            // set file date       
-            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"));
-            // 0 = current date
-            cal.add(Calendar.DAY_OF_YEAR, 0);
-            String fileDate = TimeManager.toSimpleDateTimeInTimeZone(cal, "America/Los_Angeles", "MM-dd-yy");
-
             // get db information for later lookup
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
@@ -155,18 +154,18 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                             location.getTimezone());
                     squareClientV2.setLocation(location.getId());
 
-                    // lookup TNT location specific data 
+                    // lookup TNT location specific data
                     String locationNumber = findLocationNumber(location.getName());
                     String rbu = "";
                     for (Map<String, String> row : dbLocationRows) {
                         if (locationNumber.equals(row.get("locationNumber"))) {
                             rbu = row.get("rbu");
+                            break;
                         }
                     }
 
-                    LocationSalesFile locationSalesFile = new LocationSalesFile(fileDate, dayTimeInterval,
-                            locationNumber,
-                            rbu);
+                    LocationSalesFile locationSalesFile = new LocationSalesFile(timeZone, dayTimeInterval,
+                            locationNumber, rbu);
                     Map<String, String> aggregateInterval = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
                     aggregateInterval.put("sort_order", "ASC"); // v2 default is DESC
@@ -192,12 +191,6 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         List<TntReportFile> masterPayload = new ArrayList<TntReportFile>();
 
         try {
-            // set file date       
-            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"));
-            // 0 = current date
-            cal.add(Calendar.DAY_OF_YEAR, 0);
-            String fileDate = TimeManager.toSimpleDateTimeInTimeZone(cal, "America/Los_Angeles", "MM-dd-yy");
-
             // get db information for later lookup
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
@@ -214,7 +207,7 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                     squareClientV1.setLocation(location.getId());
                     squareClientV2.setLocation(location.getId());
 
-                    // lookup TNT location specific data 
+                    // lookup TNT location specific data
                     String locationNumber = findLocationNumber(location.getName());
                     String rbu = "";
                     for (Map<String, String> row : dbLocationRows) {
@@ -223,7 +216,7 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                         }
                     }
 
-                    ItemSalesFile itemSalesFile = new ItemSalesFile(fileDate, dayTimeInterval, locationNumber, rbu);
+                    ItemSalesFile itemSalesFile = new ItemSalesFile(timeZone, dayTimeInterval, locationNumber, rbu);
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
                     aggregateIntervalParams.put("sort_order", "ASC"); // v2 default is DESC
@@ -243,11 +236,11 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
 
     /*
     * Helper function to parse location number
-    * 
+    *
     * - per TNT spec, all upcoming seasons will follow new naming convention
     *   location name = TNT location number
     * - old seasons followed convention of 'NAME (#LocationNumber)'
-    * 
+    *
     */
     protected String findLocationNumber(String locationName) {
         String locationNumber = "";
@@ -264,6 +257,7 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
                 locationNumber = locationName;
             }
         }
+
         return locationNumber;
     }
 
@@ -307,20 +301,5 @@ public class DeploymentDetailsOptimizedCallable implements Callable {
         }
 
         return transactions.toArray(new Transaction[0]);
-    }
-
-    private Map<String, Employee> getEmployees(SquareClient squareClient) throws Exception {
-        Map<String, Employee> employeeMap = new HashMap<String, Employee>();
-
-        for (Employee employee : squareClient.employees().list()) {
-            employeeMap.put(employee.getId(), employee);
-        }
-
-        return employeeMap;
-    }
-
-    private Settlement[] getSettlements(SquareClient squareClient, Map<String, String> params) throws Exception {
-        // V1 Settlements
-        return squareClient.settlements().list(params);
     }
 }

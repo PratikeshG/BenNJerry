@@ -12,8 +12,8 @@ import com.squareup.connect.v2.Transaction;
 
 /*
  * tntfireworks.reporting.TntLocationDetails class
- * 
- * NOTE: This class is similar to vfcorp.reporting.LocationTransactionDetails 
+ *
+ * NOTE: This class is similar to vfcorp.reporting.LocationTransactionDetails
  *       and should be merged into a central package
  */
 public class TntLocationDetails {
@@ -21,7 +21,6 @@ public class TntLocationDetails {
     private Transaction[] transactions;
     private Payment[] payments;
     private Settlement[] settlements;
-    private Payment[] cumulativePayments;
     private Map<String, Employee> employees;
     private Map<String, Customer> customers;
     private String merchantId;
@@ -88,14 +87,6 @@ public class TntLocationDetails {
 
     public void setPayments(Payment[] payments) {
         this.payments = payments;
-    }
-
-    public Payment[] getCumulativePayments() {
-        return cumulativePayments;
-    }
-
-    public void setCumulativePayments(Payment[] cumulativePayments) {
-        this.cumulativePayments = cumulativePayments;
     }
 
     public Map<String, Employee> getEmployees() {

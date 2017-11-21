@@ -10,9 +10,7 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import org.springframework.beans.factory.annotation.Value;
 
 import tntfireworks.TntDatabaseApi;
 import util.DbConnection;
@@ -21,28 +19,14 @@ import util.SquarePayload;
 public class TntDeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TntDeploymentsCallable.class);
 
-    private String databaseUrl;
-    private String databaseUser;
-    private String databasePassword;
+    @Value("${tntfireworks.activeDeployment}")
     private String activeDeployment;
-    GsonBuilder builder = new GsonBuilder();
-    Gson gson = builder.create();
-
-    public void setDatabaseUrl(String databaseUrl) {
-        this.databaseUrl = databaseUrl;
-    }
-
-    public void setDatabaseUser(String databaseUser) {
-        this.databaseUser = databaseUser;
-    }
-
-    public void setDatabasePassword(String databasePassword) {
-        this.databasePassword = databasePassword;
-    }
-
-    public void setActiveDeployment(String activeDeployment) {
-        this.activeDeployment = activeDeployment;
-    }
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    private String databaseUrl;
+    @Value("${mysql.user}")
+    private String databaseUser;
+    @Value("${mysql.password}")
+    private String databasePassword;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -51,14 +35,14 @@ public class TntDeploymentsCallable implements Callable {
 
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
-        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(tntDatabaseApi, activeDeployment);
+        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(tntDatabaseApi);
         tntDatabaseApi.close();
 
         logger.info("Returning %s deployments from DB", deploymentPayloads.size());
         return deploymentPayloads;
     }
 
-    public List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi, String deployment)
+    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi)
             throws SQLException {
 
         ArrayList<Map<String, String>> rows = tntDatabaseApi

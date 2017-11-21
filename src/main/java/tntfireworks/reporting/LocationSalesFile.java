@@ -28,8 +28,8 @@ public class LocationSalesFile extends TntReportFile {
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesFile(String fileDate, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
-        super(fileDate, SALES_FILE_HEADER);
+    public LocationSalesFile(String timeZone, Map<String, String> dayTimeInterval, String locationNumber, String rbu) {
+        super(timeZone, SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.locationNumber = locationNumber;
         this.rbu = rbu;

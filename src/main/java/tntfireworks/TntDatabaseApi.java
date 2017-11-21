@@ -9,19 +9,33 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import util.DbConnection;
 
 public class TntDatabaseApi {
-
     private static Logger logger = LoggerFactory.getLogger(TntDatabaseApi.class);
     private DbConnection dbConnection;
+
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    private String databaseUrl;
+    @Value("${mysql.user}")
+    private String databaseUser;
+    @Value("${mysql.password}")
+    private String databasePassword;
 
     public TntDatabaseApi(DbConnection conn) {
         dbConnection = conn;
     }
 
     public TntDatabaseApi() {
+    	// initialize db connection
+        try {
+			dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error creating DbConnection: " + e);
+		}
     }
 
     public ArrayList<Map<String, String>> submitQuery(String query) {
