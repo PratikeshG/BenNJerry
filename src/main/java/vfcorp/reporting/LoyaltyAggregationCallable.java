@@ -48,6 +48,10 @@ public class LoyaltyAggregationCallable implements Callable {
 
         HashMap<String, LoyaltyEntryPayload> loyaltyPayloadSet = new HashMap<String, LoyaltyEntryPayload>();
 
+        boolean throwCustomerReferenceIdMissingError = false;
+        boolean throwCutomerReferenceIdLengthError = false;
+        boolean throwCustomerNotFoundError = false;
+
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
             String storeId = Util.getStoreNumber(locationTransactionDetails.getLocation().getName());
 
@@ -95,24 +99,34 @@ public class LoyaltyAggregationCallable implements Callable {
                             loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
                         } else {
                             if (customer != null && customerHasContactInfo && customer.getReferenceId() == null) {
-                                throw new Exception("Loyalty customer missing generated reference ID. Customer: "
+                                throwCustomerReferenceIdMissingError = true;
+                                logger.warn("Loyalty customer missing generated reference ID. Customer: "
                                         + customer.getId());
                             } else if (customer != null && customerHasContactInfo
                                     && customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH) {
                                 // Square might start returning customer objects
                                 // on transactions without merchant adding them
-                                throw new Exception("Loyalty customer has invalid reference ID length. Customer: "
+                                throwCutomerReferenceIdLengthError = true;
+                                logger.warn("Loyalty customer has invalid reference ID length. Customer: "
                                         + customer.getId());
                             } else if (customer != null && !customerHasContactInfo) {
                                 logger.warn("Loyalty customer does not have contact info: " + customer.getId());
                             } else {
-                                throw new Exception(
-                                        "Loyalty customer not found in cache for tender: " + tender.getId());
+                                throwCustomerNotFoundError = true;
+                                logger.warn("Loyalty customer not found in cache for tender: " + tender.getId());
                             }
                         }
                     }
                 }
             }
+        }
+
+        if (throwCustomerReferenceIdMissingError) {
+            throw new Exception("Loyalty customer(s) missing generated reference IDs.");
+        } else if (throwCutomerReferenceIdLengthError) {
+            throw new Exception("Loyalty customer(s) has invalid reference ID length.");
+        } else if (throwCustomerNotFoundError) {
+            throw new Exception("Loyalty customer(s) not found in cache for tender(s).");
         }
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"));
