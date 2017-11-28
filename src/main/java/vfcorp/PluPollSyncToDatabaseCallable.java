@@ -95,19 +95,22 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 int currentSize = (int) channel.lstat(fileName).getSize();
 
                 if (oldSize != currentSize) {
-                    logger.info(String.format("%s not ready for processing.", fileName));
+                    logger.info(
+                            String.format("%s not ready for processing (%s)", fileName, deployment.getDeployment()));
                 } else {
                     // Check for existing processing
                     Vector<LsEntry> processingFiles = channel.ls(String.format("%s/*_plu.chg.*", PROCESSING_DIRECTORY));
                     if (processingFiles.size() > 0) {
-                        logger.info(
-                                String.format("Can't begin processing %s. Already processing another file.", fileName));
+                        logger.info(String.format(
+                                "Can't begin processing %s. Already processing another file for deployment %s",
+                                fileName, deployment.getDeployment()));
                     } else {
                         // Move for processing
                         String processingFileName = currentDatestamp() + "_" + fileName;
                         channel.rename(fileName, String.format("%s/%s", PROCESSING_DIRECTORY, processingFileName));
 
-                        logger.info(String.format("Queuing %s for processing (%s)...", fileName, processingFileName));
+                        logger.info(String.format("Queuing %s for processing (%s) for deployment %s...", fileName,
+                                processingFileName, deployment.getDeployment()));
 
                         PluSyncToDatabaseRequest newRequest = new PluSyncToDatabaseRequest();
                         newRequest.setOriginalFileName(fileName);

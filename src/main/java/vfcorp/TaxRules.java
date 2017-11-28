@@ -252,6 +252,12 @@ public class TaxRules {
             Arrays.asList(new String[] { "22  7010", "22  7011", "22  7012", "22  7013", "22  7014", "22  7015",
                     "27  2821", "31  9146", "31  9147" }));
 
+    // NUATICA #88 - NJ no nothing tax
+    public final static String NAUTICA_NJ_ELIZABETH = "vfcorp-nautica-00088";
+
+    private static final Set<String> NAUTICA_NON_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
+            "208 1093", "770 7770", "777 7779", "777 7777", "818 8183", "202 1098", "202 1094", "200 1092" }));
+
     private static int getLocationPrice(CatalogItemVariation itemVariation, String locationId) {
         if (itemVariation.getLocationOverrides() != null) {
             for (ItemVariationLocationOverride locationPrice : itemVariation.getLocationOverrides()) {
@@ -468,6 +474,16 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
+        } else if (deployment.equals(NAUTICA_NJ_ELIZABETH)) {
+            if (taxes.length != 1) {
+                throw new Exception("NJ location with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxedCategoryNauticaNJ(itemDeptClass)) {
+                return new String[] { taxes[0].getId() };
+            } else {
+                return new String[0];
+            }
         } else if (taxes.length != 1) {
             throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
         }
@@ -675,6 +691,10 @@ public class TaxRules {
 
     private static boolean isSpecialTaxCategoryMN(String deptClass) {
         return deptClassIsClothingTaxCategory(deptClass);
+    }
+
+    private static boolean isTaxedCategoryNauticaNJ(String deptClass) {
+        return NAUTICA_NON_CLOTHING_DEPT_CLASS.contains(deptClass);
     }
 
     private static CatalogObject getLowerTax(CatalogObject tax1, CatalogObject tax2) {

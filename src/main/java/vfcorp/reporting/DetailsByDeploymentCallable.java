@@ -9,6 +9,8 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Employee;
@@ -24,6 +26,7 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class DetailsByDeploymentCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(DetailsByDeploymentCallable.class);
 
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
@@ -97,6 +100,7 @@ public class DetailsByDeploymentCallable implements Callable {
             if (hasValidTransactionTender) {
                 validTransactions.add(transaction);
             }
+
         }
 
         // V2 Customers
