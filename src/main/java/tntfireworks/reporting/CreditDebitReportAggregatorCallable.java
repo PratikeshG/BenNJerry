@@ -2,8 +2,6 @@ package tntfireworks.reporting;
 
 import java.util.List;
 
-import javax.activation.DataHandler;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
@@ -11,10 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import util.CloudStorageApi;
 import util.DbConnection;
 
-public class CreditDebitReportAggregatorCallable implements Callable {
+public class CreditDebitReportAggregatorCallable extends TntReportAggregator implements Callable {
     private static Logger logger = LoggerFactory.getLogger(CreditDebitReportAggregatorCallable.class);
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
@@ -23,15 +20,6 @@ public class CreditDebitReportAggregatorCallable implements Callable {
     private String databaseUser;
     @Value("${mysql.password}")
     private String databasePassword;
-
-    @Value("${google.storage.bucket.archive}")
-    private String archiveBucket;
-    @Value("${google.storage.account.credentials}")
-    private String storageCredentials;
-    @Value("${tntfireworks.archive.output.path}")
-    private String archivePath;
-    @Value("${tntfireworks.encryption.key}")
-    private String encryptionKey;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -69,16 +57,10 @@ public class CreditDebitReportAggregatorCallable implements Callable {
         String reportName = fileDate + "-report-8.csv";
         String generatedReport = reportBuilder.toString();
 
-        // Archive to Google Cloud Storage
-        String fileKey = String.format("%s%s.secure", archivePath, reportName);
-        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, generatedReport);
+        // archive to Google Cloud Storage
+        archiveReportToGcp(reportName, generatedReport);
 
-        DataHandler dataHandler = new DataHandler(generatedReport, "text/plain; charset=UTF-8");
-        eventContext.getMessage().addOutboundAttachment(reportName, dataHandler);
-
-        // empty return
-        return "See attachment.";
+        return attachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 
     private String generateLoadNumberSQLUpsert(String reportName, int newLoadNumber) {
