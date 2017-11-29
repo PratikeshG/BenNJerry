@@ -17,8 +17,7 @@ public class ItemSalesReportAggregatorCallable extends TntReportAggregator imple
         logger.info("Start item sales report generation");
 
         // build report from payloads
-        List<List<ItemSalesPayload>> payloadAggregate = (List<List<ItemSalesPayload>>) message
-                .getPayload();
+        List<List<ItemSalesPayload>> payloadAggregate = (List<List<ItemSalesPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
@@ -44,6 +43,6 @@ public class ItemSalesReportAggregatorCallable extends TntReportAggregator imple
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 }

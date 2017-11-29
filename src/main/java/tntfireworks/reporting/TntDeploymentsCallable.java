@@ -42,8 +42,7 @@ public class TntDeploymentsCallable implements Callable {
         return deploymentPayloads;
     }
 
-    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi)
-            throws SQLException {
+    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
 
         ArrayList<Map<String, String>> rows = tntDatabaseApi
                 .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(activeDeployment));

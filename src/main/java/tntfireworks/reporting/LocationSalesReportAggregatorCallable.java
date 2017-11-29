@@ -17,8 +17,7 @@ public class LocationSalesReportAggregatorCallable extends TntReportAggregator i
         logger.info("Start location sales report generation");
 
         // build report from payloads
-        List<List<LocationSalesPayload>> payloadAggregate = (List<List<LocationSalesPayload>>) message
-                .getPayload();
+        List<List<LocationSalesPayload>> payloadAggregate = (List<List<LocationSalesPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
@@ -42,6 +41,6 @@ public class LocationSalesReportAggregatorCallable extends TntReportAggregator i
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 }

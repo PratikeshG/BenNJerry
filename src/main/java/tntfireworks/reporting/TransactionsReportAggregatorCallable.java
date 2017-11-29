@@ -17,8 +17,7 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         logger.info("Start transactions report generation");
 
         // build report from payloads
-        List<List<TransactionsPayload>> payloadAggregate = (List<List<TransactionsPayload>>) message
-                .getPayload();
+        List<List<TransactionsPayload>> payloadAggregate = (List<List<TransactionsPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
@@ -44,6 +43,6 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 }

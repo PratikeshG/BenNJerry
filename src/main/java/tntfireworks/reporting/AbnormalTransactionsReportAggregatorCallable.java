@@ -31,11 +31,13 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
         // this block is used to find alert 4 transactions
         for (List<AbnormalTransactionsPayload> masterPayload : payloadAggregate) {
-            // this map is used to find cards used multiple times across an entire merchant account
+            // this map is used to find cards used multiple times across an
+            // entire merchant account
             // (k, v) == (fingerprint, List<Transaction>)
             Map<String, ArrayList<Transaction>> fingerprintToTransactions = new HashMap<String, ArrayList<Transaction>>();
 
-            // this map of location payloads is used to add alert 4 transactions later
+            // this map of location payloads is used to add alert 4 transactions
+            // later
             // (k, v) == (location_id, AbnormalTransactionsPayload)
             Map<String, AbnormalTransactionsPayload> mappedLocationPayloads = new HashMap<String, AbnormalTransactionsPayload>();
 
@@ -93,6 +95,6 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 }

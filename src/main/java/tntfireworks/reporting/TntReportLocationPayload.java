@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 import util.TimeManager;
 
 public abstract class TntReportLocationPayload {
-	private static final String DEFAULT_DATE_FORMAT = "MM-dd-yy";
+    private static final String DEFAULT_DATE_FORMAT = "MM-dd-yy";
     private String payloadDate;
     private String payloadHeader;
     protected String locationNumber;
@@ -24,11 +24,12 @@ public abstract class TntReportLocationPayload {
     protected String rbu;
     protected String saName;
 
-    public TntReportLocationPayload(String timeZone, String dateFormat, String locationName, List<Map<String, String>> dbLocationRows, String payloadHeader) {
-    	this.payloadHeader = payloadHeader;
+    public TntReportLocationPayload(String timeZone, String dateFormat, String locationName,
+            List<Map<String, String>> dbLocationRows, String payloadHeader) {
+        this.payloadHeader = payloadHeader;
         this.locationName = locationName.replaceAll(",", "");
         this.locationNumber = findLocationNumber(locationName);
-    	this.payloadDate = setPayloadDate(timeZone, dateFormat);
+        this.payloadDate = setPayloadDate(timeZone, dateFormat);
         this.rbu = "";
         this.city = "";
         this.state = "";
@@ -45,19 +46,20 @@ public abstract class TntReportLocationPayload {
         }
     }
 
-    public TntReportLocationPayload(String timeZone, String locationNumber, List<Map<String, String>> dbLocationRows, String payloadHeader) {
-    	this(timeZone, DEFAULT_DATE_FORMAT, locationNumber, dbLocationRows, payloadHeader);
+    public TntReportLocationPayload(String timeZone, String locationNumber, List<Map<String, String>> dbLocationRows,
+            String payloadHeader) {
+        this(timeZone, DEFAULT_DATE_FORMAT, locationNumber, dbLocationRows, payloadHeader);
     }
 
     public String setPayloadDate(String timeZone, String dateFormat) {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
         String payloadDate;
-		try {
-			payloadDate = TimeManager.toSimpleDateTimeInTimeZone(cal, timeZone, dateFormat);
-		} catch (ParseException e) {
-			e.printStackTrace();
-			throw new RuntimeException ("Invalid timeZoneId provided to TimeManager.toSimpleDateTimeInTimeZone" + e);
-		}
+        try {
+            payloadDate = TimeManager.toSimpleDateTimeInTimeZone(cal, timeZone, dateFormat);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Invalid timeZoneId provided to TimeManager.toSimpleDateTimeInTimeZone" + e);
+        }
 
         return payloadDate;
     }
@@ -76,17 +78,17 @@ public abstract class TntReportLocationPayload {
     }
 
     /*
-    * Helper function to parse location number
-    *
-    * - per TNT spec, all upcoming seasons will follow new naming convention
-    *   location name = TNT location number
-    * - old seasons followed convention of 'NAME (#LocationNumber)'
-    *
-    */
+     * Helper function to parse location number
+     *
+     * - per TNT spec, all upcoming seasons will follow new naming convention
+     * location name = TNT location number - old seasons followed convention of
+     * 'NAME (#LocationNumber)'
+     *
+     */
     private String findLocationNumber(String locationName) {
         String locationNumber = "";
 
-        // old location name =  'NAME (#Location Number)'
+        // old location name = 'NAME (#Location Number)'
         String oldPattern = "\\w+\\s*\\(#([a-zA-Z0-9\\s]+)\\)";
         Pattern p = Pattern.compile(oldPattern);
         Matcher m = p.matcher(locationName);

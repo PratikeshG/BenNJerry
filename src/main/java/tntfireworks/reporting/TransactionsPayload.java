@@ -18,16 +18,17 @@ public class TransactionsPayload extends TntReportLocationPayload {
             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
             "Payment Id", "Created At (UTC)", "Gross Sales", "Discounts", "Net Sales", "Tax", "Tip", "Tender Id",
             "Refund Amount", "Total Collected", "Source", "Card Amount", "Entry Method", "Cash Amount",
-            "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State",
-            "RBU", "SA NAME");
+            "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State", "RBU",
+            "SA NAME");
 
     public TransactionsPayload(String timeZone, String locationName, List<Map<String, String>> dbLocationRows) {
-        super (timeZone, locationName, dbLocationRows, TRANSACTIONS_FILE_HEADER);
+        super(timeZone, locationName, dbLocationRows, TRANSACTIONS_FILE_HEADER);
         transactionsPayloadEntries = new ArrayList<TransactionsPayloadEntry>();
     }
 
     public void addEntry(Payment payment, Map<String, Integer> tenderToFee, Map<String, String> tenderToEntryMethod) {
-        // - tender fee and tender entry method currently only available in Connect V2
+        // - tender fee and tender entry method currently only available in
+        // Connect V2
         // - use V2 map to obtain values
         String tenderFee = "";
         String tenderEntryMethod = "NA";
@@ -56,9 +57,9 @@ public class TransactionsPayload extends TntReportLocationPayload {
                     "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
                     entry.paymentId, entry.createdAt, formatTotal(entry.grossSales), formatTotal(entry.discounts),
                     formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), entry.tenderId,
-                    entry.refundAmt, formatTotal(entry.totalCollected), entry.SOURCE, entry.cardAmt, entry.tenderEntryMethod,
-                    entry.cashAmt, entry.otherTenderAmt, entry.otherTenderType, entry.tenderFee, formatTotal(entry.netTotal),
-                    locationNumber, city, state, rbu, saName);
+                    entry.refundAmt, formatTotal(entry.totalCollected), entry.SOURCE, entry.cardAmt,
+                    entry.tenderEntryMethod, entry.cashAmt, entry.otherTenderAmt, entry.otherTenderType,
+                    entry.tenderFee, formatTotal(entry.netTotal), locationNumber, city, state, rbu, saName);
             rows.add(row);
         }
         return rows;

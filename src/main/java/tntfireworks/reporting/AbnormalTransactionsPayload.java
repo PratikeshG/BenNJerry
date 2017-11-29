@@ -17,10 +17,11 @@ import util.TimeManager;
 
 public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(AbnormalTransactionsPayload.class);
-    private static final String ABNORMAL_TRANSACTIONS_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-            "Alert Level", "Alert Type", "Location Number", "SQ Customer Id", "City", "State",
-            "Sales Associate", "Transaction Amount", "Transaction Date (UTC)", "Transaction Status", "Card Brand",
-            "Last 4 Digits", "Transaction Id", "Entry Method", "RBU", "Card Fingerprint");
+    private static final String ABNORMAL_TRANSACTIONS_FILE_HEADER = String.format(
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", "Alert Level", "Alert Type",
+            "Location Number", "SQ Customer Id", "City", "State", "Sales Associate", "Transaction Amount",
+            "Transaction Date (UTC)", "Transaction Status", "Card Brand", "Last 4 Digits", "Transaction Id",
+            "Entry Method", "RBU", "Card Fingerprint");
     private Map<String, String> dayTimeInterval;
 
     // alert 1, 2, 6 are amount_money thresholds
@@ -29,7 +30,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     private static final int ALERT_THRESHOLD_6 = 15000;
     // alert 3 is the number of CNP transactions
     private static final int ALERT_THRESHOLD_3 = 3;
-    // alert 4 is the number of times a unique card is used at the merchant level
+    // alert 4 is the number of times a unique card is used at the merchant
+    // level
     protected static final int ALERT_THRESHOLD_4 = 4;
     // alert 5 is the number of consecutive same-dollar amount transactions
     private static final int ALERT_THRESHOLD_5 = 3;
@@ -54,7 +56,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     // previous amount needs to be stored for alert 5
     int prevAmt;
 
-    public AbnormalTransactionsPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName, List<Map<String, String>> dbLocationRows) {
+    public AbnormalTransactionsPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
+            List<Map<String, String>> dbLocationRows) {
         super(timeZone, locationName, dbLocationRows, ABNORMAL_TRANSACTIONS_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.prevAmt = 0;
@@ -68,6 +71,7 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     public List<Transaction> getLocationTransactions() {
         return locationTransactions;
     }
+
     public String getLocationId() {
         return locationId;
     }
@@ -83,25 +87,27 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     }
 
     public void addEntry(Transaction transaction) throws Exception {
-        /* alert types
-        *
-        * Alert Level  | Description
-        * -----------------------------------------------------------
-        *      1       | Card Present Transaction exceeds $1,000
-        *      2       | Card Not Present Transaction exceeds $500
-        *      3       | Card Not Present transaction >3 times in one day at same location
-        *      4       | Same card used 4 or more times across entire master account in one day
-        *      5       | Same dollar amount run on card-tender consecutively at same location 3 or more times in one day
-        *      6       | Card Not Present Transaction exceeds $150
-        *
-        */
+        /*
+         * alert types
+         *
+         * Alert Level | Description
+         * ----------------------------------------------------------- 1 | Card
+         * Present Transaction exceeds $1,000 2 | Card Not Present Transaction
+         * exceeds $500 3 | Card Not Present transaction >3 times in one day at
+         * same location 4 | Same card used 4 or more times across entire master
+         * account in one day 5 | Same dollar amount run on card-tender
+         * consecutively at same location 3 or more times in one day 6 | Card
+         * Not Present Transaction exceeds $150
+         *
+         */
         // use calendar objects to daily interval
         try {
             Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get("begin_time"));
             Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get("end_time"));
             Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
 
-            // determine if this transaction should be included in "daily" totals
+            // determine if this transaction should be included in "daily"
+            // totals
             if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
                 checkAlert1(transaction);
                 checkAlert26(transaction);
@@ -109,9 +115,11 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                 checkAlert5(transaction);
             }
 
-            // - for abnormal transactions report, alert 4 requires post-processing
-            //  of alert 4 at the merchant level
-            // - store transaction here for alert 4 processing at AbnormalTransactionsReportAggregatorCallable
+            // - for abnormal transactions report, alert 4 requires
+            // post-processing
+            // of alert 4 at the merchant level
+            // - store transaction here for alert 4 processing at
+            // AbnormalTransactionsReportAggregatorCallable
             locationTransactions.add(transaction);
             locationId = transaction.getLocationId();
         } catch (ParseException e) {
@@ -122,12 +130,9 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
 
     private void checkAlert1(Transaction transaction) throws Exception {
         /*
-         * alert level 1 criteria
-         *      1. Card Present transaction
-         *      2. Entry Method: SWIPED, EMV, CONTACTLESS
-         *      3. Product: REGISTER
-         *      4. Tender Type: not CASH or NO_SALE
-         *      5. threshold > $1000.00
+         * alert level 1 criteria 1. Card Present transaction 2. Entry Method:
+         * SWIPED, EMV, CONTACTLESS 3. Product: REGISTER 4. Tender Type: not
+         * CASH or NO_SALE 5. threshold > $1000.00
          */
         int alertLevel = 1;
         for (Tender tender : transaction.getTenders()) {
@@ -136,8 +141,7 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                 if (tender.getCardDetails() != null) {
                     entryMethod = tender.getCardDetails().getEntryMethod();
                 }
-                if (CP_ENTRY_METHODS.contains(entryMethod)
-                        && tender.getAmountMoney().getAmount() > ALERT_THRESHOLD_1) {
+                if (CP_ENTRY_METHODS.contains(entryMethod) && tender.getAmountMoney().getAmount() > ALERT_THRESHOLD_1) {
                     alerts.add(new AbnormalTransactionsEntry(transaction, tender, alertLevel));
                 }
             }
@@ -148,15 +152,11 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     // alert 2 > $500, alert 6 > $150
     private void checkAlert26(Transaction transaction) throws Exception {
         /*
-         * alert level 2 criteria
-         *      1. Card NOT Present transaction
-         *      2. Entry Method: KEYED, ON_FILE
-         *      3. Product: REGISTER
-         *      4. Tender Type: not CASH or NO_SALE
-         *      5. threshold > $500.00
+         * alert level 2 criteria 1. Card NOT Present transaction 2. Entry
+         * Method: KEYED, ON_FILE 3. Product: REGISTER 4. Tender Type: not CASH
+         * or NO_SALE 5. threshold > $500.00
          *
-         *  alert level 6 criteria
-         *      1. All of above except threshold > $150.00
+         * alert level 6 criteria 1. All of above except threshold > $150.00
          */
         int alertLevel = 6;
         for (Tender tender : transaction.getTenders()) {
@@ -189,8 +189,10 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                     // add cnp transaction to running/buffered list
                     alert3Transactions.add(transaction);
 
-                    // if THRESHOLD+1 CNP transactions recorded, add first THRESHOLD+1 to alerts list
-                    // else, if >THRESHOLD+1 transactions recorded, add newest transaction
+                    // if THRESHOLD+1 CNP transactions recorded, add first
+                    // THRESHOLD+1 to alerts list
+                    // else, if >THRESHOLD+1 transactions recorded, add newest
+                    // transaction
                     if (alert3Transactions.size() == (ALERT_THRESHOLD_3 + 1)) {
                         for (Transaction bufferedTransaction : alert3Transactions) {
                             alerts.add(new AbnormalTransactionsEntry(bufferedTransaction, tender, alertLevel));
@@ -203,11 +205,13 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
         }
     }
 
-    // alert 5 checks for same dollar amount run on card-tender consecutively at same location 3 or more times
+    // alert 5 checks for same dollar amount run on card-tender consecutively at
+    // same location 3 or more times
     // in one day
     private void checkAlert5(Transaction transaction) throws Exception {
         int alertLevel = 5;
-        // for alert 5, keep consecutive list of transactions with same dollar amounts
+        // for alert 5, keep consecutive list of transactions with same dollar
+        // amounts
         for (Tender tender : transaction.getTenders()) {
             if (tender.getType().equals("CARD")) {
                 int currentAmt = tender.getAmountMoney().getAmount();
@@ -215,7 +219,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                     alert5Transactions.add(transaction);
                 } else {
                     if (alert5Transactions.size() >= ALERT_THRESHOLD_5) {
-                        // store buffer of consecutive transactions with same amount
+                        // store buffer of consecutive transactions with same
+                        // amount
                         // use transactionId as unique identifier
                         for (Transaction bufferedTransaction : alert5Transactions) {
                             alerts.add(new AbnormalTransactionsEntry(bufferedTransaction, tender, alertLevel));
@@ -237,8 +242,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
 
         for (AbnormalTransactionsEntry entry : alerts) {
             String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                    Integer.toString(entry.level), entry.description, locationNumber, entry.customerId, city,
-                    state, saName, entry.tenderAmt, entry.transactionDate, entry.status, entry.cardBrand, entry.last4,
+                    Integer.toString(entry.level), entry.description, locationNumber, entry.customerId, city, state,
+                    saName, entry.tenderAmt, entry.transactionDate, entry.status, entry.cardBrand, entry.last4,
                     entry.transactionId, entry.entryMethod, rbu, entry.fingerprint);
             rows.add(row);
         }
@@ -246,14 +251,10 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     }
 
     private class AbnormalTransactionsEntry {
-        private final String[] alertDescriptions = {
-                "CP transaction > $1000",
-                "CNP transaction > $500",
+        private final String[] alertDescriptions = { "CP transaction > $1000", "CNP transaction > $500",
                 "CNP occurred more than 3 times at a single location",
                 "Same card used 4 or more times across all locations under a master account during season",
-                "Same dollar amount run consecutively at same location 3 or more times",
-                "CNP transaction > $150"
-        };
+                "Same dollar amount run consecutively at same location 3 or more times", "CNP transaction > $150" };
         private int level;
         private String description;
         private String transactionDate;
@@ -288,7 +289,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                 throw new Exception("Invalid alert level for Abnormal Transactions Report");
             }
 
-            // check for occasional null values for card detail fields below from the API
+            // check for occasional null values for card detail fields below
+            // from the API
             if (tender.getType().equals("CARD")) {
                 if (tender.getCardDetails() != null && tender.getCardDetails().getCard() != null) {
                     this.cardBrand = tender.getCardDetails().getCard().getCardBrand();

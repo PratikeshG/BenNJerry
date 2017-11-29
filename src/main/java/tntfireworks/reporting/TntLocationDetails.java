@@ -12,7 +12,7 @@ import com.squareup.connect.v2.Transaction;
 
 public class TntLocationDetails {
 
-	public static Payment[] getPayments(SquareClient squareClientV1, Map<String, String> params) throws Exception {
+    public static Payment[] getPayments(SquareClient squareClientV1, Map<String, String> params) throws Exception {
         // V1 Payments - ignore no-sale and cash-only payments
         Payment[] allPayments = squareClientV1.payments().list(params);
         List<Payment> payments = new ArrayList<Payment>();
@@ -28,8 +28,8 @@ public class TntLocationDetails {
                 payments.add(payment);
             }
         }
-		return payments.toArray(new Payment[0]);
-	}
+        return payments.toArray(new Payment[0]);
+    }
 
     public static Transaction[] getTransactions(SquareClientV2 squareClientV2, Map<String, String> params)
             throws Exception {
@@ -53,7 +53,8 @@ public class TntLocationDetails {
         return transactions.toArray(new Transaction[0]);
     }
 
-    public static Settlement[] getSettlements(SquareClient squareClientV1, Map<String, String> params) throws Exception {
+    public static Settlement[] getSettlements(SquareClient squareClientV1, Map<String, String> params)
+            throws Exception {
         // V1 Settlements
         return squareClientV1.settlements().list(params);
     }

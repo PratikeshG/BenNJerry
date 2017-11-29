@@ -19,15 +19,15 @@ public class LocationSalesPayload extends TntReportLocationPayload {
 
     private static final String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Daily Sales (CREDIT ONLY)", "YTD Sales (CREDIT ONLY)",
-            "Daily Sales (CASH/CREDIT)",
-            "YTD Sales (CASH/CREDIT)");
+            "Daily Sales (CASH/CREDIT)", "YTD Sales (CASH/CREDIT)");
     private Map<String, String> dayTimeInterval;
     private int creditDailySales;
     private int cashDailySales;
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName, List<Map<String, String>> dbLocationRows) {
+    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
+            List<Map<String, String>> dbLocationRows) {
         super(timeZone, locationName, dbLocationRows, LOCATION_SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.creditDailySales = 0;

@@ -55,28 +55,38 @@ public class TntReportAggregator {
         logger.info("Finished archiving report to Google Cloud");
     }
 
-    protected String attachReport(MuleMessage muleMessage, String reportName, String generatedReport) throws Exception {
+    protected String storeOrAttachReport(MuleMessage muleMessage, String reportName, String generatedReport)
+            throws Exception {
         String emailBody = "";
 
         // if file size is too large to send in email attachment, send to SFTP
         if (generatedReport.getBytes(CHARSET).length > MAX_REPORT_SIZE) {
-            String reportFullPath = sftpBasePath + sftpReportPath;
-
-            // store file in defined sftp location
-            ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
-            InputStream is = new ByteArrayInputStream(generatedReport.getBytes(CHARSET));
-            sftpChannel.put(is, String.format("%s/%s", reportFullPath, reportName));
-            SshUtil.closeConnection(sftpChannel);
-            logger.info("Sent report to SFTP");
-
-            emailBody = String.format("%s sent to SFTP due to file size.", reportName);
+            emailBody = storeReport(reportName, generatedReport);
         } else {
-            DataHandler dataHandler = new DataHandler(generatedReport, String.format("text/plain; charset=%s", CHARSET));
-            muleMessage.addOutboundAttachment(reportName, dataHandler);
-            emailBody = String.format("See attached report: %s", reportName);
-            logger.info("Attached report to Mule message");
+            emailBody = attachReport(muleMessage, reportName, generatedReport);
         }
 
         return emailBody;
+    }
+
+    protected String attachReport(MuleMessage muleMessage, String reportName, String generatedReport) throws Exception {
+        DataHandler dataHandler = new DataHandler(generatedReport, String.format("text/plain; charset=%s", CHARSET));
+        muleMessage.addOutboundAttachment(reportName, dataHandler);
+        logger.info("Attached report to Mule message");
+
+        return String.format("See attached report: %s", reportName);
+    }
+
+    protected String storeReport(String reportName, String generatedReport) throws Exception {
+        String reportFullPath = sftpBasePath + sftpReportPath;
+
+        // store file in defined sftp location
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        InputStream is = new ByteArrayInputStream(generatedReport.getBytes(CHARSET));
+        sftpChannel.put(is, String.format("%s/%s", reportFullPath, reportName));
+        SshUtil.closeConnection(sftpChannel);
+        logger.info("Sent report to SFTP");
+
+        return String.format("%s sent to SFTP due to file size.", reportName);
     }
 }

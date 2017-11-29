@@ -17,14 +17,15 @@ import util.TimeManager;
 public class ItemSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
     private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
-            "Location Number", "RBU", "Item Number", "Item Description",
-            "Daily Sales Amount", "Daily Sales Quantity", "YTD Sales Amount", "YTD Sales Quantity");
+            "Location Number", "RBU", "Item Number", "Item Description", "Daily Sales Amount", "Daily Sales Quantity",
+            "YTD Sales Amount", "YTD Sales Quantity");
     private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;
     private Map<String, String> dayTimeInterval;
     private Calendar beginTime;
     private Calendar endTime;
 
-    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName, List<Map<String, String>> dbLocationRows) {
+    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
+            List<Map<String, String>> dbLocationRows) {
         super(timeZone, locationName, dbLocationRows, ITEM_SALES_FILE_HEADER);
         this.itemSalesPayloadEntries = new HashMap<String, ItemSalesPayloadEntry>();
         this.dayTimeInterval = dayTimeInterval;
@@ -57,8 +58,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
                 if (itemSalesPayloadEntries.containsKey(key)) {
                     updateEntry = itemSalesPayloadEntries.get(key);
                 } else {
-                    updateEntry = new ItemSalesPayloadEntry(itemNumber,
-                            itemDesc, saleAmount);
+                    updateEntry = new ItemSalesPayloadEntry(itemNumber, itemDesc, saleAmount);
                 }
 
                 // determine if this payment should be included in "daily" total
@@ -81,7 +81,8 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
             String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
                     payloadEntry.itemNumber, payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales),
-                    payloadEntry.dailySalesCounter, formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter);
+                    payloadEntry.dailySalesCounter, formatTotal(payloadEntry.totalSales),
+                    payloadEntry.totalSalesCounter);
             rows.add(row);
         }
 
@@ -96,8 +97,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         private double dailySalesCounter;
         private double totalSalesCounter;
 
-        private ItemSalesPayloadEntry(String itemNumber, String itemDesc,
-                int initialAmount) {
+        private ItemSalesPayloadEntry(String itemNumber, String itemDesc, int initialAmount) {
             this.itemNumber = itemNumber;
             this.itemDescription = itemDesc;
             this.dailySales = 0;

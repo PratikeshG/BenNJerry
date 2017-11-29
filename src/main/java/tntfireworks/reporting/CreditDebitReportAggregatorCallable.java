@@ -27,8 +27,7 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         logger.info("Start credit-debit report generation");
 
         // build report from payloads
-        List<List<CreditDebitPayload>> payloadAggregate = (List<List<CreditDebitPayload>>) message
-                .getPayload();
+        List<List<CreditDebitPayload>> payloadAggregate = (List<List<CreditDebitPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
@@ -41,17 +40,17 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
                     reportBuilder.append(locationPayload.getPayloadHeader());
                     addHeader = false;
                     fileDate = locationPayload.getPayloadDate();
-                	loadNumber = locationPayload.loadNumber;
+                    loadNumber = locationPayload.loadNumber;
                 }
                 reportBuilder.append(locationPayload.getRow());
             }
         }
 
         // increment load number
-	    // write new load number into db
-		DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
-	    dbConnection.executeQuery(generateLoadNumberSQLUpsert(CreditDebitPayload.DB_REPORT_NAME, (loadNumber + 1)));
-	    dbConnection.close();
+        // write new load number into db
+        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        dbConnection.executeQuery(generateLoadNumberSQLUpsert(CreditDebitPayload.DB_REPORT_NAME, (loadNumber + 1)));
+        dbConnection.close();
 
         // generate report into file
         String reportName = fileDate + "-report-8.csv";
@@ -60,7 +59,7 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 
     private String generateLoadNumberSQLUpsert(String reportName, int newLoadNumber) {

@@ -1,4 +1,5 @@
 package tntfireworks.reporting;
+
 import java.util.List;
 
 import org.mule.api.MuleEventContext;
@@ -8,7 +9,7 @@ import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SettlementsReportAggregatorCallable extends TntReportAggregator implements Callable  {
+public class SettlementsReportAggregatorCallable extends TntReportAggregator implements Callable {
     private static Logger logger = LoggerFactory.getLogger(SettlementsReportAggregatorCallable.class);
 
     @Override
@@ -18,8 +19,7 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
 
         logger.info("Aggregate settlements report payloads...");
         // build report from payloads
-        List<List<SettlementsPayload>> payloadAggregate = (List<List<SettlementsPayload>>)
-        		message.getPayload();
+        List<List<SettlementsPayload>> payloadAggregate = (List<List<SettlementsPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         boolean addHeader = true;
         String fileDate = "";
@@ -45,6 +45,7 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return attachReport(eventContext.getMessage(), reportName, generatedReport);
+        // report 8 is only stored on the SFTP
+        return storeReport(reportName, generatedReport);
     }
 }
