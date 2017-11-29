@@ -239,7 +239,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                             // source
                             break;
                         case LOCATION_SALES_REPORT_TYPE:
-                            // added separate case statement for clarity
                             // get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone,
                                     dayTimeInterval, location.getName(), dbLocationRows);

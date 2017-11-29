@@ -19,19 +19,11 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
     <flow name="TNTFireworks-trigger-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/report/${urlKey}" doc:name="HTTP"/>
-        <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
-                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
-                <set-payload value="TNTFireworks reporting currently set as inactive." doc:name="Set Payload"/>
-            </when>
-            <otherwise>
-		        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-		        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
-		        <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.reportType]" doc:name="reportType"/>
-		        <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
-		        <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
-            </otherwise>
-        </choice>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.reportType]" doc:name="reportType"/>
+        <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+        <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks-credit-debit-batch-report-cron">
         <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="America/Los_Angeles">
