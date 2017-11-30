@@ -23,8 +23,8 @@ public class ReportGenerator implements Callable {
         List<ReportGeneratorPayload> reportGeneratorPayloads = (List<ReportGeneratorPayload>) message.getPayload();
 
         String timeZone = message.getProperty("timeZone", PropertyScope.SESSION);
-        int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
-        int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
+        int offset = message.getProperty("offset", PropertyScope.SESSION);
+        int range = message.getProperty("range", PropertyScope.SESSION);
 
         // Calculate day of report generated
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));

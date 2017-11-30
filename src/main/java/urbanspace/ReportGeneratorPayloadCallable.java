@@ -32,8 +32,8 @@ public class ReportGeneratorPayloadCallable implements Callable {
             squarePayload.setLegacySingleLocationSquareAccount((Boolean) merchantDatabaseEntry.get("legacy"));
             reportGeneratorPayload.setSquarePayload(squarePayload);
 
-            int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
-            int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
+            int offset = message.getProperty("offset", PropertyScope.SESSION);
+            int range = message.getProperty("range", PropertyScope.SESSION);
             String timeZone = message.getProperty("timeZone", PropertyScope.SESSION);
             reportGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 

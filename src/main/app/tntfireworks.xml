@@ -53,9 +53,11 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <otherwise>
                 <request-reply doc:name="Request-Reply">
                     <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-worker">
-						<collection-splitter doc:name="Collection Splitter"/>
+                        <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
                     </vm:outbound-endpoint>
-                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply"/>
+                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply">
+                        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+                    </vm:inbound-endpoint>
                 </request-reply>
                 <set-payload value="1" doc:name="Clear payload"/>
                 <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="Kick off sync to square"/>
@@ -69,12 +71,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <prototype-object class="tntfireworks.SyncToDatabaseCallable"/>
         </component>
         <logger message="Finished CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-aggregator" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-aggregator"/>
-    </flow>
-    <flow name="TNTFireworks:sftp-to-db-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-aggregator" doc:name="TNTFireworks:sftp-to-db-queue-aggregator" connector-ref="TNTFIREWORKS_CATALOG_VM"/>
-        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" doc:name="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM"/>
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" processingStrategy="TNTFireworks_DatabaseToSquare_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sync-db-to-square"/>
@@ -89,9 +85,11 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <otherwise>
                 <request-reply doc:name="Request-Reply">
                     <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker"  doc:name="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM">
-						<collection-splitter doc:name="Collection Splitter"/>
+                        <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
                     </vm:outbound-endpoint>
-                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:db-sync-reply"/>
+                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:db-sync-reply">
+                        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+                    </vm:inbound-endpoint>
                 </request-reply>
                 <set-payload value="Completed Catalog API updates to all TNT deployments." doc:name="Email Payload"/>
                 <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Catalog API UPDATES COMPLETE']" responseTimeout="10000" doc:name="Email DB to SQ Completed"/>
@@ -104,12 +102,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <component doc:name="Database to Square API Updates">
             <prototype-object class="tntfireworks.DatabaseToSquareCallable"/>
         </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-aggregator" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:db-sync-queue-aggregator"/>
-    </flow>
-        <flow name="TNTFireworks:db-sync-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-aggregator" doc:name="TNTFireworks:db-sync-queue-aggregator" connector-ref="TNTFIREWORKS_CATALOG_VM"/>
-        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" doc:name="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_CATALOG_VM"/>
     </flow>
 </mule>
 

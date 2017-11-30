@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+<mule xmlns:ssl="http://www.mulesoft.org/schema/mule/ssl" xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -15,7 +15,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
-http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd
+http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/current/mule-ssl.xsd">
     <queued-asynchronous-processing-strategy name="Urbanspace_Report_Async_Processing_Strategy" maxThreads="${urbanspace.maxThreads}" minThreads="1" doc:name="Queued Asynchronous Processing Strategy" poolExhaustedAction="WAIT" threadWaitTimeout="1800000"></queued-asynchronous-processing-strategy>
     <vm:connector name="Urbanspace_VM_Config" validateConnections="true" doc:name="VM"/>
     <quartz:connector name="Quartz-Urbanspace" validateConnections="true" doc:name="Quartz">
@@ -29,227 +30,55 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <prototype-object class="urbanspace.ReportGeneratorPayloadCallable"/>
         </component>
         <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-splitter" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
-            <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-reply" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
+            <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" connector-ref="Urbanspace_VM_Config" doc:name="VM">
+                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-reply" connector-ref="Urbanspace_VM_Config" doc:name="VM">
+                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+            </vm:inbound-endpoint>
         </request-reply>
-        <flow-ref name="Urbanspace:convert-api-results-to-csvs" doc:name="Urbanspace:convert-api-results-to-csvs"/>
-        <set-payload value="Operation completed." doc:name="Set Payload"/>
-    </flow>
-    <flow name="Urbanspace:generate-individual-and-aggregate-reports-queue-splitter">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-splitter" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
-        <collection-splitter doc:name="Collection Splitter"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
+        <component doc:name="Calculate UrbanSpace Aggregate Totals">
+            <prototype-object class="urbanspace.ReportGenerator"/>
+       </component>
+       <set-payload value="Attached." doc:name="Set Payload"/>
+       <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#[('${mule.env}'.equals(&quot;production&quot;) ? '' : '${mule.env}'.toUpperCase() + ' - ') + sessionVars.deploymentName + ' - Daily Aggregate Report']" responseTimeout="10000" doc:name="Email results" to="#[sessionVars.emails]"/>
     </flow>
     <flow name="Urbanspace:generate-individual-and-aggregate-reports-async-worker" processingStrategy="Urbanspace_Report_Async_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-async-worker" connector-ref="Urbanspace_VM_Config" doc:name="Worker VM"/>
         <component doc:name="Get payments, refunds, categories, discounts for location">
             <prototype-object class="urbanspace.IndividualLocationRequestsCallable"/>
         </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" connector-ref="Urbanspace_VM_Config" doc:name="VM"/>
     </flow>
-    <flow name="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-queue-aggregator" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
-        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="Urbanspace:generate-individual-and-aggregate-reports-reply" doc:name="VM" connector-ref="Urbanspace_VM_Config"/>
-    </flow>
-    <sub-flow name="Urbanspace:convert-api-results-to-csvs">
-        <component doc:name="Calculate UrbanSpace Aggregate Totals">
-            <singleton-object class="urbanspace.ReportGenerator"/>
-        </component>
-        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
-        <set-payload value="Attached." doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#[('${mule.env}'.equals(&quot;production&quot;) ? '' : '${mule.env}'.toUpperCase() + ' - ') + sessionVars.deploymentName + ' - Daily Aggregate Report']" responseTimeout="10000" doc:name="Email results" to="#[sessionVars.emails]"/>
-    </sub-flow>
-    <flow name="Urbanspace:trigger-reports">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace/reports/${urlKey}" allowedMethods="GET" doc:name="/urbanspace/reports" doc:description="/urbanspace/reports/${urlKey}?deployment=DEPLOYMENT&amp;deploymentName=NAME&amp;range=1&amp;offset=1&amp;timeZone=America/New_York&amp;emails=EMAIL"/>
+    <flow name="Urbanspace:trigger-reports" processingStrategy="synchronous">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace/reports/${urlKey}" allowedMethods="GET" doc:name="/urbanspace/reports"/>
         <logger message="#['Starting UrbanSpace: ' + message.inboundProperties.'http.query.params'.deployment]" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="#[message.inboundProperties.'http.query.params'.deployment]" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="#[message.inboundProperties.'http.query.params'.deploymentName]" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="Time offset"/>
+        <set-session-variable variableName="range" value="#[new java.lang.Integer(message.inboundProperties.'http.query.params'.range)]" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="#[new java.lang.Integer(message.inboundProperties.'http.query.params'.offset)]" doc:name="Time offset"/>
         <set-session-variable variableName="timeZone" value="#[message.inboundProperties.'http.query.params'.timeZone]" doc:name="Timezone"/>
         <set-session-variable variableName="emails" value="#[message.inboundProperties.'http.query.params'.emails]" doc:name="Emails"/>
         <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-        <set-payload value="Done." doc:name="Set Payload"/>
+        <set-payload value="Triggered report" doc:name="Set Payload"/>
     </flow>
-    <flow name="Urbanspace:Broadway-Bites">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-bbites-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
+    <flow name="Urbanspace:generate-daily-reports" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-urbanspace-reports-1512017153" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.bbites.active}' == false]">
-                <logger message="Urbanspace:Broadway-Bites disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Broadway Bites" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.bbites.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.bbites.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.bbites.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.bbites.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.bbites.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.bbites.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Madison-Square-Eats">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-mse-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.mse.active}' == false]">
-                <logger message="Urbanspace:Madison-Square-Eats disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Madison Square Eats" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.mse.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.mse.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.mse.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.mse.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.mse.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.mse.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Times-Square">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-timessquare-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.timessquare.active}' == false]">
-                <logger message="Urbanspace:Times-Square disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Times Square" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.timessquare.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.timessquare.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.timessquare.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.timessquare.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.timessquare.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.timessquare.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Vanderbilt">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-vanderbilt-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.vanderbilt.active}' == false]">
-                <logger message="Urbanspace:Vanderbilt disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Vanderbilt Market" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.vanderbilt.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.vanderbilt.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.vanderbilt.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.vanderbilt.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.vanderbilt.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.vanderbilt.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Garment-District">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-garment-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.garment.active}' == false]">
-                <logger message="Urbanspace:Garment-Distric disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Garment District" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.garment.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.garment.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.garment.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.garment.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.garment.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.garment.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Bryant-Park">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-bryantpark-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.bryantpark.active}' == false]">
-                <logger message="Urbanspace:Bryant-Park disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Bryant Park" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.bryantpark.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.bryantpark.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.bryantpark.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.bryantpark.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.bryantpark.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.bryantpark.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Roosevelt">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-roosevelt-1509907119 " cronExpression="0 0 4 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 4:00am EST" connector-ref="Quartz-Urbanspace" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.roosevelt.active}' == false]">
-                <logger message="Urbanspace:Roosevelt disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Roosevelt Field" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.roosevelt.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.roosevelt.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.roosevelt.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.roosevelt.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.roosevelt.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.roosevelt.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:Turnstyle">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-turnstyle-1509907119 " cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.turnstyle.active}' == false]">
-                <logger message="Urbanspace:Turnstyle disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: Turnstyle Market" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.turnstyle.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.turnstyle.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.turnstyle.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.turnstyle.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.turnstyle.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.turnstyle.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
-    </flow>
-    <flow name="Urbanspace:NYPL">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-nypl-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
-        <choice doc:name="active?">
-            <when expression="#['${urbanspace.nypl.active}' == false]">
-                <logger message="Urbanspace:NYPL disabled. Not performing report generation." level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
-                <logger message="Starting Urbanspace: New York Public Library" level="INFO" doc:name="Logger"/>
-                <set-variable variableName="deployment" value="${urbanspace.nypl.deploymentId}" doc:name="Deployment ID"/>
-                <set-session-variable variableName="deploymentName" value="${urbanspace.nypl.deploymentName}" doc:name="Deployment Name"/>
-                <set-session-variable variableName="range" value="${urbanspace.nypl.time.range}" doc:name="Time range"/>
-                <set-session-variable variableName="offset" value="${urbanspace.nypl.time.offset}" doc:name="Time offset"/>
-                <set-session-variable variableName="timeZone" value="${urbanspace.nypl.time.timeZone}" doc:name="Timezone"/>
-                <set-session-variable variableName="emails" value="${urbanspace.nypl.email}" doc:name="Emails"/>
-                <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-            </otherwise>
-        </choice>
+        <logger message="Starting Urbanspace daily report generation for active deployments" level="INFO" doc:name="Logger"/>
+        <component doc:name="Get all active deployments">
+            <prototype-object class="urbanspace.DeploymentsCallable"/>
+        </component>
+        <foreach collection="#[payload]" counterVariableName="urbanspaceReportsCounter" rootMessageVariableName="urbanspaceReportsRootMessage" doc:name="For Each">
+            <set-variable variableName="deployment" value="#[payload.getDeployment()]" doc:name="Deployment ID"/>
+            <set-session-variable variableName="deploymentName" value="#[payload.getName()]" doc:name="Deployment Name"/>
+            <set-session-variable variableName="range" value="#[payload.getRange()]" doc:name="Time range"/>
+            <set-session-variable variableName="offset" value="#[payload.getOffset()]" doc:name="Time offset"/>
+            <set-session-variable variableName="timeZone" value="#[payload.getTimeZone()]" doc:name="Timezone"/>
+            <set-session-variable variableName="emails" value="#[payload.getEmails()]" doc:name="Emails"/>
+            <set-property propertyName="MULE_CORRELATION_ID" value="#[java.util.UUID.randomUUID()] " doc:name="Set new correlation ID"/>
+            <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
+        </foreach>
+        <logger message="Finished running Urbanspace daily report generation for active deployments" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
