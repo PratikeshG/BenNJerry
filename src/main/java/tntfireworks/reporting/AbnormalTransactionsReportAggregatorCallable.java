@@ -26,8 +26,13 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
         List<List<AbnormalTransactionsPayload>> payloadAggregate = (List<List<AbnormalTransactionsPayload>>) message
                 .getPayload();
         StringBuilder reportBuilder = new StringBuilder();
-        boolean addHeader = true;
         String fileDate = "";
+
+        // retrieve file header and file date from first payload (one location)
+        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+            reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
+            fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
+        }
 
         // this block is used to find alert 4 transactions
         for (List<AbnormalTransactionsPayload> masterPayload : payloadAggregate) {
@@ -77,11 +82,6 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
             // add file rows
             for (AbnormalTransactionsPayload locationPayload : masterPayload) {
-                if (addHeader) {
-                    reportBuilder.append(locationPayload.getPayloadHeader());
-                    addHeader = false;
-                    fileDate = locationPayload.getPayloadDate();
-                }
                 for (String fileRow : locationPayload.getRows()) {
                     reportBuilder.append(fileRow);
                 }

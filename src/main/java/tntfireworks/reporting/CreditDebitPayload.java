@@ -1,8 +1,5 @@
 package tntfireworks.reporting;
 
-import java.util.List;
-import java.util.Map;
-
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
@@ -28,9 +25,8 @@ public class CreditDebitPayload extends TntReportLocationPayload {
     private int achAmt;
     private String achDate;
 
-    public CreditDebitPayload(String timeZone, int loadNumber, String locationName,
-            List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, CREDIT_DEBIT_FILE_HEADER);
+    public CreditDebitPayload(String timeZone, int loadNumber, TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, CREDIT_DEBIT_FILE_HEADER);
 
         // initialize values that are currently static
         // (may change in the future depending on TNT requirements)
@@ -77,8 +73,8 @@ public class CreditDebitPayload extends TntReportLocationPayload {
         String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", SOURCE_TYPE,
                 Integer.toString(loadNumber), this.getPayloadDate(), formatTotal(netDepositAmt),
                 Integer.toString(ticketCount), Integer.toString(debitCount), formatTotal(debitAmt),
-                Integer.toString(creditCount), formatTotal(creditAmt), formatTotal(holdAmt), locationName,
-                formatTotal(achAmt), achDate, locationName);
+                Integer.toString(creditCount), formatTotal(creditAmt), formatTotal(holdAmt),
+                locationDetails.locationName, formatTotal(achAmt), achDate, locationDetails.locationName);
         return row;
     }
 }

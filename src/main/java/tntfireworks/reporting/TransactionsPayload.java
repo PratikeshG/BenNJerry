@@ -21,8 +21,8 @@ public class TransactionsPayload extends TntReportLocationPayload {
             "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State", "RBU",
             "SA NAME");
 
-    public TransactionsPayload(String timeZone, String locationName, List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, TRANSACTIONS_FILE_HEADER);
+    public TransactionsPayload(String timeZone, TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, TRANSACTIONS_FILE_HEADER);
         transactionsPayloadEntries = new ArrayList<TransactionsPayloadEntry>();
     }
 
@@ -59,7 +59,8 @@ public class TransactionsPayload extends TntReportLocationPayload {
                     formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), entry.tenderId,
                     entry.refundAmt, formatTotal(entry.totalCollected), entry.SOURCE, entry.cardAmt,
                     entry.tenderEntryMethod, entry.cashAmt, entry.otherTenderAmt, entry.otherTenderType,
-                    entry.tenderFee, formatTotal(entry.netTotal), locationNumber, city, state, rbu, saName);
+                    entry.tenderFee, formatTotal(entry.netTotal), locationDetails.locationNumber, locationDetails.city,
+                    locationDetails.state, locationDetails.rbu, locationDetails.saName);
             rows.add(row);
         }
         return rows;

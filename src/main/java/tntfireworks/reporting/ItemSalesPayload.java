@@ -24,9 +24,8 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     private Calendar beginTime;
     private Calendar endTime;
 
-    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
-            List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, ITEM_SALES_FILE_HEADER);
+    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, ITEM_SALES_FILE_HEADER);
         this.itemSalesPayloadEntries = new HashMap<String, ItemSalesPayloadEntry>();
         this.dayTimeInterval = dayTimeInterval;
     }
@@ -51,7 +50,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
                 Calendar paymentTime = TimeManager.toCalendar(payment.getCreatedAt());
 
                 // key = <locationNumber><itemNumber>
-                String key = String.format("%s%s", locationNumber, itemNumber);
+                String key = String.format("%s%s", locationDetails.locationNumber, itemNumber);
                 int saleAmount = itemization.getTotalMoney().getAmount();
 
                 ItemSalesPayloadEntry updateEntry = null;
@@ -79,10 +78,10 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         ArrayList<String> rows = new ArrayList<String>();
 
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
-            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber, rbu,
-                    payloadEntry.itemNumber, payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales),
-                    payloadEntry.dailySalesCounter, formatTotal(payloadEntry.totalSales),
-                    payloadEntry.totalSalesCounter);
+            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
+                    locationDetails.rbu, payloadEntry.itemNumber, payloadEntry.itemDescription,
+                    formatTotal(payloadEntry.dailySales), payloadEntry.dailySalesCounter,
+                    formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter);
             rows.add(row);
         }
 

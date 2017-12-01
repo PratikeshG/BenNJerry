@@ -2,7 +2,6 @@ package tntfireworks.reporting;
 
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -26,9 +25,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
-            List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, LOCATION_SALES_FILE_HEADER);
+    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval,
+            TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, LOCATION_SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.creditDailySales = 0;
         this.creditTotalSales = 0;
@@ -94,8 +93,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     }
 
     public String getRow() {
-        String row = String.format("%s, %s, %s, %s, %s, %s \n", locationNumber, rbu, formatTotal(creditDailySales),
-                formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()), formatTotal(getCashCreditTotal()));
+        String row = String.format("%s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber, locationDetails.rbu,
+                formatTotal(creditDailySales), formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()),
+                formatTotal(getCashCreditTotal()));
         return row;
     }
 }

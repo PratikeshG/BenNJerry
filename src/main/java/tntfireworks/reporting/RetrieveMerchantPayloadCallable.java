@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import util.TimeManager;
 public class RetrieveMerchantPayloadCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(RetrieveMerchantPayloadCallable.class);
     private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
+    private static final int DAY_RANGE = 1;
     private static final int SETTLEMENTS_REPORT_TYPE = 1;
     private static final int TRANSACTIONS_REPORT_TYPE = 2;
     private static final int ABNORMAL_TRANSACTIONS_REPORT_TYPE = 3;
@@ -39,7 +41,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final int LOCATION_SALES_REPORT_TYPE = 5;
     private static final int ITEM_SALES_REPORT_TYPE = 7;
     private static final int CREDIT_DEBIT_REPORT_TYPE = 8;
-
     private String timeZone;
 
     @Value("${tntfireworks.startOfSeason}")
@@ -54,31 +55,30 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private String apiUrl;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
+    @Value("${tntfireworks.reporting.cron.timezone}")
+    private String cronTimeZone;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        // initialize dbConnection
-        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
-
         // get session vars
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         int reportType = Integer.parseInt(message.getProperty("reportType", PropertyScope.SESSION));
+        String ytd = message.getProperty("ytd", PropertyScope.SESSION);
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
         // get time zone for file
         timeZone = DEFAULT_TIME_ZONE;
-        String cronTimeZone = message.getProperty("cronTimeZone", PropertyScope.INVOCATION);
         if (cronTimeZone != null && !cronTimeZone.isEmpty()) {
             timeZone = cronTimeZone;
         }
 
-        // compute season range if range = 365
-        if (range == 365) {
-            range = computeSeasonInterval(startOfSeason, TimeZone.getTimeZone(timeZone));
+        // set range to interval from season start date if YTD set to true
+        if (ytd.equals("TRUE")) {
+            range = computeSeasonInterval(startOfSeason, offset, TimeZone.getTimeZone(timeZone));
         }
 
         // get deployment from queue-splitter
@@ -92,11 +92,12 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         // retrieve location details according to reportType and store into
         // abstracted object (reportPayload)
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
-        return getMerchantPayload(reportType, squareClientV1, squareClientV2, dbConnection, offset, range);
+        return getMerchantPayload(reportType, squareClientV1, squareClientV2, offset, range);
     }
 
-    public static int computeSeasonInterval(String startOfSeason, TimeZone tz) {
+    public static int computeSeasonInterval(String startOfSeason, int offset, TimeZone tz) {
         int range = 0;
+        int todayOffset = -1 * offset;
 
         // parse season month, day, year and offset day/month by 1
         // startOfSeason format yyyy-mm-dd
@@ -125,6 +126,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         startOfSeasonCal.set(Calendar.SECOND, 0);
         startOfSeasonCal.set(Calendar.MILLISECOND, 0);
 
+        // add negative offset to calendar so that 'range' accounts for the
+        // defined offset
+        today.add(Calendar.DAY_OF_MONTH, todayOffset);
         today.set(Calendar.HOUR_OF_DAY, 0);
         today.set(Calendar.MINUTE, 0);
         today.set(Calendar.SECOND, 0);
@@ -137,7 +141,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClient squareClientV1,
-            SquareClientV2 squareClientV2, DbConnection dbConnection, int offset, int range) {
+            SquareClientV2 squareClientV2, int offset, int range) throws ClassNotFoundException, SQLException {
+
+        // initialize dbConnection
+        DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
 
         // initialize payload to store ItemSalesFile objects
         List<TntReportLocationPayload> merchantPayload = new ArrayList<TntReportLocationPayload>();
@@ -146,28 +153,39 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             // get db information for later lookup
             // initialized TntDatabaseApi for information lookup
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
+
+            // dbLocationRows used for all report Types
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
                     .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
-            List<Map<String, String>> dbItemRows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
-            List<Map<String, String>> dbLoadNumbers = tntDatabaseApi
-                    .submitQuery(tntDatabaseApi.generateLoadNumberSQLSelect());
+
+            // dbItemRows only used for ITEM_SALES_REPORT_TYPE
+            List<Map<String, String>> dbItemRows = null;
+
+            // dbLoadNumber only used for CREDIT_DEBIT_REPORT_TYPE
+            List<Map<String, String>> dbLoadNumbers = null;
+
+            if (reportType == ITEM_SALES_REPORT_TYPE) {
+                dbItemRows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
+            } else if (reportType == CREDIT_DEBIT_REPORT_TYPE) {
+                dbLoadNumbers = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLoadNumberSQLSelect());
+            }
             tntDatabaseApi.close();
 
             // iterate through each location in merchant and aggregate account
             // data
             for (Location location : squareClientV2.locations().list()) {
-                if (!location.getName().contains("DEACTIVATED") && !location.getName().contains("DEFAULT")) {
+                if (location.getStatus().equals("ACTIVE") && !location.getName().contains("DEFAULT")) {
+                    // initialize TntLocationDetails with DB data
+                    TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location.getName());
+
                     // define time intervals to pull payment data
                     // - dayTimeInterval is currently only used for report 5/6
                     // and report 7
                     // - aggregateInterval is used by remaining flows
-                    Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(1, offset,
+                    Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
                             location.getTimezone());
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             location.getTimezone());
-                    aggregateIntervalParams.put("sort_order", "ASC"); // v2
-                                                                      // default
-                                                                      // is DESC
 
                     // set squareClient to specific location
                     squareClientV1.setLocation(location.getId());
@@ -176,8 +194,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     switch (reportType) {
                         case SETTLEMENTS_REPORT_TYPE:
                             // settlements report
-                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, location.getName(),
-                                    dbLocationRows);
+                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationDetails);
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
                             for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1,
                                     aggregateIntervalParams)) {
                                 settlementsPayload.addEntry(settlement);
@@ -196,13 +214,13 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                             // report name is defined by TNT as 'Transactions
                             // Report'
                             TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone,
-                                    location.getName(), dbLocationRows);
+                                    locationDetails);
 
                             // need to obtain Connect V2 Tender Fees and V2
                             // Tender Entry Methods to map to V1 Tenders
                             Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
                             Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
-
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
                             for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
                                     aggregateIntervalParams)) {
                                 for (Tender tender : transaction.getTenders()) {
@@ -215,6 +233,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                                 }
                             }
 
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
                             for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
                                     aggregateIntervalParams)) {
                                 transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
@@ -225,8 +244,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
                             // detect anomaly transactions across locations /
                             // per merchant account
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
                             AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(
-                                    timeZone, aggregateIntervalParams, location.getName(), dbLocationRows);
+                                    timeZone, aggregateIntervalParams, locationDetails);
                             for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
                                     aggregateIntervalParams)) {
                                 abnormalTransactionsPayload.addEntry(transaction);
@@ -241,7 +261,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         case LOCATION_SALES_REPORT_TYPE:
                             // get transaction data for location payload
                             LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone,
-                                    dayTimeInterval, location.getName(), dbLocationRows);
+                                    dayTimeInterval, locationDetails);
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
                             for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
                                     aggregateIntervalParams)) {
                                 locationSalesPayload.addEntry(transaction);
@@ -252,7 +273,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         case ITEM_SALES_REPORT_TYPE:
                             // get item sales payload for single location
                             ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval,
-                                    location.getName(), dbLocationRows);
+                                    locationDetails);
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
                             for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
                                     aggregateIntervalParams)) {
                                 itemSalesPayload.addEntry(payment, dbItemRows);
@@ -272,7 +294,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                             }
 
                             CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber,
-                                    location.getName(), dbLocationRows);
+                                    locationDetails);
+                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
                             for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
                                     aggregateIntervalParams)) {
                                 creditDebitPayload.addEntry(payment);

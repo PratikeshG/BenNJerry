@@ -19,17 +19,17 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         // build report from payloads
         List<List<TransactionsPayload>> payloadAggregate = (List<List<TransactionsPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
-        boolean addHeader = true;
         String fileDate = "";
+
+        // retrieve file header and file date from first payload (one location)
+        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+            reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
+            fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
+        }
 
         // add file rows
         for (List<TransactionsPayload> masterPayload : payloadAggregate) {
             for (TransactionsPayload locationPayload : masterPayload) {
-                if (addHeader) {
-                    reportBuilder.append(locationPayload.getPayloadHeader());
-                    addHeader = false;
-                    fileDate = locationPayload.getPayloadDate();
-                }
                 for (String fileRow : locationPayload.getRows()) {
                     reportBuilder.append(fileRow);
                 }

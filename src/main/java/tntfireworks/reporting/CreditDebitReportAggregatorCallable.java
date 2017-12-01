@@ -29,19 +29,19 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // build report from payloads
         List<List<CreditDebitPayload>> payloadAggregate = (List<List<CreditDebitPayload>>) message.getPayload();
         StringBuilder reportBuilder = new StringBuilder();
-        boolean addHeader = true;
         String fileDate = "";
         int loadNumber = 0;
+
+        // retrieve file header and file date from first payload (one location)
+        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+            reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
+            fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
+            loadNumber = payloadAggregate.get(0).get(0).loadNumber;
+        }
 
         // add file rows
         for (List<CreditDebitPayload> masterPayload : payloadAggregate) {
             for (CreditDebitPayload locationPayload : masterPayload) {
-                if (addHeader) {
-                    reportBuilder.append(locationPayload.getPayloadHeader());
-                    addHeader = false;
-                    fileDate = locationPayload.getPayloadDate();
-                    loadNumber = locationPayload.loadNumber;
-                }
                 reportBuilder.append(locationPayload.getRow());
             }
         }

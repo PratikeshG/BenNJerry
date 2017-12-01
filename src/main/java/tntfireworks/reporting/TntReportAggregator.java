@@ -18,7 +18,8 @@ import util.CloudStorageApi;
 public class TntReportAggregator {
     private static Logger logger = LoggerFactory.getLogger(TntReportAggregator.class);
     // max report size in bytes
-    private static final int MAX_REPORT_SIZE = 10000000;
+    // Amazon SES attachment limit 10MB, set limit to 9.5MB
+    private static final int MAX_REPORT_SIZE = 9500000;
     // charset
     private static final String CHARSET = "UTF-8";
 

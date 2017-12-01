@@ -3,7 +3,6 @@ package tntfireworks.reporting;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SettlementEntry;
@@ -17,8 +16,8 @@ public class SettlementsPayload extends TntReportLocationPayload {
 
     // each SettlementsPayload object represents all settlements within a single
     // location
-    public SettlementsPayload(String timeZone, String locationName, List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, SETTLEMENTS_FILE_HEADER);
+    public SettlementsPayload(String timeZone, TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, SETTLEMENTS_FILE_HEADER);
         // initialize payload values
         payloadEntries = new ArrayList<SettlementsPayloadEntry>();
     }
@@ -33,11 +32,11 @@ public class SettlementsPayload extends TntReportLocationPayload {
         for (SettlementsPayloadEntry payloadEntry : payloadEntries) {
             for (SettlementEntry settlementEntry : payloadEntry.settlementEntries) {
                 // write row
-                String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", locationNumber,
+                String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
                         payloadEntry.settlementId, payloadEntry.initiatedAt,
                         formatTotal(settlementEntry.getAmountMoney().getAmount()),
-                        formatTotal(settlementEntry.getFeeMoney().getAmount()), settlementEntry.getType(), rbu, city,
-                        state, zip);
+                        formatTotal(settlementEntry.getFeeMoney().getAmount()), settlementEntry.getType(),
+                        locationDetails.rbu, locationDetails.city, locationDetails.state, locationDetails.zip);
                 rows.add(row);
             }
         }

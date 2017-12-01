@@ -56,9 +56,9 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     // previous amount needs to be stored for alert 5
     int prevAmt;
 
-    public AbnormalTransactionsPayload(String timeZone, Map<String, String> dayTimeInterval, String locationName,
-            List<Map<String, String>> dbLocationRows) {
-        super(timeZone, locationName, dbLocationRows, ABNORMAL_TRANSACTIONS_FILE_HEADER);
+    public AbnormalTransactionsPayload(String timeZone, Map<String, String> dayTimeInterval,
+            TntLocationDetails locationDetails) {
+        super(timeZone, locationDetails, ABNORMAL_TRANSACTIONS_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.prevAmt = 0;
         alerts = new ArrayList<AbnormalTransactionsEntry>();
@@ -242,9 +242,10 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
 
         for (AbnormalTransactionsEntry entry : alerts) {
             String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                    Integer.toString(entry.level), entry.description, locationNumber, entry.customerId, city, state,
-                    saName, entry.tenderAmt, entry.transactionDate, entry.status, entry.cardBrand, entry.last4,
-                    entry.transactionId, entry.entryMethod, rbu, entry.fingerprint);
+                    Integer.toString(entry.level), entry.description, locationDetails.locationNumber, entry.customerId,
+                    locationDetails.city, locationDetails.state, locationDetails.saName, entry.tenderAmt,
+                    entry.transactionDate, entry.status, entry.cardBrand, entry.last4, entry.transactionId,
+                    entry.entryMethod, locationDetails.rbu, entry.fingerprint);
             rows.add(row);
         }
         return rows;
