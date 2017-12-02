@@ -143,7 +143,7 @@ public class PluCatalogBuilder {
 
     private void syncLocationDbItems(VfcDatabaseApi databaseApi, Catalog catalog, Location location,
             String deploymentId) throws Exception {
-        ArrayList<Map<String, String>> records = databaseApi.queryDbItems(location.getId(), pluFiltered);
+        ArrayList<Map<String, String>> records = databaseApi.queryDbItems(location.getId(), pluFiltered, brand);
 
         for (Map<String, String> itemRecord : records) {
             updateCatalogLocationWithItem(catalog, location, itemRecord, deploymentId);

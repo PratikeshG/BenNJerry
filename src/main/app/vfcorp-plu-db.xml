@@ -101,6 +101,9 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
         <flow name="VFC:Nautica:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-nautica-PLU-daily-1509908122" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for Nautica" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="nautica" doc:name="Set brand: nautica"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>

@@ -95,9 +95,9 @@ public class DeploymentsCallable implements Callable {
     }
 
     private void logMarketingPlans(HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
-        logger.info("plans: " + marketingPlanItemsCache.keySet().size());
+        logger.debug("plans: " + marketingPlanItemsCache.keySet().size());
         for (String planId : marketingPlanItemsCache.keySet()) {
-            logger.info(planId + ": " + marketingPlanItemsCache.get(planId).size());
+            logger.debug(planId + ": " + marketingPlanItemsCache.get(planId).size());
         }
     }
 
@@ -107,7 +107,7 @@ public class DeploymentsCallable implements Callable {
         ArrayList<Map<String, String>> rows = tntDatabaseApi
                 .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(activeDeployment));
 
-        logger.info("generateDeploymentSQLSelect=" + gson.toJson(rows));
+        logger.debug("generateDeploymentSQLSelect=" + gson.toJson(rows));
 
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
         for (Map<String, String> row : rows) {
@@ -125,7 +125,7 @@ public class DeploymentsCallable implements Callable {
             throws SQLException {
         ArrayList<Map<String, String>> rows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLocationSQLSelect());
         // columns retrieved: all
-        logger.info("generateLocationMarketingPlanCache=" + gson.toJson(rows));
+        logger.debug("generateLocationMarketingPlanCache=" + gson.toJson(rows));
 
         HashMap<String, String> locationMarketingPlanCache = new HashMap<String, String>();
         for (Map<String, String> row : rows) {
@@ -142,7 +142,7 @@ public class DeploymentsCallable implements Callable {
         // columns retrieved: itemNumber, category, itemDescription,
         // upc, currency, halfOff, sellingPrice
 
-        logger.info("generateMarketingPlanItemsCache=" + gson.toJson(rows));
+        logger.debug("generateMarketingPlanItemsCache=" + gson.toJson(rows));
 
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = new HashMap<String, List<CsvItem>>();
         for (Map<String, String> row : rows) {

@@ -44,7 +44,7 @@ public class DatabaseToSquareCallable implements Callable {
         logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
                 deployment.getMerchantId()));
 
-        return null;
+        return deployment;
     }
 
     /*
