@@ -22,7 +22,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <choice doc:name="Choice">
             <when expression="#['${tntfireworks.reporting.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
-                <set-payload value="TNT Fireworks reporting currently set as inactive." doc:name="Set Payload"/>
+                <set-payload value="TNTFireworks reporting currently set as inactive." doc:name="Set Payload"/>
             </when>
             <otherwise>
 		        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
