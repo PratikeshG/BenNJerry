@@ -32,7 +32,6 @@ import util.TimeManager;
 
 public class RetrieveMerchantPayloadCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(RetrieveMerchantPayloadCallable.class);
-    private static final String DEFAULT_TIME_ZONE = "America/Los_Angeles";
     private static final int DAY_RANGE = 1;
     private static final int SETTLEMENTS_REPORT_TYPE = 1;
     private static final int TRANSACTIONS_REPORT_TYPE = 2;
@@ -41,7 +40,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final int LOCATION_SALES_REPORT_TYPE = 5;
     private static final int ITEM_SALES_REPORT_TYPE = 7;
     private static final int CREDIT_DEBIT_REPORT_TYPE = 8;
-    private String timeZone;
+    private static final String SEASON_REPORTING_ENABLED = "TRUE";
+    private static final String TNT_DEFAULT_LOCATION_NAME_PREFIX = "DEFAULT";
 
     @Value("${tntfireworks.startOfSeason}")
     private String startOfSeason;
@@ -53,10 +53,13 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private String databasePassword;
     @Value("${api.url}")
     private String apiUrl;
+    @Value("${api.version}")
+    private String apiVersion;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
     @Value("${tntfireworks.reporting.cron.timezone}")
     private String cronTimeZone;
+    private String timeZone;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -67,17 +70,15 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         int reportType = Integer.parseInt(message.getProperty("reportType", PropertyScope.SESSION));
         String ytd = message.getProperty("ytd", PropertyScope.SESSION);
-        String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
-        String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
         // get time zone for file
-        timeZone = DEFAULT_TIME_ZONE;
+        timeZone = util.Constants.PST_TIME_ZONE_ID;
         if (cronTimeZone != null && !cronTimeZone.isEmpty()) {
             timeZone = cronTimeZone;
         }
 
         // set range to interval from season start date if YTD set to true
-        if (ytd.equals("TRUE")) {
+        if (ytd.equals(SEASON_REPORTING_ENABLED)) {
             range = computeSeasonInterval(startOfSeason, offset, TimeZone.getTimeZone(timeZone));
         }
 
@@ -174,7 +175,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             // iterate through each location in merchant and aggregate account
             // data
             for (Location location : squareClientV2.locations().list()) {
-                if (location.getStatus().equals("ACTIVE") && !location.getName().contains("DEFAULT")) {
+                if (isValidLocation(location)) {
                     // initialize TntLocationDetails with DB data
                     TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location.getName());
 
@@ -193,115 +194,31 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
                     switch (reportType) {
                         case SETTLEMENTS_REPORT_TYPE:
-                            // settlements report
-                            SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationDetails);
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-                            for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1,
-                                    aggregateIntervalParams)) {
-                                settlementsPayload.addEntry(settlement);
-                            }
-
-                            merchantPayload.add(settlementsPayload);
+                            merchantPayload.add(generateSettlementsPayload(squareClientV1, locationDetails,
+                                    aggregateIntervalParams));
                             break;
                         case TRANSACTIONS_REPORT_TYPE:
-
-                            // - each TransactionsPayload includes transaction
-                            // data from a single location
-                            // - while the payload object name may imply V2
-                            // Transactions data, the payload mainly consists of
-                            // V1 Payments data
-                            // and is called a TransactionsPayload because the
-                            // report name is defined by TNT as 'Transactions
-                            // Report'
-                            TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone,
-                                    locationDetails);
-
-                            // need to obtain Connect V2 Tender Fees and V2
-                            // Tender Entry Methods to map to V1 Tenders
-                            Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
-                            Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-                            for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
-                                    aggregateIntervalParams)) {
-                                for (Tender tender : transaction.getTenders()) {
-                                    tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
-                                    if (tender.getCardDetails() != null
-                                            && tender.getCardDetails().getEntryMethod() != null) {
-                                        tenderToEntryMethod.put(tender.getId(),
-                                                tender.getCardDetails().getEntryMethod());
-                                    }
-                                }
-                            }
-
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-                            for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
-                                    aggregateIntervalParams)) {
-                                transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
-                            }
-
-                            merchantPayload.add(transactionsPayload);
+                            merchantPayload.add(generateTransactionsPayload(squareClientV2, squareClientV1,
+                                    locationDetails, aggregateIntervalParams));
                             break;
                         case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
-                            // detect anomaly transactions across locations /
-                            // per merchant account
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-                            AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(
-                                    timeZone, aggregateIntervalParams, locationDetails);
-                            for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
-                                    aggregateIntervalParams)) {
-                                abnormalTransactionsPayload.addEntry(transaction);
-                            }
-
-                            merchantPayload.add(abnormalTransactionsPayload);
+                            merchantPayload.add(generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
+                                    aggregateIntervalParams));
                             break;
                         case CHARGEBACK_REPORT_TYPE:
-                            // report 4 is currently generated from a different
-                            // source
+                            // report 4 is currently generated from a different source
                             break;
                         case LOCATION_SALES_REPORT_TYPE:
-                            // get transaction data for location payload
-                            LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone,
-                                    dayTimeInterval, locationDetails);
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-                            for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2,
-                                    aggregateIntervalParams)) {
-                                locationSalesPayload.addEntry(transaction);
-                            }
-
-                            merchantPayload.add(locationSalesPayload);
+                            merchantPayload.add(generateLocationSalesPayload(squareClientV2, locationDetails,
+                                    aggregateIntervalParams, dayTimeInterval));
                             break;
                         case ITEM_SALES_REPORT_TYPE:
-                            // get item sales payload for single location
-                            ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval,
-                                    locationDetails);
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-                            for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
-                                    aggregateIntervalParams)) {
-                                itemSalesPayload.addEntry(payment, dbItemRows);
-                            }
-
-                            merchantPayload.add(itemSalesPayload);
+                            merchantPayload.add(generateItemSalesPayload(squareClientV2, squareClientV1,
+                                    locationDetails, aggregateIntervalParams, dayTimeInterval, dbItemRows));
                             break;
                         case CREDIT_DEBIT_REPORT_TYPE:
-                            // "credit debit" report, payload is per location
-                            // loadNumber represents the total number of credit
-                            // debit reports sent and is tracked in DB
-                            int loadNumber = 0;
-                            for (Map<String, String> row : dbLoadNumbers) {
-                                if (row.get("reportName").equals(CreditDebitPayload.DB_REPORT_NAME)) {
-                                    loadNumber = Integer.parseInt(row.get("count"));
-                                }
-                            }
-
-                            CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber,
-                                    locationDetails);
-                            aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-                            for (Payment payment : TntLocationDetails.getPayments(squareClientV1,
-                                    aggregateIntervalParams)) {
-                                creditDebitPayload.addEntry(payment);
-                            }
-
-                            merchantPayload.add(creditDebitPayload);
+                            merchantPayload.add(generateCreditDebitPayload(squareClientV1, locationDetails,
+                                    aggregateIntervalParams, dbLoadNumbers));
                             break;
                     }
                 }
@@ -311,5 +228,114 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         }
 
         return merchantPayload;
+    }
+
+    private boolean isValidLocation(Location location) {
+        return location.getStatus().equals(Location.LOCATION_STATUS_ACTIVE)
+                && !location.getName().contains(TNT_DEFAULT_LOCATION_NAME_PREFIX);
+    }
+
+    private SettlementsPayload generateSettlementsPayload(SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
+        SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
+
+        for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1, aggregateIntervalParams)) {
+            settlementsPayload.addEntry(settlement);
+        }
+
+        return settlementsPayload;
+    }
+
+    private TransactionsPayload generateTransactionsPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
+        // - each TransactionsPayload includes transaction data from a single location
+        // - while the payload object name may imply V2Transactions data, the payload
+        // mainly consists of V1 Payments data and is called a TransactionsPayload because
+        // the report name is defined by TNT as 'Transactions Report'
+        TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, locationDetails);
+
+        // need to obtain Connect V2 Tender Fees and V2
+        // Tender Entry Methods to map to V1 Tenders
+        Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
+        Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
+            for (Tender tender : transaction.getTenders()) {
+                tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
+                if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
+                    tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+                }
+            }
+        }
+
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
+            transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
+        }
+
+        return transactionsPayload;
+    }
+
+    private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(SquareClientV2 squareClientV2,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone,
+                aggregateIntervalParams, locationDetails);
+        for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
+            abnormalTransactionsPayload.addEntry(transaction);
+        }
+
+        return abnormalTransactionsPayload;
+    }
+
+    private LocationSalesPayload generateLocationSalesPayload(SquareClientV2 squareClientV2,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
+            Map<String, String> dayTimeInterval) throws Exception {
+        // get transaction data for location payload
+        LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
+                locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
+            locationSalesPayload.addEntry(transaction);
+        }
+
+        return locationSalesPayload;
+    }
+
+    private ItemSalesPayload generateItemSalesPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
+            Map<String, String> dayTimeInterval, List<Map<String, String>> dbItemRows) throws Exception {
+        // get item sales payload for single location
+        ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
+            itemSalesPayload.addEntry(payment, dbItemRows);
+        }
+
+        return itemSalesPayload;
+    }
+
+    private CreditDebitPayload generateCreditDebitPayload(SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
+            List<Map<String, String>> dbLoadNumbers) throws Exception {
+        // "credit debit" report, payload is per location
+        // loadNumber represents the total number of credit
+        // debit reports sent and is tracked in DB
+        int loadNumber = 0;
+        for (Map<String, String> row : dbLoadNumbers) {
+            if (row.get(TntDatabaseApi.DB_LOAD_NUMBER_REPORT_NAME_COLUMN)
+                    .equals(TntDatabaseApi.DB_LOAD_NUMBER_REPORT8_NAME)) {
+                loadNumber = Integer.parseInt(row.get(TntDatabaseApi.DB_LOAD_NUMBER_COUNT_COLUMN));
+            }
+        }
+
+        CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
+            creditDebitPayload.addEntry(payment);
+        }
+
+        return creditDebitPayload;
     }
 }

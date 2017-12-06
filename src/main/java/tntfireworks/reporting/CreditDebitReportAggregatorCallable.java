@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
+import tntfireworks.TntDatabaseApi;
 import util.DbConnection;
 
 public class CreditDebitReportAggregatorCallable extends TntReportAggregator implements Callable {
@@ -49,7 +50,8 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // increment load number
         // write new load number into db
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
-        dbConnection.executeQuery(generateLoadNumberSQLUpsert(CreditDebitPayload.DB_REPORT_NAME, (loadNumber + 1)));
+        dbConnection.executeQuery(
+                generateLoadNumberSQLUpsert(TntDatabaseApi.DB_LOAD_NUMBER_REPORT8_NAME, (loadNumber + 1)));
         dbConnection.close();
 
         // generate report into file
@@ -59,7 +61,8 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
+        // report 8 is SFTP only
+        return storeReport(reportName, generatedReport);
     }
 
     private String generateLoadNumberSQLUpsert(String reportName, int newLoadNumber) {

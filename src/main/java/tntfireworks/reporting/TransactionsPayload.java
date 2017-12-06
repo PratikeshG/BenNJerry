@@ -10,16 +10,28 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
+/*
+ * Report 2 - "Transactions Report" - Emailed daily
+ *
+ * Report 2 contains detailed daily payment information for all TNT locations and is sent daily. Each row in this
+ * file represents an entry for a single tender amount. Thus, there can be multiple rows with the same transaction id
+ * since multiple tenders can exist on a transaction. Connect V1 Payment and Connect V2 Transaction endpoints are used
+ * in conjunction to build the report as the TenderCardDetails.EntryMethod field does not exist in Connect V1.
+ * Additional information such as zip- code/state is pulled from a database for each TNT location and included in each
+ * row/entry of the report.
+ *
+ */
 public class TransactionsPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
-    private List<TransactionsPayloadEntry> transactionsPayloadEntries;
-
     private static final String TRANSACTIONS_FILE_HEADER = String.format(
             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
             "Payment Id", "Created At (UTC)", "Gross Sales", "Discounts", "Net Sales", "Tax", "Tip", "Tender Id",
             "Refund Amount", "Total Collected", "Source", "Card Amount", "Entry Method", "Cash Amount",
             "Other Tender Amount", "Other Tender Type", "Fees", "Net Total", "TNT Location #", "City", "State", "RBU",
             "SA NAME");
+    private static final String DEFAULT_TENDER_ENTRY_METHOD = "NA";
+
+    private List<TransactionsPayloadEntry> transactionsPayloadEntries;
 
     public TransactionsPayload(String timeZone, TntLocationDetails locationDetails) {
         super(timeZone, locationDetails, TRANSACTIONS_FILE_HEADER);
@@ -31,7 +43,7 @@ public class TransactionsPayload extends TntReportLocationPayload {
         // Connect V2
         // - use V2 map to obtain values
         String tenderFee = "";
-        String tenderEntryMethod = "NA";
+        String tenderEntryMethod = DEFAULT_TENDER_ENTRY_METHOD;
 
         for (Tender tender : payment.getTender()) {
             // get fee from tenderToFee mapping
@@ -116,15 +128,11 @@ public class TransactionsPayload extends TntReportLocationPayload {
 
             // get tender details
             switch (tender.getType()) {
-                case "CREDIT_CARD":
+                case Tender.TENDER_TYPE_CARD:
                     cardAmt = formatTotal(tender.getTotalMoney().getAmount());
                     break;
-                case "CASH":
+                case Tender.TENDER_TYPE_CASH:
                     cashAmt = formatTotal(tender.getTotalMoney().getAmount());
-                    break;
-                case "OTHER":
-                    otherTenderAmt = formatTotal(tender.getTotalMoney().getAmount());
-                    otherTenderType = "OTHER";
                     break;
                 default:
                     otherTenderAmt = formatTotal(tender.getTotalMoney().getAmount());

@@ -51,7 +51,8 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
                 for (Transaction transaction : locationPayload.getLocationTransactions()) {
                     for (Tender tender : transaction.getTenders()) {
-                        if (tender.getType().equals("CARD") && transaction.getProduct().equals("REGISTER")) {
+                        if (tender.getType().equals(Tender.TENDER_TYPE_CARD)
+                                && transaction.getProduct().equals(Transaction.TRANSACTION_PRODUCT_REGISTER)) {
                             if (tender.getCardDetails() != null && tender.getCardDetails().getCard() != null) {
                                 String fingerprint = tender.getCardDetails().getCard().getFingerprint();
 
@@ -71,7 +72,8 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
             // add alert 4 transactions into location payloads
             for (String key : fingerprintToTransactions.keySet()) {
-                if (fingerprintToTransactions.get(key).size() >= AbnormalTransactionsPayload.ALERT_THRESHOLD_4) {
+                if (fingerprintToTransactions.get(key)
+                        .size() >= AbnormalTransactionsPayload.SAME_CARD_PER_MERCHANT_LIMIT) {
                     for (Transaction transaction : fingerprintToTransactions.get(key)) {
                         if (mappedLocationPayloads.containsKey(transaction.getLocationId())) {
                             mappedLocationPayloads.get(transaction.getLocationId()).addAlert4Entry(transaction);

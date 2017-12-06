@@ -12,13 +12,26 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentItemization;
 
+import tntfireworks.TntDatabaseApi;
 import util.TimeManager;
 
+/*
+ * "Item Sales Report" - Emailed daily
+ *
+ * Report 7 contains item-level sales data. Daily sales for each item is counted and aggregated, and reported for each
+ * location. The "YTD" sales amount/quantity, or seasonal amount/quantity, is also tracked. Each row of the report
+ * includes the item number, daily totals, seasonal totals, and location number. Because itemized transaction
+ * information is not included in the Connect V2 Transaction endpoint, payment data is pulled from Connect V1 Payments.
+ *
+ */
 public class ItemSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
     private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description", "Daily Sales Amount", "Daily Sales Quantity",
             "YTD Sales Amount", "YTD Sales Quantity");
+    private static final String DEFAULT_ITEM_NUMBER = "N/A";
+    private static final String DEFAULT_ITEM_DESCRIPTION = "CUSTOM AMOUNT";
+
     private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;
     private Map<String, String> dayTimeInterval;
     private Calendar beginTime;
@@ -35,18 +48,18 @@ public class ItemSalesPayload extends TntReportLocationPayload {
             // loop through payment itemizations and add to map
             for (PaymentItemization itemization : payment.getItemizations()) {
                 // key = location number + item number
-                String itemNumber = "N/A";
-                String itemDesc = "CUSTOM AMOUNT";
+                String itemNumber = DEFAULT_ITEM_NUMBER;
+                String itemDesc = DEFAULT_ITEM_DESCRIPTION;
                 for (Map<String, String> row : dbItemRows) {
-                    if (itemization.getItemDetail().getSku().equals(row.get("upc"))) {
-                        itemNumber = row.get("itemNumber");
-                        itemDesc = row.get("itemDescription");
+                    if (itemization.getItemDetail().getSku().equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
+                        itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
+                        itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
                     }
                 }
 
                 // use calendar objects to daily interval
-                Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get("begin_time"));
-                Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get("end_time"));
+                Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
+                Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.END_TIME));
                 Calendar paymentTime = TimeManager.toCalendar(payment.getCreatedAt());
 
                 // key = <locationNumber><itemNumber>

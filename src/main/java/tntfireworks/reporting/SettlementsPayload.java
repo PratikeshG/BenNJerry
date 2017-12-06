@@ -7,6 +7,15 @@ import java.util.List;
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SettlementEntry;
 
+/*
+ * "Settlements Report" - Emailed first of each month
+ *
+ * Report 1 is emailed on the first of each month and contains settlements entries for the previous month of each TNT
+ * location. Each row in this file contains a settlements entry for a single location and multiple entries can exist
+ * for a single location as multiple deposits/settlements can occur daily. The Connect V1 Settlement endpoint is the
+ * only source of information for this report.
+ *
+ */
 public class SettlementsPayload extends TntReportLocationPayload {
     // write file header
     private static final String SETTLEMENTS_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",

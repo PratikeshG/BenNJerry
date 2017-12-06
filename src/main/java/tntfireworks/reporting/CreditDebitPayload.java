@@ -3,6 +3,22 @@ package tntfireworks.reporting;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Tender;
 
+/*
+ * Report 8 - "Credit Debit Report" - Placed on SFTP daily
+ *
+ * Report 8 contains information related to the total number of daily credits and debits for each TNT Location. This
+ * report is placed on the SFTP instead of emailed, as TNT's E1 (EnterpriseOne) system is set to automatically ingest
+ * report from the SFTP.
+ *
+ * A credit is defined as a credit card refund and debit is defined as a credit card sale. The number of debits, credits,
+ * and total ticket count (# debits + # credits) is tracked within this report. The net deposit amount (debit amount +
+ * credit amount) is also calculated.
+ *
+ * A "load number" is also set each season with a starting value of 1 and stored in a database. Each time the report is
+ * generated, the current load number is included in the report and subsequently incremented. This is a requirement set
+ * forth by TNT and is used for their internal systems.
+ *
+ */
 public class CreditDebitPayload extends TntReportLocationPayload {
 
     // constant payload fields
@@ -11,7 +27,6 @@ public class CreditDebitPayload extends TntReportLocationPayload {
             "Net Deposit Amt", "Total Tickets", "Number of Debits", "Debit Amt", "Number of Credits", "Credit Amt",
             "Hold Amt", "Terminal ID", "ACH Amt", "ACH Date", "Merchant ID");
     private static final String SOURCE_TYPE = "SQUARE";
-    protected static final String DB_REPORT_NAME = "CreditDebitBatch";
 
     // variable payload fields
     protected int loadNumber;
@@ -48,17 +63,17 @@ public class CreditDebitPayload extends TntReportLocationPayload {
         // compute debit/credit data based on interval specified in
         // RetrieveMerchantPayloadCallable
         for (Tender tender : payment.getTender()) {
-            if (tender.getType().equals("CREDIT_CARD")) {
+            if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
                 // debits = total collected money without SQ fees but including
                 // tax
-                if (tender.getTotalMoney() != null && tender.getTotalMoney().getAmount() > 0) {
+                if (tenderTotalMoneyIsValid(tender)) {
                     debitCount++;
                     debitAmt += tender.getTotalMoney().getAmount();
                 }
 
                 // credits = refunds without discounts (credits are negative
                 // values)
-                if (tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0) {
+                if (tenderRefundedMoneyIsValid(tender)) {
                     creditCount++;
                     creditAmt += tender.getRefundedMoney().getAmount();
                 }
@@ -67,6 +82,14 @@ public class CreditDebitPayload extends TntReportLocationPayload {
 
         ticketCount = debitCount + creditCount;
         netDepositAmt = debitAmt + creditAmt;
+    }
+
+    public boolean tenderTotalMoneyIsValid(Tender tender) {
+        return tender.getTotalMoney() != null && tender.getTotalMoney().getAmount() > 0;
+    }
+
+    public boolean tenderRefundedMoneyIsValid(Tender tender) {
+        return tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0;
     }
 
     public String getRow() {

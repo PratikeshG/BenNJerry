@@ -12,6 +12,8 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Transaction;
 
+import tntfireworks.TntDatabaseApi;
+
 public class TntLocationDetails {
     protected String locationNumber;
     protected String locationName;
@@ -31,12 +33,12 @@ public class TntLocationDetails {
         this.saName = "";
 
         for (Map<String, String> row : dbLocationRows) {
-            if (locationNumber.equals(row.get("locationNumber"))) {
-                this.city = row.get("city");
-                this.state = row.get("state");
-                this.rbu = row.get("rbu");
-                this.zip = row.get("zip");
-                this.saName = row.get("saName");
+            if (locationNumber.equals(row.get(TntDatabaseApi.DB_LOCATION_LOCATION_NUMBER_COLUMN))) {
+                this.city = row.get(TntDatabaseApi.DB_LOCATION_CITY_COLUMN);
+                this.state = row.get(TntDatabaseApi.DB_LOCATION_STATE_COLUMN);
+                this.rbu = row.get(TntDatabaseApi.DB_LOCATION_RBU_COLUMN);
+                this.zip = row.get(TntDatabaseApi.DB_LOCATION_ZIP_COLUMN);
+                this.saName = row.get(TntDatabaseApi.DB_LOCATION_SA_NAME_COLUMN);
             }
         }
     }
@@ -46,40 +48,51 @@ public class TntLocationDetails {
         Payment[] allPayments = squareClientV1.payments().list(params);
         List<Payment> payments = new ArrayList<Payment>();
 
+        // - only add payments with valid tenders
         for (Payment payment : allPayments) {
-            boolean hasValidPaymentTender = false;
-            for (com.squareup.connect.Tender tender : payment.getTender()) {
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidPaymentTender = true;
-                }
-            }
-            if (hasValidPaymentTender) {
+            if (hasValidPaymentTender(payment)) {
                 payments.add(payment);
             }
         }
+
         return payments.toArray(new Payment[0]);
+    }
+
+    private static boolean hasValidPaymentTender(Payment payment) {
+        for (com.squareup.connect.Tender tender : payment.getTender()) {
+            if (!tender.getType().equals(tender.TENDER_TYPE_CASH)
+                    && !tender.getType().equals(tender.TENDER_TYPE_NO_SALE)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static Transaction[] getTransactions(SquareClientV2 squareClientV2, Map<String, String> params)
             throws Exception {
         // V2 Transactions - ignore no-sales
-        params.put("sort_order", "ASC"); // v2 default is DESC
+        params.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2); // v2 default is DESC
         Transaction[] allTransactions = squareClientV2.transactions().list(params);
         List<Transaction> transactions = new ArrayList<Transaction>();
 
         for (Transaction transaction : allTransactions) {
-            boolean hasValidTransactionTender = false;
-            for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                if (!tender.getType().equals("NO_SALE")) {
-                    hasValidTransactionTender = true;
-                }
-            }
-            if (hasValidTransactionTender) {
+            if (hasValidTransactionTender(transaction)) {
                 transactions.add(transaction);
             }
         }
 
         return transactions.toArray(new Transaction[0]);
+    }
+
+    private static boolean hasValidTransactionTender(Transaction transaction) {
+        for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
+            if (!tender.getType().equals(tender.TENDER_TYPE_NO_SALE)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static Settlement[] getSettlements(SquareClient squareClientV1, Map<String, String> params)

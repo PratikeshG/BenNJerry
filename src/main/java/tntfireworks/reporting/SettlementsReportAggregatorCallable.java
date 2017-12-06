@@ -24,7 +24,7 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         String fileDate = "";
 
         // retrieve file header and file date from first payload (one location)
-        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+        if (payloadExists(payloadAggregate)) {
             reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
             fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
         }
@@ -45,7 +45,10 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        // report 8 is only stored on the SFTP
-        return storeReport(reportName, generatedReport);
+        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
+    }
+
+    private boolean payloadExists(List<List<SettlementsPayload>> payloadAggregate) {
+        return !(payloadAggregate.isEmpty() || payloadAggregate.get(0).isEmpty());
     }
 }

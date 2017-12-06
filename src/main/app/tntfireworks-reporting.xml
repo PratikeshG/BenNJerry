@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
-	<vm:connector name="TNTFIREWORKS_Reporting_VM" validateConnections="true" doc:name="VM"/>
+	<vm:connector name="TNTFIREWORKS_REPORTING_VM" validateConnections="true" doc:name="VM"/>
     <quartz:connector name="Quartz-TNT-reporting" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT-reporting"/>
     </quartz:connector>
@@ -31,7 +31,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report8.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -48,7 +48,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report1.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -65,7 +65,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report3.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -82,7 +82,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report2.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -99,7 +99,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report5.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -116,7 +116,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
-            <when expression="#['${tntfireworks.reporting.active}' == false]">
+            <when expression="#['${tntfireworks.report7.active}' == false]">
                 <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -179,28 +179,20 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
         </component>
         <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-splitter"/>
-            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply"/>
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker">
+                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply">
+                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+            </vm:inbound-endpoint>
         </request-reply>
         <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-splitter">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-splitter" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-splitter"/>
-        <collection-splitter doc:name="Collection Splitter"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
-    </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
         <logger message="#[&quot;Retrieving account details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Retrieve merchant payload">
-        	<singleton-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
+        	<prototype-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
         </component>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator"/>
-    </flow>
-    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-aggregator" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-aggregator"/>
-        <logger message="Aggregating report payloads across accounts..." level="INFO" doc:name="Logger"/>
-        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_Reporting_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply"/>
     </flow>
 </mule>
