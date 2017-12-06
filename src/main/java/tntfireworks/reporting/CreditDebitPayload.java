@@ -66,14 +66,14 @@ public class CreditDebitPayload extends TntReportLocationPayload {
             if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
                 // debits = total collected money without SQ fees but including
                 // tax
-                if (tenderTotalMoneyIsValid(tender)) {
+                if (isTenderTotalMoneyValid(tender)) {
                     debitCount++;
                     debitAmt += tender.getTotalMoney().getAmount();
                 }
 
                 // credits = refunds without discounts (credits are negative
                 // values)
-                if (tenderRefundedMoneyIsValid(tender)) {
+                if (isTenderRefundedMoneyValid(tender)) {
                     creditCount++;
                     creditAmt += tender.getRefundedMoney().getAmount();
                 }
@@ -84,11 +84,11 @@ public class CreditDebitPayload extends TntReportLocationPayload {
         netDepositAmt = debitAmt + creditAmt;
     }
 
-    public boolean tenderTotalMoneyIsValid(Tender tender) {
+    public boolean isTenderTotalMoneyValid(Tender tender) {
         return tender.getTotalMoney() != null && tender.getTotalMoney().getAmount() > 0;
     }
 
-    public boolean tenderRefundedMoneyIsValid(Tender tender) {
+    public boolean isTenderRefundedMoneyValid(Tender tender) {
         return tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0;
     }
 

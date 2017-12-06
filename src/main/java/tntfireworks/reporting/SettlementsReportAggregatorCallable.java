@@ -20,6 +20,7 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         logger.info("Aggregate settlements report payloads...");
         // build report from payloads
         List<List<SettlementsPayload>> payloadAggregate = (List<List<SettlementsPayload>>) message.getPayload();
+
         StringBuilder reportBuilder = new StringBuilder();
         String fileDate = "";
 

@@ -34,7 +34,7 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         int loadNumber = 0;
 
         // retrieve file header and file date from first payload (one location)
-        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+        if (payloadExists(payloadAggregate)) {
             reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
             fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
             loadNumber = payloadAggregate.get(0).get(0).loadNumber;
@@ -71,5 +71,9 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         updateStmt += " ON DUPLICATE KEY UPDATE count=VALUES(count);";
 
         return updateStmt;
+    }
+
+    private boolean payloadExists(List<List<CreditDebitPayload>> payloadAggregate) {
+        return !(payloadAggregate.isEmpty() || payloadAggregate.get(0).isEmpty());
     }
 }

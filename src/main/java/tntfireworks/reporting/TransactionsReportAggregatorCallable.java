@@ -22,7 +22,7 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         String fileDate = "";
 
         // retrieve file header and file date from first payload (one location)
-        if (!payloadAggregate.isEmpty() && !payloadAggregate.get(0).isEmpty()) {
+        if (payloadExists(payloadAggregate)) {
             reportBuilder.append(payloadAggregate.get(0).get(0).getPayloadHeader());
             fileDate = payloadAggregate.get(0).get(0).getPayloadDate();
         }
@@ -44,5 +44,9 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         archiveReportToGcp(reportName, generatedReport);
 
         return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
+    }
+
+    private boolean payloadExists(List<List<TransactionsPayload>> payloadAggregate) {
+        return !(payloadAggregate.isEmpty() || payloadAggregate.get(0).isEmpty());
     }
 }
