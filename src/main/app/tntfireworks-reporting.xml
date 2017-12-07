@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
+	<vm:connector name="TNTFIREWORKS_REPORTING_VM" validateConnections="true" doc:name="VM"/>
+    <quartz:connector name="Quartz-TNT-reporting" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT-reporting"/>
+    </quartz:connector>
+    <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+    <flow name="TNTFireworks-trigger-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/report/${urlKey}" doc:name="HTTP"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.reportType]" doc:name="reportType"/>
+        <set-session-variable variableName="ytd" value="#[message.inboundProperties.'http.query.params'.ytd]" doc:name="YTD"/>
+        <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+        <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks-credit-debit-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report8.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
+                <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-settlements-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 0 12 1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report1.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="31" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
+                <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1498546804" cronExpression="0 15 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:15 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report3.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
+                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-transactions-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1498546933" cronExpression="0 20 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:20 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report2.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
+                <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-location-sales-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1498547009" cronExpression="0 25 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:25 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report5.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="5" doc:name="reportType (5)"/>
+                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-item-sales-batch-report-cron">
+        <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report7.active}' == false]">
+                <logger message="TNTFireworks Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
+                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-generate-report">
+        <logger message="Begin generating '#[sessionVars.reportType]'" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-payloads" doc:name="TNTFireworks-aggregate-deployment-payloads"/>
+        <choice doc:name="Choice">
+            <when expression="#[sessionVars.reportType == 1]">
+		        <component doc:name="Generate Settlements Sales Batch Report">
+		            <prototype-object class="tntfireworks.reporting.SettlementsReportAggregatorCallable"/>
+		        </component>
+		        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 1 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report1.recipients}"/>
+		    </when>
+            <when expression="#[sessionVars.reportType == 2]">
+                <component doc:name="Generate Transactions Batch Report">
+                    <prototype-object class="tntfireworks.reporting.TransactionsReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 2 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report2.recipients}"/>
+            </when>
+            <when expression="#[sessionVars.reportType == 3]">
+                <component doc:name="Generate Abnormal Transactions Batch Report">
+                    <prototype-object class="tntfireworks.reporting.AbnormalTransactionsReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 3 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report3.recipients}"/>
+            </when>
+            <when expression="#[sessionVars.reportType == 5]">
+                <component doc:name="Generate Location Sales Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.LocationSalesReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 5 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report5.recipients}"/>
+            </when>
+            <when expression="#[sessionVars.reportType == 7]">
+                <component doc:name="Generate Item Sales Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.ItemSalesReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 7 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report7.recipients}"/>
+            </when>
+            <when expression="#[sessionVars.reportType == 8]">
+                <component doc:name="Generate Credit Debit Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.CreditDebitReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 8 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report8.recipients}"/>
+            </when>
+            <otherwise>
+                <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks-aggregate-deployment-payloads">
+        <component doc:name="Get Deployments">
+            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
+        </component>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker">
+                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply">
+                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+            </vm:inbound-endpoint>
+        </request-reply>
+        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
+        <logger message="#[&quot;Retrieving account details for deployment: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Retrieve merchant payload">
+        	<prototype-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
+        </component>
+    </flow>
+</mule>
