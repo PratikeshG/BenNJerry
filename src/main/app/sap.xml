@@ -48,9 +48,4 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 		<remove-property doc:name="Remove Connection Header" propertyName="Connection"/>
 		<remove-property doc:name="Remove Transfer-encoding Header" propertyName="transfer-encoding"/>
 	</sub-flow>
-    <flow name="sapFlow">
-		<http:listener config-ref="${sap.http.config}" path="/sap/test" doc:name="HTTPS"/>
-        <logger message="#[message.inboundProperties]" level="INFO" doc:name="Logger"/>
-        <set-payload value="{&quot;status&quot;:&quot;ok&quot;}" doc:name="Set Payload" mimeType="application/json"/>
-    </flow>
 </mule>
