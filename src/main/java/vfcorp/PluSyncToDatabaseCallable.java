@@ -8,6 +8,8 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -18,6 +20,10 @@ import com.jcraft.jsch.SftpException;
 import util.CloudStorageApi;
 
 public class PluSyncToDatabaseCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(PluSyncToDatabaseCallable.class);
+
+    private static final String PROCESSING_DIRECTORY = "processing";
+
     @Value("${vfcorp.sftp.host}")
     private String sftpHost;
     @Value("${vfcorp.sftp.port}")
@@ -51,7 +57,7 @@ public class PluSyncToDatabaseCallable implements Callable {
         System.out.println("SFTP archive channel created.");
 
         System.out.println("Saving archive stream...");
-        sftpChannel.cd(request.getDeployment().getPluPath() + "/processing");
+        sftpChannel.cd(request.getDeployment().getPluPath() + "/" + PROCESSING_DIRECTORY);
         InputStream is = sftpChannel.get(request.getProcessingFileName());
 
         // Archive to Google Cloud Storage
@@ -60,17 +66,24 @@ public class PluSyncToDatabaseCallable implements Callable {
         String fileKey = String.format("%s/%s.secure", archiveFolder, request.getProcessingFileName());
 
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
-        System.out.println("File archived.");
 
-        // Success, close SFTP resources
-        if (sftpChannel != null && sftpChannel.isConnected()) {
-            sftpChannel.disconnect();
-            System.out.println("SFTP channel disconnected.");
+        try {
+            cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
+        } catch (RuntimeException e) {
+            logger.error("VFC SFTP connection error trying to upload to CloudStorage: " + e.getMessage());
 
-            if (session != null && session.isConnected()) {
-                session.disconnect();
-                System.out.println("SFTP session disconnected.");
+            // reset file on SFTP
+            queueFileForReProcessing(request.getProcessingFileName(), request.getDeployment());
+        } finally {
+            // Success, close SFTP resources
+            if (sftpChannel != null && sftpChannel.isConnected()) {
+                sftpChannel.disconnect();
+                System.out.println("SFTP channel disconnected.");
+
+                if (session != null && session.isConnected()) {
+                    session.disconnect();
+                    System.out.println("SFTP session disconnected.");
+                }
             }
         }
 
@@ -97,6 +110,23 @@ public class PluSyncToDatabaseCallable implements Callable {
         archiveProcessingFile(request.getProcessingFileName(), request.getDeployment().getPluPath());
 
         return null;
+    }
+
+    private void queueFileForReProcessing(String processingFile, VfcDeployment deployment)
+            throws SftpException, JSchException, IOException {
+        logger.info(String.format("Re-queuing %s for deployment %s...", processingFile, deployment.getDeployment()));
+
+        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+
+        String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), PROCESSING_DIRECTORY,
+                processingFile);
+        String requeuePath = String.format("%s/%s", deployment.getPluPath(), processingFile.split("_", 2)[1]);
+        sftpChannel.rename(processingPath, requeuePath);
+
+        sftpChannel.disconnect();
+        session.disconnect();
     }
 
     private void archiveProcessingFile(String fileName, String filePath)
