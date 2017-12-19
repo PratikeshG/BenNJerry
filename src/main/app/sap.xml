@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:request-config name="PROXY_Config_http" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="PROXY_Config_https" protocol="HTTPS" doc:name="HTTP Request Configuration"/>
+    
+    <flow name="sapb1-api-proxy">
+		<http:listener config-ref="${sap.http.config}" path="/sap/proxy" doc:name="HTTPS"/>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['X-Proxy-Authorization'] != '${sap.proxy.token}']">
+                <set-payload value="{&quot;type&quot;: &quot;service.not_authorized&quot;, &quot;message&quot;: &quot;Not Authorized&quot;}" doc:name="Not Authorized" mimeType="application/json"/>
+                <set-property propertyName="http.status" value="401" doc:name="401"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="inboundProxyUrl" value="#[new URL(message.inboundProperties['X-Proxy-Url']);]" doc:name="X-Proxy-Url"/>
+		        <set-variable variableName="protocol" value="#[inboundProxyUrl.getProtocol();]" doc:name="protocol: http or https"/>
+		        <set-variable variableName="host" value="#[inboundProxyUrl.getHost();]" doc:name="host"/>
+		        <set-variable variableName="port" value="#[inboundProxyUrl.getPort() != -1 ? inboundProxyUrl.getPort() : (flowVars.protocol == 'http' ? '80' : '443')]" doc:name="port: provided or default to http (80) or https (443)"/>
+		        <set-variable variableName="path" value="#[inboundProxyUrl.getPath();]" doc:name="path"/>		        
+		        <flow-ref name="sapb1-api-proxy-request-headers" doc:name="Copy headers"/>
+                <http:request config-ref="PROXY_Config_https" path="#[flowVars.path]" method="#[message.inboundProperties['http.method']]" host="#[flowVars.host]" port="#[flowVars.port]" doc:name="Proxy Request">
+                    <http:request-builder>
+                        <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                    </http:request-builder>
+                </http:request>
+                <copy-properties propertyName="*" doc:name="Copy headers"/>
+            </otherwise>
+        </choice>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <set-payload value="#[message.payload]" doc:name="Message payload" mimeType="application/json"/>
+            <set-property propertyName="http.status" value="#[message.inboundProperties['http.status']]" doc:name="Message HTTP status"/>
+        </catch-exception-strategy>
+	</flow>
+
+	<sub-flow name="sapb1-api-proxy-request-headers">
+		<copy-properties doc:name="Copy HTTP headers" propertyName="*"/>
+        <remove-property propertyName="x-proxy-*" doc:name="Remove proxy headers"/>
+		<remove-property doc:name="Remove host property" propertyName="Host"/>
+		<remove-property doc:name="Remove Content Length Header" propertyName="Content-Length"/>
+		<remove-property doc:name="Remove HTTP synthetic properties" propertyName="http.*"/>
+		<remove-property doc:name="Remove MULE properties" propertyName="MULE_*"/>
+		<remove-property doc:name="Remove Connection Header" propertyName="Connection"/>
+		<remove-property doc:name="Remove Transfer-encoding Header" propertyName="transfer-encoding"/>
+	</sub-flow>
+    <flow name="sapFlow">
+		<http:listener config-ref="${sap.http.config}" path="/sap/test" doc:name="HTTPS"/>
+        <logger message="#[message.inboundProperties]" level="INFO" doc:name="Logger"/>
+        <set-payload value="{&quot;status&quot;:&quot;ok&quot;}" doc:name="Set Payload" mimeType="application/json"/>
+    </flow>
+</mule>
