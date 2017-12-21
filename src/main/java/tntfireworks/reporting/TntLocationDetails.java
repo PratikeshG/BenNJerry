@@ -60,8 +60,7 @@ public class TntLocationDetails {
 
     private static boolean hasValidPaymentTender(Payment payment) {
         for (com.squareup.connect.Tender tender : payment.getTender()) {
-            if (!tender.getType().equals(tender.TENDER_TYPE_CASH)
-                    && !tender.getType().equals(tender.TENDER_TYPE_NO_SALE)) {
+            if (!tender.getType().equals(tender.TENDER_TYPE_NO_SALE)) {
                 return true;
             }
         }
