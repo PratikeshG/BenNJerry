@@ -70,9 +70,9 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </when>
             <otherwise>
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
-                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
-                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -112,7 +112,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         </choice>
     </flow>
     <flow name="TNTFireworks-item-sales-batch-report-cron">
-        <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+        <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 15 15 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
@@ -124,7 +124,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
-                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
     </flow>

@@ -88,6 +88,6 @@ public class TntReportAggregator {
         SshUtil.closeConnection(sftpChannel);
         logger.info("Sent report to SFTP");
 
-        return String.format("%s sent to SFTP due to file size.", reportName);
+        return String.format("%s sent to SFTP.", reportName);
     }
 }
