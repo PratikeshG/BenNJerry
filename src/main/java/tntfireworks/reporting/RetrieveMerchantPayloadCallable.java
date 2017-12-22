@@ -200,10 +200,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                                     locationDetails, aggregateIntervalParams));
                             break;
                         case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
-                            AbnormalTransactionsPayload locationPayload = null;
-                            locationPayload = generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
-                                    aggregateIntervalParams);
-                            merchantPayload.add(locationPayload);
+                            merchantPayload.add(generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
+                                    aggregateIntervalParams));
                             break;
                         case CHARGEBACK_REPORT_TYPE:
                             // report 4 is currently generated from a different source
