@@ -72,7 +72,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 </request-reply>
                 <set-payload value="1" doc:name="Clear payload"/>
                 <logger message="SFTP files synced to database" level="INFO" doc:name="Logger"/>
-                <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFieworks:sync-database-to-square"/>
+                <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
             </otherwise>
         </choice>
     </flow>
