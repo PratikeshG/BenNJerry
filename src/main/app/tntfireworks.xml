@@ -39,7 +39,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Source / Destination Location Tokens for Bank Account Linking']" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
         <set-payload value="Finished generating source/destination location ids for bank account linking (in SqWeb)" doc:name="Set Payload"/>
     </flow>
-    <flow name="TNTFireworks:sftp-cron">
+    <flow name="TNTFireworks:sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tntfireworks-csv-sftp-cron-1480949912" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-TNT">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -65,7 +65,8 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                             </vm:inbound-endpoint>
                         </request-reply>
                         <set-payload value="1" doc:name="Clear payload"/>
-                        <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="Kick off sync to square"/>
+                        <logger message="SFTP files synced to database" level="INFO" doc:name="Logger"/>
+                        <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
 		            </otherwise>
 		        </choice>
             </otherwise>
@@ -80,7 +81,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <logger message="Finished CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" processingStrategy="TNTFireworks_DatabaseToSquare_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sync-db-to-square" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sync-db-to-square"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
             <prototype-object class="tntfireworks.DeploymentsCallable"/>
