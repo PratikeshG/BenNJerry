@@ -36,7 +36,7 @@ public class TntDatabaseApi {
     public static final String DB_MKT_PLAN_SELLING_PRICE_COLUMN = "sellingPrice";
     public static final String DB_MKT_PLAN_UPC_COLUMN = "upc";
     public static final String DB_MKT_PLAN_ITEM_NUMBER_COLUMN = "itemNumber";
-    public static final String DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN = "upc";
+    public static final String DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN = "itemDescription";
 
     // Locations DB constants
     public static final String DB_LOCATION_LOCATION_NUMBER_COLUMN = "locationNumber";
