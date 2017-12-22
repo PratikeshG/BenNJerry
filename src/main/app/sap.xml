@@ -33,6 +33,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
                     <http:request-builder>
                         <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
                     </http:request-builder>
+                    <http:success-status-code-validator values="200..599"/>
                 </http:request>
                 <copy-properties propertyName="*" doc:name="Copy headers"/>
             </otherwise>
