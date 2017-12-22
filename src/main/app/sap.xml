@@ -27,12 +27,10 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
 		        <set-variable variableName="protocol" value="#[inboundProxyUrl.getProtocol();]" doc:name="protocol: http or https"/>
 		        <set-variable variableName="host" value="#[inboundProxyUrl.getHost();]" doc:name="host"/>
 		        <set-variable variableName="port" value="#[inboundProxyUrl.getPort() != -1 ? inboundProxyUrl.getPort() : (flowVars.protocol == 'http' ? '80' : '443')]" doc:name="port: provided or default to http (80) or https (443)"/>
-		        <set-variable variableName="path" value="#[inboundProxyUrl.getPath();]" doc:name="path"/>		        
+		        <set-variable variableName="path" value="#[inboundProxyUrl.getPath();]" doc:name="path"/>
+                <set-variable variableName="params" value="#[flowVars.inboundProxyUrl.getQuery() != null ? &quot;?&quot; + flowVars.inboundProxyUrl.getQuery() : &quot;&quot;]" doc:name="parameters"/>
 		        <flow-ref name="sapb1-api-proxy-request-headers" doc:name="Copy headers"/>
-                <http:request config-ref="PROXY_Config_https" path="#[flowVars.path]" method="#[message.inboundProperties['http.method']]" host="#[flowVars.host]" port="#[flowVars.port]" doc:name="Proxy Request">
-                    <http:request-builder>
-                        <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
-                    </http:request-builder>
+                <http:request config-ref="PROXY_Config_https" path="#[flowVars.path + flowVars.params]" method="#[message.inboundProperties['http.method']]" host="#[flowVars.host]" port="#[flowVars.port]" doc:name="Proxy Request">
                     <http:success-status-code-validator values="200..599"/>
                 </http:request>
                 <copy-properties propertyName="*" doc:name="Copy headers"/>
