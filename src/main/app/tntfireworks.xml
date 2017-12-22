@@ -14,7 +14,6 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
 http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
     <vm:connector name="TNTFIREWORKS_CATALOG_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
-    <queued-asynchronous-processing-strategy name="TNTFireworks_DatabaseToSquare_Async_Strategy" maxThreads="${tntfireworks.databaseToSquare.maxThreads}" minThreads="${tntfireworks.databaseToSquare.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_DatabaseToSquareWorker_Async_Strategy" maxThreads="${tntfireworks.databaseToSquareWorker.maxThreads}" minThreads="${tntfireworks.databaseToSquareWorker.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="1800000" doc:name="Queued Asynchronous Processing Strategy"/>
     <quartz:connector name="Quartz-TNT" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT"/>
