@@ -21,7 +21,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     </quartz:connector>
     <flow name="TNTFireworks:trigger-sftp-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/csv/sync/${urlKey}" doc:name="HTTP"/>
-        <flow-ref name="TNTFireworks:sftp-cron" doc:name="TNTFireworks:sftp-cron"/>
+        <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
         <set-payload value="Triggered ingestion of CSV files on SFTP server" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
@@ -48,27 +48,31 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <logger message="TNTFireworks catalog sync disabled" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
-                <component doc:name="Check SFTP folders for CSV files">
-	                <prototype-object class="tntfireworks.PollSFTPCallable"/>
-		        </component>
-		        <choice doc:name="Only process non-empty lists">
-		            <when expression="#[payload == null || payload.size() &lt; 1]">
-		                <logger message="TNT SFTP Poll: No files to process" level="INFO" doc:name="Logger"/>
-		            </when>
-		            <otherwise>
-		                <request-reply doc:name="Request-Reply">
-                            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-worker">
-                                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
-                            </vm:outbound-endpoint>
-                            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply">
-                                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-                            </vm:inbound-endpoint>
-                        </request-reply>
-                        <set-payload value="1" doc:name="Clear payload"/>
-                        <logger message="SFTP files synced to database" level="INFO" doc:name="Logger"/>
-                        <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
-		            </otherwise>
-		        </choice>
+                <logger message="Checking SFTP server for valid marketing programs and location files" level="INFO" doc:name="Logger"/>
+                <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="TNTFireworks:sync-sftp-to-database">
+        <component doc:name="Check SFTP folders for CSV files">
+            <prototype-object class="tntfireworks.PollSFTPCallable"/>
+        </component>
+        <choice doc:name="Only process non-empty lists">
+            <when expression="#[payload == null || payload.size() &lt; 1]">
+                <logger message="TNT SFTP Poll: No files to process" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <request-reply doc:name="Request-Reply">
+                    <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-worker">
+                        <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+                    </vm:outbound-endpoint>
+                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply">
+                        <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+                    </vm:inbound-endpoint>
+                </request-reply>
+                <set-payload value="1" doc:name="Clear payload"/>
+                <logger message="SFTP files synced to database" level="INFO" doc:name="Logger"/>
+                <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFieworks:sync-database-to-square"/>
             </otherwise>
         </choice>
     </flow>
@@ -80,7 +84,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </component>
         <logger message="Finished CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="TNTFireworks:sync-database-to-square" processingStrategy="TNTFireworks_DatabaseToSquare_Async_Strategy">
+    <flow name="TNTFireworks:sync-database-to-square" >
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
             <prototype-object class="tntfireworks.DeploymentsCallable"/>
