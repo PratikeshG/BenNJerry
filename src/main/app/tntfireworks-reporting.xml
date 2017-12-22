@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
         <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
     </flow>
-    <flow name="TNTFireworks-credit-debit-batch-report-cron">
+    <flow name="TNTFireworks-credit-debit-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -43,7 +43,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-settlements-batch-report-cron">
+    <flow name="TNTFireworks-settlements-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 0 12 1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -60,7 +60,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron">
+    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1498546804" cronExpression="0 15 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:15 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -70,14 +70,14 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </when>
             <otherwise>
                 <set-session-variable variableName="offset" value="1" doc:name="offset"/>
-                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
-                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-transactions-batch-report-cron">
+    <flow name="TNTFireworks-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1498546933" cronExpression="0 20 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:20 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -94,7 +94,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-location-sales-batch-report-cron">
+    <flow name="TNTFireworks-location-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1498547009" cronExpression="0 25 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:25 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -111,7 +111,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-item-sales-batch-report-cron">
+    <flow name="TNTFireworks-item-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -124,7 +124,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
-                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-item-sales-batch-report-7"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
     </flow>

@@ -3,9 +3,7 @@ package tntfireworks.reporting;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +11,6 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TenderCardDetails;
 import com.squareup.connect.v2.Transaction;
-
-import util.TimeManager;
 
 /*
  * Report 3 - "Abnormal Transactions Report" - Emailed daily
@@ -63,7 +59,6 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
 
     // alerts list is final list of alerts to use to generate report
     private List<AbnormalTransactionsEntry> alerts;
-    private Map<String, String> dayTimeInterval;
 
     // - alert 3 and 5 need to track transactions at the class level
     // - used as a running window of transactions across a single location
@@ -71,16 +66,14 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     private List<Transaction> alert5Transactions;
 
     // entire list of transactions for a single location
-    private static List<Transaction> locationTransactions;
-    private static String locationId;
+    private List<Transaction> locationTransactions;
+    private String locationId;
 
     // previous amount needs to be stored for alert 5
     int prevAmt;
 
-    public AbnormalTransactionsPayload(String timeZone, Map<String, String> dayTimeInterval,
-            TntLocationDetails locationDetails) {
+    public AbnormalTransactionsPayload(String timeZone, TntLocationDetails locationDetails) {
         super(timeZone, locationDetails, ABNORMAL_TRANSACTIONS_FILE_HEADER);
-        this.dayTimeInterval = dayTimeInterval;
         this.prevAmt = 0;
         alerts = new ArrayList<AbnormalTransactionsEntry>();
         alert3Transactions = new ArrayList<Transaction>();
@@ -112,7 +105,6 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
         /*
          * alert types
          *
-         * Alert Level | Description
          * -----------------------------------------------------------
          * 1 | Card Present Transaction exceeds $1,000
          * 2 | Card Not Present Transaction exceeds $500
@@ -123,25 +115,15 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
          *
          */
         try {
-            // use calendar objects to daily interval
-            Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
-            Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.END_TIME));
-            Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
-
-            // determine if this transaction should be included in "daily"
-            // totals
-            if (beginTime.compareTo(transactionTime) <= 0 && endTime.compareTo(transactionTime) > 0) {
-                checkAlert1(transaction);
-                checkAlert26(transaction);
-                checkAlert3(transaction);
-                checkAlert5(transaction);
-            }
+            // check transaction against different alert types
+            checkAlert1(transaction);
+            checkAlert26(transaction);
+            checkAlert3(transaction);
+            checkAlert5(transaction);
 
             // - for abnormal transactions report, alert 4 requires
-            // post-processing
-            // of alert 4 at the merchant level
-            // - store transaction here for alert 4 processing at
-            // AbnormalTransactionsReportAggregatorCallable
+            // post-processing of alert 4 at the merchant level
+            // - store transaction here for alert 4 processing at AbnormalTransactionsReportAggregatorCallable
             locationTransactions.add(transaction);
             locationId = transaction.getLocationId();
         } catch (ParseException e) {
@@ -152,8 +134,13 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
 
     private void checkAlert1(Transaction transaction) throws Exception {
         /*
-         * alert level 1 criteria 1. Card Present transaction 2. Entry Method: SWIPED, EMV, CONTACTLESS 3. Product:
-         * REGISTER 4. Tender Type: not CASH or NO_SALE 5. threshold > $1000.00
+         * alert level 1 criteria
+         * 1. Card Present transaction
+         * 2. Entry Method: SWIPED, EMV, CONTACTLESS
+         * 3. Product: REGISTER
+         * 4. Tender Type: not CASH or NO_SALE
+         * 5. threshold > $1000.00
+         *
          */
         int alertLevel = 1;
         for (Tender tender : transaction.getTenders()) {
@@ -174,10 +161,16 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     // alert 2 > $500, alert 6 > $150
     private void checkAlert26(Transaction transaction) throws Exception {
         /*
-         * alert level 2 criteria 1. Card NOT Present transaction 2. Entry Method: KEYED, ON_FILE 3. Product: REGISTER
-         * 4. Tender Type: not CASH or NO_SALE 5. threshold > $500.00
+         * alert level 2 criteria
+         * 1. Card NOT Present transaction
+         * 2. Entry Method: KEYED, ON_FILE
+         * 3. Product: REGISTER
+         * 4. Tender Type: not CASHor NO_SALE
+         * 5. threshold > $500.00
          *
-         * alert level 6 criteria 1. All of above except threshold > $150.00
+         * alert level 6 criteria
+         * 1. All of above except threshold > $150.00
+         *
          */
         int alertLevel = 6;
         for (Tender tender : transaction.getTenders()) {
@@ -229,8 +222,7 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     }
 
     // alert 5 checks for same dollar amount run on card-tender consecutively at
-    // same location 3 or more times
-    // in one day
+    // same location 3 or more times in one day
     private void checkAlert5(Transaction transaction) throws Exception {
         int alertLevel = 5;
         // for alert 5, keep consecutive list of transactions with same dollar

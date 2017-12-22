@@ -98,7 +98,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
     public static int computeSeasonInterval(String startOfSeason, int offset, TimeZone tz) {
         int range = 0;
-        int todayOffset = -1 * offset;
 
         // parse season month, day, year and offset day/month by 1
         // startOfSeason format yyyy-mm-dd
@@ -129,7 +128,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
         // add negative offset to calendar so that 'range' accounts for the
         // defined offset
-        today.add(Calendar.DAY_OF_MONTH, todayOffset);
+        today.add(Calendar.DATE, -offset);
         today.set(Calendar.HOUR_OF_DAY, 0);
         today.set(Calendar.MINUTE, 0);
         today.set(Calendar.SECOND, 0);
@@ -180,8 +179,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location.getName());
 
                     // define time intervals to pull payment data
-                    // - dayTimeInterval is currently only used for report 5/6
-                    // and report 7
+                    // - dayTimeInterval is currently only used for 5/6 and report 7
                     // - aggregateInterval is used by remaining flows
                     Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
                             location.getTimezone());
@@ -281,7 +279,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone,
-                aggregateIntervalParams, locationDetails);
+                locationDetails);
         for (Transaction transaction : TntLocationDetails.getTransactions(squareClientV2, aggregateIntervalParams)) {
             abnormalTransactionsPayload.addEntry(transaction);
         }
