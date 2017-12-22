@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
         <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
     </flow>
-    <flow name="TNTFireworks-credit-debit-batch-report-cron">
+    <flow name="TNTFireworks-credit-debit-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -43,7 +43,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-settlements-batch-report-cron">
+    <flow name="TNTFireworks-settlements-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 0 12 1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -60,7 +60,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron">
+    <flow name="TNTFireworks-abnormal-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1498546804" cronExpression="0 15 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:15 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -77,7 +77,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-transactions-batch-report-cron">
+    <flow name="TNTFireworks-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1498546933" cronExpression="0 20 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:20 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -94,7 +94,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-location-sales-batch-report-cron">
+    <flow name="TNTFireworks-location-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1498547009" cronExpression="0 25 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:25 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -111,7 +111,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
-    <flow name="TNTFireworks-item-sales-batch-report-cron">
+    <flow name="TNTFireworks-item-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1498547108" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -131,18 +131,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     <flow name="TNTFireworks-generate-report">
         <logger message="Begin generating '#[sessionVars.reportType]'" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
-        <component doc:name="Get Deployments">
-            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
-        </component>
-        <request-reply doc:name="Request-Reply">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker">
-                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
-            </vm:outbound-endpoint>
-            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply">
-                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
-            </vm:inbound-endpoint>
-        </request-reply>
-        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
+        <flow-ref name="TNTFireworks-aggregate-deployment-payloads" doc:name="TNTFireworks-aggregate-deployment-payloads"/>
         <choice doc:name="Choice">
             <when expression="#[sessionVars.reportType == 1]">
 		        <component doc:name="Generate Settlements Sales Batch Report">
@@ -184,6 +173,20 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
+    </flow>
+    <flow name="TNTFireworks-aggregate-deployment-payloads">
+        <component doc:name="Get Deployments">
+            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
+        </component>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker">
+                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-reply" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-reply">
+                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+            </vm:inbound-endpoint>
+        </request-reply>
+        <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
