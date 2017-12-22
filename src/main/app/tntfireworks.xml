@@ -22,7 +22,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     <flow name="TNTFireworks:trigger-sftp-cron">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/csv/sync/${urlKey}" doc:name="HTTP"/>
         <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
-        <set-payload value="Triggered ingestion of CSV files on SFTP server" doc:name="Set Payload"/>
+        <set-payload value="Sync of CSV files on SFTP server to database complete" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTP"/>
