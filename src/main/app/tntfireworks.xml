@@ -12,16 +12,22 @@ http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/cu
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
-    <vm:connector name="TNTFIREWORKS_CATALOG_VM" validateConnections="true" doc:name="VM"/>
+    <vm:connector name="TNTFIREWORKS_SFTP_TO_DB_VM" validateConnections="true" doc:name="VM"/>
+    <vm:connector name="TNTFIREWORKS_DB_TO_SQ_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_SyncToDatabase_Async_Strategy" maxThreads="${tntfireworks.syncToDatabase.maxThreads}" minThreads="${tntfireworks.syncToDatabase.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="3600000" doc:name="Queued Asynchronous Processing Strategy"/>
     <queued-asynchronous-processing-strategy name="TNTFireworks_DatabaseToSquareWorker_Async_Strategy" maxThreads="${tntfireworks.databaseToSquareWorker.maxThreads}" minThreads="${tntfireworks.databaseToSquareWorker.minThreads}" poolExhaustedAction="WAIT" threadWaitTimeout="1800000" doc:name="Queued Asynchronous Processing Strategy"/>
     <quartz:connector name="Quartz-TNT" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT"/>
     </quartz:connector>
-    <flow name="TNTFireworks:trigger-sftp-cron">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/csv/sync/${urlKey}" doc:name="HTTP"/>
+    <flow name="TNTFireworks:trigger-sftp-to-database">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/sftptodatabase/${urlKey}" doc:name="HTTP"/>
         <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
         <set-payload value="Sync of CSV files on SFTP server to database complete" doc:name="Set Payload"/>
+    </flow>
+    <flow name="TNTFireworks:trigger-database-to-square">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/databasetosquare/${urlKey}" doc:name="HTTP"/>
+        <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
+        <set-payload value="Sync of database to Square complete" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTP"/>
@@ -62,21 +68,21 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             </when>
             <otherwise>
                 <request-reply doc:name="Request-Reply">
-                    <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-worker">
+                    <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_SFTP_TO_DB_VM" doc:name="TNTFireworks:sftp-to-db-queue-worker">
                         <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
                     </vm:outbound-endpoint>
-                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply">
+                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:sftp-to-db-queue-reply" connector-ref="TNTFIREWORKS_SFTP_TO_DB_VM" doc:name="TNTFireworks:sftp-to-db-queue-reply">
                         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
                     </vm:inbound-endpoint>
                 </request-reply>
                 <set-payload value="1" doc:name="Clear payload"/>
                 <logger message="SFTP files synced to database" level="INFO" doc:name="Logger"/>
-                <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
+                <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
             </otherwise>
         </choice>
     </flow>
     <flow name="TNTFireworks:sftp-to-db-queue-worker" processingStrategy="TNTFireworks_SyncToDatabase_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" path="TNTFireworks:sftp-to-db-queue-worker"/>
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_SFTP_TO_DB_VM" path="TNTFireworks:sftp-to-db-queue-worker"/>
         <logger message="Initiating CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
         <component doc:name="Sync CSV to Database">
             <prototype-object class="tntfireworks.SyncToDatabaseCallable"/>
@@ -84,6 +90,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <logger message="Finished CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" >
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
             <prototype-object class="tntfireworks.DeploymentsCallable"/>
@@ -94,10 +101,10 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             </when>
             <otherwise>
                 <request-reply doc:name="Request-Reply">
-                    <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker"  doc:name="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM">
+                    <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker"  doc:name="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM">
                         <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
                     </vm:outbound-endpoint>
-                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:db-sync-reply">
+                    <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-reply" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM" doc:name="TNTFireworks:db-sync-reply">
                         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
                     </vm:inbound-endpoint>
                 </request-reply>
@@ -107,7 +114,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="TNTFireworks:db-sync-queue-worker" processingStrategy="TNTFireworks_DatabaseToSquareWorker_Async_Strategy">
-        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_CATALOG_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
+        <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
         <logger message="#[&quot;Processing Catalog API updated for account: &quot; + payload.getMerchantId()]" level="INFO" doc:name="Logger"/>
         <component doc:name="Database to Square API Updates">
             <prototype-object class="tntfireworks.DatabaseToSquareCallable"/>
