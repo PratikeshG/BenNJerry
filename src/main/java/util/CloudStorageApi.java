@@ -1,7 +1,6 @@
 package util;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,6 +11,7 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 
 import org.jasypt.util.binary.BasicBinaryEncryptor;
+import org.mule.util.IOUtils;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -106,15 +106,8 @@ public class CloudStorageApi {
         return new ByteArrayInputStream(decryptBytes(encryptionKey, getObject.executeMediaAsInputStream()));
     }
 
-    private byte[] inputStreamToByteArray(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int read = 0;
-        while ((read = inputStream.read(buffer, 0, buffer.length)) != -1) {
-            baos.write(buffer, 0, read);
-        }
-        baos.flush();
-        return baos.toByteArray();
+    private byte[] inputStreamToByteArray(InputStream inputStream) {
+        return IOUtils.toByteArray(inputStream);
     }
 
     private byte[] encryptBytes(String encryptionKey, InputStream data) throws IOException {
