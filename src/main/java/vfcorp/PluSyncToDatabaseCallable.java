@@ -22,8 +22,6 @@ import util.CloudStorageApi;
 public class PluSyncToDatabaseCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PluSyncToDatabaseCallable.class);
 
-    private static final String PROCESSING_DIRECTORY = "processing";
-
     @Value("${vfcorp.sftp.host}")
     private String sftpHost;
     @Value("${vfcorp.sftp.port}")
@@ -57,7 +55,7 @@ public class PluSyncToDatabaseCallable implements Callable {
         System.out.println("SFTP archive channel created.");
 
         System.out.println("Saving archive stream...");
-        sftpChannel.cd(request.getDeployment().getPluPath() + "/" + PROCESSING_DIRECTORY);
+        sftpChannel.cd(request.getDeployment().getPluPath() + "/" + Constants.PROCESSING_DIRECTORY);
         InputStream is = sftpChannel.get(request.getProcessingFileName());
 
         // Archive to Google Cloud Storage
@@ -75,7 +73,7 @@ public class PluSyncToDatabaseCallable implements Callable {
             // reset file on SFTP
             queueFileForReProcessing(request.getProcessingFileName(), request.getDeployment());
         } finally {
-            // Success, close SFTP resources
+            // close SFTP resources
             if (sftpChannel != null && sftpChannel.isConnected()) {
                 sftpChannel.disconnect();
                 System.out.println("SFTP channel disconnected.");
@@ -120,9 +118,9 @@ public class PluSyncToDatabaseCallable implements Callable {
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
-        String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), PROCESSING_DIRECTORY,
+        String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), Constants.PROCESSING_DIRECTORY,
                 processingFile);
-        String requeuePath = String.format("%s/%s", deployment.getPluPath(), processingFile.split("_", 2)[1]);
+        String requeuePath = String.format("%s/%s", deployment.getPluPath(), processingFile.split(Constants.PROCESSING_FILE_DELIMITER, 2)[1]);
         sftpChannel.rename(processingPath, requeuePath);
 
         sftpChannel.disconnect();

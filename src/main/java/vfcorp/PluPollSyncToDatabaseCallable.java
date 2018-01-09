@@ -25,7 +25,6 @@ import util.TimeManager;
 
 public class PluPollSyncToDatabaseCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PluPollSyncToDatabaseCallable.class);
-    private static final String PROCESSING_DIRECTORY = "processing";
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -99,15 +98,17 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                             String.format("%s not ready for processing (%s)", fileName, deployment.getDeployment()));
                 } else {
                     // Check for existing processing
-                    Vector<LsEntry> processingFiles = channel.ls(String.format("%s/*_plu.chg.*", PROCESSING_DIRECTORY));
+                    Vector<LsEntry> processingFiles = channel
+                            .ls(String.format("%s/*_plu.chg.*", Constants.PROCESSING_DIRECTORY));
                     if (processingFiles.size() > 0) {
                         logger.info(String.format(
                                 "Can't begin processing %s. Already processing another file for deployment %s",
                                 fileName, deployment.getDeployment()));
                     } else {
                         // Move for processing
-                        String processingFileName = currentDatestamp() + "_" + fileName;
-                        channel.rename(fileName, String.format("%s/%s", PROCESSING_DIRECTORY, processingFileName));
+                        String processingFileName = currentDatestamp() + Constants.PROCESSING_FILE_DELIMITER + fileName;
+                        channel.rename(fileName,
+                                String.format("%s/%s", Constants.PROCESSING_DIRECTORY, processingFileName));
 
                         logger.info(String.format("Queuing %s for processing (%s) for deployment %s...", fileName,
                                 processingFileName, deployment.getDeployment()));
