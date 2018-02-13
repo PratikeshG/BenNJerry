@@ -33,8 +33,6 @@ public class TransformItemsToCsvCallable implements Callable {
 	private String DOMAIN_URL;
 	@Value("${encryption.key.tokens}")
 	private String ENCRYPTION_KEY;
-	@Value("${vfcorp.smartwool.csv.zoneId}")
-	private String TIME_ZONE_ID;
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -77,7 +75,7 @@ public class TransformItemsToCsvCallable implements Callable {
 
 				for (PaymentItemization itemization : payment.getItemizations()) {
 					csvGenerator.addRecord(csvRowFactorty.generateItemCsvRow(payment, itemization, transaction,
-							customer, locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
+							customer, locationCtx, this.DOMAIN_URL));
 				}
 			}
 		}

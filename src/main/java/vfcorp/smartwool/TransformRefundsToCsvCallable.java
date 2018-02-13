@@ -29,8 +29,6 @@ public class TransformRefundsToCsvCallable implements Callable {
 	private String DOMAIN_URL;
 	@Value("${encryption.key.tokens}")
 	private String ENCRYPTION_KEY;
-	@Value("${vfcorp.smartwool.csv.zoneId}")
-	private String TIME_ZONE_ID;
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -52,8 +50,7 @@ public class TransformRefundsToCsvCallable implements Callable {
 
 			Refund[] refunds = clientv2.refunds().list(locationCtx.generateQueryParamMap());
 			for (Refund refund : refunds) {
-				csvGenerator.addRecord(
-						csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.TIME_ZONE_ID, this.DOMAIN_URL));
+				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();

@@ -9,6 +9,8 @@ import com.squareup.connect.Refund;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 
+import util.TimeManager;
+
 /**
  *
  * @author Jordan Finci
@@ -68,8 +70,8 @@ public class RefundsReportBuilder extends AbstractReportBuilder<Refund> {
 	private List<Refund> setRefundsCreatedAtToLocalTimeZone(Refund[] refunds, String timeZone) throws ParseException {
 		List<Refund> moddedRefunds = Arrays.asList(refunds);
 		for (Refund refund : moddedRefunds) {
-			refund.setCreatedAt(convertToLocalTime(refund.getCreatedAt(), timeZone));
-			refund.setProcessedAt(convertToLocalTime(refund.getProcessedAt(), timeZone));
+			refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
+			refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
 		}
 		return moddedRefunds;
 	}

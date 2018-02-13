@@ -10,6 +10,8 @@ import com.squareup.connect.Refund;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 
+import util.TimeManager;
+
 /**
  *
  * @author finci
@@ -70,10 +72,10 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 			throws ParseException {
 		List<Payment> moddedPayments = Arrays.asList(payments);
 		for (Payment payment : moddedPayments) {
-			payment.setCreatedAt(convertToLocalTime(payment.getCreatedAt(), timeZone));
+			payment.setCreatedAt(TimeManager.convertToLocalTime(payment.getCreatedAt(), timeZone));
 			for (Refund refund : payment.getRefunds()) {
-				refund.setCreatedAt(convertToLocalTime(refund.getCreatedAt(), timeZone));
-				refund.setProcessedAt(convertToLocalTime(refund.getProcessedAt(), timeZone));
+				refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
+				refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
 			}
 		}
 		return moddedPayments;

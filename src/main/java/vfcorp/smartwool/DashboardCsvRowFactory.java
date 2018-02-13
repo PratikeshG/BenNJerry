@@ -18,9 +18,11 @@ import com.squareup.connect.v2.Transaction;
 
 import util.Constants;
 import util.LocationContext;
-import util.TimeManager;
 
 public class DashboardCsvRowFactory {
+	private static final String PRODUCT_TYPE_OTHER_LABEL = "OTHER";
+	private static final String PRODUCT_TYPE_EXTERNAL_API_LABEL = "eCommerce Integrations";
+	private static final String PRODUCT_TYPE_EXTERNAL_API = "EXTERNAL_API";
 	public static final String PRODUCT_TYPE_REGISTER = "REGISTER";
 	public static final String PRODUCT_TYPE_REGISTER_LABEL = "Point of Sale";
 
@@ -28,12 +30,12 @@ public class DashboardCsvRowFactory {
 	private final String DETAULS_URL_DELIMETER = "/by-unit/";
 
 	public List<String> generateTransactionCsvRow(Payment payment, Transaction transaction, Customer customer,
-			String locationName, String timeZoneId, String domainUrl) throws Exception {
+			LocationContext locationContext, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(transaction);
-		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
-		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
-		fields.add(getTimeZoneLabel(timeZoneId));
+		fields.add(getDate(payment.getCreatedAt()));
+		fields.add(getTime(payment.getCreatedAt()));
+		fields.add(getTimeZoneLabel(locationContext.getTimezone()));
 		fields.add(getCurrencyString(payment.getGrossSalesMoney().getAmount()));
 		fields.add(getCurrencyString(payment.getDiscountMoney().getAmount()));
 		fields.add(getCurrencyString(payment.getNetSalesMoney().getAmount()));
@@ -62,7 +64,7 @@ public class DashboardCsvRowFactory {
 		fields.add(getDetailsUrl(transaction, domainUrl));
 		fields.add(getItemizationSummary(payment));
 		fields.add(Constants.EVENT_TYPE_PAYMENT);
-		fields.add(locationName);
+		fields.add(locationContext.getName());
 		fields.add(""); // Dining options
 		fields.addAll(getCustomerInfo(customer));
 		fields.add("");// Device nickname, can't get this
@@ -70,11 +72,11 @@ public class DashboardCsvRowFactory {
 	}
 
 	public List<String> generateItemCsvRow(Payment payment, PaymentItemization itemization, Transaction transaction,
-			Customer customer, String locationName, String timeZoneId, String domainUrl) throws Exception {
+			Customer customer, LocationContext locationCtx, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
-		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
-		fields.add(getDateWithFormat(payment.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
-		fields.add(getTimeZoneLabel(timeZoneId));
+		fields.add(getDate(payment.getCreatedAt()));
+		fields.add(getTime(payment.getCreatedAt()));
+		fields.add(getTimeZoneLabel(locationCtx.getTimezone()));
 		fields.add(itemization.getItemDetail().getCategoryName()); // Category
 		fields.add(itemization.getName()); // Item name
 		fields.add(itemization.getQuantity().toString()); // Qty
@@ -95,7 +97,7 @@ public class DashboardCsvRowFactory {
 		fields.add(emptyStringIfNull(itemization.getNotes()));// Notes
 		fields.add(getDetailsUrl(transaction, domainUrl));// Details
 		fields.add(Constants.EVENT_TYPE_PAYMENT); // Event Type
-		fields.add(locationName); // Location
+		fields.add(locationCtx.getName()); // Location
 		fields.add(""); // TODO: Dining Option
 		fields.addAll(getCustomerInfo(customer)); // Customer ID, Name &
 													// Reference ID
@@ -103,12 +105,12 @@ public class DashboardCsvRowFactory {
 		return fields;
 	}
 
-	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String timeZoneId,
-			String domainUrl) throws Exception {
+	public List<String> generateRefundCsvRow(Refund refund, LocationContext locationCtx, String domainUrl)
+			throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
-		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.DATE_FORMAT));
-		fields.add(getDateWithFormat(refund.getCreatedAt(), timeZoneId, Constants.TIME_FORMAT));
-		fields.add(getTimeZoneLabel(timeZoneId));
+		fields.add(getDate(refund.getCreatedAt()));
+		fields.add(getTime(refund.getCreatedAt()));
+		fields.add(getTimeZoneLabel(locationCtx.getTimezone()));
 		fields.add(""); // gross sales
 		fields.add(""); // discounts sales
 		fields.add(""); // net sales
@@ -167,8 +169,19 @@ public class DashboardCsvRowFactory {
 		}
 	}
 
-	private String getDateWithFormat(String iso8601string, String timeZoneId, String format) throws ParseException {
-		return TimeManager.toSimpleDateTimeInTimeZone(iso8601string, timeZoneId, format);
+	private String getDate(String iso8601string) throws ParseException {
+		// Expecting a local time iso string, converting back to
+		String[] prefix = iso8601string.split("-");
+		String[] postFix = prefix[2].split("T");
+
+		return prefix[1] + "/" + postFix[0] + "/" + prefix[0];
+	}
+
+	private String getTime(String iso8601string) throws ParseException {
+		String[] prefix = iso8601string.split("-");
+		String[] postFix = prefix[2].split("T");
+
+		return postFix[1].substring(0, postFix[1].length() - 2);
 	}
 
 	private String getDetailsUrl(Transaction transaction, String domainUrl) {
@@ -225,10 +238,19 @@ public class DashboardCsvRowFactory {
 	}
 
 	private String getTimeZoneLabel(String timeZoneId) throws Exception {
-		if (!timeZoneId.equals(Constants.PST_TIME_ZONE_ID)) {
-			throw new Exception("Unknown timezone Id: " + timeZoneId);
+		if (timeZoneId.equals("America/Dawson_Creek") || timeZoneId.equals("America/Denver")
+				|| timeZoneId.equals("America/Edmonton") || timeZoneId.equals("America/Phoenix")) {
+			return "Mountain Time (US & Canada)";
+		} else if (timeZoneId.equals("America/Chicago") || timeZoneId.equals("America/Winnipeg")) {
+			return "Central Standard Time (US & Canada)";
+		} else if (timeZoneId.equals("America/Indianapolis") || timeZoneId.equals("America/Montreal")
+				|| timeZoneId.equals("America/New_York")) {
+			return "Eastern Standard Time (US & Canada)";
+		} else if (timeZoneId.equals("America/Los_Angeles") || timeZoneId.equals("America/Vancouver")) {
+			return "Pacific Standard Time (US & Canada)";
+		} else {
+			throw new Exception("Unsupported timeZoneId" + timeZoneId);
 		}
-		return Constants.PST_TIME_ZONE_LABEL;
 	}
 
 	private List<String> getCustomerInfo(Customer customer) {
@@ -264,8 +286,11 @@ public class DashboardCsvRowFactory {
 	private String getProductTypeLabel(String productType) throws Exception {
 		if (productType.equals(PRODUCT_TYPE_REGISTER)) {
 			return PRODUCT_TYPE_REGISTER_LABEL;
+		} else if (productType.equals(PRODUCT_TYPE_EXTERNAL_API)) {
+			return PRODUCT_TYPE_EXTERNAL_API_LABEL;
+		} else {
+			return PRODUCT_TYPE_OTHER_LABEL;
 		}
-		throw new Exception("Unknown product type: " + productType);
 	}
 
 	private String getSku(PaymentItemization itemization) {
