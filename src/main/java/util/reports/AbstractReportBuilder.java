@@ -131,7 +131,7 @@ public abstract class AbstractReportBuilder<T> {
 		utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 		Date date = utcFormat.parse(time);
 
-		DateFormat pstFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		DateFormat pstFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 		pstFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
 
 		return pstFormat.format(date);
