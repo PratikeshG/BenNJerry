@@ -69,6 +69,7 @@ public class RefundsReportBuilder extends AbstractReportBuilder<Refund> {
 		List<Refund> moddedRefunds = Arrays.asList(refunds);
 		for (Refund refund : moddedRefunds) {
 			refund.setCreatedAt(convertToLocalTime(refund.getCreatedAt(), timeZone));
+			refund.setProcessedAt(convertToLocalTime(refund.getProcessedAt(), timeZone));
 		}
 		return moddedRefunds;
 	}

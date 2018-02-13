@@ -73,7 +73,7 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 			payment.setCreatedAt(convertToLocalTime(payment.getCreatedAt(), timeZone));
 			for (Refund refund : payment.getRefunds()) {
 				refund.setCreatedAt(convertToLocalTime(refund.getCreatedAt(), timeZone));
-				refund.setCreatedAt(convertToLocalTime(refund.getProcessedAt(), timeZone));
+				refund.setProcessedAt(convertToLocalTime(refund.getProcessedAt(), timeZone));
 			}
 		}
 		return moddedPayments;
