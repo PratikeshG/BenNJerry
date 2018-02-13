@@ -1,10 +1,15 @@
 package util.reports;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.google.common.base.Preconditions;
 import com.squareup.connect.SquareClient;
@@ -16,7 +21,8 @@ import util.TimeManager;
  *
  * @author Jordan Finci
  *
- * @param <T> ConnectAdapter result
+ * @param <T>
+ *            ConnectAdapter result
  */
 public abstract class AbstractReportBuilder<T> {
 	private final String apiUrl;
@@ -48,6 +54,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Generic report of location to connect object result.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -61,6 +68,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * {@code client} provided for test.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -78,6 +86,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Must implement.
+	 *
 	 * @return Generic report map of location Id to connect result.
 	 * @throws Exception
 	 */
@@ -85,6 +94,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Locations included in report.
+	 *
 	 * @param locations
 	 * @return
 	 */
@@ -100,6 +110,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Filter report over a past day interval.
+	 *
 	 * @param range
 	 * @param offset
 	 * @return
@@ -109,5 +120,20 @@ public abstract class AbstractReportBuilder<T> {
 		this.range = range;
 		this.dateRangeFiltersSet = true;
 		return this;
+	}
+
+	/**
+	 * Takes a ISO8601 timestamp in UTC and outputs the local time 8601 time
+	 * stamp (without offset).
+	 */
+	protected String convertToLocalTime(String time, String timeZone) throws ParseException {
+		DateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Date date = utcFormat.parse(time);
+
+		DateFormat pstFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		pstFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+		return pstFormat.format(date);
 	}
 }
