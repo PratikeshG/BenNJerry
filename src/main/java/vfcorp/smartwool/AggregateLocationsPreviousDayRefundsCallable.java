@@ -1,7 +1,11 @@
 package vfcorp.smartwool;
 
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -9,9 +13,11 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
 
 import util.Constants;
+import util.LocationContext;
 import util.SquarePayload;
 import util.TimeManager;
 import util.reports.RefundsReportBuilder;
@@ -34,7 +40,11 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 		int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
 
 		@SuppressWarnings("unchecked")
-		List<Location> locations = (List<Location>) message.getProperty(Constants.LOCATIONS, PropertyScope.INVOCATION);
+		HashMap<String, LocationContext> locationContexts = (HashMap<String, LocationContext>) message
+				.getProperty(Constants.LOCATION_CONTEXT_MAP, PropertyScope.INVOCATION);
+		ArrayList<Location> locations = new ArrayList<Location>();
+		locationContexts.forEach((locId, locCtx) -> locations.add(locCtx.getLocation()));
+
 		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
@@ -43,7 +53,23 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 
 		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC),
 				PropertyScope.SESSION);
-		return new RefundsReportBuilder(apiUrl, accessToken, merchantId).forLocations(locations)
-				.forPastDayInterval(range, offset).build();
+
+		HashMap<String, List<Refund>> locationsRefunds = new RefundsReportBuilder(apiUrl, accessToken, merchantId)
+				.forLocations(locations).forPastDayInterval(range, offset).build();
+
+		setRefundsDatesToLocalTime(locationsRefunds, locationContexts);
+
+		return locationsRefunds;
+	}
+
+	private void setRefundsDatesToLocalTime(HashMap<String, List<Refund>> locationsPayments,
+			HashMap<String, LocationContext> locationContexts) throws ParseException {
+		for (Map.Entry<String, List<Refund>> locationPaymenEntry : locationsPayments.entrySet()) {
+			for (Refund refund : locationPaymenEntry.getValue()) {
+				Location location = locationContexts.get(locationPaymenEntry.getKey()).getLocation();
+				String timeZone = location.getTimezone();
+				refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
+			}
+		}
 	}
 }

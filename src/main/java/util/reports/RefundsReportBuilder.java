@@ -1,6 +1,5 @@
 package util.reports;
 
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -8,8 +7,6 @@ import java.util.List;
 import com.squareup.connect.Refund;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
-
-import util.TimeManager;
 
 /**
  *
@@ -52,7 +49,7 @@ public class RefundsReportBuilder extends AbstractReportBuilder<Refund> {
 		return locationsPayments;
 	}
 
-	private void processLocation(Location location, HashMap<String, List<Refund>> locationsPayments) throws Exception {
+	private void processLocation(Location location, HashMap<String, List<Refund>> locationsRefunds) throws Exception {
 		String locationId = location.getId();
 		String timezone = location.getTimezone();
 		Refund[] refunds;
@@ -64,15 +61,6 @@ public class RefundsReportBuilder extends AbstractReportBuilder<Refund> {
 			refunds = this.getClient().refunds().list();
 		}
 
-		locationsPayments.put(locationId, setRefundsCreatedAtToLocalTimeZone(refunds, location.getTimezone()));
-	}
-
-	private List<Refund> setRefundsCreatedAtToLocalTimeZone(Refund[] refunds, String timeZone) throws ParseException {
-		List<Refund> moddedRefunds = Arrays.asList(refunds);
-		for (Refund refund : moddedRefunds) {
-			refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
-			refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
-		}
-		return moddedRefunds;
+		locationsRefunds.put(locationId, Arrays.asList(refunds));
 	}
 }

@@ -180,8 +180,9 @@ public class DashboardCsvRowFactory {
 	private String getTime(String iso8601string) throws ParseException {
 		String[] prefix = iso8601string.split("-");
 		String[] postFix = prefix[2].split("T");
+		String timeStamp = postFix[1].substring(0, postFix[1].length());
 
-		return postFix[1].substring(0, postFix[1].length() - 2);
+		return timeStamp;
 	}
 
 	private String getDetailsUrl(Transaction transaction, String domainUrl) {

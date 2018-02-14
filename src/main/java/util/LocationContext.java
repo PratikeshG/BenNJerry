@@ -16,6 +16,7 @@ public class LocationContext implements Serializable {
 	private String timezone;
 	private String beginTime;
 	private String endTime;
+	private Location location;
 
 	public String getBeginTime() {
 		return beginTime;
@@ -27,6 +28,10 @@ public class LocationContext implements Serializable {
 
 	public String getId() {
 		return id;
+	}
+
+	public Location getLocation() {
+		return location;
 	}
 
 	public String getName() {
@@ -43,6 +48,7 @@ public class LocationContext implements Serializable {
 		this.timezone = location.getTimezone();
 		this.beginTime = beginTime;
 		this.endTime = endTime;
+		this.location = location;
 	}
 
 	public LocationContext(Location location, Map<String, String> queryParams) {

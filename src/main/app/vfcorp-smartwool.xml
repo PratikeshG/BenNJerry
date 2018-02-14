@@ -50,7 +50,14 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <logger message="Triggered VFC:SmartWool:generate-reports-trigger" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="#[util.Constants.RANGE]" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="Set Range"/>
         <set-session-variable variableName="#[util.Constants.OFFSET]" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="Set Offset"/>
-        <set-session-variable variableName="fileDate" value="#[message.inboundProperties.'http.query.params'.fileDate]" doc:name="Set Date"/>
+        <choice doc:name="Date Provided?">
+	       <when expression="#[message.inboundProperties.'http.query.params'.fileDate == null]">
+	      		<set-session-variable variableName="fileDate" value="#[function:datestamp:MM-dd-yy]" doc:name="Set Current Datestamp"/>
+	       </when>
+	       <otherwise>
+	       	<set-session-variable variableName="fileDate" value="#[message.inboundProperties.'http.query.params'.fileDate]" doc:name="Set Datestamp from Query Param"/>
+	       </otherwise>
+       	</choice>
         <flow-ref name="VFC:SmartWool:generate-reports" doc:name="VFC:SmartWool:generate-reports"/>
         <set-payload value="Triggered VFC:SmartWool:generate-reports-trigger flow" doc:name="Set Payload"/>
     </flow>

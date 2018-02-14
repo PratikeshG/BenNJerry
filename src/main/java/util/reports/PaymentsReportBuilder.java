@@ -1,16 +1,12 @@
 package util.reports;
 
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 import com.squareup.connect.Payment;
-import com.squareup.connect.Refund;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
-
-import util.TimeManager;
 
 /**
  *
@@ -65,19 +61,6 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 			payments = this.getClient().payments().list();
 		}
 
-		locationsPayments.put(locationId, setPaymentsCreatedAtToLocalTimeZone(payments, location.getTimezone()));
-	}
-
-	private List<Payment> setPaymentsCreatedAtToLocalTimeZone(Payment[] payments, String timeZone)
-			throws ParseException {
-		List<Payment> moddedPayments = Arrays.asList(payments);
-		for (Payment payment : moddedPayments) {
-			payment.setCreatedAt(TimeManager.convertToLocalTime(payment.getCreatedAt(), timeZone));
-			for (Refund refund : payment.getRefunds()) {
-				refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
-				refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
-			}
-		}
-		return moddedPayments;
+		locationsPayments.put(locationId, Arrays.asList(payments));
 	}
 }
