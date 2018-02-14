@@ -44,7 +44,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         </choice>
     </flow>
     <flow name="TNTFireworks-settlements-batch-report-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 10 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+        <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1498546651" cronExpression="0 10 0 1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:10 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
