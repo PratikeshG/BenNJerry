@@ -96,22 +96,26 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-items-csv">
         <component class="vfcorp.smartwool.TransformItemsToCsvCallable" doc:name="VFC:SmartWool:Transform Items to CSV"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-items-#[sessionVars.fileDate].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <set-variable variableName="reportName" value="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-items-#[sessionVars.fileDate].csv" doc:name="Set Filename"/>
+        <flow-ref name="VFC:SmartWool:write-files" doc:name="Copy_of_VFC:SmartWool:write-files"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-transactions-csv">
         <component class="vfcorp.smartwool.TransformTransactionsToCsvCallable" doc:name="VFC:SmartWool:TransformTransactionsToCsvCallable"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-transactions-#[sessionVars.fileDate].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <set-variable variableName="reportName" value="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-transactions-#[sessionVars.fileDate].csv" doc:name="Set Filename"/>
+        <flow-ref name="VFC:SmartWool:write-files" doc:name="Copy_of_VFC:SmartWool:write-files"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-payments-xml">
         <dw:transform-message doc:name="Transform Payment to XML">
             <dw:input-payload mimeType="application/java"/>
             <dw:set-payload resource="classpath:smartwool/dwl/payment-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-payments-#[sessionVars.fileDate].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <set-variable variableName="reportName" value="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-payments-#[sessionVars.fileDate].xml" doc:name="Set Filename"/>
+        <flow-ref name="VFC:SmartWool:write-files" doc:name="Copy_of_VFC:SmartWool:write-files"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-refunds-csv">
         <component class="vfcorp.smartwool.TransformRefundsToCsvCallable" doc:name="VFC:SmartWool:TransformRefundsToCsv"/>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[sessionVars.fileDate].csv" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <set-variable variableName="reportName" value="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[sessionVars.fileDate].csv" doc:name="Set Filename"/>
+        <flow-ref name="VFC:SmartWool:write-files" doc:name="VFC:SmartWool:write-files"/>
     </sub-flow>
     <sub-flow name="VFC:SmartWool:generate-refunds-xml">
         <component class="vfcorp.smartwool.AggregateLocationsPreviousDayRefundsCallable" doc:name="VFC:SmartWool:Get-Refunds"/>
@@ -119,6 +123,17 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
            <dw:input-payload mimeType="application/java"/>
            <dw:set-payload resource="classpath:smartwool/dwl/refund-transform.dwl"/>
         </dw:transform-message>
-        <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[sessionVars.fileDate].xml" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+        <set-variable variableName="reportName" value="#[sessionVars[util.Constants.SQUARE_PAYLOAD].merchantId]-refunds-#[sessionVars.fileDate].xml" doc:name="Set FIlename"/>
+        <flow-ref name="VFC:SmartWool:write-files" doc:name="VFC:SmartWool:write-files"/>
+    </sub-flow>
+    <sub-flow name="VFC:SmartWool:write-files">
+        <choice doc:name="Produce Local?">
+            <when expression="#[message.inboundProperties.'http.query.params'.writeLocal != null &amp;&amp; message.inboundProperties.'http.query.params'.writeLocal == &quot;true&quot;]">
+                <file:outbound-endpoint path="output" outputPattern="#[flowVars.reportName]" connector-ref="File" responseTimeout="10000" doc:name="Write File"/>
+            </when>
+            <otherwise>
+                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.reportName]" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+            </otherwise>
+        </choice>
     </sub-flow>
 </mule>
