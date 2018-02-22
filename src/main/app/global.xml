@@ -42,16 +42,16 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
         <logger message="#[flowVars.exceptionValue + '\n' + flowVars.exceptionMessage]" level="ERROR" doc:name="Log error to console"/>
         <set-variable variableName="exceptionPayload" value="{&quot;routing_key&quot;: &quot;${pagerduty.key}&quot;, &quot;event_action&quot;: &quot;trigger&quot;, &quot;payload&quot;: {&quot;summary&quot;: &quot;#['${mule.env}'.toUpperCase() + ' ' + flowVars.exceptionValue]&quot;, &quot;source&quot;: &quot;Square Bridge&quot;, &quot;severity&quot;: &quot;error&quot;, &quot;custom_details&quot;: { &quot;env&quot;: &quot;${mule.env}&quot;, &quot;app_name&quot;: &quot;#[app.name]&quot;, &quot;exception&quot;: &quot;#[flowVars.exceptionValue]&quot;, &quot;exception_message&quot;: &quot;#[flowVars.exceptionMessage]&quot;}}}" doc:name="exceptionPayload"/>
         <choice doc:name="Choice">
-            <when expression="#['${mule.env}'.equals('development')]">
-                <logger message="DEVELOPMENT - #[flowVars.exceptionPayload]" level="INFO" doc:name="Logger"/>
-            </when>
-            <otherwise>
+            <when expression="#['${mule.env}'.equals('production')]">
                 <set-payload value="#[flowVars.exceptionPayload]" doc:name="Set Payload"/>
                 <http:request config-ref="Pagerduty_HTTPS_Config" path="v2/enqueue" method="POST" doc:name="Pagerduty">
                     <http:request-builder>
                         <http:header headerName="Content-Type" value="application/json"/>
                     </http:request-builder>
                 </http:request>
+            </when>
+            <otherwise>
+                 <logger message="DEVELOPMENT - #[flowVars.exceptionPayload]" level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
     </catch-exception-strategy>
