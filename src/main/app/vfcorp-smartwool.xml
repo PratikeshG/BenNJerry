@@ -48,6 +48,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="VFC:SmartWool:generate-reports-trigger">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/${urlKey}/vfc-smartwool-generate-reports" doc:name="HTTP"/>
         <logger message="Triggered VFC:SmartWool:generate-reports-trigger" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="writeLocal" value="#[message.inboundProperties.'http.query.params'.writeLocal != null ? message.inboundProperties.'http.query.params'.writeLocal : false]" doc:name="Set Write Local"/>
         <set-session-variable variableName="#[util.Constants.RANGE]" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="Set Range"/>
         <set-session-variable variableName="#[util.Constants.OFFSET]" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="Set Offset"/>
         <choice doc:name="Date Provided?">
@@ -128,7 +129,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     </sub-flow>
     <sub-flow name="VFC:SmartWool:write-files">
         <choice doc:name="Produce Local?">
-            <when expression="#[message.inboundProperties.'http.query.params'.writeLocal != null &amp;&amp; message.inboundProperties.'http.query.params'.writeLocal == &quot;true&quot;]">
+            <when expression="#[sessionVars.writeLocal]">
                 <file:outbound-endpoint path="output" outputPattern="#[flowVars.reportName]" connector-ref="File" responseTimeout="10000" doc:name="Write File"/>
             </when>
             <otherwise>
