@@ -72,7 +72,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
             </when>
             <otherwise>
                 <logger message="Starting VFC:SmartWool:GenerateReports" level="INFO" doc:name="Logger"/>
-                <set-session-variable variableName="writeLocal" value="#[message.inboundProperties.'http.query.params'.writeLocal != null ? message.inboundProperties.'http.query.params'.writeLocal : false]" doc:name="Set Write Local"/>
+                <set-session-variable variableName="writeLocal" value="false" doc:name="Set Write Local"/>
                 <set-session-variable variableName="#[util.Constants.OFFSET]" value="${vfcorp.smartwool.offset}" doc:name="Set Offset"/>
                 <set-session-variable variableName="#[util.Constants.RANGE]" value="${vfcorp.smartwool.range}" doc:name="Set Range"/>
                 <set-session-variable variableName="fileDate" value="#[function:datestamp:MM-dd-yy]" doc:name="Set Date"/>
