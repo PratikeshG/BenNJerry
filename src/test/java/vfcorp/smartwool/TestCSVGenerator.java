@@ -15,12 +15,17 @@ import org.junit.Test;
 import com.google.gson.Gson;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Transaction;
+
+import util.LocationContext;
 
 public class TestCSVGenerator {
 	private final String timeZoneId = "America/Los_Angeles";
-	private List<String> columnWhitelist = Arrays.asList(new String[]{"Partial Refunds", "Staff Name", "Device Nickname"});
-	private List<String> multiValueColumnList = Arrays.asList(new String[]{"Card Entry Methods", "Payment ID", "Card Brand", "Description"});
+	private List<String> columnWhitelist = Arrays
+			.asList(new String[] { "Partial Refunds", "Staff Name", "Device Nickname" });
+	private List<String> multiValueColumnList = Arrays
+			.asList(new String[] { "Card Entry Methods", "Payment ID", "Card Brand", "Description" });
 	private String domainUrl = "http://squareup.com";
 
 	@Test
@@ -29,13 +34,21 @@ public class TestCSVGenerator {
 		Customer customer = gson.fromJson(CsvExamples.testCustomer1, Customer.class);
 		Payment payment = gson.fromJson(CsvExamples.testPayment1, Payment.class);
 		Transaction transaction = gson.fromJson(CsvExamples.testTransaction1, Transaction.class);
-		String locationName = "#1002";
 
-		CSVRecord headersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionHeaders)).getRecords().get(0);
+		Location location = new Location();
+		location.setName("#1002");
+		location.setTimezone("America/Los_Angeles");
+
+		LocationContext locationCtx = new LocationContext(location, null);
+
+		CSVRecord headersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionHeaders))
+				.getRecords().get(0);
 
 		DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionsCsv1)).getRecords().get(0);
-		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId, domainUrl);
+		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionsCsv1))
+				.getRecords().get(0);
+		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer,
+				locationCtx, domainUrl);
 
 		test(headersCsv, transactionCsvExpected, transactionCsvActual);
 	}
@@ -45,13 +58,21 @@ public class TestCSVGenerator {
 		Gson gson = new Gson();
 		Payment payment = gson.fromJson(CsvExamples.testPayment2, Payment.class);
 		Transaction transaction = gson.fromJson(CsvExamples.testTransaction2, Transaction.class);
-		String locationName = "#1002";
 
-		CSVRecord transactionHeadersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionHeaders)).getRecords().get(0);
+		Location location = new Location();
+		location.setName("#1002");
+		location.setTimezone("America/Los_Angeles");
+
+		LocationContext locationCtx = new LocationContext(location, null);
+
+		CSVRecord transactionHeadersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionHeaders))
+				.getRecords().get(0);
 
 		DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionCsv2)).getRecords().get(0);
-		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, null, locationName, timeZoneId, domainUrl);
+		CSVRecord transactionCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionCsv2))
+				.getRecords().get(0);
+		List<String> transactionCsvActual = csvRowFactory.generateTransactionCsvRow(payment, transaction, null,
+				locationCtx, domainUrl);
 
 		test(transactionHeadersCsv, transactionCsvExpected, transactionCsvActual);
 	}
@@ -62,15 +83,23 @@ public class TestCSVGenerator {
 		Payment payment = gson.fromJson(CsvExamples.testPayment1, Payment.class);
 		Transaction transaction = gson.fromJson(CsvExamples.testTransaction1, Transaction.class);
 		Customer customer = gson.fromJson(CsvExamples.testCustomer1, Customer.class);
-		String locationName = "#1002";
 
-		CSVRecord headersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testItemHeaders)).getRecords().get(0);
+		CSVRecord headersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testItemHeaders)).getRecords()
+				.get(0);
 
 		DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-		List<CSVRecord> itemsCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testItemsCsv1)).getRecords();
+		List<CSVRecord> itemsCsvExpected = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testItemsCsv1))
+				.getRecords();
+
+		Location location = new Location();
+		location.setName("#1002");
+		location.setTimezone("America/Los_Angeles");
+
+		LocationContext locationCtx = new LocationContext(location, null, null);
 
 		for (int index = 0; index < payment.getItemizations().length; index++) {
-			List<String> itemizationCsvActual = csvRowFactory.generateItemCsvRow(payment, payment.getItemizations()[index], transaction, customer, locationName, timeZoneId, domainUrl);
+			List<String> itemizationCsvActual = csvRowFactory.generateItemCsvRow(payment,
+					payment.getItemizations()[index], transaction, customer, locationCtx, domainUrl);
 			CSVRecord itemExpected = itemsCsvExpected.get(index);
 			test(headersCsv, itemExpected, itemizationCsvActual);
 		}
@@ -81,7 +110,7 @@ public class TestCSVGenerator {
 		List<CSVRecord> records = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.k603csv)).getRecords();
 
 		assertEquals(CsvExamples.k603payments.size(), CsvExamples.k603transactions.size());
-		assertEquals(CsvExamples.k603payments.size(),  records.size());
+		assertEquals(CsvExamples.k603payments.size(), records.size());
 
 		Gson gson = new Gson();
 
@@ -89,14 +118,21 @@ public class TestCSVGenerator {
 			Payment payment = gson.fromJson(CsvExamples.k603payments.get(index), Payment.class);
 			Transaction transaction = gson.fromJson(CsvExamples.k603transactions.get(index), Transaction.class);
 			Customer customer = null;
-			String locationName = "K603Cherry Creek Mall Pop-Up";
+
+			Location location = new Location();
+			location.setName("K603Cherry Creek Mall Pop-Up");
+			location.setTimezone("America/Los_Angeles");
+
+			LocationContext locationCtx = new LocationContext(location, null);
 
 			CSVRecord expected = records.get(index);
-			CSVRecord transactionHeadersCsv = CSVFormat.DEFAULT.parse(new StringReader(CsvExamples.testTransactionHeaders)).getRecords().get(0);
+			CSVRecord transactionHeadersCsv = CSVFormat.DEFAULT
+					.parse(new StringReader(CsvExamples.testTransactionHeaders)).getRecords().get(0);
 
 			DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
-			List<String> actual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationName, timeZoneId, domainUrl);
+			List<String> actual = csvRowFactory.generateTransactionCsvRow(payment, transaction, customer, locationCtx,
+					domainUrl);
 			test(transactionHeadersCsv, expected, actual);
 		}
 	}
@@ -120,7 +156,7 @@ public class TestCSVGenerator {
 					List<String> expectedValues = Arrays.asList(csvExpected.get(i).split(", "));
 					actualValues = normalize(actualValues);
 					for (String expected : expectedValues) {
-						if (!actualValues.contains(expected.toUpperCase())){
+						if (!actualValues.contains(expected.toUpperCase())) {
 							System.out.println("\n");
 							Assert.fail();
 						}
@@ -133,6 +169,7 @@ public class TestCSVGenerator {
 			System.out.flush();
 		}
 	}
+
 	private List<String> normalize(List<String> input) {
 		List<String> out = new ArrayList<String>(input.size());
 		for (String in : input) {

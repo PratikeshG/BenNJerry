@@ -34,8 +34,6 @@ public class TransformTransactionsToCsvCallable implements Callable {
 	private String DOMAIN_URL;
 	@Value("${encryption.key.tokens}")
 	private String ENCRYPTION_KEY;
-	@Value("${vfcorp.smartwool.csv.zoneId}")
-	private String TIME_ZONE_ID;
 
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -77,7 +75,7 @@ public class TransformTransactionsToCsvCallable implements Callable {
 				Customer customer = getCustomer(transaction, clientv2);
 
 				csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(payment, transaction, customer,
-						locationCtx.getName(), this.TIME_ZONE_ID, this.DOMAIN_URL));
+						locationCtx, this.DOMAIN_URL));
 			}
 		}
 		return csvGenerator.build();

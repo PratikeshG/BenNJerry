@@ -17,6 +17,7 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 	/**
 	 * Creates a report map of location Id to Payments filtered by date range
 	 * set by calling {@code forPastDayInterval(int range, int offset)}.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -24,8 +25,10 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId) {
 		super(apiUrl, accessToken, merchantId);
 	}
+
 	/**
 	 * {@code clientOverride} provided for test.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -34,6 +37,7 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, SquareClient clientOverride) {
 		super(apiUrl, accessToken, merchantId, clientOverride);
 	}
+
 	/**
 	 * Build map.
 	 */
@@ -44,15 +48,19 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 		}
 		return locationsPayments;
 	}
+
 	private void processLocation(Location location, HashMap<String, List<Payment>> locationsPayments) throws Exception {
 		String locationId = location.getId();
 		String timezone = location.getTimezone();
+		Payment[] payments;
 
 		this.getClient().setLocation(locationId);
 		if (this.isDateRangeFiltersSet()) {
-			locationsPayments.put(locationId, Arrays.asList(this.getClient().payments().list(this.getDateRangeFilters(timezone))));
+			payments = this.getClient().payments().list(this.getDateRangeFilters(timezone));
 		} else {
-			locationsPayments.put(locationId, Arrays.asList(this.getClient().payments().list()));
+			payments = this.getClient().payments().list();
 		}
+
+		locationsPayments.put(locationId, Arrays.asList(payments));
 	}
 }

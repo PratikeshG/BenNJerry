@@ -16,7 +16,8 @@ import util.TimeManager;
  *
  * @author Jordan Finci
  *
- * @param <T> ConnectAdapter result
+ * @param <T>
+ *            ConnectAdapter result
  */
 public abstract class AbstractReportBuilder<T> {
 	private final String apiUrl;
@@ -48,6 +49,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Generic report of location to connect object result.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -61,6 +63,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * {@code client} provided for test.
+	 *
 	 * @param apiUrl
 	 * @param accessToken
 	 * @param merchantId
@@ -78,6 +81,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Must implement.
+	 *
 	 * @return Generic report map of location Id to connect result.
 	 * @throws Exception
 	 */
@@ -85,6 +89,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Locations included in report.
+	 *
 	 * @param locations
 	 * @return
 	 */
@@ -100,6 +105,7 @@ public abstract class AbstractReportBuilder<T> {
 
 	/**
 	 * Filter report over a past day interval.
+	 *
 	 * @param range
 	 * @param offset
 	 * @return

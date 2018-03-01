@@ -13,9 +13,10 @@
 			(flowVars.payments pluck ({
 				(location: {
 					locationId: ($$),
-					beginTime: flowVars.locationContextMap[($$)].begin_time,
-					endTime: flowVars.locationContextMap[($$)].end_time,
+					beginTime: flowVars.locationContextMap[($$)].beginTime,
+					endTime: flowVars.locationContextMap[($$)].endTime,
 					locationName: flowVars.locationContextMap[($$)].name,
+					timezone: flowVars.locationContextMap[($$)].timezone,
 					payments: {
 						($ default [] map {
 							payment: {

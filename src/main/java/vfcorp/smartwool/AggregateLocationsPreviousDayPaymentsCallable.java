@@ -1,7 +1,11 @@
 package vfcorp.smartwool;
 
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -9,9 +13,12 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.squareup.connect.Payment;
+import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
 
 import util.Constants;
+import util.LocationContext;
 import util.SquarePayload;
 import util.TimeManager;
 import util.reports.PaymentsReportBuilder;
@@ -36,7 +43,11 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 		int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
 
 		@SuppressWarnings("unchecked")
-		List<Location> locations = (List<Location>) message.getProperty(Constants.LOCATIONS, PropertyScope.INVOCATION);
+		HashMap<String, LocationContext> locationContexts = (HashMap<String, LocationContext>) message
+				.getProperty(Constants.LOCATION_CONTEXT_MAP, PropertyScope.INVOCATION);
+		ArrayList<Location> locations = new ArrayList<Location>();
+		locationContexts.forEach((locId, locCtx) -> locations.add(locCtx.getLocation()));
+
 		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
 		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
@@ -46,9 +57,28 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC),
 				PropertyScope.SESSION);
 
-		message.setProperty(Constants.PAYMENTS, new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
-				.forLocations(locations).forPastDayInterval(range, offset).build(), PropertyScope.INVOCATION);
+		HashMap<String, List<Payment>> locationsPayments = new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
+				.forLocations(locations).forPastDayInterval(range, offset).build();
+
+		setPaymentsDatesToLocalTime(locationsPayments, locationContexts);
+
+		message.setProperty(Constants.PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
 
 		return message.getPayload();
+	}
+
+	private void setPaymentsDatesToLocalTime(HashMap<String, List<Payment>> locationsPayments,
+			HashMap<String, LocationContext> locationContexts) throws ParseException {
+		for (Map.Entry<String, List<Payment>> locationPaymenEntry : locationsPayments.entrySet()) {
+			for (Payment payment : locationPaymenEntry.getValue()) {
+				Location location = locationContexts.get(locationPaymenEntry.getKey()).getLocation();
+				String timeZone = location.getTimezone();
+				payment.setCreatedAt(TimeManager.convertToLocalTime(payment.getCreatedAt(), timeZone));
+				for (Refund refund : payment.getRefunds()) {
+					refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
+					refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
+				}
+			}
+		}
 	}
 }
