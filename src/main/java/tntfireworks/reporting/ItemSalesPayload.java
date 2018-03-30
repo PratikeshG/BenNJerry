@@ -31,6 +31,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
             "YTD Sales Amount", "YTD Sales Quantity", "Item SKU");
     private static final String DEFAULT_ITEM_NUMBER = "N/A";
     private static final String DEFAULT_ITEM_DESCRIPTION = "CUSTOM AMOUNT";
+    private static final String DEFAULT_ITEM_SKU = "N/A";
 
     private Map<String, ItemSalesPayloadEntry> itemSalesPayloadEntries;
     private Map<String, String> dayTimeInterval;
@@ -49,8 +50,14 @@ public class ItemSalesPayload extends TntReportLocationPayload {
             for (PaymentItemization itemization : payment.getItemizations()) {
                 String itemNumber = DEFAULT_ITEM_NUMBER;
                 String itemDesc = DEFAULT_ITEM_DESCRIPTION;
-                String itemSku = itemization.getItemDetail().getSku();
+                String itemSku = DEFAULT_ITEM_SKU;
 
+                // assign square item sku if it exists
+                if (itemization.getItemDetail() != null && itemization.getItemDetail().getSku() != null) {
+                    itemSku = itemization.getItemDetail().getSku();
+                }
+
+                // lookup tnt-specific item number and description based on matching sku
                 for (Map<String, String> row : dbItemRows) {
                     if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
                         itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
