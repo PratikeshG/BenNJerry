@@ -52,8 +52,14 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-                    total += refundsInRange.get(0).getRefundedAdditiveTaxMoney().getAmount()
-                            + refundsInRange.get(0).getRefundedInclusiveTaxMoney().getAmount();
+                    // additive / inclusive tax money not included if original transaction not taxed
+                    if (refundsInRange.get(0).getRefundedAdditiveTaxMoney() != null) {
+                        total += refundsInRange.get(0).getRefundedAdditiveTaxMoney().getAmount();
+                    }
+
+                    if (refundsInRange.get(0).getRefundedInclusiveTaxMoney() != null) {
+                        total += refundsInRange.get(0).getRefundedInclusiveTaxMoney().getAmount();
+                    }
                 }
             }
         }
@@ -87,7 +93,9 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-                    total += refundsInRange.get(0).getRefundedTipMoney().getAmount();
+                    if (refundsInRange.get(0).getRefundedTipMoney() != null) {
+                        total += refundsInRange.get(0).getRefundedTipMoney().getAmount();
+                    }
                 }
             }
         }
@@ -107,7 +115,7 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 for (Refund refund : refundsInRange) {
-                    if (refund.getType().equals("PARTIAL")) {
+                    if (refund.getType().equals("PARTIAL") && refund.getRefundedMoney() != null) {
                         total += refund.getRefundedMoney().getAmount();
                     }
                 }
@@ -143,7 +151,9 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-                    total += refundsInRange.get(0).getRefundedDiscountMoney().getAmount();
+                    if (refundsInRange.get(0).getRefundedDiscountMoney() != null) {
+                        total += refundsInRange.get(0).getRefundedDiscountMoney().getAmount();
+                    }
                 }
             }
         }
@@ -177,7 +187,9 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 for (Refund refundInRange : refundsInRange) {
-                    total += refundInRange.getRefundedMoney().getAmount();
+                    if (refundInRange.getRefundedMoney() != null) {
+                        total += refundInRange.getRefundedMoney().getAmount();
+                    }
                 }
             }
         }
@@ -211,7 +223,9 @@ public class ReportCalculator {
                 List<Refund> refundsInRange = getRefundsInRange(beginTime, endTime, refundPayment);
 
                 for (Refund refundInRange : refundsInRange) {
-                    total += refundInRange.getRefundedProcessingFeeMoney().getAmount();
+                    if (refundInRange.getRefundedProcessingFeeMoney() != null) {
+                        total += refundInRange.getRefundedProcessingFeeMoney().getAmount();
+                    }
                 }
             }
         }
@@ -250,8 +264,8 @@ public class ReportCalculator {
 
                 for (Refund refundInRange : refundsInRange) {
                     for (Tender tender : refundPayment.getTender()) {
-                        if (refundInRange.getPaymentId().equals(tender.getId())
-                                && tenderType.equals(tender.getType())) {
+                        if (refundInRange.getPaymentId().equals(tender.getId()) && tenderType.equals(tender.getType())
+                                && refundInRange.getRefundedMoney() != null) {
                             total += refundInRange.getRefundedMoney().getAmount();
                             break;
                         }
@@ -270,7 +284,7 @@ public class ReportCalculator {
             for (Payment payment : payments) {
                 for (PaymentItemization paymentItemization : payment.getItemizations()) {
                     if (paymentItemization.getItemizationType().contains("GIFT_CARD")
-                            && paymentItemization.getTotalMoney() != null) {
+                            && paymentItemization.getGrossSalesMoney() != null) {
                         total += paymentItemization.getGrossSalesMoney().getAmount();
                     }
                 }
@@ -294,7 +308,7 @@ public class ReportCalculator {
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
                     for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
                         if (paymentItemization.getItemizationType().contains("GIFT_CARD")
-                                && paymentItemization.getTotalMoney() != null) {
+                                && paymentItemization.getGrossSalesMoney() != null) {
                             total -= paymentItemization.getGrossSalesMoney().getAmount();
                         }
                     }
@@ -310,8 +324,21 @@ public class ReportCalculator {
 
         if (payments != null) {
             for (Payment payment : payments) {
-                total += payment.getTotalCollectedMoney().getAmount() - payment.getDiscountMoney().getAmount()
-                        - payment.getTaxMoney().getAmount() - payment.getTipMoney().getAmount();
+                if (payment.getTotalCollectedMoney() != null) {
+                    total += payment.getTotalCollectedMoney().getAmount();
+                }
+
+                if (payment.getDiscountMoney() != null) {
+                    total -= payment.getDiscountMoney().getAmount();
+                }
+
+                if (payment.getTaxMoney() != null) {
+                    total -= payment.getTaxMoney().getAmount();
+                }
+
+                if (payment.getTipMoney() != null) {
+                    total -= payment.getTipMoney().getAmount();
+                }
             }
         }
 
@@ -331,11 +358,26 @@ public class ReportCalculator {
 
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
                     Refund refundInRange = refundsInRange.get(0);
-                    total += refundInRange.getRefundedMoney().getAmount()
-                            - refundInRange.getRefundedDiscountMoney().getAmount()
-                            - refundInRange.getRefundedAdditiveTaxMoney().getAmount()
-                            - refundInRange.getRefundedInclusiveTaxMoney().getAmount()
-                            - refundInRange.getRefundedTipMoney().getAmount();
+
+                    if (refundInRange.getRefundedMoney() != null) {
+                        total += refundInRange.getRefundedMoney().getAmount();
+                    }
+
+                    if (refundInRange.getRefundedDiscountMoney() != null) {
+                        total -= refundInRange.getRefundedDiscountMoney().getAmount();
+                    }
+
+                    if (refundInRange.getRefundedAdditiveTaxMoney() != null) {
+                        total -= refundInRange.getRefundedAdditiveTaxMoney().getAmount();
+                    }
+
+                    if (refundInRange.getRefundedInclusiveTaxMoney() != null) {
+                        total -= refundInRange.getRefundedInclusiveTaxMoney().getAmount();
+                    }
+
+                    if (refundInRange.getRefundedTipMoney() != null) {
+                        total -= refundInRange.getRefundedTipMoney().getAmount();
+                    }
                 }
             }
         }
@@ -376,7 +418,7 @@ public class ReportCalculator {
                 for (Refund refundInRange : refundsInRange) {
                     for (Tender tender : refundPayment.getTender()) {
                         if (refundInRange.getPaymentId().equals(tender.getId())
-                                && method.equals(tender.getEntryMethod())) {
+                                && method.equals(tender.getEntryMethod()) && refundInRange.getRefundedMoney() != null) {
                             total += refundInRange.getRefundedMoney().getAmount();
                             break;
                         }
@@ -419,8 +461,8 @@ public class ReportCalculator {
 
                 for (Refund refundInRange : refundsInRange) {
                     for (Tender tender : refundPayment.getTender()) {
-                        if (refundInRange.getPaymentId().equals(tender.getId())
-                                && brand.equals(tender.getCardBrand())) {
+                        if (refundInRange.getPaymentId().equals(tender.getId()) && brand.equals(tender.getCardBrand())
+                                && refundInRange.getRefundedMoney() != null) {
                             total += refundInRange.getRefundedMoney().getAmount();
                             break;
                         }
@@ -438,7 +480,8 @@ public class ReportCalculator {
         if (payments != null) {
             for (Payment payment : payments) {
                 for (PaymentItemization paymentItemization : payment.getItemizations()) {
-                    if (category.equals(paymentItemization.getItemDetail().getCategoryName())) {
+                    if (paymentItemization.getItemDetail() != null && paymentItemization.getGrossSalesMoney() != null
+                            && category.equals(paymentItemization.getItemDetail().getCategoryName())) {
                         total += paymentItemization.getGrossSalesMoney().getAmount();
                     }
                 }
@@ -461,8 +504,9 @@ public class ReportCalculator {
 
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
                     for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
-                        if (category.equals(paymentItemization.getItemDetail().getCategoryName())
-                                && paymentItemization.getTotalMoney() != null) {
+                        if (paymentItemization.getItemDetail() != null
+                                && paymentItemization.getGrossSalesMoney() != null
+                                && category.equals(paymentItemization.getItemDetail().getCategoryName())) {
                             total -= paymentItemization.getGrossSalesMoney().getAmount();
                         }
                     }
@@ -480,7 +524,7 @@ public class ReportCalculator {
             for (Payment payment : payments) {
                 for (PaymentItemization paymentItemization : payment.getItemizations()) {
                     for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
-                        if (discount.equals(paymentDiscount.getName())) {
+                        if (discount.equals(paymentDiscount.getName()) && paymentDiscount.getAppliedMoney() != null) {
                             total += paymentDiscount.getAppliedMoney().getAmount();
                         }
                     }
@@ -505,7 +549,8 @@ public class ReportCalculator {
                 if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
                     for (PaymentItemization paymentItemization : refundPayment.getItemizations()) {
                         for (PaymentDiscount paymentDiscount : paymentItemization.getDiscounts()) {
-                            if (discount.equals(paymentDiscount.getName())) {
+                            if (discount.equals(paymentDiscount.getName())
+                                    && paymentDiscount.getAppliedMoney() != null) {
                                 total -= paymentDiscount.getAppliedMoney().getAmount();
                             }
                         }
