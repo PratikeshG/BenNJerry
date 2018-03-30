@@ -26,9 +26,9 @@ import util.TimeManager;
  */
 public class ItemSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(ItemSalesPayload.class);
-    private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
+    private static final String ITEM_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s\n",
             "Location Number", "RBU", "Item Number", "Item Description", "Daily Sales Amount", "Daily Sales Quantity",
-            "YTD Sales Amount", "YTD Sales Quantity");
+            "YTD Sales Amount", "YTD Sales Quantity", "Item SKU");
     private static final String DEFAULT_ITEM_NUMBER = "N/A";
     private static final String DEFAULT_ITEM_DESCRIPTION = "CUSTOM AMOUNT";
 
@@ -47,11 +47,12 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         try {
             // loop through payment itemizations and add to map
             for (PaymentItemization itemization : payment.getItemizations()) {
-                // key = location number + item number
                 String itemNumber = DEFAULT_ITEM_NUMBER;
                 String itemDesc = DEFAULT_ITEM_DESCRIPTION;
+                String itemSku = itemization.getItemDetail().getSku();
+
                 for (Map<String, String> row : dbItemRows) {
-                    if (itemization.getItemDetail().getSku().equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
+                    if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
                         itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
                         itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
                     }
@@ -64,13 +65,13 @@ public class ItemSalesPayload extends TntReportLocationPayload {
 
                 // key = <locationNumber><itemNumber>
                 String key = String.format("%s%s", locationDetails.locationNumber, itemNumber);
-                int saleAmount = itemization.getTotalMoney().getAmount();
+                int saleAmount = itemization.getGrossSalesMoney().getAmount();
 
                 ItemSalesPayloadEntry updateEntry = null;
                 if (itemSalesPayloadEntries.containsKey(key)) {
                     updateEntry = itemSalesPayloadEntries.get(key);
                 } else {
-                    updateEntry = new ItemSalesPayloadEntry(itemNumber, itemDesc, saleAmount);
+                    updateEntry = new ItemSalesPayloadEntry(itemNumber, itemDesc, itemSku);
                 }
 
                 // determine if this payment should be included in "daily" total
@@ -91,10 +92,10 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         ArrayList<String> rows = new ArrayList<String>();
 
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
-            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
+            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
                     locationDetails.rbu, payloadEntry.itemNumber, payloadEntry.itemDescription,
                     formatTotal(payloadEntry.dailySales), payloadEntry.dailySalesCounter,
-                    formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter);
+                    formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter, payloadEntry.itemSku);
             rows.add(row);
         }
 
@@ -104,14 +105,16 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     private class ItemSalesPayloadEntry {
         private String itemNumber;
         private String itemDescription;
+        private String itemSku;
         private int dailySales;
         private int totalSales;
         private double dailySalesCounter;
         private double totalSalesCounter;
 
-        private ItemSalesPayloadEntry(String itemNumber, String itemDesc, int initialAmount) {
+        private ItemSalesPayloadEntry(String itemNumber, String itemDesc, String itemSku) {
             this.itemNumber = itemNumber;
             this.itemDescription = itemDesc;
+            this.itemSku = itemSku;
             this.dailySales = 0;
             this.totalSales = 0;
             this.dailySalesCounter = 0;
