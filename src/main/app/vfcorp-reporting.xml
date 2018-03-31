@@ -77,7 +77,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary" to="${vfcorp.tnf.summary.email}"/>
     </sub-flow>
     <flow name="VFC:TNF:trigger-generate-loyalty-file">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
@@ -99,7 +99,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="VFC:TNF:trigger-generate-deposits-file">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tnf/deposits/LtgCWxOPXNTB7GwP" doc:name="/vfc/tnf/deposits"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/tnf/deposits/LtgCWxOPXNTB7GwP" doc:name="/vfc/tnf/deposits"/>
         <logger message="Starting VFC:TNF:trigger-generate-deposits-file" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.days != null ? message.inboundProperties.'http.query.params'.days : &quot;1&quot;]" doc:name="range"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset != null ? message.inboundProperties.'http.query.params'.offset : &quot;0&quot;]" doc:name="offset"/>

@@ -20,17 +20,17 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-TNT"/>
     </quartz:connector>
     <flow name="TNTFireworks:trigger-sftp-to-database">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/sftptodatabase/${urlKey}" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/tntfireworks/sftptodatabase/${urlKey}" doc:name="HTTPS"/>
         <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
         <set-payload value="Sync of CSV files on SFTP server to database complete" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:trigger-database-to-square">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/databasetosquare/${urlKey}" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/tntfireworks/databasetosquare/${urlKey}" doc:name="HTTPS"/>
         <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
         <set-payload value="Sync of database to Square complete" doc:name="Set Payload"/>
     </flow>
     <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTPS"/>
         <logger message="Generating location file for bank account linking" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <component doc:name="GenerateBankLocationTokensCallable">

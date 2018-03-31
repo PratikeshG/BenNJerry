@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-OAuth"/>
     </quartz:connector>
     <flow name="MI:OAuth:create-token">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/createToken" doc:name="HTTPS"/>
         <choice doc:name="Prompt user to add deployment URI parameter">
             <when expression="#[message.inboundProperties.'http.query.params'.deployment == null]">
                 <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
@@ -34,7 +34,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         </choice>
     </flow>
     <flow name="MI:OAuth:callback">
-        <http:listener config-ref="${oauth.http.config}" path="/callback" doc:name="HTTPS"/>
+        <http:listener config-ref="${default.http.config}" path="/callback" doc:name="HTTPS"/>
         <component class="util.oauth.StateVariableParser" doc:name="Verify State Token"/>
         <choice doc:name="Route based on valid state variable">
             <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">
