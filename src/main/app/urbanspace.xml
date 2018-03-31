@@ -50,7 +50,7 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
         </component>
     </flow>
     <flow name="Urbanspace:trigger-reports" processingStrategy="synchronous">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/urbanspace/reports/${urlKey}" allowedMethods="GET" doc:name="/urbanspace/reports"/>
+        <http:listener config-ref="${default.http.config}" path="/urbanspace/reports/${urlKey}" allowedMethods="GET" doc:name="/urbanspace/reports"/>
         <logger message="#['Starting UrbanSpace: ' + message.inboundProperties.'http.query.params'.deployment]" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="#[message.inboundProperties.'http.query.params'.deployment]" doc:name="Deployment ID"/>
         <set-session-variable variableName="deploymentName" value="#[message.inboundProperties.'http.query.params'.deploymentName]" doc:name="Deployment Name"/>

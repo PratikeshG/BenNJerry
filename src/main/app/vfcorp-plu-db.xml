@@ -41,7 +41,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </choice>
     </flow>
     <flow name="VFC:trigger-plu-sftp-cron">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/sync/${urlKey}" doc:name="/plu/sync"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/plu/sync/${urlKey}" doc:name="/plu/sync"/>
         <flow-ref name="VFC:plu-sftp-cron" doc:name="VFC:plu-sftp-cron"/>
         <set-payload value="Ran PLU SFTP Cron" doc:name="Set Payload"/>
     </flow>
@@ -76,7 +76,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="bhartard@squareup.com" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.brand]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
     </sub-flow>
     <flow name="VFC:trigger-plu-database-to-square-for-brand">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/square/${urlKey}/{brand}" doc:name="/vfc/plu/square/KEY/BRAND"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/plu/square/${urlKey}/{brand}" doc:name="/vfc/plu/square/KEY/BRAND"/>
         <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.uri.params'.brand]" doc:name="Set brand"/>
         <logger message="HTTP Trigger: PLU Database to Square: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
         <async doc:name="Async">

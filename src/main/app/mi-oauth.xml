@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-OAuth"/>
     </quartz:connector>
     <flow name="MI:OAuth:create-token">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/createToken" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/createToken" doc:name="HTTPS"/>
         <choice doc:name="Prompt user to add deployment URI parameter">
             <when expression="#[message.inboundProperties.'http.query.params'.deployment == null]">
                 <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
@@ -34,7 +34,7 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
         </choice>
     </flow>
     <flow name="MI:OAuth:callback">
-        <http:listener config-ref="${oauth.http.config}" path="/callback" doc:name="HTTPS"/>
+        <http:listener config-ref="${default.http.config}" path="/callback" doc:name="HTTPS"/>
         <component class="util.oauth.StateVariableParser" doc:name="Verify State Token"/>
         <choice doc:name="Route based on valid state variable">
             <when expression="#[flowVars.deployment != null &amp;&amp; flowVars.code != null]">
@@ -78,7 +78,7 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAc
         </db:select>
     </sub-flow>
     <flow name="MI:OAuth:renew-expiring-tokens">
-        <quartz:inbound-endpoint jobName="quartz-mi-renew-tokens-192834757" cronExpression="0 0 9 ? * SUN" repeatInterval="0" responseTimeout="10000" doc:name="Run every sunday at 9:00am (UTC)" connector-ref="Quartz-OAuth">
+        <quartz:inbound-endpoint jobName="quartz-mi-renew-tokens-1522527699" cronExpression="0 0 10 ? * MON" repeatInterval="0" responseTimeout="10000" doc:name="Run every Monday at 10:00am (PST)" connector-ref="Quartz-OAuth" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-payload value="#[server.dateTime.plusDays(7).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date one week in the future in ISO8601 format"/>

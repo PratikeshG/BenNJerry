@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     </quartz:connector>
     <queued-asynchronous-processing-strategy name="TNT_Reporting_Async_Processing_Strategy" maxThreads="${tntfireworks.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
     <flow name="TNTFireworks-trigger-report">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/tntfireworks/report/${urlKey}" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/tntfireworks/report/${urlKey}" doc:name="HTTPS"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.reportType]" doc:name="reportType"/>

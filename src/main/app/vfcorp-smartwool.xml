@@ -40,13 +40,13 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" from="${email.info.sending.from.reports}" subject="#['Square Daily SmartWool Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" doc:name="Email SmartWool Cohort" to="${vfcorp.smartwool.recipients}"/>
     </sub-flow>
     <flow name="VFC:SmartWool:email-report-links-trigger">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/${urlKey}/vfc-smartwool-email-report-links" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/${urlKey}/vfc-smartwool-email-report-links" doc:name="HTTPS"/>
         <logger message="Triggered VFC:SmartWool:email-report-links-trigger" level="INFO" doc:name="Logger"/>
         <flow-ref name="VFC:SmartWool:email-report-links" doc:name="VFC:SmartWool:email-report-links"/>
         <set-payload value="Triggered VFC:SmartWool:email-report-links flow" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:SmartWool:generate-reports-trigger">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/${urlKey}/vfc-smartwool-generate-reports" doc:name="HTTP"/>
+        <http:listener config-ref="${default.http.config}" path="/${urlKey}/vfc-smartwool-generate-reports" doc:name="HTTPS"/>
         <logger message="Triggered VFC:SmartWool:generate-reports-trigger" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="writeLocal" value="#[message.inboundProperties.'http.query.params'.writeLocal != null ? message.inboundProperties.'http.query.params'.writeLocal : false]" doc:name="Set Write Local"/>
         <set-session-variable variableName="#[util.Constants.RANGE]" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="Set Range"/>

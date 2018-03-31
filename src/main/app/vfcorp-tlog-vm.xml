@@ -162,13 +162,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-deploymentGroup">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs-group/${urlKey}/{deploymentGroup}" doc:name="/tlogs-group"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/tlogs-group/${urlKey}/{deploymentGroup}" doc:name="/tlogs-group"/>
         <set-variable variableName="deploymentGroup" value="#[message.inboundProperties.'http.uri.params'.deploymentGroup]" doc:name="Set deploymentGroup"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
         <set-payload value="TLOG generation triggered for deploymentGroup" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:trigger-generate-tlogs-for-deployment">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/tlogs-deployment/${urlKey}/{deployment}" doc:name="/tlogs-deployment"/>
+        <http:listener config-ref="${default.http.config}" path="/vfc/tlogs-deployment/${urlKey}/{deployment}" doc:name="/tlogs-deployment"/>
         <set-variable variableName="deployment" value="#[message.inboundProperties.'http.uri.params'.deployment]" doc:name="Set deployment"/>
         <flow-ref name="VFC:tlog-generate-for-single-deployment" doc:name="VFC:tlog-generate-for-single-deployment"/>
         <set-payload value="TLOG generation triggered." doc:name="Set Payload"/>
