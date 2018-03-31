@@ -38,13 +38,9 @@ public class LoyaltyAggregationCallable implements Callable {
 
         @SuppressWarnings("unchecked")
         List<LocationTransactionDetails> transactionDetailsByLocation = (List<LocationTransactionDetails>) message
-                .getPayload();
+                .getProperty("transactionDetailsByLocation", PropertyScope.INVOCATION);
 
         String CUSTOMER_GROUP_EMAIL = (String) message.getProperty("customerGroupEmail", PropertyScope.INVOCATION);
-
-        // Temporary use this loyalty process to generate daily email summaries
-        // TODO(bhartard): Remove once emails are no longer required by VFC
-        message.setProperty("transactionDetailsByLocation", transactionDetailsByLocation, PropertyScope.INVOCATION);
 
         HashMap<String, LoyaltyEntryPayload> loyaltyPayloadSet = new HashMap<String, LoyaltyEntryPayload>();
 

@@ -13,6 +13,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TimeZone;
@@ -76,6 +77,29 @@ public class VfcDatabaseApi {
         }
     }
 
+    public int executeUpdate(String query) throws SQLException {
+        if (query.isEmpty()) {
+            return 0;
+        }
+
+        Statement statement = null;
+        int response;
+
+        try {
+            statement = connection.createStatement();
+            response = statement.executeUpdate(query);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+
+        return response;
+    }
+
     public ArrayList<Map<String, String>> queryDbDeptClass(String brand) throws SQLException, IOException {
         return executeQuery(generatePluDeptClassSQLSelect(brand));
     }
@@ -127,6 +151,33 @@ public class VfcDatabaseApi {
         logger.debug(String.format("Generated query for location %s: %s", locationId, query));
 
         return query;
+    }
+
+    public String generatePreferredCustomerSQLUpsert(Map<String, Integer> nextPreferredCustomerIds, String deployment,
+            String storeId) {
+        String updateStatement = "";
+
+        if (nextPreferredCustomerIds.size() > 0) {
+            updateStatement = "INSERT INTO vfcorp_preferred_customer_counter (deployment, storeId, registerId, nextPreferredCustomerNumber) VALUES ";
+
+            ArrayList<String> updates = new ArrayList<String>();
+            for (Map.Entry<String, Integer> entry : nextPreferredCustomerIds.entrySet()) {
+                updates.add(
+                        String.format("('%s', '%s', '%s', %d)", deployment, storeId, entry.getKey(), entry.getValue()));
+            }
+
+            Iterator<String> i = updates.iterator();
+            if (i.hasNext()) {
+                updateStatement += i.next();
+                while (i.hasNext()) {
+                    updateStatement += ", " + i.next();
+                }
+            }
+
+            updateStatement += " ON DUPLICATE KEY UPDATE nextPreferredCustomerNumber=VALUES(nextPreferredCustomerNumber);";
+        }
+
+        return updateStatement;
     }
 
     private String getFilteredSKUQueryString(String brand) throws IOException {
