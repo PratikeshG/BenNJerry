@@ -119,4 +119,12 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </db:delete>
         <logger message="CRON: Deleted records for lookback period (#[flowVars.lookbackDate]) -- [payload]" level="INFO" doc:name="Logger"/>
     </flow>
+    <flow name="VFC:trigger-plu-sftp-reset">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/reset/${urlKey}/{brand}" doc:name="/plu/reset"/>
+        <set-variable variableName="brand" value="#[message.inboundProperties.'http.uri.params'.brand]" doc:name="Set brand"/>
+        <component doc:name="Check deployment SFTP processing folders for stale PLUs">
+		    <prototype-object class="vfcorp.PluProcessingResetCallable"/>
+		</component>
+        <set-payload value="Running PLU processing reset for VFC brand: #[flowVars.brand]" doc:name="Set Payload"/>
+    </flow>
 </mule>
