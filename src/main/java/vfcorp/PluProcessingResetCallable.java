@@ -89,7 +89,8 @@ public class PluProcessingResetCallable implements Callable {
 
         String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), Constants.PROCESSING_DIRECTORY,
                 processingFile);
-        String requeuePath = String.format("%s/%s", deployment.getPluPath(), processingFile.split("_", 2)[1]);
+        String requeuePath = String.format("%s/%s", deployment.getPluPath(),
+                processingFile.split(Constants.PROCESSING_FILE_DELIMITER, 2)[1]);
 
         channel.rename(processingPath, requeuePath);
     }
