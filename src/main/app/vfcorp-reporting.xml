@@ -30,6 +30,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <component doc:name="Create deployment payloads">
             <singleton-object class="vfcorp.reporting.DeploymentsCallable"/>
         </component>
+        <set-session-variable variableName="squarePayloads" value="#[payload]" doc:name="payloads"/>
         <request-reply doc:name="Request-Reply">
             <vm:outbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-async-worker">
                 <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
@@ -39,6 +40,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             </vm:inbound-endpoint>
         </request-reply>
         <logger message="Completed VFC:generate-aggregate-transactions-report" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="transactionDetailsByLocation" value="#[payload]" doc:name="Set transactionDetailsByLocation"/>
     </flow>
     <flow name="VFC:generate-aggregate-transactions-report-async-worker" processingStrategy="VFC_Loyalty_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="VFC:aggregate-transactions-async-worker" connector-ref="VFC_VM_Loyalty" doc:name="VFC:aggregate-transactions-async-worker"/>
@@ -48,8 +50,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </component>
     </flow>
     <sub-flow name="VFC:TNF:generate-loyalty-file">
-        <set-variable variableName="deploymentPattern" value="vfcorp-tnf-%" doc:name="deploymentPattern vfcorp-tnf-%"/>
-        <flow-ref name="VFC:generate-aggregate-transactions-report" doc:name="VFC:generate-aggregate-transactions-report"/>
+        <flow-ref name="VFC:TNF:verify-customer-loyalty-ids" doc:name="VFC:TNF:verify-customer-loyalty-ids"/>
         <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
         <set-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
         <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
@@ -68,22 +69,23 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <component doc:name="Daily Summary Logic">
             <prototype-object class="vfcorp.reporting.DailySummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML"  from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${vfcorp.tnf.summary.email}"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML"  from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="#[sessionVars.emailRecipients]"/>
     </sub-flow>
     <sub-flow name="VFC:TNF:generate-daily-category-summary-email">
         <component doc:name="Daily Category Summary Logic">
             <prototype-object class="vfcorp.reporting.DailyCategoriesSummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary" to="${vfcorp.tnf.summary.email}"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" from="${email.info.sending.from.reports}" subject="#['Square Daily TNF Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary" to="#[sessionVars.emailRecipients]"/>
     </sub-flow>
     <flow name="VFC:TNF:trigger-generate-loyalty-file">
         <http:listener config-ref="${default.http.config}" path="/vfc/loyalty/${urlKey}/{brand}" doc:name="/loyalty"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <set-session-variable variableName="emailRecipients" value="#[message.inboundProperties.'http.query.params'.email]" doc:name="emailRecipients"/>
         <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1509907119" cronExpression="0 0 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-generate-loyalty-1522533788" cronExpression="0 0 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 3:00am (PST)" connector-ref="Quartz-VFC-reporting" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger message="ATTEMPTING TO RUN TNF loyalty..." level="INFO" doc:name="debug Logger"/>
@@ -94,6 +96,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <otherwise>
                 <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
                 <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
+                <set-session-variable variableName="emailRecipients" value="${vfcorp.tnf.summary.email}" doc:name="emailRecipients: defaults"/>
                 <flow-ref name="VFC:TNF:generate-loyalty-file" doc:name="VFC:TNF:generate-loyalty-file"/>
             </otherwise>
         </choice>
@@ -116,5 +119,25 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </component>
         <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="#[sessionVars.emails]" from="${email.info.sending.from.reports}" subject="#['TNF Square Deposits - generated ' + server.dateTime.format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Summary"/>
         <set-payload value="Deposits Report generated for #[sessionVars.emails]" doc:name="Set Payload"/>
+    </flow>
+    <sub-flow name="VFC:TNF:verify-customer-loyalty-ids">
+        <logger message="Starting VFC:TNF:verify-customer-loyalty-ids" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="deploymentPattern" value="vfcorp-tnf-%" doc:name="Pattern vfcorp-tnf-%"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query preferredCustomerCounters">
+            <db:parameterized-query><![CDATA[SELECT * FROM vfcorp_preferred_customer_counter;]]></db:parameterized-query>
+        </db:select>
+        <set-session-variable variableName="preferredCustomerCounters" value="#[message.payload]" doc:name="preferredCustomerCounters"/>
+        <flow-ref name="VFC:generate-aggregate-transactions-report" doc:name="VFC:generate-aggregate-transactions-report"/>
+        <component doc:name="Customers PCM Verification">
+            <prototype-object class="vfcorp.reporting.CustomerVerificationCallable"/>
+        </component>
+    </sub-flow>
+    <flow name="VFC:TNF:trigger-customer-ids">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/customers/${urlKey}/{brand}" doc:name="/customers"/>
+        <logger message="Starting VFC:TNF:trigger-customer-ids" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
+        <flow-ref name="VFC:TNF:verify-customer-loyalty-ids" doc:name="VFC:TNF:verify-customer-loyalty-ids"/>
+        <set-payload value="Done" doc:name="Set Payload"/>
     </flow>
 </mule>
