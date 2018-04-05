@@ -154,6 +154,7 @@ public class TaxRules {
     public final static String TNF_MN_MINNEAPOLIS = "vfcorp-tnf-00022";
     public final static String TNF_MN_ALBERTVILLE = "vfcorp-tnf-00315";
     public final static String TNF_MN_MALL_OF_AMERICA = "vfcorp-tnf-00513";
+    public final static String TNF_MN_EDINA = "vfcorp-tnf-00523";
 
     // Nebraska Crossing TNF Stores #317
     // 7.0 Sales Tax
@@ -356,7 +357,7 @@ public class TaxRules {
                 return new String[] { taxes[0].getId() };
             }
         } else if (deployment.equals(TNF_MN_MINNEAPOLIS) || deployment.equals(TNF_MN_ALBERTVILLE)
-                || deployment.equals(TNF_MN_MALL_OF_AMERICA)) {
+                || deployment.equals(TNF_MN_MALL_OF_AMERICA) || deployment.equals(TNF_MN_EDINA)) {
             if (taxes.length != 1) {
                 throw new Exception("Minnesota deployment with incorrect number of taxes: " + deployment);
             }
