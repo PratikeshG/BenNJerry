@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
-    <http:request-config name="PROXY_Config_http" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="PROXY_Config_http" doc:name="HTTP Request Configuration" responseTimeout="60000" usePersistentConnections="false"/>
     <http:request-config name="PROXY_Config_https" protocol="HTTPS" doc:name="HTTP Request Configuration" responseTimeout="60000" usePersistentConnections="false">
         <tls:context>
             <tls:trust-store insecure="true"/>
@@ -37,8 +37,8 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
             </otherwise>
         </choice>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <set-payload value="#[message.payload]" doc:name="Message payload" mimeType="application/json"/>
-            <set-property propertyName="http.status" value="#[message.inboundProperties['http.status']]" doc:name="Message HTTP status"/>
+            <set-payload value="#['{&quot;proxy_error&quot;: &quot;' + exception.summaryMessage + '&quot;}']" doc:name="Message payload" mimeType="application/java"/>
+            <set-property propertyName="http.status" value="500" doc:name="Message HTTP status"/>
         </catch-exception-strategy>
 	</flow>
 
