@@ -37,7 +37,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
             </otherwise>
         </choice>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <set-payload value="#['{&quot;proxy_error&quot;: &quot;' + exception.summaryMessage + '&quot;}']" doc:name="Message payload" mimeType="application/java"/>
+            <set-payload value="#['{&quot;proxy_error&quot;: &quot;' + exception.summaryMessage + '&quot;}']" doc:name="Message payload" mimeType="application/json"/>
             <set-property propertyName="http.status" value="500" doc:name="Message HTTP status"/>
         </catch-exception-strategy>
 	</flow>
