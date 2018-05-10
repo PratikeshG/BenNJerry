@@ -9,7 +9,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
     <http:request-config name="PROXY_Config_http" doc:name="HTTP Request Configuration"/>
-    <http:request-config name="PROXY_Config_https" protocol="HTTPS" doc:name="HTTP Request Configuration">
+    <http:request-config name="PROXY_Config_https" protocol="HTTPS" doc:name="HTTP Request Configuration" responseTimeout="60000" usePersistentConnections="false">
         <tls:context>
             <tls:trust-store insecure="true"/>
         </tls:context>
@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
 		        <set-variable variableName="path" value="#[inboundProxyUrl.getPath();]" doc:name="path"/>
                 <set-variable variableName="params" value="#[flowVars.inboundProxyUrl.getQuery() != null ? &quot;?&quot; + flowVars.inboundProxyUrl.getQuery() : &quot;&quot;]" doc:name="parameters"/>
 		        <flow-ref name="sapb1-api-proxy-request-headers" doc:name="Copy headers"/>
-                <http:request config-ref="PROXY_Config_https" path="#[flowVars.path + flowVars.params]" method="#[message.inboundProperties['http.method']]" host="#[flowVars.host]" port="#[flowVars.port]" doc:name="Proxy Request">
+                <http:request responseTimeout="60000" config-ref="PROXY_Config_https" path="#[flowVars.path + flowVars.params]" method="#[message.inboundProperties['http.method']]" host="#[flowVars.host]" port="#[flowVars.port]" doc:name="Proxy Request">
                     <http:success-status-code-validator values="200..599"/>
                 </http:request>
                 <copy-properties propertyName="*" doc:name="Copy headers"/>
