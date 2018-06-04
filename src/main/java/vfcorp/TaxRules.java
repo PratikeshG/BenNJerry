@@ -26,6 +26,7 @@ public class TaxRules {
     public final static String BAG_4909 = "040004834909";
     public final static String BAG_3039 = "040008783039";
     public final static String BAG_4632 = "040007174632";
+    public final static String BAG_8465 = "040009948465";
 
     // TAX HOLIDAY STORES
     // AL
@@ -284,7 +285,8 @@ public class TaxRules {
 
         if (itemVariation.getSku() != null
                 && (itemVariation.getSku().equals(BAG_4508) || itemVariation.getSku().equals(BAG_4909)
-                        || itemVariation.getSku().equals(BAG_3039) || itemVariation.getSku().equals(BAG_4632))) {
+                        || itemVariation.getSku().equals(BAG_3039) || itemVariation.getSku().equals(BAG_4632))
+                || itemVariation.getSku().equals(BAG_8465)) {
             return new String[0];
         } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH)) {
