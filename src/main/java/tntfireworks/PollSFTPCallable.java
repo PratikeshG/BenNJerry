@@ -43,16 +43,27 @@ public class PollSFTPCallable implements Callable {
     private String sftpInputPath;
     @Value("${tntfireworks.sftp.processingpath}")
     private String sftpProcessingPath;
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 60000; // 1 minute
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
 
-        List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
+        Exception lastException = null;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+                List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
+                SshUtil.closeConnection(sftpChannel);
+                return newRequests;
+            } catch (Exception e) {
+                lastException = e;
+                lastException.printStackTrace();
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
 
-        SshUtil.closeConnection(sftpChannel);
-
-        return newRequests;
+        throw lastException;
     }
 
     /*
