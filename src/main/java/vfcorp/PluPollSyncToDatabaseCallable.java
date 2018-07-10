@@ -42,27 +42,41 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
 
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 60000; // 1 minute
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, "enablePLU = 1");
 
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        logger.info("VFC: SFTP session created");
+        Exception lastException = null;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+                logger.info("VFC: SFTP session created");
 
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        logger.info("VFC: SFTP channel created");
+                ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+                sftpChannel.connect();
+                logger.info("VFC: SFTP channel created");
 
-        List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
+                List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
 
-        sftpChannel.disconnect();
-        logger.info("VFC: SFTP channel disconnected");
+                sftpChannel.disconnect();
+                logger.info("VFC: SFTP channel disconnected");
 
-        session.disconnect();
-        logger.info("VFC: SFTP session disconnected");
+                session.disconnect();
+                logger.info("VFC: SFTP session disconnected");
 
-        return syncRequests;
+                return syncRequests;
+            } catch (Exception e) {
+                lastException = e;
+                lastException.printStackTrace();
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
+
+        throw lastException;
     }
 
     private List<PluSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VfcDeployment> deployments)
