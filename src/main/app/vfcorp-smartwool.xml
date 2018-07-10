@@ -134,7 +134,9 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
                 <file:outbound-endpoint path="output" outputPattern="#[flowVars.reportName]" connector-ref="File" responseTimeout="10000" doc:name="Write File"/>
             </when>
             <otherwise>
-                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.reportName]" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP"/>
+                <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[flowVars.reportName]" host="${vfcorp.smartwool.sftp.host}" port="${vfcorp.smartwool.sftp.port}" path="${vfcorp.sftp.path.sw}" user="${vfcorp.smartwool.sftp.username}" password="${vfcorp.smartwool.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="Transfer to GC SFTP">
+                    <reconnect frequency="60000" count="10"/>
+                </sftp:outbound-endpoint>
             </otherwise>
         </choice>
     </sub-flow>

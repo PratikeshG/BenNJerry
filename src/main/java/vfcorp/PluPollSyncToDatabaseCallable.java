@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
@@ -42,11 +44,31 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
 
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 60000; // 1 minute
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, "enablePLU = 1");
 
+        // SFTP RETRY BLOCK
+        Exception lastException = null;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                return getTnfPluSyncToDatabaseRequestsFromSftp(deployments);
+            } catch (Exception e) {
+                lastException = e;
+                lastException.printStackTrace();
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
+
+        throw lastException;
+    }
+
+    private Object getTnfPluSyncToDatabaseRequestsFromSftp(ArrayList<VfcDeployment> deployments)
+            throws JSchException, IOException, SftpException, ParseException, InterruptedException {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         logger.info("VFC: SFTP session created");
 

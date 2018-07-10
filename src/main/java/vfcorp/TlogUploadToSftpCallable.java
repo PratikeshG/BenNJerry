@@ -1,7 +1,10 @@
 package vfcorp;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -12,7 +15,9 @@ import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
 import util.CloudStorageApi;
 import util.TimeManager;
@@ -35,6 +40,9 @@ public class TlogUploadToSftpCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 60000; // 1 minute
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -56,6 +64,32 @@ public class TlogUploadToSftpCallable implements Callable {
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
         cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
 
+        return uploadTlogsWithRetries(message, tlog, archiveTlog, vfcorpStoreNumber, deployment,
+                storeforceArchiveDirectory, uploadPattern);
+    }
+
+    private Object uploadTlogsWithRetries(MuleMessage message, String tlog, boolean archiveTlog,
+            String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory, String uploadPattern)
+            throws InterruptedException, Exception {
+        Exception lastException = null;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                return uploadTntTlogsViaSftp(message, tlog, archiveTlog, vfcorpStoreNumber, deployment,
+                        storeforceArchiveDirectory, uploadPattern);
+
+            } catch (Exception e) {
+                lastException = e;
+                lastException.printStackTrace();
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
+
+        throw lastException;
+    }
+
+    private Object uploadTntTlogsViaSftp(MuleMessage message, String tlog, boolean archiveTlog,
+            String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory, String uploadPattern)
+            throws JSchException, IOException, UnsupportedEncodingException, SftpException, ParseException {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
@@ -70,11 +104,11 @@ public class TlogUploadToSftpCallable implements Callable {
 
             String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
             Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
-            String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
-                    "yyyy-MM-dd-HH-mm-ss");
+            String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone),
+                    timeZone, "yyyy-MM-dd-HH-mm-ss");
 
-            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX, vfcorpStoreNumber,
-                    TLOG_SUFFIX);
+            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX,
+                    vfcorpStoreNumber, TLOG_SUFFIX);
 
             String archiveDirectory = deployment.getTlogPath() + "/Archive";
             sftpChannel.cd(archiveDirectory);
