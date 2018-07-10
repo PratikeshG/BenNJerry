@@ -65,7 +65,7 @@ public class PollSFTPCallable implements Callable {
         throw lastException;
     }
 
-    private Object getTntSyncToDatabaseRequestsFromSftp()
+    private List<SyncToDatabaseRequest> getTntSyncToDatabaseRequestsFromSftp()
             throws JSchException, IOException, InterruptedException, SftpException, ParseException {
         ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
         List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
