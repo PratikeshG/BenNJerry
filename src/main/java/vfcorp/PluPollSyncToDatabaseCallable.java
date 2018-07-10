@@ -1,5 +1,6 @@
 package vfcorp;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
@@ -50,25 +52,11 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, "enablePLU = 1");
 
+        // SFTP RETRY BLOCK
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-                logger.info("VFC: SFTP session created");
-
-                ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-                sftpChannel.connect();
-                logger.info("VFC: SFTP channel created");
-
-                List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
-
-                sftpChannel.disconnect();
-                logger.info("VFC: SFTP channel disconnected");
-
-                session.disconnect();
-                logger.info("VFC: SFTP session disconnected");
-
-                return syncRequests;
+                return getTnfPluSyncToDatabaseRequestsFromSftp(deployments);
             } catch (Exception e) {
                 lastException = e;
                 lastException.printStackTrace();
@@ -77,6 +65,26 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         }
 
         throw lastException;
+    }
+
+    private Object getTnfPluSyncToDatabaseRequestsFromSftp(ArrayList<VfcDeployment> deployments)
+            throws JSchException, IOException, SftpException, ParseException, InterruptedException {
+        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+        logger.info("VFC: SFTP session created");
+
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+        logger.info("VFC: SFTP channel created");
+
+        List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
+
+        sftpChannel.disconnect();
+        logger.info("VFC: SFTP channel disconnected");
+
+        session.disconnect();
+        logger.info("VFC: SFTP session disconnected");
+
+        return syncRequests;
     }
 
     private List<PluSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VfcDeployment> deployments)

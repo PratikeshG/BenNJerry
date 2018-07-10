@@ -1,5 +1,6 @@
 package tntfireworks;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 
 import util.TimeManager;
@@ -52,10 +54,7 @@ public class PollSFTPCallable implements Callable {
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
-                List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
-                SshUtil.closeConnection(sftpChannel);
-                return newRequests;
+                return getTntSyncToDatabaseRequestsFromSftp();
             } catch (Exception e) {
                 lastException = e;
                 lastException.printStackTrace();
@@ -64,6 +63,14 @@ public class PollSFTPCallable implements Callable {
         }
 
         throw lastException;
+    }
+
+    private Object getTntSyncToDatabaseRequestsFromSftp()
+            throws JSchException, IOException, InterruptedException, SftpException, ParseException {
+        ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
+        List<SyncToDatabaseRequest> newRequests = getSFTPRequests(sftpChannel);
+        SshUtil.closeConnection(sftpChannel);
+        return newRequests;
     }
 
     /*
