@@ -210,15 +210,16 @@ public class TntCatalogApi {
                 item.setPresentAtLocationIds(new String[0]);
                 item.setAbsentAtLocationIds(new String[0]);
 
-                // - only clear first variation
-                // - assume first variation is managed item, following variations are custom
+                // per TNT requirements, if item is to be deleted,
+                // remove all instances of item (all item variations, including custom)
                 if (item.getItemData() != null && item.getItemData().getVariations() != null
                         && item.getItemData().getVariations().length > 0) {
-                    CatalogObject variation = item.getItemData().getVariations()[0];
-                    variation.setPresentAtAllLocations(false);
-                    variation.setPresentAtLocationIds(new String[0]);
-                    variation.setAbsentAtLocationIds(new String[0]);
-                    variation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
+                    for (CatalogObject itemVariation : item.getItemData().getVariations()) {
+                        itemVariation.setPresentAtAllLocations(false);
+                        itemVariation.setPresentAtLocationIds(new String[0]);
+                        itemVariation.setAbsentAtLocationIds(new String[0]);
+                        itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
+                    }
                 }
             }
         }
