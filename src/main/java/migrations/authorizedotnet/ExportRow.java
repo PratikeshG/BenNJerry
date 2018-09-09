@@ -1,8 +1,6 @@
 package migrations.authorizedotnet;
 
 public class ExportRow {
-    public static final String HEADER_ROW = "MerchantID, CustomerProfileID, CustomerPaymentProfileID, CustomerID, Description, Email, CardNumber, CardExpirationDate, CardType, BankAccountNumber, BankRoutingNumber, NameOnAccount, BankAccountType, ECheckRecordTypeID, BankName, Company, FirstName, LastName, Address, City, StateProv, Zip, Country, Phone, Fax";
-
     private String customerProfileID;
     private String customerPaymentProfileID;
     private String customerID;

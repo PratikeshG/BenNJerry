@@ -190,7 +190,7 @@ public class MigrationService {
         try (final BufferedWriter writer = Files.newBufferedWriter(out, StandardCharsets.ISO_8859_1,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);) {
             // read old content, manipulate, write new contents
-            Gson gson = new GsonBuilder().create();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(customerMapping, writer);
         } finally {
             System.out.println(

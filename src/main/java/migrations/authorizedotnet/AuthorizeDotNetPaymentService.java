@@ -81,23 +81,23 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
 
             ExportRow row = new ExportRow();
 
-            row.setCustomerProfileID(removeQuotes(record.get(1)));
-            row.setCustomerPaymentProfileID(removeQuotes(record.get(2)));
-            row.setCustomerID(removeQuotes(record.get(3)));
-            row.setDescription(removeQuotes(record.get(4)));
-            row.setEmail(removeQuotes(record.get(5)));
-            row.setCardNumber(removeQuotes(record.get(6)));
-            row.setCardExpirationDate(removeQuotes(record.get(7)));
-            row.setCardType(removeQuotes(record.get(8)));
-            row.setCompany(removeQuotes(record.get(15)));
-            row.setFirstName(removeQuotes(record.get(16)));
-            row.setLastName(removeQuotes(record.get(17)));
-            row.setAddress(removeQuotes(record.get(18)));
-            row.setCity(removeQuotes(record.get(19)));
-            row.setStateProv(removeQuotes(record.get(20)));
-            row.setZip(removeQuotes(record.get(21)));
-            row.setCountry(removeQuotes(record.get(22)));
-            row.setPhone(removeQuotes(record.get(23)));
+            row.setCustomerProfileID(clean(record.get(1)));
+            row.setCustomerPaymentProfileID(clean(record.get(2)));
+            row.setCustomerID(clean(record.get(3)));
+            row.setDescription(clean(record.get(4)));
+            row.setEmail(clean(record.get(5)));
+            row.setCardNumber(clean(record.get(6)));
+            row.setCardExpirationDate(clean(record.get(7)));
+            row.setCardType(clean(record.get(8)));
+            row.setCompany(clean(record.get(15)));
+            row.setFirstName(clean(record.get(16)));
+            row.setLastName(clean(record.get(17)));
+            row.setAddress(clean(record.get(18)));
+            row.setCity(clean(record.get(19)));
+            row.setStateProv(clean(record.get(20)));
+            row.setZip(clean(record.get(21)));
+            row.setCountry(clean(record.get(22)));
+            row.setPhone(clean(record.get(23)));
 
             exportRows.add(row);
 
@@ -112,7 +112,21 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
         System.out.println("\nDone processing input file: " + inputPath);
     }
 
-    private String removeQuotes(String input) {
+    private String clean(String input) {
+        input = stripNonAsciiCharacters(input);
+        input = stripControlCharacters(input);
+        return stripQuotes(input).trim();
+    }
+
+    private String stripControlCharacters(String input) {
+        return input.replaceAll("\\p{Cc}", "");
+    }
+
+    private String stripNonAsciiCharacters(String input) {
+        return input.replaceAll("[^\\x00-\\x7F]", "");
+    }
+
+    private String stripQuotes(String input) {
         return input.replaceAll("^\"|\"$", "");
     }
 
@@ -123,25 +137,32 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
         ArrayList<StripeCustomerCardExport> customerCardExports = new ArrayList<StripeCustomerCardExport>();
 
         for (ExportRow exportRow : exportRows) {
-            String expYear = exportRow.getCardExpirationDate().trim().split("-")[0];
-            String expMonth = exportRow.getCardExpirationDate().trim().split("-")[1];
+            String expYear = clean(exportRow.getCardExpirationDate().trim().split("-")[0]);
+            String expMonth = clean(exportRow.getCardExpirationDate().trim().split("-")[1]);
 
             // We only want first five digits before the zip +4
-            String postal = exportRow.getZip().trim().split("-")[0].split("\\s+")[0];
+            String postal = clean(exportRow.getZip().trim().split("-")[0].split("\\s+")[0]);
 
-            String customerName = exportRow.getFirstName() + " " + exportRow.getLastName();
+            String customerName = clean(exportRow.getFirstName() + " " + exportRow.getLastName());
 
             StripeCustomerCardExport stripeCustomerCardFormat = new StripeCustomerCardExport();
-            stripeCustomerCardFormat.setId(exportRow.getCustomerProfileID());
+            stripeCustomerCardFormat.setId(clean(exportRow.getCustomerProfileID()));
             stripeCustomerCardFormat.setName(customerName);
 
             StripeCardExport stripeCardFormat = new StripeCardExport();
-            stripeCardFormat.setId(exportRow.getCustomerPaymentProfileID());
+            stripeCardFormat.setId(clean(exportRow.getCustomerPaymentProfileID()));
             stripeCardFormat.setName(customerName);
-            stripeCardFormat.setNumber(exportRow.getCardNumber());
-            stripeCardFormat.setExpMonth(Integer.parseInt(expMonth));
-            stripeCardFormat.setExpYear(Integer.parseInt(expYear));
-            stripeCardFormat.setAddressZip(postal);
+            stripeCardFormat.setNumber(clean(exportRow.getCardNumber()));
+            stripeCardFormat.setAddressZip(clean(postal));
+
+            try {
+                stripeCardFormat.setExpMonth(Integer.parseInt(expMonth));
+                stripeCardFormat.setExpYear(Integer.parseInt(expYear));
+            } catch (Exception e) {
+                System.out.println(
+                        "Error with customer record: " + exportRow.getCustomerProfileID() + " -- " + e.getMessage());
+                System.exit(1);
+            }
 
             stripeCustomerCardFormat.setCards(new StripeCardExport[] { stripeCardFormat });
 
