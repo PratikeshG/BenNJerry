@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import migrations.authorizedotnet.ExportRow;
+import migrations.authorizedotnet.AuthDotNetExportRow;
 
 public abstract class PaymentService {
-    protected List<ExportRow> exportRows;
+    protected List<AuthDotNetExportRow> exportRows;
 
     protected String inputPath;
     protected String outputPath;
@@ -15,7 +15,7 @@ public abstract class PaymentService {
     public PaymentService(String inputPath, String outputPath) {
         this.inputPath = inputPath;
         this.outputPath = outputPath;
-        exportRows = new ArrayList<ExportRow>();
+        exportRows = new ArrayList<AuthDotNetExportRow>();
     }
 
     public abstract void readFile() throws Exception;

@@ -1,6 +1,17 @@
 package migrations.authorizedotnet;
 
-public class ExportRow {
+import java.util.ArrayList;
+
+import migrations.Messages;
+import migrations.stripe.StripeCardExport;
+import migrations.stripe.StripeCustomerCardExport;
+
+public class AuthDotNetExportRow {
+    public static final String[] HEADERS = { "First Name", "Last Name", "Company Name", "Email Address", "Phone Number",
+            "Street Address", "Street Address 2", "City", "State", "Postal Code", "Reference Id", "Customer Id" };
+
+    public static final String DATE_DELIMETER = "-";
+
     private String customerProfileID;
     private String customerPaymentProfileID;
     private String customerID;
@@ -157,5 +168,49 @@ public class ExportRow {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    private String getFullName() {
+        ArrayList<String> names = new ArrayList<String>();
+
+        if (firstName.length() > 0) {
+            names.add(firstName);
+        }
+
+        if (lastName.length() > 0) {
+            names.add(lastName);
+        }
+
+        return String.join(" ", names);
+    }
+
+    public StripeCustomerCardExport toStripeCustomerCardExport() {
+        String expYear = cardExpirationDate.trim().split("-")[0];
+        String expMonth = cardExpirationDate.trim().split("-")[1];
+
+        // We only want first five digits before the zip +4
+        String postal = zip.trim().split(DATE_DELIMETER)[0].split("\\s+")[0];
+
+        String customerName = getFullName();
+
+        StripeCustomerCardExport stripeCustomerCardFormat = new StripeCustomerCardExport();
+        stripeCustomerCardFormat.setId(customerProfileID);
+        stripeCustomerCardFormat.setName(customerName);
+
+        StripeCardExport stripeCardFormat = new StripeCardExport();
+        stripeCardFormat.setId(customerProfileID);
+        stripeCardFormat.setName(customerName);
+        stripeCardFormat.setNumber(cardNumber);
+        stripeCardFormat.setAddressZip(postal);
+
+        try {
+            stripeCardFormat.setExpMonth(Integer.parseInt(expMonth));
+            stripeCardFormat.setExpYear(Integer.parseInt(expYear));
+        } catch (Exception e) {
+            System.out.println(Messages.errorParsingCardExpirationDate(e.getMessage(), customerProfileID));
+            System.exit(1);
+        }
+
+        return stripeCustomerCardFormat;
     }
 }

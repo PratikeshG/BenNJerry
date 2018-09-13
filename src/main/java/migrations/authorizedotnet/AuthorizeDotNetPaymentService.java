@@ -26,60 +26,70 @@ import org.apache.commons.csv.QuoteMode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import migrations.Messages;
+import migrations.MigrationService;
 import migrations.PaymentService;
-import migrations.StripeCardExport;
-import migrations.StripeCustomerCardExport;
+import migrations.stripe.StripeCustomerCardExport;
 
 public class AuthorizeDotNetPaymentService extends PaymentService {
+    private static final String INPUT_STREAM_FORMAT = "ISO-8859-1";
+    private static final String CUSTOMERS = "customers";
+
+    private static final String REGEX_CONTROL_CHARS = "\\p{Cc}";
+    private static final String REGEX_NON_ASCII_CHARS = "[^\\x00-\\x7F]";
+    private static final String REGEX_QUOTED_STRING = "^\"|\"$";
+    private static final String EMPTY_STRING = "";
+
     public AuthorizeDotNetPaymentService(String inputPath, String outputPath) {
         super(inputPath, outputPath);
     }
 
     /*
      * Data Export Headers:
-     * [0] MerchantID
-     * [1] CustomerProfileID
-     * [2] CustomerPaymentProfileID
-     * [3] CustomerID
-     * [4] Description
-     * [5] Email
-     * [6] CardNumber
-     * [7] CardExpirationDate
-     * [8] CardType
-     * [9] BankAccountNumber
-     * [10] BankRoutingNumber
-     * [11] NameOnAccount
-     * [12] BankAccountType
-     * [13] ECheckRecordTypeID
-     * [14] BankName
-     * [15] Company
-     * [16] FirstName
-     * [17] LastName
-     * [18] Address
-     * [19] City
-     * [20] StateProv
-     * [21] Zip
-     * [22] Country
-     * [23] Phone
-     * [24] Fax
+     * [0] MerchantID (ex: 1203107)
+     * [1] CustomerProfileID (ex: 113596868)
+     * [2] CustomerPaymentProfileID (ex: 106527814)
+     * [3] CustomerID (ex: 145739)
+     * [4] Description -- not used
+     * [5] Email (ex: jdoe@gmail.com) - all email records seem properly formed
+     * [6] CardNumber (Ex: 4111111111111111)
+     * [7] CardExpirationDate (ex: 2016-08)
+     * [8] CardType (one of A, V, M, or D)
+     * [9] BankAccountNumber -- not used
+     * [10] BankRoutingNumber -- not used
+     * [11] NameOnAccount -- not used
+     * [12] BankAccountType (-- not used
+     * [13] ECheckRecordTypeID -- not used
+     * [14] BankName -- not used
+     * [15] Company (ex: Acme Corp)
+     * [16] FirstName (ex: John)
+     * [17] LastName (ex: Doe)
+     * [18] Address (ex: 108 Main Street)
+     * [19] City (ex: San Francisco)
+     * [20] StateProv (ex: California)
+     * [21] Zip (ex: 94104 or 94103-1234 or 94103 1234)
+     * [22] Country (ex: US)
+     * [23] Phone (ex: 5166251155) - all phone records seem properly formed
+     * [24] Fax -- not used
      */
     @Override
     public void readFile() throws Exception {
-        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(inputPath), "ISO-8859-1"));
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(new FileInputStream(inputPath), INPUT_STREAM_FORMAT));
         CSVParser parser = CSVParser.parse(in,
                 CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.MINIMAL).withTrim());
 
         int recordsParsed = 0;
 
-        System.out.println("Processing input file: " + inputPath);
+        System.out.println(Messages.startProcessingInputFile(inputPath));
 
         for (CSVRecord record : parser) {
             if (record.size() < 24) {
-                System.out.println("Skipping invalid record: " + record.toString());
+                System.out.println(Messages.skippingInvalidRecord(record.toString()));
                 continue;
             }
 
-            ExportRow row = new ExportRow();
+            AuthDotNetExportRow row = new AuthDotNetExportRow();
 
             row.setCustomerProfileID(clean(record.get(1)));
             row.setCustomerPaymentProfileID(clean(record.get(2)));
@@ -102,14 +112,9 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
             exportRows.add(row);
 
             recordsParsed++;
-            if (recordsParsed % 1000 == 0) {
-                System.out.print(".");
-            }
-            if (recordsParsed % 100000 == 0) {
-                System.out.print("\n");
-            }
+            MigrationService.printStatus(recordsParsed);
         }
-        System.out.println("\nDone processing input file: " + inputPath);
+        System.out.println(Messages.doneProcessingInputFile(inputPath));
     }
 
     private String clean(String input) {
@@ -119,58 +124,37 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
     }
 
     private String stripControlCharacters(String input) {
-        return input.replaceAll("\\p{Cc}", "");
+        return input.replaceAll(REGEX_CONTROL_CHARS, EMPTY_STRING);
     }
 
     private String stripNonAsciiCharacters(String input) {
-        return input.replaceAll("[^\\x00-\\x7F]", "");
+        return input.replaceAll(REGEX_NON_ASCII_CHARS, EMPTY_STRING);
     }
 
     private String stripQuotes(String input) {
-        return input.replaceAll("^\"|\"$", "");
+        return input.replaceAll(REGEX_QUOTED_STRING, EMPTY_STRING);
     }
 
+    /**
+     * Generates a JSON file mapping the Authorize.net customerProlfileId to the
+     * new Square Customer ID.
+     *
+     * Example;
+     * {"1204856132":"0DGX1Y6BBH4T6V8Q7GKABS7YKR", ... }
+     *
+     * This mapping is used by the card importer script.
+     */
     @Override
     public void exportCustomerCardDataToJson() throws IOException {
-        System.out.println("Generating Stripe-formatted Customer cards JSON file");
+        System.out.println(Messages.startGeneratingStripeCardJSON());
 
         ArrayList<StripeCustomerCardExport> customerCardExports = new ArrayList<StripeCustomerCardExport>();
 
-        for (ExportRow exportRow : exportRows) {
-            String expYear = clean(exportRow.getCardExpirationDate().trim().split("-")[0]);
-            String expMonth = clean(exportRow.getCardExpirationDate().trim().split("-")[1]);
-
-            // We only want first five digits before the zip +4
-            String postal = clean(exportRow.getZip().trim().split("-")[0].split("\\s+")[0]);
-
-            String customerName = clean(exportRow.getFirstName() + " " + exportRow.getLastName());
-
-            StripeCustomerCardExport stripeCustomerCardFormat = new StripeCustomerCardExport();
-            stripeCustomerCardFormat.setId(clean(exportRow.getCustomerProfileID()));
-            stripeCustomerCardFormat.setName(customerName);
-
-            StripeCardExport stripeCardFormat = new StripeCardExport();
-            stripeCardFormat.setId(clean(exportRow.getCustomerPaymentProfileID()));
-            stripeCardFormat.setName(customerName);
-            stripeCardFormat.setNumber(clean(exportRow.getCardNumber()));
-            stripeCardFormat.setAddressZip(clean(postal));
-
-            try {
-                stripeCardFormat.setExpMonth(Integer.parseInt(expMonth));
-                stripeCardFormat.setExpYear(Integer.parseInt(expYear));
-            } catch (Exception e) {
-                System.out.println(
-                        "Error with customer record: " + exportRow.getCustomerProfileID() + " -- " + e.getMessage());
-                System.exit(1);
-            }
-
-            stripeCustomerCardFormat.setCards(new StripeCardExport[] { stripeCardFormat });
-
-            customerCardExports.add(stripeCustomerCardFormat);
-
+        for (AuthDotNetExportRow exportRow : exportRows) {
+            customerCardExports.add(exportRow.toStripeCustomerCardExport());
         }
         HashMap<String, StripeCustomerCardExport[]> exportCustomerCardMap = new HashMap<String, StripeCustomerCardExport[]>();
-        exportCustomerCardMap.put("customers",
+        exportCustomerCardMap.put(CUSTOMERS,
                 customerCardExports.toArray(new StripeCustomerCardExport[exportCustomerCardMap.size()]));
 
         final Path out = Paths.get(outputPath);
@@ -178,40 +162,43 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);) {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(exportCustomerCardMap, writer);
-            // read old content, manipulate, write new contents
         } finally {
-            System.out.println("Done generating Stripe-formatted Customer cards JSON file: " + outputPath);
+            System.out.println(Messages.doneGeneratingStripeCardJSON(outputPath));
         }
     }
 
+    /**
+     * Generates a Square Dashboard CSV import file of the Customer data
+     * exported from Authorize.net. This file is meant to be manually uploaded
+     * into the merchant's Square Dashboard to greatly increase the speed of
+     * customer generation versus using the current Connect V2 APIs
+     */
     @Override
     public void exportCustomerDataToCsv() throws IOException {
-        System.out.println("Generating Dashboard Customer CSV import file");
+        System.out.println(Messages.startGeneratingDashboardCustomerCsv());
 
-        Map<String, ExportRow> uniqueCustomers = getUniqueCustomerRecords();
+        Map<String, AuthDotNetExportRow> uniqueCustomers = getUniqueCustomerRecords();
 
-        String[] HEADERS = { "First Name", "Last Name", "Company Name", "Email Address", "Phone Number",
-                "Street Address", "Street Address 2", "City", "State", "Postal Code", "Reference Id", "Customer Id" };
         Writer out = new OutputStreamWriter(new FileOutputStream(outputPath), StandardCharsets.ISO_8859_1);
         try (CSVPrinter printer = new CSVPrinter(out,
-                CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
+                CSVFormat.DEFAULT.withHeader(AuthDotNetExportRow.HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
             for (String customerProfileId : uniqueCustomers.keySet()) {
-                ExportRow customerProfile = uniqueCustomers.get(customerProfileId);
+                AuthDotNetExportRow customerProfile = uniqueCustomers.get(customerProfileId);
                 printer.printRecord(customerProfile.getFirstName(), customerProfile.getLastName(),
                         customerProfile.getCompany(), customerProfile.getEmail(), customerProfile.getPhone(),
-                        customerProfile.getAddress(), "", customerProfile.getCity(), customerProfile.getStateProv(),
-                        customerProfile.getZip(), customerProfile.getCustomerProfileID(),
-                        customerProfile.getCustomerID());
+                        customerProfile.getAddress(), EMPTY_STRING, customerProfile.getCity(),
+                        customerProfile.getStateProv(), customerProfile.getZip(),
+                        customerProfile.getCustomerProfileID(), customerProfile.getCustomerID());
             }
         }
 
-        System.out.println("Done generating Dashboard Customer CSV import file: " + outputPath);
+        System.out.println(Messages.doneGeneratingDashboardCustomerCsv(outputPath));
     }
 
-    private Map<String, ExportRow> getUniqueCustomerRecords() {
-        HashMap<String, ExportRow> uniqueCustomers = new HashMap<String, ExportRow>();
+    private Map<String, AuthDotNetExportRow> getUniqueCustomerRecords() {
+        HashMap<String, AuthDotNetExportRow> uniqueCustomers = new HashMap<String, AuthDotNetExportRow>();
 
-        for (ExportRow row : exportRows) {
+        for (AuthDotNetExportRow row : exportRows) {
             uniqueCustomers.put(row.getCustomerProfileID(), row);
         }
 

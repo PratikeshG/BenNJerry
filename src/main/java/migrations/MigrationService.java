@@ -34,9 +34,6 @@ import migrations.authorizedotnet.AuthorizeDotNetPaymentService;
 
 public class MigrationService {
     private static final String SERVICE_AUTHORIZEDOTNET = "AUTHORIZEDOTNET";
-    private static final String SERVICE_BRAINTREE = "BRAINTREE";
-    private static final String SERVICE_STRIPE = "STRIPE";
-    private static final String SERVICE_WORLDPAY = "WORLDPAY";
 
     private static final List<String> ACTIVE_SERVICES = new ArrayList<String>(Arrays.asList(SERVICE_AUTHORIZEDOTNET));
 
@@ -44,6 +41,12 @@ public class MigrationService {
     private static final String ACTION_PREPARE_CUSTOMER_CSV = "customer-csv";
     private static final String ACTION_PREPARE_CUSTOMER_MAPPING = "customer-mapping";
     private static final String ACTION_IMPORT = "import";
+
+    private static final String OPTION_INPUT = "input";
+    private static final String OPTION_OUTPUT = "output";
+    private static final String OPTION_SERVICE = "service";
+
+    private static final String INPUT_STREAM_FORMAT = "ISO-8859-1";
 
     private static final List<String> VALID_ACTIONS = new ArrayList<String>(
             Arrays.asList(ACTION_PREPARE_CUSTOMER_CARD_JSON, ACTION_PREPARE_CUSTOMER_CSV,
@@ -54,9 +57,9 @@ public class MigrationService {
     public static void main(String[] args) throws Exception {
         CommandLine parsedArgs = parseCommandLineArguments(args);
 
-        String service = parsedArgs.getOptionValue("service");
-        String input = parsedArgs.getOptionValue("input");
-        String output = parsedArgs.getOptionValue("output");
+        String service = parsedArgs.getOptionValue(OPTION_SERVICE);
+        String input = parsedArgs.getOptionValue(OPTION_INPUT);
+        String output = parsedArgs.getOptionValue(OPTION_OUTPUT);
 
         if (action.equals(ACTION_IMPORT)) {
             // TODO
@@ -68,8 +71,7 @@ public class MigrationService {
             // ACTION_PREPARE_CUSTOMER_CSV
             // ACTION_PREPARE_CARD_JSON
             if (!ACTIVE_SERVICES.contains(service)) {
-                printErrorAndExit(
-                        "Invalid payment service provided. Please select one of: " + ACTIVE_SERVICES.toString());
+                printErrorAndExit(Messages.invalidPaymentService(ACTIVE_SERVICES.toString()));
             }
 
             PaymentService paymentProvider;
@@ -97,24 +99,24 @@ public class MigrationService {
         action = args[args.length - 1];
 
         // Prepare
-        Option optionService = new Option("service", true,
-                "Payment service provider. One of: " + ACTIVE_SERVICES.toString());
-        optionService.setRequired(isOptionRequiredForAction(action, "service"));
+        Option optionService = new Option(OPTION_SERVICE, true,
+                Messages.invalidPaymentService(ACTIVE_SERVICES.toString()));
+        optionService.setRequired(isOptionRequiredForAction(action, OPTION_SERVICE));
         options.addOption(optionService);
 
-        Option optionInputPath = new Option("input", true, "File path for data import.");
-        optionInputPath.setRequired(isOptionRequiredForAction(action, "input"));
+        Option optionInputPath = new Option(OPTION_INPUT, true, "File path for data import.");
+        optionInputPath.setRequired(isOptionRequiredForAction(action, OPTION_INPUT));
         options.addOption(optionInputPath);
 
-        Option optionOutputPath = new Option("output", true, "File path for data output.");
-        optionOutputPath.setRequired(isOptionRequiredForAction(action, "output"));
+        Option optionOutputPath = new Option(OPTION_OUTPUT, true, "File path for data output.");
+        optionOutputPath.setRequired(isOptionRequiredForAction(action, OPTION_OUTPUT));
         options.addOption(optionOutputPath);
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = null;
 
         if (!isValidAction(action)) {
-            printHelpAndExit("Invalid action requested. Valid actions: " + VALID_ACTIONS.toString(), options);
+            printHelpAndExit(Messages.invalidScriptAction(VALID_ACTIONS.toString()), options);
         }
 
         try {
@@ -127,14 +129,14 @@ public class MigrationService {
     }
 
     private static void printErrorAndExit(String error) {
-        System.out.println("error: " + error);
+        System.out.println(Messages.error(error));
         System.exit(1);
     }
 
     private static void printHelpAndExit(String message, Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        System.out.println("error: " + message);
-        formatter.printHelp("migratonservice [Option]... [Action]", options);
+        System.out.println(Messages.error(message));
+        formatter.printHelp(Messages.cmdHelpMessage(), options);
         System.exit(1);
     }
 
@@ -143,10 +145,10 @@ public class MigrationService {
         switch (action) {
             case ACTION_PREPARE_CUSTOMER_CARD_JSON: // same as below
             case ACTION_PREPARE_CUSTOMER_CSV:
-                required.addAll(Arrays.asList("service", "input", "output"));
+                required.addAll(Arrays.asList(OPTION_SERVICE, OPTION_INPUT, OPTION_OUTPUT));
                 break;
             case ACTION_PREPARE_CUSTOMER_MAPPING:
-                required.addAll(Arrays.asList("input", "output"));
+                required.addAll(Arrays.asList(OPTION_INPUT, OPTION_OUTPUT));
                 break;
             case ACTION_IMPORT:
                 break;
@@ -159,17 +161,18 @@ public class MigrationService {
     }
 
     private static void generateCustomerMapping(String inputPath, String outputPath) throws IOException {
-        System.out.println("Generating Customer External ID to Square Customer ID mapping file for card importer");
+        System.out.println(Messages.startGeneratingCustomerMapping());
 
         HashMap<String, String> customerMapping = new HashMap<String, String>();
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(inputPath), "ISO-8859-1"));
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(new FileInputStream(inputPath), INPUT_STREAM_FORMAT));
         CSVParser parser = CSVParser.parse(in,
                 CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.MINIMAL).withTrim());
 
         int recordsParsed = 0;
 
-        System.out.println("Processing input file: " + inputPath);
+        System.out.println(Messages.startProcessingInputFile(inputPath));
 
         for (CSVRecord record : parser) {
             String externalCustomerId = record.get(0);
@@ -178,24 +181,25 @@ public class MigrationService {
             customerMapping.put(externalCustomerId, squareCustomerId);
 
             recordsParsed++;
-            if (recordsParsed % 1000 == 0) {
-                System.out.print(".");
-            }
-            if (recordsParsed % 100000 == 0) {
-                System.out.print("\n");
-            }
+            printStatus(recordsParsed);
         }
 
         final Path out = Paths.get(outputPath);
         try (final BufferedWriter writer = Files.newBufferedWriter(out, StandardCharsets.ISO_8859_1,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);) {
-            // read old content, manipulate, write new contents
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(customerMapping, writer);
         } finally {
-            System.out.println(
-                    "\nDone generating Customer External ID to Square Customer ID mapping file for card importer: "
-                            + outputPath);
+            System.out.println(Messages.doneGeneratingCustomerMapping(outputPath));
+        }
+    }
+
+    public static void printStatus(int progress) {
+        if (progress % 1000 == 0) {
+            System.out.print(Messages.PERIOD);
+        }
+        if (progress % 100000 == 0) {
+            System.out.print(Messages.NEWLINE);
         }
     }
 }
