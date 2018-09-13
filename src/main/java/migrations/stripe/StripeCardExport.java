@@ -1,4 +1,4 @@
-package migrations;
+package migrations.stripe;
 
 import com.google.gson.annotations.SerializedName;
 

@@ -1,4 +1,4 @@
-package migrations;
+package migrations.stripe;
 
 public class StripeCustomerCardExport {
     private StripeCardExport[] cards;
