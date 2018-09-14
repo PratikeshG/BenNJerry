@@ -295,8 +295,6 @@ public class PluParser {
             }
 
             updateStatement = appendWithListIterator(updateStatement, updates);
-            updateStatement += " ON DUPLICATE KEY UPDATE salePrice=VALUES(salePrice), dateSaleBegins=VALUES(dateSaleBegins), "
-                    + "dateSaleEnds=VALUES(dateSaleEnds), timeSaleBegins=VALUES(timeSaleBegins), timeSaleEnds=VALUES(timeSaleEnds);";
         }
 
         return updateStatement;
