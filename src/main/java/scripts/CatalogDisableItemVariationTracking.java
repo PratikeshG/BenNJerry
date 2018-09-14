@@ -1,6 +1,7 @@
 package scripts;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.squareup.connect.v2.CatalogItemVariation;
@@ -8,7 +9,6 @@ import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.ItemVariationLocationOverride;
 import com.squareup.connect.v2.SquareClientV2;
 
-import edu.emory.mathcs.backport.java.util.Arrays;
 import util.SquarePayload;
 
 public class CatalogDisableItemVariationTracking {
