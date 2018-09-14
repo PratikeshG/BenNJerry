@@ -6,7 +6,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,6 +31,8 @@ public class PluCatalogBuilder {
 
     private static String DEPLOYMENT_PREFIX = "vfcorp";
     private static String INVALID_STORE_ID = "00000";
+
+    private static int BATCH_UPSERT_SIZE = 25;
 
     private SquareClientV2 client;
     private String databaseUrl;
@@ -91,12 +95,14 @@ public class PluCatalogBuilder {
         // Remove repeated item meta data, such as superfluous location price overrides
         prepareForUpsert(workingCatalog);
 
+        logger.info("TOTAL ITEMS IN ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
         logger.info("TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
         CatalogObject[] modifiedItems = workingCatalog.getModifiedItems();
         logger.info("TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
 
         upsertObjectsToSquare(modifiedItems, "item");
-        removeItemsNotPresentAtAnyLocations(workingCatalog);
+
+        removeInvalidItems(workingCatalog);
     }
 
     private void prepareForUpsert(Catalog catalog) {
@@ -168,18 +174,77 @@ public class PluCatalogBuilder {
         logger.info("MODIFIER LISTS: " + catalog.getModifierLists().size());
     }
 
-    private void removeItemsNotPresentAtAnyLocations(Catalog catalog) {
+    /*
+     * Remove remove items no longer present at any location, AND
+     * Remove items with duplicate SKUs existing in account
+     */
+    private void removeInvalidItems(Catalog catalog) {
         ArrayList<String> idsToDelete = new ArrayList<String>();
+
+        int totalDuplicateSkus = 0;
+        Map<String, List<CatalogObject>> duplicateSkuObjectCache = getDucplicateSkuCache(catalog);
 
         for (String key : catalog.getItems().keySet()) {
             CatalogObject item = catalog.getItem(key);
+            CatalogObject[] duplicateItemsBySku = getDuplicateItemsBySku(duplicateSkuObjectCache, item);
 
+            // removeItemsNotPresentAtAnyLocations
             if (!isObjectPresentAtAnyLocation(item)) {
                 idsToDelete.add(item.getId());
             }
+            // removeItemsWithDuplicateSkus
+            else if (duplicateItemsBySku.length > 0) {
+                for (CatalogObject duplicateObject : duplicateItemsBySku) {
+                    idsToDelete.add(duplicateObject.getId());
+                }
+            }
+
+            totalDuplicateSkus += duplicateItemsBySku.length;
         }
 
+        logger.info("TOTAL DUPLCATE SKUS IN CATALOG: " + totalDuplicateSkus);
+
         deleteObjectsFromSquare(idsToDelete.toArray(new String[0]));
+    }
+
+    private Map<String, List<CatalogObject>> getDucplicateSkuCache(Catalog catalog) {
+        Map<String, List<CatalogObject>> objectCache = new HashMap<String, List<CatalogObject>>();
+
+        for (CatalogObject originalCatalogItem : catalog.getOriginalItems().values()) {
+            String sku = "";
+            if (originalCatalogItem.getItemData() != null
+                    && originalCatalogItem.getItemData().getVariations().length > 0
+                    && originalCatalogItem.getItemData().getVariations()[0].getItemVariationData() != null) {
+                sku = originalCatalogItem.getItemData().getVariations()[0].getItemVariationData().getSku();
+            }
+
+            ArrayList<CatalogObject> matchingSkus = (ArrayList<CatalogObject>) objectCache.getOrDefault(sku,
+                    new ArrayList<CatalogObject>());
+            matchingSkus.add(originalCatalogItem);
+            objectCache.put(sku, matchingSkus);
+        }
+
+        return objectCache;
+    }
+
+    private CatalogObject[] getDuplicateItemsBySku(Map<String, List<CatalogObject>> objectCache,
+            CatalogObject finalCatalogItem) {
+        ArrayList<CatalogObject> itemsWithDuplicateSku = new ArrayList<CatalogObject>();
+
+        String finalCatalogItemId = finalCatalogItem.getId();
+        String finalCatalogItemSku = finalCatalogItem.getItemData().getVariations()[0].getItemVariationData().getSku();
+
+        // Duplicate SKU detected on an original account item
+        for (CatalogObject originalItem : objectCache.get(finalCatalogItemSku)) {
+            if (!originalItem.getId().equals(finalCatalogItemId) && originalItem.getItemData() != null
+                    && originalItem.getItemData().getVariations().length > 0
+                    && originalItem.getItemData().getVariations()[0].getItemVariationData() != null) {
+
+                itemsWithDuplicateSku.add(originalItem);
+            }
+        }
+
+        return itemsWithDuplicateSku.toArray(new CatalogObject[0]);
     }
 
     private CatalogObject[] objectsPresentAtLocation(CatalogObject[] objects, String locationId) {
@@ -255,7 +320,7 @@ public class PluCatalogBuilder {
     private void upsertObjectsToSquare(CatalogObject[] objects, String type) {
         logger.info(String.format("Upserting %s objects from catalog...", type));
         try {
-            client.catalog().batchUpsertObjects(objects);
+            client.catalog().setBatchUpsertSize(BATCH_UPSERT_SIZE).batchUpsertObjects(objects);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(

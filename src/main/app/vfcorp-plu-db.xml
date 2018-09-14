@@ -85,7 +85,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-payload value="Running PLU Database to Square for VFC brand: #[sessionVars.brand]" doc:name="Set Payload"/>
     </flow>
     <flow name="VFC:TNF:plu-trigger-database-to-square" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1509907119" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1531330120" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for TNF" level="INFO" doc:name="Logger"/>
