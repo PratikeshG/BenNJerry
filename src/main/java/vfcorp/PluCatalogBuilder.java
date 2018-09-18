@@ -174,15 +174,17 @@ public class PluCatalogBuilder {
         logger.info("MODIFIER LISTS: " + catalog.getModifierLists().size());
     }
 
-    /*
-     * Remove remove items no longer present at any location, AND
+    /* VFC Catalogs are a 1:1 mapping between a CatalogItem and a CatalogItemVariation
+     * There should be no duplicate SKUs across CatalogItemVariations.
+     *
+     * Remove items no longer present at any location, AND
      * Remove items with duplicate SKUs existing in account
      */
     private void removeInvalidItems(Catalog catalog) {
         ArrayList<String> idsToDelete = new ArrayList<String>();
 
         int totalDuplicateSkus = 0;
-        Map<String, List<CatalogObject>> duplicateSkuObjectCache = getDucplicateSkuCache(catalog);
+        Map<String, List<CatalogObject>> duplicateSkuObjectCache = getDuplicateSkuCache(catalog);
 
         for (String key : catalog.getItems().keySet()) {
             CatalogObject item = catalog.getItem(key);
@@ -197,9 +199,9 @@ public class PluCatalogBuilder {
                 for (CatalogObject duplicateObject : duplicateItemsBySku) {
                     idsToDelete.add(duplicateObject.getId());
                 }
-            }
 
-            totalDuplicateSkus += duplicateItemsBySku.length;
+                totalDuplicateSkus += duplicateItemsBySku.length;
+            }
         }
 
         logger.info("TOTAL DUPLCATE SKUS IN CATALOG: " + totalDuplicateSkus);
@@ -207,16 +209,14 @@ public class PluCatalogBuilder {
         deleteObjectsFromSquare(idsToDelete.toArray(new String[0]));
     }
 
-    private Map<String, List<CatalogObject>> getDucplicateSkuCache(Catalog catalog) {
+    /*
+     * Returns a Map of SKU strings to CatalogObjects that share the same CatalogItem SKU
+     */
+    private Map<String, List<CatalogObject>> getDuplicateSkuCache(Catalog catalog) {
         Map<String, List<CatalogObject>> objectCache = new HashMap<String, List<CatalogObject>>();
 
         for (CatalogObject originalCatalogItem : catalog.getOriginalItems().values()) {
-            String sku = "";
-            if (originalCatalogItem.getItemData() != null
-                    && originalCatalogItem.getItemData().getVariations().length > 0
-                    && originalCatalogItem.getItemData().getVariations()[0].getItemVariationData() != null) {
-                sku = originalCatalogItem.getItemData().getVariations()[0].getItemVariationData().getSku();
-            }
+            String sku = getCatalogItemFirstSku(originalCatalogItem);
 
             ArrayList<CatalogObject> matchingSkus = (ArrayList<CatalogObject>) objectCache.getOrDefault(sku,
                     new ArrayList<CatalogObject>());
@@ -227,6 +227,20 @@ public class PluCatalogBuilder {
         return objectCache;
     }
 
+    private String getCatalogItemFirstSku(CatalogObject catalogObject) {
+        String sku = "";
+
+        if (catalogObject.getItemData() != null && catalogObject.getItemData().getVariations().length > 0
+                && catalogObject.getItemData().getVariations()[0].getItemVariationData() != null) {
+            sku = catalogObject.getItemData().getVariations()[0].getItemVariationData().getSku();
+        }
+
+        return sku;
+    }
+
+    /*
+     * Returns all CatalogObjects that share the SKU of the finalCatalogItem, but are not the finalCatalogItem object
+     */
     private CatalogObject[] getDuplicateItemsBySku(Map<String, List<CatalogObject>> objectCache,
             CatalogObject finalCatalogItem) {
         ArrayList<CatalogObject> itemsWithDuplicateSku = new ArrayList<CatalogObject>();
