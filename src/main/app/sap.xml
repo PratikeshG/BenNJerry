@@ -45,7 +45,14 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
             </otherwise>
         </choice>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <set-payload value="#['{&quot;proxy_error&quot;: &quot;' + exception.summaryMessage + '&quot;}']" doc:name="Message payload" mimeType="application/json"/>
+            <choice doc:name="Choice">
+                <when expression="#[exception.message != null &amp;&amp; exception.message.contains(&quot;Error sending HTTP request.&quot;)]">
+                    <set-payload value="#['{&quot;proxy_error&quot;: &quot;Error establishing connectivity to your instance. If you ARE using a router, please (1) check that the IP address defined in Bridge is equal to the external IP address of your router, and the port defined in Bridge is accessible to the Square IP addresses defined in the setup guide (2) check that the router uses port forwarding to the internal IP address of your server running Square Monitor, (3) check that port forwarded on the router matches the Square Monitor port in the square-config.ini file, and (4) check that NSSM has successfully started Square Monitor. If you are NOT using a router, please (1) make sure that the IP address in Bridge matches the external IP of your server and the port is accessible to the Square IP addresses defined in the setup guide, (2) the port matches the Square Monitor port square-config.ini file and (3) check that NSSM has successfully started Square Monitor&quot;}']" doc:name="Set Payload to Unable to Connect Message"/>
+                </when>
+                <otherwise>
+                    <set-payload value="#['{&quot;proxy_error&quot;: &quot;' + exception.message + '&quot;}']" mimeType="application/json" doc:name="Set Payload to Exception Message"/>
+                </otherwise>
+            </choice>
             <set-property propertyName="http.status" value="500" doc:name="Message HTTP status"/>
         </catch-exception-strategy>
 	</flow>
