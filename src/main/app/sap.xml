@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
         </choice>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <choice doc:name="Choice">
-                <when expression="#[exception instanceof java.util.concurrent.TimeoutException]">
+                <when expression="#[exception.getCause() != null &amp;&amp; exception.getCause() instanceof java.net.ConnectException]">
                 	<set-property propertyName="http.status" value="#[502]" doc:name="Set HTTP property to 502 Bad Gateway" />
                 </when>
                 <otherwise>
