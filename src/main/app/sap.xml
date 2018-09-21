@@ -16,7 +16,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
     </http:request-config>
 
     <flow name="sapb1-api-proxy">
-		<http:listener config-ref="HTTP_Listener_Configuration" path="/sap/proxy" doc:name="HTTPS"/>
+		<http:listener config-ref="${sap.http.config}" path="/sap/proxy" doc:name="HTTPS"/>
         <choice doc:name="Choice">
             <when expression="#[message.inboundProperties['X-Proxy-Authorization'] != '${sap.proxy.token}']">
                 <set-payload value="{&quot;type&quot;: &quot;service.not_authorized&quot;, &quot;message&quot;: &quot;Not Authorized&quot;}" doc:name="Not Authorized" mimeType="application/json"/>
