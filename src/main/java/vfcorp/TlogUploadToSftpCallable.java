@@ -48,34 +48,41 @@ public class TlogUploadToSftpCallable implements Callable {
         MuleMessage message = eventContext.getMessage();
 
         String tlog = message.getProperty("tlog", PropertyScope.INVOCATION);
+
+        boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
+                ? true : false;
         boolean archiveTlog = message.getProperty("enableTlogArchive", PropertyScope.INVOCATION).equals("true") ? true
                 : false;
+
         String vfcorpStoreNumber = message.getProperty("vfcorpStoreNumber", PropertyScope.INVOCATION);
         VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
+
         String storeforceArchiveDirectory = message.getProperty("storeforceArchiveDirectory", PropertyScope.INVOCATION);
 
         String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
 
-        // Archive to Google Cloud Storage
-        String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
-        String cloudArchiveFolder = message.getProperty("cloudArchiveFolder", PropertyScope.INVOCATION);
-        String fileKey = String.format("%s%s.secure", cloudArchiveFolder, uploadPattern);
+        // Archive complete TLOGs to Google Cloud Storage
+        if (!isStoreforceTrickle) {
+            String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
+            String cloudArchiveFolder = message.getProperty("cloudArchiveFolder", PropertyScope.INVOCATION);
+            String fileKey = String.format("%s%s.secure", cloudArchiveFolder, uploadPattern);
 
-        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
+            CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
+            cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
+        }
 
-        return uploadTlogsWithRetries(message, tlog, archiveTlog, vfcorpStoreNumber, deployment,
+        return uploadTlogsWithRetries(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber, deployment,
                 storeforceArchiveDirectory, uploadPattern);
     }
 
-    private Object uploadTlogsWithRetries(MuleMessage message, String tlog, boolean archiveTlog,
-            String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory, String uploadPattern)
-            throws InterruptedException, Exception {
+    private Object uploadTlogsWithRetries(MuleMessage message, String tlog, boolean isStoreforceTrickle,
+            boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
+            String uploadPattern) throws InterruptedException, Exception {
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                return uploadTntTlogsViaSftp(message, tlog, archiveTlog, vfcorpStoreNumber, deployment,
-                        storeforceArchiveDirectory, uploadPattern);
+                return uploadTntTlogsViaSftp(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber,
+                        deployment, storeforceArchiveDirectory, uploadPattern);
 
             } catch (Exception e) {
                 lastException = e;
@@ -87,36 +94,40 @@ public class TlogUploadToSftpCallable implements Callable {
         throw lastException;
     }
 
-    private Object uploadTntTlogsViaSftp(MuleMessage message, String tlog, boolean archiveTlog,
-            String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory, String uploadPattern)
+    private Object uploadTntTlogsViaSftp(MuleMessage message, String tlog, boolean isStoreforceTrickle,
+            boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
+            String uploadPattern)
             throws JSchException, IOException, UnsupportedEncodingException, SftpException, ParseException {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
         sftpChannel.connect();
 
-        InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
-        sftpChannel.cd(deployment.getTlogPath());
-        sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+        // Only put in main SFTP folder if final end of day TLOG generation flow
+        if (!isStoreforceTrickle) {
+            InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+            sftpChannel.cd(deployment.getTlogPath());
+            sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+        }
 
-        // Archive enabled
-        if (archiveTlog) {
+        // Archive copy enabled
+        if (!isStoreforceTrickle && archiveTlog) {
             InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
 
             String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
             Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
-            String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone),
-                    timeZone, "yyyy-MM-dd-HH-mm-ss");
+            String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
+                    "yyyy-MM-dd-HH-mm-ss");
 
-            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX,
-                    vfcorpStoreNumber, TLOG_SUFFIX);
+            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX, vfcorpStoreNumber,
+                    TLOG_SUFFIX);
 
             String archiveDirectory = deployment.getTlogPath() + "/Archive";
             sftpChannel.cd(archiveDirectory);
             sftpChannel.put(archiveUploadStream, archiveUploadPattern, ChannelSftp.OVERWRITE);
         }
 
-        // If deployment has storeforce enabled, save another copy of TLOG to SF archive directory
-        if (storeforceArchiveDirectory.length() > 0) {
+        // If deployment has Storeforce enabled, save copy of TLOG to SF archive directory
+        if (isStoreforceTrickle && storeforceArchiveDirectory.length() > 0) {
             InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
 
             sftpChannel.cd(storeforceArchiveDirectory);
