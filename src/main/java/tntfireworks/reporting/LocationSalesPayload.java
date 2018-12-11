@@ -29,9 +29,9 @@ import util.TimeManager;
 public class LocationSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(LocationSalesPayload.class);
 
-    private static final String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s\n",
-            "Location Number", "RBU", "Daily Sales (CREDIT ONLY)", "YTD Sales (CREDIT ONLY)",
-            "Daily Sales (CASH/CREDIT)", "YTD Sales (CASH/CREDIT)");
+    private static final String LOCATION_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s\n",
+            "Location Number", "RBU", "City", "Sales Associate Number", "Daily Sales (CREDIT ONLY)",
+            "YTD Sales (CREDIT ONLY)", "Daily Sales (CASH/CREDIT)", "YTD Sales (CASH/CREDIT)");
     private Map<String, String> dayTimeInterval;
     private int creditDailySales;
     private int cashDailySales;
@@ -77,9 +77,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     }
 
     public String getRow() {
-        String row = String.format("%s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber, locationDetails.rbu,
-                formatTotal(creditDailySales), formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()),
-                formatTotal(getCashCreditTotal()));
+        String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
+                locationDetails.rbu, locationDetails.city, locationDetails.saNumber, formatTotal(creditDailySales),
+                formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()), formatTotal(getCashCreditTotal()));
         return row;
     }
 
