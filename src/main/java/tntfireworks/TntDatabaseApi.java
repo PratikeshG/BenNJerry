@@ -45,6 +45,7 @@ public class TntDatabaseApi {
     public static final String DB_LOCATION_RBU_COLUMN = "rbu";
     public static final String DB_LOCATION_ZIP_COLUMN = "zip";
     public static final String DB_LOCATION_SA_NAME_COLUMN = "saName";
+    public static final String DB_LOCATION_SA_NUMBER_COLUMN = "saNum";
 
     private DbConnection dbConnection;
 

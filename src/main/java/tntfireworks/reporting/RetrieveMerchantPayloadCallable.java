@@ -233,6 +233,17 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                 && !location.getName().contains(TNT_DEFAULT_LOCATION_NAME_PREFIX);
     }
 
+    private boolean hasFullRefund(Payment payment) {
+        // - check for existence of refunds
+        // - $0 POS transactions resulting from discounts should still be considered a reported item
+        if (payment.getRefunds() != null && payment.getRefunds().length > 0) {
+            return (Math.abs(payment.getRefundedMoney().getAmount()) == Math
+                    .abs(payment.getTotalCollectedMoney().getAmount()));
+        }
+
+        return false;
+    }
+
     private SettlementsPayload generateSettlementsPayload(SquareClient squareClientV1,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
         SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationDetails);
@@ -308,7 +319,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            itemSalesPayload.addEntry(payment, dbItemRows);
+            // only include payments that were not fully refunded (returned)
+            if (!hasFullRefund(payment)) {
+                itemSalesPayload.addEntry(payment, dbItemRows);
+            }
         }
 
         return itemSalesPayload;

@@ -22,6 +22,7 @@ public class TntLocationDetails {
     protected String zip;
     protected String rbu;
     protected String saName;
+    protected String saNumber;
 
     public TntLocationDetails(List<Map<String, String>> dbLocationRows, String locationName) {
         this.locationName = locationName.replaceAll(",", "");
@@ -31,6 +32,7 @@ public class TntLocationDetails {
         this.state = "";
         this.zip = "";
         this.saName = "";
+        this.saNumber = "";
 
         for (Map<String, String> row : dbLocationRows) {
             if (locationNumber.equals(row.get(TntDatabaseApi.DB_LOCATION_LOCATION_NUMBER_COLUMN))) {
@@ -39,6 +41,7 @@ public class TntLocationDetails {
                 this.rbu = row.get(TntDatabaseApi.DB_LOCATION_RBU_COLUMN);
                 this.zip = row.get(TntDatabaseApi.DB_LOCATION_ZIP_COLUMN);
                 this.saName = row.get(TntDatabaseApi.DB_LOCATION_SA_NAME_COLUMN);
+                this.saNumber = row.get(TntDatabaseApi.DB_LOCATION_SA_NUMBER_COLUMN);
             }
         }
     }
