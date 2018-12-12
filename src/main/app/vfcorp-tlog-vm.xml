@@ -108,15 +108,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
         </foreach>
     </sub-flow>
-    <sub-flow name="VFC:tlog-generate-for-tnf-storeforce">
-        <logger message="Initiating TLOG generation for Storeforce trickle deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
-        <component doc:name="Get all deployments for storeforce">
-            <prototype-object class="vfcorp.TlogQueryDatabaseDeploymentsStoreForceCallable"/>
-        </component>
-        <foreach doc:name="For Each VfcDeployment">
-            <vm:outbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
-        </foreach>
-    </sub-flow>
     <sub-flow name="VFC:tlog-generate-for-single-deployment">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
         <component doc:name="Get deployment">
@@ -130,7 +121,8 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-%" doc:name="Set deploymentGroup: tnf-%"/>
         <set-session-variable variableName="storeforceTrickle" value="true" doc:name="Set storeforceTrickle: true"/>
-        <flow-ref name="VFC:tlog-generate-for-tnf-storeforce" doc:name="VFC:tlog-generate-for-tnf-storeforce"/>
+        <logger message="Initiating TLOG generation for Storeforce trickle" level="INFO" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-hawaii-1543018974" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="Pacific/Honolulu">
