@@ -53,6 +53,7 @@ public class Tlog {
     private static Logger logger = LoggerFactory.getLogger(Tlog.class);
 
     private ObjectStore<String> objectStore;
+    private boolean commitObjectStore;
 
     public Tlog() {
         transactionLog = new LinkedList<Record>();
@@ -72,6 +73,10 @@ public class Tlog {
 
     public void setObjectStore(ObjectStore<String> objectStore) {
         this.objectStore = objectStore;
+    }
+
+    public void setCommitObjectStore(boolean commitObjectStore) {
+        this.commitObjectStore = commitObjectStore;
     }
 
     public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees,
@@ -270,7 +275,7 @@ public class Tlog {
 
                 paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList,
                         TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment,
-                        timeZoneId));
+                        timeZoneId, commitObjectStore));
 
                 transactionLog.addAll(paymentList);
             }
@@ -330,7 +335,7 @@ public class Tlog {
                     .parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
             newRecordList.addFirst(new TransactionHeader().parse(location, registerPayments, registerNumber,
                     TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore,
-                    deployment, timeZoneId));
+                    deployment, timeZoneId, commitObjectStore));
 
             transactionLog.addAll(newRecordList);
         }

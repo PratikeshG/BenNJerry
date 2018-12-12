@@ -48,6 +48,9 @@ public class TlogGenerator implements Callable {
 
         String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
 
+        boolean commitObjectStore = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
+                ? false : true;
+
         // Loyalty settings
         boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
                 .equals("true") ? true : false;
@@ -207,6 +210,7 @@ public class TlogGenerator implements Callable {
             ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
                     .lookupObject("_defaultUserObjectStore");
             tlog.setObjectStore(objectStore);
+            tlog.setCommitObjectStore(commitObjectStore);
             tlog.parse(matchingMerchant, tlogGeneratorPayload.getPayments(), tlogGeneratorPayload.getEmployees(),
                     tlogGeneratorPayload.getCustomers());
 

@@ -32,7 +32,7 @@ public class PluCatalogBuilder {
     private static String DEPLOYMENT_PREFIX = "vfcorp";
     private static String INVALID_STORE_ID = "00000";
 
-    private static int BATCH_UPSERT_SIZE = 25;
+    private static int BATCH_UPSERT_SIZE = 5;
 
     private SquareClientV2 client;
     private String databaseUrl;

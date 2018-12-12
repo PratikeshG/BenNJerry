@@ -116,195 +116,201 @@ public class TransactionHeader extends Record {
     private static String id;
 
     static {
-	fields = new HashMap<String, FieldDetails>();
-	length = 162;
-	id = "000";
+        fields = new HashMap<String, FieldDetails>();
+        length = 162;
+        id = "000";
 
-	fields.put("Identifier", new FieldDetails(3, 1, ""));
-	fields.put("Store Number", new FieldDetails(5, 4, "Zero filled, right justified"));
-	fields.put("Register Number", new FieldDetails(3, 9, "zero filled"));
-	fields.put("Cashier Number", new FieldDetails(6, 12, "Zero filled, right justified"));
-	fields.put("Employee Number", new FieldDetails(11, 18, "zero filled"));
-	fields.put("Transaction Number", new FieldDetails(6, 29, ""));
-	fields.put("Transaction Date", new FieldDetails(8, 35, "MMDDYYYY, zero filled"));
-	fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM - Military, zero filled"));
-	fields.put("Transaction Type", new FieldDetails(3, 47, ""));
-	fields.put("Transaction Status", new FieldDetails(2, 50, ""));
-	fields.put("Cancel Indicator", new FieldDetails(1, 52, "1 = Cancelled"));
-	fields.put("Post Void Indicator", new FieldDetails(1, 53, "1 = Post Void"));
-	fields.put("Tax Exempt Indicator", new FieldDetails(1, 54, "1 = Tax Exempt"));
-	fields.put("Training Indicator", new FieldDetails(1, 55, "1 = Training"));
-	fields.put("User Data", new FieldDetails(3, 56, ""));
-	fields.put("Transaction Processor Attempts", new FieldDetails(2, 59, ""));
-	fields.put("Transaction Error Code", new FieldDetails(4, 61, "zero filled"));
-	fields.put("Number of Records",
-		new FieldDetails(8, 65, "Detail records + header, zero filled, right justified"));
-	fields.put("Business Date", new FieldDetails(8, 73, "MMDDYYYY, zero filled"));
-	fields.put("RetailStore Product Generation", new FieldDetails(1, 81, "zero filled"));
-	fields.put("RetailStore Major Version", new FieldDetails(1, 82, "zero filled"));
-	fields.put("RetailStore Minor Version", new FieldDetails(2, 83, "Zero filled, right justified"));
-	fields.put("RetailStore Service Pack", new FieldDetails(2, 85, "Zero filled, right justified"));
-	fields.put("RetailStore Hot Fix", new FieldDetails(3, 87, "Zero filled, right justified"));
-	fields.put("(Customer) Code Release Number", new FieldDetails(3, 90, "Zero filled, right justified"));
-	fields.put("(Customer) Code Release EFix", new FieldDetails(3, 93, "Zero filled"));
-	fields.put("(Customer) Release Additional Data", new FieldDetails(17, 96, "Left justified, space filled"));
-	fields.put("Tax Calculator", new FieldDetails(1, 113, ""));
-	fields.put("Reserved for Future Use", new FieldDetails(49, 114, "Space filled"));
+        fields.put("Identifier", new FieldDetails(3, 1, ""));
+        fields.put("Store Number", new FieldDetails(5, 4, "Zero filled, right justified"));
+        fields.put("Register Number", new FieldDetails(3, 9, "zero filled"));
+        fields.put("Cashier Number", new FieldDetails(6, 12, "Zero filled, right justified"));
+        fields.put("Employee Number", new FieldDetails(11, 18, "zero filled"));
+        fields.put("Transaction Number", new FieldDetails(6, 29, ""));
+        fields.put("Transaction Date", new FieldDetails(8, 35, "MMDDYYYY, zero filled"));
+        fields.put("Transaction Time", new FieldDetails(4, 43, "HHMM - Military, zero filled"));
+        fields.put("Transaction Type", new FieldDetails(3, 47, ""));
+        fields.put("Transaction Status", new FieldDetails(2, 50, ""));
+        fields.put("Cancel Indicator", new FieldDetails(1, 52, "1 = Cancelled"));
+        fields.put("Post Void Indicator", new FieldDetails(1, 53, "1 = Post Void"));
+        fields.put("Tax Exempt Indicator", new FieldDetails(1, 54, "1 = Tax Exempt"));
+        fields.put("Training Indicator", new FieldDetails(1, 55, "1 = Training"));
+        fields.put("User Data", new FieldDetails(3, 56, ""));
+        fields.put("Transaction Processor Attempts", new FieldDetails(2, 59, ""));
+        fields.put("Transaction Error Code", new FieldDetails(4, 61, "zero filled"));
+        fields.put("Number of Records",
+                new FieldDetails(8, 65, "Detail records + header, zero filled, right justified"));
+        fields.put("Business Date", new FieldDetails(8, 73, "MMDDYYYY, zero filled"));
+        fields.put("RetailStore Product Generation", new FieldDetails(1, 81, "zero filled"));
+        fields.put("RetailStore Major Version", new FieldDetails(1, 82, "zero filled"));
+        fields.put("RetailStore Minor Version", new FieldDetails(2, 83, "Zero filled, right justified"));
+        fields.put("RetailStore Service Pack", new FieldDetails(2, 85, "Zero filled, right justified"));
+        fields.put("RetailStore Hot Fix", new FieldDetails(3, 87, "Zero filled, right justified"));
+        fields.put("(Customer) Code Release Number", new FieldDetails(3, 90, "Zero filled, right justified"));
+        fields.put("(Customer) Code Release EFix", new FieldDetails(3, 93, "Zero filled"));
+        fields.put("(Customer) Release Additional Data", new FieldDetails(17, 96, "Left justified, space filled"));
+        fields.put("Tax Calculator", new FieldDetails(1, 113, ""));
+        fields.put("Reserved for Future Use", new FieldDetails(49, 114, "Space filled"));
     }
 
     public TransactionHeader() {
-	super();
+        super();
     }
 
     public TransactionHeader(String record) {
-	super(record);
+        super(record);
     }
 
     @Override
     public Map<String, FieldDetails> getFields() {
-	return fields;
+        return fields;
     }
 
     @Override
     public int getLength() {
-	return length;
+        return length;
     }
 
     @Override
     public String getId() {
-	return id;
+        return id;
     }
 
     public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String registerNumber,
-	    String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
-	    String timeZoneId) throws Exception {
-	Map<String, String> params = new HashMap<String, String>();
+            String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
+            String timeZoneId, boolean incrementAndCommitToObjectStore) throws Exception {
+        Map<String, String> params = new HashMap<String, String>();
 
-	String lastDate = "";
-	for (Payment squarePayment : squarePaymentsList) {
-	    if (squarePayment.getCreatedAt().compareTo(lastDate) > 0) {
-		lastDate = squarePayment.getCreatedAt();
-	    }
-	}
-	if (lastDate != "") {
-	    params.put("Transaction Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
-	    params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
-	    params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "HHmm"));
-	}
+        String lastDate = "";
+        for (Payment squarePayment : squarePaymentsList) {
+            if (squarePayment.getCreatedAt().compareTo(lastDate) > 0) {
+                lastDate = squarePayment.getCreatedAt();
+            }
+        }
+        if (lastDate != "") {
+            params.put("Transaction Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
+            params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
+            params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "HHmm"));
+        }
 
-	params.put("Register Number", registerNumber);
+        params.put("Register Number", registerNumber);
 
-	return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
+        return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params,
+                incrementAndCommitToObjectStore);
     }
 
     public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees,
-	    String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
-	    String timeZoneId) throws Exception {
-	Map<String, String> params = new HashMap<String, String>();
+            String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
+            String timeZoneId, boolean incrementAndCommitToObjectStore) throws Exception {
+        Map<String, String> params = new HashMap<String, String>();
 
-	// TODO(colinlam): refactor to only include a single employee ID passed
-	// in
-	for (Tender tender : squarePayment.getTender()) {
-	    if (tender.getEmployeeId() != null) {
-		for (Employee employee : squareEmployees) {
-		    if (employee.getId().equals(tender.getEmployeeId())) {
-			if (employee.getExternalId() != null) {
-			    params.put("Employee Number", employee.getExternalId());
-			}
-			break;
-		    }
-		}
-	    }
-	}
+        // TODO(colinlam): refactor to only include a single employee ID passed
+        // in
+        for (Tender tender : squarePayment.getTender()) {
+            if (tender.getEmployeeId() != null) {
+                for (Employee employee : squareEmployees) {
+                    if (employee.getId().equals(tender.getEmployeeId())) {
+                        if (employee.getExternalId() != null) {
+                            params.put("Employee Number", employee.getExternalId());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
 
-	params.put("Transaction Date",
-		TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
-	params.put("Business Date",
-		TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
-	params.put("Transaction Time",
-		TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
+        params.put("Transaction Date",
+                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+        params.put("Business Date",
+                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+        params.put("Transaction Time",
+                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
 
-	String registerNumber = Util.getRegisterNumber(squarePayment.getDevice().getName());
-	params.put("Register Number", registerNumber);
+        String registerNumber = Util.getRegisterNumber(squarePayment.getDevice().getName());
+        params.put("Register Number", registerNumber);
 
-	return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params);
+        return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params,
+                incrementAndCommitToObjectStore);
     }
 
     public TransactionHeader parse(Merchant location, String transactionType, int numberOfRecords,
-	    ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params)
-	    throws Exception {
+            ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params,
+            boolean incrementAndCommitToObjectStore) throws Exception {
 
-	String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
-	params.put("Store Number", storeNumber);
-	params.put("Transaction Number",
-		String.format("%06d", getTransactionNumber(objectStore, storeNumber, registerNumber, deployment)));
-	params.put("Number of Records", "" + numberOfRecords);
-	params.put("Transaction Type", transactionType);
+        String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
+        params.put("Store Number", storeNumber);
+        params.put("Transaction Number", String.format("%06d", getTransactionNumber(objectStore, storeNumber,
+                registerNumber, deployment, incrementAndCommitToObjectStore)));
+        params.put("Number of Records", "" + numberOfRecords);
+        params.put("Transaction Type", transactionType);
 
-	putValue("Store Number", params.getOrDefault("Store Number", ""));
-	putValue("Register Number", params.getOrDefault("Register Number", ""));
-	putValue("Cashier Number", "");
-	putValue("Employee Number", params.getOrDefault("Employee Number", ""));
-	putValue("Transaction Number", params.getOrDefault("Transaction Number", "000000"));
-	putValue("Transaction Date", params.getOrDefault("Transaction Date", ""));
-	putValue("Transaction Time", params.getOrDefault("Transaction Time", ""));
-	putValue("Transaction Type", params.getOrDefault("Transaction Type", ""));
-	putValue("Transaction Status", "01"); // There are many possible kinds
-					      // of these things
-	putValue("Cancel Indicator", "0"); // Doesn't exist in Square
-	putValue("Post Void Indicator", "0"); // Doesn't exist in Square
-	putValue("Tax Exempt Indicator", "0"); // Doesn't exist in Square
-	putValue("Training Indicator", "0"); // Doesn't exist in Square
-	putValue("Transaction Processor Attempts", "01"); // always 1
-	putValue("Transaction Error Code", ""); // Doesn't exist in Square
-	putValue("Number of Records", params.getOrDefault("Number of Records", ""));
-	putValue("Business Date", params.getOrDefault("Business Date", ""));
-	putValue("RetailStore Product Generation", "3");
-	putValue("RetailStore Major Version", "2");
-	putValue("RetailStore Minor Version", "05");
-	putValue("RetailStore Service Pack", ""); // Not using RetailStore
-	putValue("RetailStore Hot Fix", ""); // Not using RetailStore
-	putValue("(Customer) Code Release Number", "");
-	putValue("(Customer) Code Release EFix", "");
-	putValue("(Customer) Release Additional Data", "");
-	putValue("Tax Calculator", "0"); // ?? Neither RetailStore nor
-					 // TaxConnect calculated taxes
+        putValue("Store Number", params.getOrDefault("Store Number", ""));
+        putValue("Register Number", params.getOrDefault("Register Number", ""));
+        putValue("Cashier Number", "");
+        putValue("Employee Number", params.getOrDefault("Employee Number", ""));
+        putValue("Transaction Number", params.getOrDefault("Transaction Number", "000000"));
+        putValue("Transaction Date", params.getOrDefault("Transaction Date", ""));
+        putValue("Transaction Time", params.getOrDefault("Transaction Time", ""));
+        putValue("Transaction Type", params.getOrDefault("Transaction Type", ""));
+        putValue("Transaction Status", "01"); // There are many possible kinds
+                                              // of these things
+        putValue("Cancel Indicator", "0"); // Doesn't exist in Square
+        putValue("Post Void Indicator", "0"); // Doesn't exist in Square
+        putValue("Tax Exempt Indicator", "0"); // Doesn't exist in Square
+        putValue("Training Indicator", "0"); // Doesn't exist in Square
+        putValue("Transaction Processor Attempts", "01"); // always 1
+        putValue("Transaction Error Code", ""); // Doesn't exist in Square
+        putValue("Number of Records", params.getOrDefault("Number of Records", ""));
+        putValue("Business Date", params.getOrDefault("Business Date", ""));
+        putValue("RetailStore Product Generation", "3");
+        putValue("RetailStore Major Version", "2");
+        putValue("RetailStore Minor Version", "05");
+        putValue("RetailStore Service Pack", ""); // Not using RetailStore
+        putValue("RetailStore Hot Fix", ""); // Not using RetailStore
+        putValue("(Customer) Code Release Number", "");
+        putValue("(Customer) Code Release EFix", "");
+        putValue("(Customer) Release Additional Data", "");
+        putValue("Tax Calculator", "0"); // ?? Neither RetailStore nor
+                                         // TaxConnect calculated taxes
 
-	return this;
+        return this;
     }
 
     private int getTransactionNumber(ObjectStore<String> objectStore, String storeNumber, String registerNumber,
-	    String deployment) {
-	if (storeNumber == null || storeNumber.equals("")) {
-	    storeNumber = "0";
-	}
-	if (registerNumber == null || registerNumber.equals("")) {
-	    registerNumber = "0";
-	}
+            String deployment, boolean incrementAndCommitToObjectStore) {
+        if (storeNumber == null || storeNumber.equals("")) {
+            storeNumber = "0";
+        }
+        if (registerNumber == null || registerNumber.equals("")) {
+            registerNumber = "0";
+        }
 
-	String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
-	String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
+        String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
+        String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
 
-	try {
-	    String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-"
-		    + registerNumberFormatted;
+        try {
+            String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-"
+                    + registerNumberFormatted;
 
-	    if (objectStore.contains(transactionNumberKey)) {
-		int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
+            if (objectStore.contains(transactionNumberKey)) {
+                int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
 
-		if (transactionNumber > MAX_TRANSACTION_NUMBER) {
-		    transactionNumber = 1;
-		}
+                if (transactionNumber > MAX_TRANSACTION_NUMBER) {
+                    transactionNumber = 1;
+                }
 
-		objectStore.remove(transactionNumberKey);
-		objectStore.store(transactionNumberKey, "" + transactionNumber);
-		return transactionNumber;
-	    } else {
-		objectStore.store(transactionNumberKey, "" + 1);
-		return 1;
-	    }
-	} catch (ObjectStoreException e) {
-	    return 1;
-	}
+                if (incrementAndCommitToObjectStore) {
+                    objectStore.remove(transactionNumberKey);
+                    objectStore.store(transactionNumberKey, "" + transactionNumber);
+                }
+                return transactionNumber;
+            } else {
+                if (incrementAndCommitToObjectStore) {
+                    objectStore.store(transactionNumberKey, "" + 1);
+                }
+                return 1;
+            }
+        } catch (ObjectStoreException e) {
+            return 1;
+        }
     }
 }

@@ -20,8 +20,16 @@ public class TlogQueryDatabaseDeploymentGroupCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
+        String whereFilter;
         String deploymentGroup = message.getProperty("deploymentGroup", PropertyScope.INVOCATION);
-        String whereFilter = String.format("deploymentGroup = '%s' AND enableTLOG = 1", deploymentGroup);
+        boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
+                ? true : false;
+
+        if (isStoreforceTrickle) {
+            whereFilter = String.format("deploymentGroup LIKE '%s' AND enableTLOG = 1", deploymentGroup);
+        } else {
+            whereFilter = String.format("deploymentGroup = '%s' AND enableTLOG = 1", deploymentGroup);
+        }
 
         ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, whereFilter);
