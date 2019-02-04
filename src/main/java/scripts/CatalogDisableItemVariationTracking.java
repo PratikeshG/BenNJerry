@@ -12,7 +12,6 @@ import com.squareup.connect.v2.SquareClientV2;
 import util.SquarePayload;
 
 public class CatalogDisableItemVariationTracking {
-
     private static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
     private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
 
