@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.squareup.connect.Employee;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
@@ -13,14 +16,16 @@ import util.SquarePayload;
 
 public class BJsEmployeeExport {
     private static String MASTER_ACCOUNT_TOKEN = System.getenv("SCRIPT_MASTER_ACCOUNT_TOKEN");
-    private static String MERCHANT_ID = "2KRWZD79N7BB9";
-    private static String LOCATION_OPERATOR_ROLE_ID = "SHN2xdVqy-kkP0rTn4Fr";
+    private static String MERCHANT_ID = System.getenv("SCRIPT_MERCHANT_ID");
+    private static String LOCATION_OPERATOR_ROLE_ID = System.getenv("SCRIPT_LOCATION_OPERATOR_ROLE_ID");
 
     private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
-    private static String API_URL = "https://connect.squareup.com";
+    private static String API_URL = System.getenv("SCRIPT_API_URL"); // ex: https://connect.squareup.com
+
+    private static Logger logger = LoggerFactory.getLogger(BJsEmployeeExport.class);
 
     public static void main(String[] args) throws Exception {
-        System.out.println("Running script to export BJs employee records...");
+        logger.info("Running script to export BJs employee records...");
 
         SquarePayload account = new SquarePayload();
         account.setEncryptedAccessToken(MASTER_ACCOUNT_TOKEN);
@@ -38,16 +43,16 @@ public class BJsEmployeeExport {
                 String entry = String.format("%s, %s, %s, %s, %s, %s, %s", location.getName(), operator.getId(),
                         operator.getExternalId(), operator.getFirstName(), operator.getLastName(), operator.getStatus(),
                         operator.getEmail());
-                System.out.println(entry);
+                logger.info(entry);
             }
 
             if (operators.size() < 1) {
                 String entry = String.format("%s, %s", location.getName(), "NO OPERATORS ASSIGNED");
-                System.out.println(entry);
+                logger.info(entry);
             }
         }
 
-        System.out.println("Done.");
+        logger.info("Done.");
     }
 
     private static List<Employee> locationOperators(Location location, Employee[] employees) {
