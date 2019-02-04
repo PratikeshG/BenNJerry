@@ -17,6 +17,7 @@ public class Constants {
     public static final String PAYMENTS = "payments";
     public static final String RANGE = "range";
     public static final String OFFSET = "offset";
+    public static final String EMPLOYEES = "employees";
     public static final String SORT_ORDER_V1 = "order";
     public static final String SORT_ORDER_V2 = "sort_order";
     public static final String SORT_ORDER_ASC_V1 = "ASC";

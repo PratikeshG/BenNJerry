@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
+	<vm:connector name="BJS_REPORTING_VM" validateConnections="true" doc:name="VM"/>
+    <queued-asynchronous-processing-strategy name="BJs_Reporting_Async_Processing_Strategy" maxThreads="${benjerrys.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="7200000"/>
+    <flow name="BJs-trigger-monthly-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/bjs/report/${urlKey}" doc:name="/bjs/report"/>
+        <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset != null ? message.inboundProperties.'http.query.params'.offset : &quot;1&quot;]" doc:name="Set offset"/>
+        <set-session-variable variableName="emailOverride" value="#[message.inboundProperties.'http.query.params'.email != null ? message.inboundProperties.'http.query.params'.email : &quot;&quot;]" doc:name="Set emailOverride"/>
+        <set-session-variable variableName="locationOverride" value="#[message.inboundProperties.'http.query.params'.location != null ? message.inboundProperties.'http.query.params'.location : &quot;&quot;]" doc:name="Set locationOverride"/>
+        <flow-ref name="BJs-generate-monthly-report" doc:name="BJs-generate-monthly-report"/>
+        <set-payload value="BJs mothly reports generated with offset: #[sessionVars.offset]" doc:name="Response message"/>
+    </flow>
+    <flow name="BJs-monthly-report-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-bjs-monthly-1522544165" cronExpression="0 5 9 2 * ?" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run second of every month at 9:05am PST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${benjerrys.reporting.active}' == false]">
+                <logger message="Ben &amp; Jerrys Reporting Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="Set offset"/>
+                <set-session-variable variableName="emailOverride" value="#[&quot;&quot;]" doc:name="Set emailOverride"/>
+                <set-session-variable variableName="locationOverride" value="#[&quot;&quot;]" doc:name="Set locationOverride"/>
+                <flow-ref name="BJs-generate-monthly-report" doc:name="BJs-generate-monthly-report"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="BJs-generate-monthly-report">
+        <logger message="Begin generating Ben &amp; Jerrys Reporting" level="INFO" doc:name="Logger"/>
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
+        <set-variable variableName="deployment" value="ben-and-jerrys" doc:name="Deployment ID"/>
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
+        <set-variable variableName="negateOffset" value="#[Integer.parseInt(sessionVars.offset) * -1]" doc:name="Calc negative offset for date string"/>
+        <set-session-variable variableName="dateMonthYear" value="#[server.dateTime.plusMonths(flowVars.negateOffset).format('MMM yyyy')]" doc:name="Set reportMonthYear date string"/>
+        <flow-ref name="BJs-aggregate-location-payloads" doc:name="BJs-aggregate-location-payloads"/>
+        <component doc:name="Generate aggregate summary report">
+            <singleton-object class="benjerrys.AggregateSummaryCallable"/>
+        </component>
+        <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${benjerrys.email.summary.to}" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Job Summary"/>
+        <logger message="Finished BJs generate-monthly-report flow." level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="BJs-aggregate-location-payloads">
+        <component class="benjerrys.LocationsCallable" doc:name="Get LocationsCallable"/>
+        <request-reply doc:name="Request-Reply">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="BJs-aggregate-location-payloads-queue-async-worker" connector-ref="BJS_REPORTING_VM" doc:name="BJs-aggregate-location-payloads-queue-async-worker">
+                <collection-splitter doc:name="Collection Splitter" enableCorrelation="ALWAYS"/>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="BJs-aggregate-location-payloads-queue-reply" connector-ref="BJS_REPORTING_VM" doc:name="BJs-aggregate-location-payloads-queue-reply">
+                <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
+            </vm:inbound-endpoint>
+        </request-reply>
+        <logger message="Successfully completed all BJs location processing." level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="BJs-aggregate-location-payloads-queue-async-worker" processingStrategy="BJs_Reporting_Async_Processing_Strategy">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="BJs-aggregate-location-payloads-queue-async-worker" connector-ref="BJS_REPORTING_VM" doc:name="BJs-aggregate-location-payloads-queue-async-worker"/>
+        <logger message="#[&quot;Retrieving location details for deployment: &quot; + payload.getName()]" level="INFO" doc:name="Logger"/>
+        <component doc:name="Generate report for location">
+            <singleton-object class="benjerrys.GenerateLocationReportCallable"/>
+        </component>
+        <choice doc:name="Choice">
+            <when expression="#[payload.isProcessed()]">
+                <set-variable variableName="emailRecipients" value="#[(sessionVars.emailOverride != null &amp;&amp; sessionVars.emailOverride.length() &gt; 0 ) ?  sessionVars.emailOverride : flowVars.locationRecipients]" doc:name="Set emailRecipients"/>
+                <async doc:name="Async">
+                    <set-payload value="Your monthly reports are attached." doc:name="Set Payload"/>
+                    <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="#[flowVars.emailRecipients]" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Reports to Recipients"/>
+                </async>
+            </when>
+            <otherwise>
+                <logger message="Skipping. Location not processed." level="INFO" doc:name="Location not processed"/>
+            </otherwise>
+        </choice>
+        
+    </flow>
+</mule>
