@@ -31,16 +31,18 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import migrations.authorizedotnet.AuthorizeDotNetPaymentService;
+import migrations.stripe.StripePaymentService;
 
 public class MigrationService {
     private static final String SERVICE_AUTHORIZEDOTNET = "AUTHORIZEDOTNET";
+    private static final String SERVICE_STRIPE = "STRIPE";
 
-    private static final List<String> ACTIVE_SERVICES = new ArrayList<String>(Arrays.asList(SERVICE_AUTHORIZEDOTNET));
+    private static final List<String> ACTIVE_SERVICES = new ArrayList<String>(
+            Arrays.asList(SERVICE_AUTHORIZEDOTNET, SERVICE_STRIPE));
 
     private static final String ACTION_PREPARE_CUSTOMER_CARD_JSON = "card-json";
     private static final String ACTION_PREPARE_CUSTOMER_CSV = "customer-csv";
     private static final String ACTION_PREPARE_CUSTOMER_MAPPING = "customer-mapping";
-    private static final String ACTION_IMPORT = "import";
 
     private static final String OPTION_INPUT = "input";
     private static final String OPTION_OUTPUT = "output";
@@ -48,9 +50,8 @@ public class MigrationService {
 
     private static final String INPUT_STREAM_FORMAT = "ISO-8859-1";
 
-    private static final List<String> VALID_ACTIONS = new ArrayList<String>(
-            Arrays.asList(ACTION_PREPARE_CUSTOMER_CARD_JSON, ACTION_PREPARE_CUSTOMER_CSV,
-                    ACTION_PREPARE_CUSTOMER_MAPPING, ACTION_IMPORT));
+    private static final List<String> VALID_ACTIONS = new ArrayList<String>(Arrays
+            .asList(ACTION_PREPARE_CUSTOMER_CARD_JSON, ACTION_PREPARE_CUSTOMER_CSV, ACTION_PREPARE_CUSTOMER_MAPPING));
 
     private static String action;
 
@@ -61,11 +62,8 @@ public class MigrationService {
         String input = parsedArgs.getOptionValue(OPTION_INPUT);
         String output = parsedArgs.getOptionValue(OPTION_OUTPUT);
 
-        if (action.equals(ACTION_IMPORT)) {
-            // TODO
-            return;
-        } else if (action.equals(ACTION_PREPARE_CUSTOMER_MAPPING)) {
-            generateCustomerMapping(input, output);
+        if (action.equals(ACTION_PREPARE_CUSTOMER_MAPPING)) {
+            generateCustomerMappingFromDashboardExport(input, output);
             return;
         } else {
             // ACTION_PREPARE_CUSTOMER_CSV
@@ -77,6 +75,9 @@ public class MigrationService {
             PaymentService paymentProvider;
 
             switch (service) {
+                case SERVICE_STRIPE:
+                    paymentProvider = new StripePaymentService(input, output);
+                    break;
                 case SERVICE_AUTHORIZEDOTNET:
                 default:
                     paymentProvider = new AuthorizeDotNetPaymentService(input, output);
@@ -150,8 +151,6 @@ public class MigrationService {
             case ACTION_PREPARE_CUSTOMER_MAPPING:
                 required.addAll(Arrays.asList(OPTION_INPUT, OPTION_OUTPUT));
                 break;
-            case ACTION_IMPORT:
-                break;
         }
         return required.contains(option);
     }
@@ -160,7 +159,17 @@ public class MigrationService {
         return VALID_ACTIONS.contains(action);
     }
 
-    private static void generateCustomerMapping(String inputPath, String outputPath) throws IOException {
+    /**
+     * Generates a JSON file mapping the PaymentService CustomerId to the
+     * new Square Customer ID.
+     *
+     * Example;
+     * {"1204856132":"0DGX1Y6BBH4T6V8Q7GKABS7YKR", ... }
+     *
+     * This mapping is used by the card importer script.
+     */
+    private static void generateCustomerMappingFromDashboardExport(String inputPath, String outputPath)
+            throws IOException {
         System.out.println(Messages.startGeneratingCustomerMapping());
 
         HashMap<String, String> customerMapping = new HashMap<String, String>();

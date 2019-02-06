@@ -2,7 +2,7 @@ package migrations.stripe;
 
 import com.google.gson.annotations.SerializedName;
 
-public class StripeCardExport {
+public class StripeCard {
     @SerializedName("address_city")
     private String addressCity;
     @SerializedName("address_country")
@@ -23,7 +23,7 @@ public class StripeCardExport {
     private String number;
     private String name;
 
-    public StripeCardExport() {
+    public StripeCard() {
     }
 
     public String getAddressCity() {

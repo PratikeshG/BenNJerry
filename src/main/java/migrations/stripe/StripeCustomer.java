@@ -1,21 +1,25 @@
 package migrations.stripe;
 
-public class StripeCustomerCardExport {
-    private StripeCardExport[] cards;
+import com.google.gson.annotations.SerializedName;
+
+public class StripeCustomer {
+    private StripeCard[] cards;
     private String description;
     private String email;
     private String id;
     private String name;
+    @SerializedName("default_source")
+    private String defaultSource;
     private String type;
 
-    public StripeCustomerCardExport() {
+    public StripeCustomer() {
     }
 
-    public StripeCardExport[] getCards() {
+    public StripeCard[] getCards() {
         return cards;
     }
 
-    public void setCards(StripeCardExport[] cards) {
+    public void setCards(StripeCard[] cards) {
         this.cards = cards;
     }
 
@@ -57,5 +61,13 @@ public class StripeCustomerCardExport {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getDefaultSource() {
+        return defaultSource;
+    }
+
+    public void setDefaultSource(String defaultSource) {
+        this.defaultSource = defaultSource;
     }
 }

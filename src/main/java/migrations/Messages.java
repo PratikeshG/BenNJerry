@@ -61,4 +61,12 @@ public class Messages {
     public static String errorParsingCardExpirationDate(String errorMessage, String customerId) {
         return String.format("Error parsing expiration date for customer record: %s -- %s", customerId, errorMessage);
     }
+
+    public static String methodNotImplemented() {
+        return "This method is not implemented.";
+    }
+
+    public static String errorNoDataLoaded() {
+        return "No data loaded. Please read the card data input file prior to attempting this method.";
+    }
 }
