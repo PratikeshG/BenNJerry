@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
@@ -29,7 +30,7 @@ import com.google.gson.GsonBuilder;
 import migrations.Messages;
 import migrations.MigrationService;
 import migrations.PaymentService;
-import migrations.stripe.StripeCustomerCardExport;
+import migrations.stripe.StripeCustomer;
 
 public class AuthorizeDotNetPaymentService extends PaymentService {
     private static final String INPUT_STREAM_FORMAT = "ISO-8859-1";
@@ -40,8 +41,11 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
     private static final String REGEX_QUOTED_STRING = "^\"|\"$";
     private static final String EMPTY_STRING = "";
 
+    protected List<AuthDotNetExportRow> exportData;
+
     public AuthorizeDotNetPaymentService(String inputPath, String outputPath) {
         super(inputPath, outputPath);
+        exportData = new ArrayList<AuthDotNetExportRow>();
     }
 
     /*
@@ -109,7 +113,7 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
             row.setCountry(clean(record.get(22)));
             row.setPhone(clean(record.get(23)));
 
-            exportRows.add(row);
+            exportData.add(row);
 
             recordsParsed++;
             MigrationService.printStatus(recordsParsed);
@@ -135,27 +139,25 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
         return input.replaceAll(REGEX_QUOTED_STRING, EMPTY_STRING);
     }
 
-    /**
-     * Generates a JSON file mapping the Authorize.net customerProlfileId to the
-     * new Square Customer ID.
-     *
-     * Example;
-     * {"1204856132":"0DGX1Y6BBH4T6V8Q7GKABS7YKR", ... }
-     *
-     * This mapping is used by the card importer script.
+    /*
+     * Generates a JSON file in Stripe customer card export format
      */
     @Override
     public void exportCustomerCardDataToJson() throws IOException {
         System.out.println(Messages.startGeneratingStripeCardJSON());
 
-        ArrayList<StripeCustomerCardExport> customerCardExports = new ArrayList<StripeCustomerCardExport>();
-
-        for (AuthDotNetExportRow exportRow : exportRows) {
-            customerCardExports.add(exportRow.toStripeCustomerCardExport());
+        if (exportData.size() < 1) {
+            System.out.println(Messages.errorNoDataLoaded());
+            return;
         }
-        HashMap<String, StripeCustomerCardExport[]> exportCustomerCardMap = new HashMap<String, StripeCustomerCardExport[]>();
-        exportCustomerCardMap.put(CUSTOMERS,
-                customerCardExports.toArray(new StripeCustomerCardExport[exportCustomerCardMap.size()]));
+
+        ArrayList<StripeCustomer> customerExports = new ArrayList<StripeCustomer>();
+
+        for (AuthDotNetExportRow exportRow : exportData) {
+            customerExports.add(exportRow.toStripeCustomerExport());
+        }
+        HashMap<String, StripeCustomer[]> exportCustomerCardMap = new HashMap<String, StripeCustomer[]>();
+        exportCustomerCardMap.put(CUSTOMERS, customerExports.toArray(new StripeCustomer[exportCustomerCardMap.size()]));
 
         final Path out = Paths.get(outputPath);
         try (final BufferedWriter writer = Files.newBufferedWriter(out, StandardCharsets.UTF_8,
@@ -176,6 +178,11 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
     @Override
     public void exportCustomerDataToCsv() throws IOException {
         System.out.println(Messages.startGeneratingDashboardCustomerCsv());
+
+        if (exportData.size() < 1) {
+            System.out.println(Messages.errorNoDataLoaded());
+            return;
+        }
 
         Map<String, AuthDotNetExportRow> uniqueCustomers = getUniqueCustomerRecords();
 
@@ -198,7 +205,7 @@ public class AuthorizeDotNetPaymentService extends PaymentService {
     private Map<String, AuthDotNetExportRow> getUniqueCustomerRecords() {
         HashMap<String, AuthDotNetExportRow> uniqueCustomers = new HashMap<String, AuthDotNetExportRow>();
 
-        for (AuthDotNetExportRow row : exportRows) {
+        for (AuthDotNetExportRow row : exportData) {
             uniqueCustomers.put(row.getCustomerProfileID(), row);
         }
 

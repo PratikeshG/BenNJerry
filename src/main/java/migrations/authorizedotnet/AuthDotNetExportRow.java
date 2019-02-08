@@ -3,8 +3,8 @@ package migrations.authorizedotnet;
 import java.util.ArrayList;
 
 import migrations.Messages;
-import migrations.stripe.StripeCardExport;
-import migrations.stripe.StripeCustomerCardExport;
+import migrations.stripe.StripeCard;
+import migrations.stripe.StripeCustomer;
 
 public class AuthDotNetExportRow {
     public static final String[] HEADERS = { "First Name", "Last Name", "Company Name", "Email Address", "Phone Number",
@@ -184,7 +184,7 @@ public class AuthDotNetExportRow {
         return String.join(" ", names);
     }
 
-    public StripeCustomerCardExport toStripeCustomerCardExport() {
+    public StripeCustomer toStripeCustomerExport() {
         String expYear = cardExpirationDate.trim().split("-")[0];
         String expMonth = cardExpirationDate.trim().split("-")[1];
 
@@ -193,11 +193,11 @@ public class AuthDotNetExportRow {
 
         String customerName = getFullName();
 
-        StripeCustomerCardExport stripeCustomerCardFormat = new StripeCustomerCardExport();
-        stripeCustomerCardFormat.setId(customerProfileID);
-        stripeCustomerCardFormat.setName(customerName);
+        StripeCustomer stripeCustomerFormat = new StripeCustomer();
+        stripeCustomerFormat.setId(customerProfileID);
+        stripeCustomerFormat.setName(customerName);
 
-        StripeCardExport stripeCardFormat = new StripeCardExport();
+        StripeCard stripeCardFormat = new StripeCard();
         stripeCardFormat.setId(customerProfileID);
         stripeCardFormat.setName(customerName);
         stripeCardFormat.setNumber(cardNumber);
@@ -211,6 +211,6 @@ public class AuthDotNetExportRow {
             System.exit(1);
         }
 
-        return stripeCustomerCardFormat;
+        return stripeCustomerFormat;
     }
 }
