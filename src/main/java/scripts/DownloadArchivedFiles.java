@@ -18,15 +18,16 @@ import com.google.api.services.storage.model.StorageObject;
 import util.CloudStorageApi;
 
 public class DownloadArchivedFiles {
-    private static String[] LOCATIONS = { "00313" }; // ex: { "00313", "00512"}
-    private static String SEARCH_FILE_PREFIX = "20181124"; // ex: 20181124
+    private final static String[] LOCATIONS = { "00313" }; // ex: { "00313", "00512"}
+    private final static String SEARCH_FILE_PREFIX = "20181124"; // ex: 20181124
     private final static String SEARCH_FILE_PATH = "TNF/%s/TLOG/%s"; // ex: TNF/%s/TLOG/%s
-
     private final static String DESTINATION_PATH = System.getenv("SCRIPT_FILE_DESTINATION_PATH"); // MODIFY
 
     // Do not edit below this line
     private final static String ARCHIVE_BUCKET = "managed-integrations-prod-archive";
     private final static String FILE_ENCRYPTION_KEY = System.getenv("SCRIPT_FILE_ENCRYPTION_KEY");
+    private final static String GOOGLE_CREDENTIALS = "google.json"; // Located in src/main/resources
+    private final static String SECURE_FILE_EXTENSION = ".secure";
 
     private static Logger logger = LoggerFactory.getLogger(DownloadArchivedFiles.class);
 
@@ -34,7 +35,7 @@ public class DownloadArchivedFiles {
         logger.info("Running...");
 
         JSONParser parser = new JSONParser();
-        Resource resource = new ClassPathResource("google.json");
+        Resource resource = new ClassPathResource(GOOGLE_CREDENTIALS);
         Object credentials = parser.parse(new FileReader(resource.getFile()));
         CloudStorageApi cloudStorage = new CloudStorageApi(credentials.toString());
 
@@ -49,8 +50,8 @@ public class DownloadArchivedFiles {
                 String[] tmp = o.getName().split("/");
                 String fileName = tmp[tmp.length - 1];
 
-                if (fileName.endsWith(".secure")) {
-                    fileName = fileName.substring(0, fileName.length() - 7);
+                if (fileName.endsWith(SECURE_FILE_EXTENSION)) {
+                    fileName = fileName.substring(0, fileName.length() - SECURE_FILE_EXTENSION.length());
                 }
 
                 try {

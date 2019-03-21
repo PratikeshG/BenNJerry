@@ -1,15 +1,19 @@
 package scripts;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.SquarePayload;
 
 public class CatalogCountObjects {
-    private static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
-    private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
+    private final static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String API_URL = System.getenv("SCRIPT_API_URL");
 
-    private static String API_URL = System.getenv("SCRIPT_API_URL");
+    private static Logger logger = LoggerFactory.getLogger(CatalogCountObjects.class);
 
     public static void main(String[] args) throws Exception {
         SquarePayload account = new SquarePayload();
@@ -19,6 +23,6 @@ public class CatalogCountObjects {
 
         CatalogObject[] items = client.catalog().listItems();
 
-        System.out.println(items.length);
+        logger.info("" + items.length);
     }
 }

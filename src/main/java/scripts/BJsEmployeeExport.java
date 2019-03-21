@@ -15,12 +15,12 @@ import com.squareup.connect.v2.SquareClientV2;
 import util.SquarePayload;
 
 public class BJsEmployeeExport {
-    private static String MASTER_ACCOUNT_TOKEN = System.getenv("SCRIPT_MASTER_ACCOUNT_TOKEN");
-    private static String MERCHANT_ID = System.getenv("SCRIPT_MERCHANT_ID");
-    private static String LOCATION_OPERATOR_ROLE_ID = System.getenv("SCRIPT_LOCATION_OPERATOR_ROLE_ID");
+    private final static String MASTER_ACCOUNT_TOKEN = System.getenv("SCRIPT_MASTER_ACCOUNT_TOKEN");
+    private final static String MERCHANT_ID = System.getenv("SCRIPT_MERCHANT_ID");
+    private final static String LOCATION_OPERATOR_ROLE_ID = System.getenv("SCRIPT_LOCATION_OPERATOR_ROLE_ID");
 
-    private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
-    private static String API_URL = System.getenv("SCRIPT_API_URL"); // ex: https://connect.squareup.com
+    private final static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String API_URL = System.getenv("SCRIPT_API_URL"); // ex: https://connect.squareup.com
 
     private static Logger logger = LoggerFactory.getLogger(BJsEmployeeExport.class);
 

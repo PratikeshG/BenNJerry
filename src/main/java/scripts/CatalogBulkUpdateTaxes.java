@@ -8,13 +8,13 @@ import com.squareup.connect.v2.SquareClientV2;
 import util.SquarePayload;
 
 public class CatalogBulkUpdateTaxes {
-    private static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
-    private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
+    private final static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
 
-    private static String[] TAXES_TO_ENABLE = { "" }; // MODIFY
-    private static String[] TAXES_TO_DISABLE = { "" }; // MODIFY
+    private final static String[] TAXES_TO_ENABLE = { "" }; // MODIFY
+    private final static String[] TAXES_TO_DISABLE = { "" }; // MODIFY
 
-    private static String API_URL = System.getenv("SCRIPT_API_URL");
+    private final static String API_URL = System.getenv("SCRIPT_API_URL");
 
     public static void main(String[] args) throws Exception {
         SquarePayload account = new SquarePayload();

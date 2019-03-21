@@ -2,6 +2,9 @@ package scripts;
 
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.squareup.connect.BankAccount;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
@@ -10,18 +13,19 @@ import com.squareup.connect.v2.SquareClientV2;
 import util.SquarePayload;
 
 public class BankAccountsExport {
-    private static String[] ACCOUNTS = {};
+    private final static String[] ACCOUNT_ENCRYPTED_ACCESS_TOKENS = {}; // modify
 
-    private static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
-    private static String API_URL = System.getenv("SCRIPT_API_URL");
+    private final static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String API_URL = System.getenv("SCRIPT_API_URL");
+
+    private static Logger logger = LoggerFactory.getLogger(BankAccountsExport.class);
 
     public static void main(String[] args) throws Exception {
-        System.out.println("Running script to retrieve assigned bank accounts...");
+        logger.info("Running script to retrieve assigned bank accounts...");
 
-        ArrayList<String> allLocations = new ArrayList<String>();
-        int done = 0;
+        ArrayList<String> allBankAccounts = new ArrayList<String>();
 
-        for (String encryptedToken : ACCOUNTS) {
+        for (String encryptedToken : ACCOUNT_ENCRYPTED_ACCESS_TOKENS) {
             SquarePayload account = new SquarePayload();
             account.setEncryptedAccessToken(encryptedToken);
 
@@ -38,17 +42,15 @@ public class BankAccountsExport {
                 for (BankAccount bankAccount : banks) {
                     String entry = String.format("%s, %s, %s, %s", location.getMerchant_id(), location.getId(),
                             location.getName(), bankAccount.getName());
-                    allLocations.add(entry);
+                    allBankAccounts.add(entry);
                 }
-
-                done++;
             }
         }
 
-        for (String entry : allLocations) {
-            System.out.println(entry);
+        for (String entry : allBankAccounts) {
+            logger.info(entry);
         }
 
-        System.out.println("Done.");
+        logger.info("Done.");
     }
 }
