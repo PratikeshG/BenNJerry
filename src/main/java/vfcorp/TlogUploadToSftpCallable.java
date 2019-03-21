@@ -51,6 +51,7 @@ public class TlogUploadToSftpCallable implements Callable {
 
         boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
                 ? true : false;
+
         boolean archiveTlog = message.getProperty("enableTlogArchive", PropertyScope.INVOCATION).equals("true") ? true
                 : false;
 
@@ -127,10 +128,18 @@ public class TlogUploadToSftpCallable implements Callable {
         }
 
         // If deployment has Storeforce enabled, save copy of TLOG to SF archive directory
-        if (isStoreforceTrickle && storeforceArchiveDirectory.length() > 0) {
+        if (storeforceArchiveDirectory.length() > 0) {
             InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
 
-            sftpChannel.cd(storeforceArchiveDirectory);
+            // TEMPORARY: Save EoD to Storeforce directory
+            if (!isStoreforceTrickle) {
+                sftpChannel.cd(storeforceArchiveDirectory);
+            } else {
+                // Save only to trickle directory
+                String trickleDirectory = storeforceArchiveDirectory + "/Trickle";
+                sftpChannel.cd(trickleDirectory);
+            }
+
             sftpChannel.put(storeforceUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
         }
 

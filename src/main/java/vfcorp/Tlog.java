@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.mule.api.store.ObjectStore;
+import org.mule.api.store.ObjectStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,7 @@ import vfcorp.tlog.TransactionTaxExtended;
 import vfcorp.tlog.TransactionTotal;
 
 public class Tlog {
+    private static final int MAX_TRANSACTION_NUMBER = 999999;
 
     private List<Record> transactionLog;
     private int itemNumberLookupLength;
@@ -53,10 +55,12 @@ public class Tlog {
     private static Logger logger = LoggerFactory.getLogger(Tlog.class);
 
     private ObjectStore<String> objectStore;
-    private boolean commitObjectStore;
+    private int nextTransactionNumber;
+    private boolean isStoreforceTrickle;
 
     public Tlog() {
         transactionLog = new LinkedList<Record>();
+        nextTransactionNumber = 1;
     }
 
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
@@ -75,8 +79,8 @@ public class Tlog {
         this.objectStore = objectStore;
     }
 
-    public void setCommitObjectStore(boolean commitObjectStore) {
-        this.commitObjectStore = commitObjectStore;
+    public void setIsStoreforceTrickle(boolean isStoreforceTrickle) {
+        this.isStoreforceTrickle = isStoreforceTrickle;
     }
 
     public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees,
@@ -273,9 +277,13 @@ public class Tlog {
                     paymentList.add(new CrmLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
                 }
 
-                paymentList.addFirst(new TransactionHeader().parse(location, payment, squareEmployeesList,
-                        TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, objectStore, deployment,
-                        timeZoneId, commitObjectStore));
+                String registerNumber = Util.getRegisterNumber(payment.getDevice().getName());
+                String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
+                int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
+
+                paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, payment,
+                        squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1,
+                        deployment, timeZoneId));
 
                 transactionLog.addAll(paymentList);
             }
@@ -333,11 +341,52 @@ public class Tlog {
                     .parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
             newRecordList.add(new ForInStoreReportingUseOnly()
                     .parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
-            newRecordList.addFirst(new TransactionHeader().parse(location, registerPayments, registerNumber,
-                    TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1, objectStore,
-                    deployment, timeZoneId, commitObjectStore));
+
+            String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
+            int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
+            newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
+                    registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
+                    deployment, timeZoneId));
 
             transactionLog.addAll(newRecordList);
+        }
+    }
+
+    private int getNextTransactionNumber(String storeNumber, String registerNumber) {
+        if (isStoreforceTrickle) {
+            return nextTransactionNumber++;
+        }
+
+        if (storeNumber == null || storeNumber.equals("")) {
+            storeNumber = "0";
+        }
+        if (registerNumber == null || registerNumber.equals("")) {
+            registerNumber = "0";
+        }
+
+        String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
+        String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
+
+        try {
+            String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-"
+                    + registerNumberFormatted;
+
+            if (objectStore.contains(transactionNumberKey)) {
+                int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
+
+                if (transactionNumber > MAX_TRANSACTION_NUMBER) {
+                    transactionNumber = 1;
+                }
+
+                objectStore.remove(transactionNumberKey);
+                objectStore.store(transactionNumberKey, "" + transactionNumber);
+                return transactionNumber;
+            } else {
+                objectStore.store(transactionNumberKey, "" + 1);
+                return 1;
+            }
+        } catch (ObjectStoreException e) {
+            return 1;
         }
     }
 }

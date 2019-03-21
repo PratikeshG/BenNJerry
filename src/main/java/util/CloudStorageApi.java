@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.jasypt.util.binary.BasicBinaryEncryptor;
 import org.mule.util.IOUtils;
@@ -20,6 +22,8 @@ import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.storage.Storage;
+import com.google.api.services.storage.model.Bucket;
+import com.google.api.services.storage.model.Objects;
 import com.google.api.services.storage.model.StorageObject;
 
 public class CloudStorageApi {
@@ -42,6 +46,31 @@ public class CloudStorageApi {
                 .createScoped(Collections.singleton(STORAGE_WRITE_SCOPE));
         storage = new Storage.Builder(httpTransport, jsonFactory, credential).setApplicationName(APPLICATION_NAME)
                 .build();
+    }
+
+    public Bucket getBucket(String bucketName) throws IOException, GeneralSecurityException {
+        Storage.Buckets.Get bucketRequest = storage.buckets().get(bucketName);
+        bucketRequest.setProjection("full");
+        return bucketRequest.execute();
+    }
+
+    public List<StorageObject> listObjects(String bucketName) throws IOException {
+        return listObjects(bucketName, "");
+    }
+
+    public List<StorageObject> listObjects(String bucketName, String prefix) throws IOException {
+        Storage.Objects.List listRequest = storage.objects().list(bucketName).setPrefix(prefix);
+
+        List<StorageObject> results = new ArrayList<StorageObject>();
+
+        Objects objects;
+        do {
+            objects = listRequest.execute();
+            results.addAll(objects.getItems());
+            listRequest.setPageToken(objects.getNextPageToken());
+        } while (null != objects.getNextPageToken());
+
+        return results;
     }
 
     public StorageObject uploadObject(String bucketName, String objectName, String data)

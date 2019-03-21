@@ -249,12 +249,14 @@ public class PluCatalogBuilder {
         String finalCatalogItemSku = finalCatalogItem.getItemData().getVariations()[0].getItemVariationData().getSku();
 
         // Duplicate SKU detected on an original account item
-        for (CatalogObject originalItem : objectCache.get(finalCatalogItemSku)) {
-            if (!originalItem.getId().equals(finalCatalogItemId) && originalItem.getItemData() != null
-                    && originalItem.getItemData().getVariations().length > 0
-                    && originalItem.getItemData().getVariations()[0].getItemVariationData() != null) {
+        if (objectCache.containsKey(finalCatalogItemSku) && objectCache.get(finalCatalogItemSku) != null) {
+            for (CatalogObject originalItem : objectCache.get(finalCatalogItemSku)) {
+                if (!originalItem.getId().equals(finalCatalogItemId) && originalItem.getItemData() != null
+                        && originalItem.getItemData().getVariations().length > 0
+                        && originalItem.getItemData().getVariations()[0].getItemVariationData() != null) {
 
-                itemsWithDuplicateSku.add(originalItem);
+                    itemsWithDuplicateSku.add(originalItem);
+                }
             }
         }
 

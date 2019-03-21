@@ -4,9 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.mule.api.store.ObjectStore;
-import org.mule.api.store.ObjectStoreException;
-
 import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
@@ -18,9 +15,6 @@ import vfcorp.Record;
 import vfcorp.Util;
 
 public class TransactionHeader extends Record {
-
-    private static final int MAX_TRANSACTION_NUMBER = 999999;
-
     public static final String TRANSACTION_TYPE_STORE_OPEN = "010";
     public static final String TRANSACTION_TYPE_CASHIER_LOGOFF = "030";
     public static final String TRANSACTION_TYPE_STORE_CLOSE = "040";
@@ -175,9 +169,9 @@ public class TransactionHeader extends Record {
         return id;
     }
 
-    public TransactionHeader parse(Merchant location, List<Payment> squarePaymentsList, String registerNumber,
-            String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
-            String timeZoneId, boolean incrementAndCommitToObjectStore) throws Exception {
+    public TransactionHeader parse(int transactionNumber, Merchant location, List<Payment> squarePaymentsList,
+            String registerNumber, String transactionType, int numberOfRecords, String deployment, String timeZoneId)
+            throws Exception {
         Map<String, String> params = new HashMap<String, String>();
 
         String lastDate = "";
@@ -194,13 +188,12 @@ public class TransactionHeader extends Record {
 
         params.put("Register Number", registerNumber);
 
-        return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params,
-                incrementAndCommitToObjectStore);
+        return parse(transactionNumber, location, transactionType, numberOfRecords, deployment, registerNumber, params);
     }
 
-    public TransactionHeader parse(Merchant location, Payment squarePayment, List<Employee> squareEmployees,
-            String transactionType, int numberOfRecords, ObjectStore<String> objectStore, String deployment,
-            String timeZoneId, boolean incrementAndCommitToObjectStore) throws Exception {
+    public TransactionHeader parse(int transactionNumber, Merchant location, Payment squarePayment,
+            List<Employee> squareEmployees, String transactionType, int numberOfRecords, String deployment,
+            String timeZoneId) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
 
         // TODO(colinlam): refactor to only include a single employee ID passed
@@ -228,18 +221,16 @@ public class TransactionHeader extends Record {
         String registerNumber = Util.getRegisterNumber(squarePayment.getDevice().getName());
         params.put("Register Number", registerNumber);
 
-        return parse(location, transactionType, numberOfRecords, objectStore, deployment, registerNumber, params,
-                incrementAndCommitToObjectStore);
+        return parse(transactionNumber, location, transactionType, numberOfRecords, deployment, registerNumber, params);
     }
 
-    public TransactionHeader parse(Merchant location, String transactionType, int numberOfRecords,
-            ObjectStore<String> objectStore, String deployment, String registerNumber, Map<String, String> params,
-            boolean incrementAndCommitToObjectStore) throws Exception {
+    private TransactionHeader parse(int transactionNumber, Merchant location, String transactionType,
+            int numberOfRecords, String deployment, String registerNumber, Map<String, String> params)
+            throws Exception {
 
         String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
         params.put("Store Number", storeNumber);
-        params.put("Transaction Number", String.format("%06d", getTransactionNumber(objectStore, storeNumber,
-                registerNumber, deployment, incrementAndCommitToObjectStore)));
+        params.put("Transaction Number", "" + String.format("%06d", transactionNumber));
         params.put("Number of Records", "" + numberOfRecords);
         params.put("Transaction Type", transactionType);
 
@@ -273,44 +264,5 @@ public class TransactionHeader extends Record {
                                          // TaxConnect calculated taxes
 
         return this;
-    }
-
-    private int getTransactionNumber(ObjectStore<String> objectStore, String storeNumber, String registerNumber,
-            String deployment, boolean incrementAndCommitToObjectStore) {
-        if (storeNumber == null || storeNumber.equals("")) {
-            storeNumber = "0";
-        }
-        if (registerNumber == null || registerNumber.equals("")) {
-            registerNumber = "0";
-        }
-
-        String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
-        String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
-
-        try {
-            String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-"
-                    + registerNumberFormatted;
-
-            if (objectStore.contains(transactionNumberKey)) {
-                int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
-
-                if (transactionNumber > MAX_TRANSACTION_NUMBER) {
-                    transactionNumber = 1;
-                }
-
-                if (incrementAndCommitToObjectStore) {
-                    objectStore.remove(transactionNumberKey);
-                    objectStore.store(transactionNumberKey, "" + transactionNumber);
-                }
-                return transactionNumber;
-            } else {
-                if (incrementAndCommitToObjectStore) {
-                    objectStore.store(transactionNumberKey, "" + 1);
-                }
-                return 1;
-            }
-        } catch (ObjectStoreException e) {
-            return 1;
-        }
     }
 }
