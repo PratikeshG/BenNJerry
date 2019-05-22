@@ -40,6 +40,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final int LOCATION_SALES_REPORT_TYPE = 5;
     private static final int ITEM_SALES_REPORT_TYPE = 7;
     private static final int CREDIT_DEBIT_REPORT_TYPE = 8;
+    private static final int GROSS_SALES_REPORT_TYPE = 9;
     private static final String SEASON_REPORTING_ENABLED = "TRUE";
     private static final String TNT_DEFAULT_LOCATION_NAME_PREFIX = "DEFAULT";
 
@@ -179,8 +180,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location.getName());
 
                     // define time intervals to pull payment data
-                    // - dayTimeInterval is currently only used for 5/6 and report 7
-                    // - aggregateInterval is used by remaining flows
+                    // - dayTimeInterval is currently only used for 5/6, report 7, report 9
+                    // - aggregateInterval is used by all flows
                     Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
                             location.getTimezone());
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
@@ -217,6 +218,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                         case CREDIT_DEBIT_REPORT_TYPE:
                             merchantPayload.add(generateCreditDebitPayload(squareClientV1, locationDetails,
                                     aggregateIntervalParams, dbLoadNumbers));
+                            break;
+                        case GROSS_SALES_REPORT_TYPE:
+                            merchantPayload.add(generateGrossSalesPayload(squareClientV1, locationDetails,
+                                    aggregateIntervalParams, dayTimeInterval));
                             break;
                     }
                 }
@@ -349,5 +354,17 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         }
 
         return creditDebitPayload;
+    }
+
+    private GrossSalesPayload generateGrossSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
+            Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval) throws Exception {
+        // get transaction data for gross sales payload
+        GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
+            grossSalesPayload.addEntry(payment);
+        }
+
+        return grossSalesPayload;
     }
 }
