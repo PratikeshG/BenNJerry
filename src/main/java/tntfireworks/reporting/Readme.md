@@ -51,3 +51,7 @@ Report 8 contains information related to the total number of daily credits and d
 A credit is defined as a credit card refund and debit is defined as a credit card sale. The number of debits, credits, and total ticket count (# debits + # credits) is tracked within this report. The net deposit amount (debit amount + credit amount) is also calculated. 
 
 A "load number" is also set each season with a starting value of 1 and stored in a database. Each time the report is generated, the current load number is included in the report and subsequently incremented. This is a requirement set forth by TNT and is used for their internal systems.
+
+#### Report 9 - "Gross Sales Report" - Emailed daily
+
+Report 9 contains columns for both daily and seasonal gross sales (TNT defines gross sales as sales amount before discounts and taxes. Each row in the report represents sales for a single location. The season range is determined as the period between the current date for the report (unless explicitly set elsewhere) and the set start date for the season as defined in tntfireworks.reporting.properties file as 'startOfSeason'. In order to calculate the seasonal gross sales amount for each location, payment and transaction data is pulled for the entire season range.
