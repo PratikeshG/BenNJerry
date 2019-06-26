@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:wmq="http://www.mulesoft.org/schema/mule/ee/wmq" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/wmq http://www.mulesoft.org/schema/mule/ee/wmq/current/mule-wmq-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <flow name="chase-discount-endpoint">
+		<http:listener config-ref="${default.http.config}" path="/chase/promo" doc:name="HTTPS" allowedMethods="POST"/>
+        <response>
+            <object-to-string-transformer doc:name="Object to String"/>
+        </response>
+        <set-variable variableName="location_id" value="#[json:location_id]" encoding="UTF-8" mimeType="application/json" doc:name="set location_id"/>
+        <set-variable variableName="order_id" value="#[json:order_id]" encoding="UTF-8" mimeType="application/json" doc:name="set order_id"/>
+        <set-variable variableName="promo_code" value="#[json:promo_code]" encoding="UTF-8" mimeType="application/json" doc:name="set promo_code"/>
+        <component doc:name="Promo Api Endpoint">
+            <prototype-object class="chase.ApiEndpointCallable"/>
+        </component>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <choice doc:name="Choice">
+                <when expression="#[exception.getCause() != null &amp;&amp; exception.getCause() instanceof java.net.ConnectException]">
+                	<set-property propertyName="http.status" value="#[502]" doc:name="Set HTTP property to 502 Bad Gateway" />
+                </when>
+                <otherwise>
+                    <set-payload value="#[exception.message]" mimeType="application/json" doc:name="Set Payload to Exception Message"/>
+                    <set-property propertyName="http.status" value="500" doc:name="Message HTTP status"/>
+                </otherwise>
+            </choice>
+        </catch-exception-strategy>
+	</flow>
+</mule>
