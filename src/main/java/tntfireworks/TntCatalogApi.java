@@ -201,8 +201,10 @@ public class TntCatalogApi {
         return catalog;
     }
 
+    // per TNT requirements, item is to be deleted if item is absent
+    // from any location -> present_at_location_ids = []
     private Catalog clearManagedItemLocations(Catalog catalog) {
-        // - loop through catalog items and only update items with >1 locations
+        // - loop through catalog items and only update items with > 1 locations
         // - assume custom created items are isolated to 1 location
         for (CatalogObject item : catalog.getItems().values()) {
             if (item.getPresentAtLocationIds() != null && item.getPresentAtLocationIds().length > 1) {
@@ -210,18 +212,20 @@ public class TntCatalogApi {
                 item.setPresentAtLocationIds(new String[0]);
                 item.setAbsentAtLocationIds(new String[0]);
 
-                // per TNT requirements, if item is to be deleted,
-                // remove all instances of item (all item variations, including custom)
+                // - only reset present_at_location_ids for first variation (managed by TNT)
+                // - ad-hoc item variations should not be modified
                 if (item.getItemData() != null && item.getItemData().getVariations() != null
                         && item.getItemData().getVariations().length > 0) {
-                    for (CatalogObject itemVariation : item.getItemData().getVariations()) {
-                        itemVariation.setPresentAtAllLocations(false);
-                        itemVariation.setPresentAtLocationIds(new String[0]);
-                        itemVariation.setAbsentAtLocationIds(new String[0]);
-                        itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
-                    }
+                    CatalogObject itemVariation = item.getItemData().getVariations()[0];
+                    itemVariation.setPresentAtAllLocations(false);
+                    itemVariation.setPresentAtLocationIds(new String[0]);
+                    itemVariation.setAbsentAtLocationIds(new String[0]);
+                    itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
                 }
             }
+            // TODO: need to handle else case for item.getPresentAtLocationIds() == null
+            // if 'Available at Future Locations' is selected in Square Dashboard,
+            // item.getPresentAtLocationIds() returns null
         }
 
         return catalog;
@@ -305,17 +309,14 @@ public class TntCatalogApi {
     private void enableItemAtLocations(CatalogObject item, String[] locationIds) {
         Set<String> locationsSet = new HashSet<String>();
 
-        if (item.getPresentAtLocationIds() != null) {
-            locationsSet.addAll(Arrays.asList(item.getPresentAtLocationIds()));
-        }
-
         if (locationIds != null) {
             locationsSet.addAll(Arrays.asList(locationIds));
         }
 
         String[] locationsResult = locationsSet.toArray(new String[locationsSet.size()]);
         // only update first variation
-        if (item.getItemData() != null) {
+        if (item.getItemData() != null && item.getItemData().getVariations() != null
+                && item.getItemData().getVariations().length > 0) {
             CatalogObject variation = item.getItemData().getVariations()[0];
             variation.setPresentAtLocationIds(locationsResult);
         }
