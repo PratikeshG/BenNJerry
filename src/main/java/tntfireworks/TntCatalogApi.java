@@ -329,7 +329,10 @@ public class TntCatalogApi {
     private String[] getAllUniqueItemLocations(CatalogObject item, Set<String> locationsSet) {
         // loop through all variations and add locations to set
         for (CatalogObject variation : item.getItemData().getVariations()) {
-            locationsSet.addAll(Arrays.asList(variation.getPresentAtLocationIds()));
+            // if 0 locations are present, present_at_location_ids is null
+            if (variation.getPresentAtLocationIds() != null) {
+                locationsSet.addAll(Arrays.asList(variation.getPresentAtLocationIds()));
+            }
         }
 
         return locationsSet.toArray(new String[locationsSet.size()]);
