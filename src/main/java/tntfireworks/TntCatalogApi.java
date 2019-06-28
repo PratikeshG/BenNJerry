@@ -309,6 +309,10 @@ public class TntCatalogApi {
     private void enableItemAtLocations(CatalogObject item, String[] locationIds) {
         Set<String> locationsSet = new HashSet<String>();
 
+        if (item.getPresentAtLocationIds() != null) {
+            locationsSet.addAll(Arrays.asList(item.getPresentAtLocationIds()));
+        }
+
         if (locationIds != null) {
             locationsSet.addAll(Arrays.asList(locationIds));
         }
