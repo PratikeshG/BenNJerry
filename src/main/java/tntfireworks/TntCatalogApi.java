@@ -222,6 +222,12 @@ public class TntCatalogApi {
                     itemVariation.setAbsentAtLocationIds(new String[0]);
                     itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
                 }
+
+                // get all unmanaged variation location ids
+                String[] allUnmanagedVariationLocations = getAllUniqueItemVariationLocations(item);
+
+                // reset for unmanaged item locations
+                item.setPresentAtLocationIds(allUnmanagedVariationLocations);
             }
             // TODO: need to handle else case for item.getPresentAtLocationIds() == null
             // if 'Available at Future Locations' is selected in Square Dashboard,
@@ -317,29 +323,33 @@ public class TntCatalogApi {
             locationsSet.addAll(Arrays.asList(locationIds));
         }
 
-        String[] locationsResult = locationsSet.toArray(new String[locationsSet.size()]);
+        String[] managedLocationsResult = locationsSet.toArray(new String[locationsSet.size()]);
         // only update first variation
         if (item.getItemData() != null && item.getItemData().getVariations() != null
                 && item.getItemData().getVariations().length > 0) {
             CatalogObject variation = item.getItemData().getVariations()[0];
-            variation.setPresentAtLocationIds(locationsResult);
+            variation.setPresentAtLocationIds(managedLocationsResult);
         }
 
-        // get variation location ids
-        locationsResult = getAllUniqueItemLocations(item, locationsSet);
-        item.setPresentAtLocationIds(locationsResult);
+        // get all managed and unmanaged variation location ids
+        String[] allVariationLocations = getAllUniqueItemVariationLocations(item);
+        locationsSet.addAll(Arrays.asList(allVariationLocations));
+
+        item.setPresentAtLocationIds(locationsSet.toArray(new String[locationsSet.size()]));
     }
 
-    private String[] getAllUniqueItemLocations(CatalogObject item, Set<String> locationsSet) {
+    private String[] getAllUniqueItemVariationLocations(CatalogObject item) {
+        Set<String> uniqueLocations = new HashSet<String>();
+
         // loop through all variations and add locations to set
         for (CatalogObject variation : item.getItemData().getVariations()) {
             // if 0 locations are present, present_at_location_ids is null
             if (variation.getPresentAtLocationIds() != null) {
-                locationsSet.addAll(Arrays.asList(variation.getPresentAtLocationIds()));
+                uniqueLocations.addAll(Arrays.asList(variation.getPresentAtLocationIds()));
             }
         }
 
-        return locationsSet.toArray(new String[locationsSet.size()]);
+        return uniqueLocations.toArray(new String[uniqueLocations.size()]);
     }
 
     private void setSquareCategoryForItem(Map<String, CatalogObject> categories, CsvItem csvItem,
