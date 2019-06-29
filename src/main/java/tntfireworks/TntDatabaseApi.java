@@ -119,7 +119,7 @@ public class TntDatabaseApi {
         String rightJoinColumn = String.format("%s.%s", DB_TOKEN, DB_TOKEN_DEPLOYMENT_COLUMN);
 
         // create SQL statement
-        String query = String.format("SELECT %s FROM %s LEFT JOIN %s on %s = %s where %s", selectColumns, leftTable,
+        String query = String.format("SELECT %s FROM %s INNER JOIN %s on %s = %s where %s", selectColumns, leftTable,
                 rightTable, leftJoinColumn, rightJoinColumn, whereFilter);
         logger.info("Generated query: " + query);
         return query;

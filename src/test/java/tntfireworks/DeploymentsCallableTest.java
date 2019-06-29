@@ -75,9 +75,8 @@ public class DeploymentsCallableTest extends TestCase {
                 .thenReturn(deployments);
 
         // call function
-        DeploymentsCallable deploymentsCallable = new DeploymentsCallable();
-        List<SquarePayload> actualDeployments = deploymentsCallable.setUpDeployments(activeDeployment, tntDatabaseApi,
-                message);
+        TntCatalogSyncDeploymentsCallable deploymentsCallable = new TntCatalogSyncDeploymentsCallable();
+        List<SquarePayload> actualDeployments = deploymentsCallable.setUpDeployments(tntDatabaseApi, message);
 
         // verify session variables are set
         Mockito.verify(message).setProperty(Mockito.eq("marketingPlanItemsCache"),
