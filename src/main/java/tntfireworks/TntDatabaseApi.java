@@ -21,6 +21,7 @@ public class TntDatabaseApi {
     public static final String DB_LOAD_NUMBER = "tntfireworks_reports_load_number";
     public static final String DB_MKT_PLAN = "tntfireworks_marketing_plans";
     public static final String DB_LOCATION = "tntfireworks_locations";
+    public static final String DB_DEPLOYMENT = "tntfireworks_deployments";
 
     // load number is specifically used for tntfireworks report 8 (settlements report) and used
     // internally by TNT; the load number is tracked in a database
@@ -46,6 +47,17 @@ public class TntDatabaseApi {
     public static final String DB_LOCATION_ZIP_COLUMN = "zip";
     public static final String DB_LOCATION_SA_NAME_COLUMN = "saName";
     public static final String DB_LOCATION_SA_NUMBER_COLUMN = "saNum";
+
+    // deployment DB constants
+    public static final String DB_DEPLOYMENT_DEPLOYMENT_COLUMN = "deployment";
+    public static final String DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN = "enableReporting";
+    public static final String DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN = "enableCatalogSync";
+
+    // token DB constants
+    public static final String DB_TOKEN_DEPLOYMENT_COLUMN = "deployment";
+    public static final String DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN = "encryptedAccessToken";
+    public static final String DB_TOKEN_MERCHANT_ID_COLUMN = "merchantId";
+    public static final String DB_TOKEN_MERCHANT_ALIAS_COLUMN = "merchantAlias";
 
     private DbConnection dbConnection;
 
@@ -97,8 +109,18 @@ public class TntDatabaseApi {
         }
     }
 
-    public String generateDeploymentSQLSelect(String deploymentName) {
-        String query = String.format("SELECT * FROM %s WHERE deployment='%s'", DB_TOKEN, deploymentName);
+    public String generateDeploymentSQLSelect(String whereFilter) {
+        // initialize SQL statement components
+        String selectColumns = String.format("%s, %s, %s", DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN,
+                DB_TOKEN_MERCHANT_ID_COLUMN, DB_TOKEN_MERCHANT_ALIAS_COLUMN);
+        String leftTable = DB_DEPLOYMENT;
+        String rightTable = DB_TOKEN;
+        String leftJoinColumn = String.format("%s.%s", DB_DEPLOYMENT, DB_DEPLOYMENT_DEPLOYMENT_COLUMN);
+        String rightJoinColumn = String.format("%s.%s", DB_TOKEN, DB_TOKEN_DEPLOYMENT_COLUMN);
+
+        // create SQL statement
+        String query = String.format("SELECT %s FROM %s LEFT JOIN %s on %s = %s where %s", selectColumns, leftTable,
+                rightTable, leftJoinColumn, rightJoinColumn, whereFilter);
         logger.info("Generated query: " + query);
         return query;
     }

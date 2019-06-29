@@ -19,8 +19,6 @@ import util.SquarePayload;
 public class TntDeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TntDeploymentsCallable.class);
 
-    @Value("${tntfireworks.activeDeployment}")
-    private String activeDeployment;
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
     @Value("${mysql.user}")
@@ -35,17 +33,17 @@ public class TntDeploymentsCallable implements Callable {
 
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
-        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(tntDatabaseApi);
+        List<SquarePayload> deploymentPayloads = getReportingDeploymentsFromDb(tntDatabaseApi);
         tntDatabaseApi.close();
 
         logger.info("Returning %s deployments from DB", deploymentPayloads.size());
         return deploymentPayloads;
     }
 
-    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
-
+    private List<SquarePayload> getReportingDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
+        String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN);
         ArrayList<Map<String, String>> rows = tntDatabaseApi
-                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(activeDeployment));
+                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(whereFilter));
 
         // columns retrieved: connectApp, token
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
