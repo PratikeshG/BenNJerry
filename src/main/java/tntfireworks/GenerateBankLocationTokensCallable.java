@@ -127,7 +127,7 @@ public class GenerateBankLocationTokensCallable implements Callable {
 
     private ArrayList<Map<String, String>> getDeploymentsFromDb() throws SQLException, ClassNotFoundException {
         // get all access tokens for tnt merchant accounts (catalog and reporting)
-        String whereFilter = String.format("%s = 1 and %s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN,
+        String whereFilter = String.format("%s = 1 OR %s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN,
                 TntDatabaseApi.DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN);
 
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
