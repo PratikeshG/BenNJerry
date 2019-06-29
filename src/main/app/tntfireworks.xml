@@ -93,7 +93,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
-            <prototype-object class="tntfireworks.DeploymentsCallable"/>
+            <prototype-object class="tntfireworks.TntCatalogSyncDeploymentsCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">

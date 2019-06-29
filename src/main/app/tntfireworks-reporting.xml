@@ -199,7 +199,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads">
         <component doc:name="Get Deployments">
-            <prototype-object class="tntfireworks.reporting.TntDeploymentsCallable"/>
+            <prototype-object class="tntfireworks.reporting.TntReportingDeploymentsCallable"/>
         </component>
         <request-reply doc:name="Request-Reply">
             <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker">

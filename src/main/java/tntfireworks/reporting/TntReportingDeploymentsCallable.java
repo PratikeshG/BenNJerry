@@ -16,8 +16,8 @@ import tntfireworks.TntDatabaseApi;
 import util.DbConnection;
 import util.SquarePayload;
 
-public class TntDeploymentsCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(TntDeploymentsCallable.class);
+public class TntReportingDeploymentsCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(TntReportingDeploymentsCallable.class);
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -41,13 +41,19 @@ public class TntDeploymentsCallable implements Callable {
     }
 
     private List<SquarePayload> getReportingDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
+        // retrieve deployments where reporting is enabled
         String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN);
-        ArrayList<Map<String, String>> rows = tntDatabaseApi
+        ArrayList<Map<String, String>> dbRows = tntDatabaseApi
                 .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(whereFilter));
 
-        // columns retrieved: connectApp, token
+        return generateDeploymentPayloads(tntDatabaseApi, dbRows);
+    }
+
+    public List<SquarePayload> generateDeploymentPayloads(TntDatabaseApi tntDatabaseApi,
+            ArrayList<Map<String, String>> dbRows) throws SQLException {
+        // create SquarePayloads from db deployments
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
-        for (Map<String, String> row : rows) {
+        for (Map<String, String> row : dbRows) {
             SquarePayload deploymentPayload = new SquarePayload();
             deploymentPayload.setEncryptedAccessToken(row.get("encryptedAccessToken"));
             deploymentPayload.setMerchantId(row.get("merchantId"));

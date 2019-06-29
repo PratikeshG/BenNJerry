@@ -20,8 +20,8 @@ import com.google.gson.GsonBuilder;
 import util.DbConnection;
 import util.SquarePayload;
 
-public class DeploymentsCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(DeploymentsCallable.class);
+public class TntCatalogSyncDeploymentsCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(TntCatalogSyncDeploymentsCallable.class);
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -29,8 +29,6 @@ public class DeploymentsCallable implements Callable {
     private String databaseUser;
     @Value("${mysql.password}")
     private String databasePassword;
-    @Value("${tntfireworks.activeDeployment}")
-    private String activeDeployment;
 
     GsonBuilder builder = new GsonBuilder();
     Gson gson = builder.create();
@@ -47,10 +45,6 @@ public class DeploymentsCallable implements Callable {
         this.databasePassword = databasePassword;
     }
 
-    public void setActiveDeployment(String activeDeployment) {
-        this.activeDeployment = activeDeployment;
-    }
-
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -58,17 +52,17 @@ public class DeploymentsCallable implements Callable {
 
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
-        List<SquarePayload> deploymentPayloads = setUpDeployments(activeDeployment, tntDatabaseApi, message);
+        List<SquarePayload> deploymentPayloads = setUpDeployments(tntDatabaseApi, message);
         tntDatabaseApi.close();
 
         return deploymentPayloads;
     }
 
-    public List<SquarePayload> setUpDeployments(String deployment, TntDatabaseApi tntDatabaseApi, MuleMessage message)
+    public List<SquarePayload> setUpDeployments(TntDatabaseApi tntDatabaseApi, MuleMessage message)
             throws SQLException {
         HashMap<String, String> locationMarketingPlanCache = generateLocationMarketingPlanCache(tntDatabaseApi);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = generateMarketingPlanItemsCache(tntDatabaseApi);
-        List<SquarePayload> deploymentPayloads = getDeploymentsFromDb(tntDatabaseApi, deployment);
+        List<SquarePayload> deploymentPayloads = getCatalogSyncDeploymentsFromDb(tntDatabaseApi);
 
         // set mule session variables
         setMuleLocationMarketingPlanCache(locationMarketingPlanCache, message);
@@ -88,10 +82,13 @@ public class DeploymentsCallable implements Callable {
         logMarketingPlans(marketingPlanItemsCache);
     }
 
-    private List<SquarePayload> getDeploymentsFromDb(TntDatabaseApi tntDatabaseApi, String deployment)
-            throws SQLException {
-        List<SquarePayload> deploymentPayloads = generateDeploymentPayloads(tntDatabaseApi, deployment);
-        return deploymentPayloads;
+    private List<SquarePayload> getCatalogSyncDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
+        // retrieve deployments from db where catalog sync is enabled
+        String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN);
+        ArrayList<Map<String, String>> dbRows = tntDatabaseApi
+                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(whereFilter));
+
+        return generateDeploymentPayloads(tntDatabaseApi, dbRows);
     }
 
     private void logMarketingPlans(HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
@@ -101,16 +98,11 @@ public class DeploymentsCallable implements Callable {
         }
     }
 
-    public List<SquarePayload> generateDeploymentPayloads(TntDatabaseApi tntDatabaseApi, String deployment)
-            throws SQLException {
-
-        ArrayList<Map<String, String>> rows = tntDatabaseApi
-                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(activeDeployment));
-
-        logger.debug("generateDeploymentSQLSelect=" + gson.toJson(rows));
-
+    public List<SquarePayload> generateDeploymentPayloads(TntDatabaseApi tntDatabaseApi,
+            ArrayList<Map<String, String>> dbRows) throws SQLException {
+        // create SquarePayloads from db deployments
         List<SquarePayload> deploymentPayloads = new ArrayList<SquarePayload>();
-        for (Map<String, String> row : rows) {
+        for (Map<String, String> row : dbRows) {
             SquarePayload deploymentPayload = new SquarePayload();
             deploymentPayload.setEncryptedAccessToken(row.get("encryptedAccessToken"));
             deploymentPayload.setMerchantId(row.get("merchantId"));
