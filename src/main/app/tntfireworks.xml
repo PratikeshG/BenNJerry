@@ -34,12 +34,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <logger message="Generating location file for bank account linking" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <component doc:name="GenerateBankLocationTokensCallable">
-                <prototype-object class="tntfireworks.GenerateBankLocationTokensCallable">
-                <property key="databaseUrl" value="jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}"/>
-	            <property key="databaseUser" value="${mysql.user}"/>
-	            <property key="databasePassword" value="${mysql.password}"/>
-	            <property key="activeDeployment" value="${tntfireworks.activeDeployment}"/>
-	            </prototype-object>
+                <prototype-object class="tntfireworks.GenerateBankLocationTokensCallable"/>
         </component>
         <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Source / Destination Location Tokens for Bank Account Linking']" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
         <set-payload value="Finished generating source/destination location ids for bank account linking (in SqWeb)" doc:name="Set Payload"/>
@@ -93,7 +88,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
         <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
         <component doc:name="Create deployment payloads">
-            <prototype-object class="tntfireworks.DeploymentsCallable"/>
+            <prototype-object class="tntfireworks.TntCatalogSyncDeploymentsCallable"/>
         </component>
         <choice doc:name="Only process non-empty lists">
             <when expression="#[payload == null || payload.size() &lt; 1]">
