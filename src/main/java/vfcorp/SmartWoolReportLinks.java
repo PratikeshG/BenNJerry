@@ -16,7 +16,7 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class SmartWoolReportLinks implements Callable {
-	@Value("${encryption.key.tokens}")
+    @Value("${encryption.key.tokens}")
     private String encryptionKey;
 
     @Override

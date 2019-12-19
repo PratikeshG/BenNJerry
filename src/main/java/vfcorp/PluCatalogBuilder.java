@@ -29,6 +29,7 @@ public class PluCatalogBuilder {
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
 
+    private static String DEPLOYMENT_TNF_CA = "tnfca";
     private static String DEPLOYMENT_PREFIX = "vfcorp";
     private static String INVALID_STORE_ID = "00000";
 
@@ -40,7 +41,16 @@ public class PluCatalogBuilder {
     private String databasePassword;
     private String brand;
     private boolean pluFiltered;
+    private boolean ignoresSkuCheckDigit;
     private int itemNumberLookupLength;
+
+    public boolean ignoresSkuCheckDigit() {
+        return ignoresSkuCheckDigit;
+    }
+
+    public void setIgnoresSkuCheckDigit(boolean ignoresSkuCheckDigit) {
+        this.ignoresSkuCheckDigit = ignoresSkuCheckDigit;
+    }
 
     public void setItemNumberLookupLength(int itemNumberLookupLength) {
         this.itemNumberLookupLength = itemNumberLookupLength;
@@ -58,6 +68,7 @@ public class PluCatalogBuilder {
         this.databasePassword = databasePassword;
         this.brand = brand;
         this.pluFiltered = true;
+        this.ignoresSkuCheckDigit = false;
         this.itemNumberLookupLength = 14;
     }
 
@@ -205,6 +216,7 @@ public class PluCatalogBuilder {
         }
 
         logger.info("TOTAL DUPLCATE SKUS IN CATALOG: " + totalDuplicateSkus);
+        logger.info("TOTAL CATALOG IDS TO DELETE: " + idsToDelete.size());
 
         deleteObjectsFromSquare(idsToDelete.toArray(new String[0]));
     }
@@ -371,7 +383,7 @@ public class PluCatalogBuilder {
     }
 
     private void applySalePrice(Catalog catalog, String locationId, Map<String, String> record) throws Exception {
-        String sku = convertItemNumberIntoSku(record.get("itemNumber"));
+        String sku = convertItemNumberToScannableSku(record.get("itemNumber"));
 
         CatalogObject item = catalog.getItem(sku);
         if (item == null) {
@@ -383,7 +395,8 @@ public class PluCatalogBuilder {
         if (variation != null && variation.getSku().equals(sku)) {
             int price = Integer.parseInt(record.get("salePrice"));
             if (price > 0) {
-                item.setLocationPriceOverride(new String[] { locationId }, new Money(price), FIXED_PRICING);
+                item.setLocationPriceOverride(new String[] { locationId }, new Money(price, getAccountCurrency()),
+                        FIXED_PRICING);
             }
         }
     }
@@ -398,7 +411,7 @@ public class PluCatalogBuilder {
 
     private void updateCatalogLocationWithItem(Catalog catalog, Location location, Map<String, String> record,
             String deploymentId) throws Exception {
-        String sku = convertItemNumberIntoSku(record.get("itemNumber"));
+        String sku = convertItemNumberToScannableSku(record.get("itemNumber"));
 
         CatalogObject updatedItem = getMatchingOrNewItem(catalog, sku);
         CatalogItemVariation updatedVariation = getFirstItemVariation(updatedItem);
@@ -418,7 +431,7 @@ public class PluCatalogBuilder {
         String rawPrice = (record.get("retailPrice") != null && !record.get("retailPrice").isEmpty())
                 ? record.get("retailPrice") : "0";
         int price = Integer.parseInt(rawPrice);
-        Money locationPriceMoney = new Money(price);
+        Money locationPriceMoney = new Money(price, getAccountCurrency());
         if (price > 0 || updatedVariation.getPriceMoney() == null) {
             // We can't discern which location's price is the master price, so just override
             updatedVariation.setPriceMoney(locationPriceMoney);
@@ -504,13 +517,13 @@ public class PluCatalogBuilder {
      *
      */
     private String convertItemNumberIntoSku(String itemNumber) {
-        String shortItemNumber = itemNumber.substring(0, itemNumberLookupLength);
+        String shortItemNumber = itemNumber.substring(itemNumber.length() - itemNumberLookupLength);
 
         if (shortItemNumber.matches("[0-9]+")) {
             // Remove leading zeros
             shortItemNumber = shortItemNumber.replaceFirst("^0+(?!$)", "");
 
-            // But SKUs should be at least 12, pad 0s
+            // But SKUs should be at least 12 digits, pad 0s
             if (shortItemNumber.length() < 12) {
                 shortItemNumber = ("000000000000" + shortItemNumber).substring(shortItemNumber.length());
             }
@@ -519,5 +532,23 @@ public class PluCatalogBuilder {
             // Remove trailing spaces
             return shortItemNumber.replaceFirst("\\s+$", "");
         }
+    }
+
+    private String convertItemNumberToScannableSku(String itemNumber) {
+        if (ignoresSkuCheckDigit && itemNumber.startsWith("00")) {
+            return convertItemNumberIntoSku(itemNumber).substring(itemNumber.length() - 12);
+        }
+        return convertItemNumberIntoSku(itemNumber);
+    }
+
+    private String getAccountCurrency() {
+        if (isCanadaDeployment()) {
+            return "CAD";
+        }
+        return "USD";
+    }
+
+    private boolean isCanadaDeployment() {
+        return brand.equals(DEPLOYMENT_TNF_CA);
     }
 }

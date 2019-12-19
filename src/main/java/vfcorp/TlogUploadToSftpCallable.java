@@ -59,6 +59,7 @@ public class TlogUploadToSftpCallable implements Callable {
         VfcDeployment deployment = message.getProperty("tlogVfcDeployment", PropertyScope.INVOCATION);
 
         String storeforceArchiveDirectory = message.getProperty("storeforceArchiveDirectory", PropertyScope.INVOCATION);
+        String storeforceTrickleDirectory = message.getProperty("storeforceTrickleDirectory", PropertyScope.INVOCATION);
 
         String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
 
@@ -73,17 +74,17 @@ public class TlogUploadToSftpCallable implements Callable {
         }
 
         return uploadTlogsWithRetries(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber, deployment,
-                storeforceArchiveDirectory, uploadPattern);
+                storeforceArchiveDirectory, storeforceTrickleDirectory, uploadPattern);
     }
 
     private Object uploadTlogsWithRetries(MuleMessage message, String tlog, boolean isStoreforceTrickle,
             boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
-            String uploadPattern) throws InterruptedException, Exception {
+            String storeforceTrickleDirectory, String uploadPattern) throws InterruptedException, Exception {
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 return uploadTntTlogsViaSftp(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber,
-                        deployment, storeforceArchiveDirectory, uploadPattern);
+                        deployment, storeforceArchiveDirectory, storeforceTrickleDirectory, uploadPattern);
 
             } catch (Exception e) {
                 lastException = e;
@@ -97,7 +98,7 @@ public class TlogUploadToSftpCallable implements Callable {
 
     private Object uploadTntTlogsViaSftp(MuleMessage message, String tlog, boolean isStoreforceTrickle,
             boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
-            String uploadPattern)
+            String storeforceTrickleDirectory, String uploadPattern)
             throws JSchException, IOException, UnsupportedEncodingException, SftpException, ParseException {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
@@ -135,9 +136,7 @@ public class TlogUploadToSftpCallable implements Callable {
             if (!isStoreforceTrickle) {
                 sftpChannel.cd(storeforceArchiveDirectory);
             } else {
-                // Save only to trickle directory
-                String trickleDirectory = storeforceArchiveDirectory + "/Trickle";
-                sftpChannel.cd(trickleDirectory);
+                sftpChannel.cd(storeforceTrickleDirectory);
             }
 
             sftpChannel.put(storeforceUploadStream, uploadPattern, ChannelSftp.OVERWRITE);

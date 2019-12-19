@@ -22,28 +22,28 @@ import util.SquarePayload;
 import util.TimeManager;
 
 public class GetLocationDetailsCallable implements Callable {
-	@Value("${encryption.key.tokens}")
-	private String encryptionKey;
+    @Value("${encryption.key.tokens}")
+    private String encryptionKey;
 
-	/**
-	 * Get merchants {@code Location}'s for inclusion in report. Sets
-	 * {@code merchantDetails} session var and {@code locationDetailsMap} of
-	 * location {@code Id} to {@code Location}.
-	 */
-	@Override
-	public Object onCall(MuleEventContext eventContext) throws Exception {
-		String apiUrl, accessToken, merchantId;
+    /**
+     * Get merchants {@code Location}'s for inclusion in report. Sets
+     * {@code merchantDetails} session var and {@code locationDetailsMap} of
+     * location {@code Id} to {@code Location}.
+     */
+    @Override
+    public Object onCall(MuleEventContext eventContext) throws Exception {
+        String apiUrl, accessToken, merchantId;
 
-		MuleMessage message = eventContext.getMessage();
+        MuleMessage message = eventContext.getMessage();
 
-		int range = Integer.parseInt(message.getProperty(Constants.RANGE, PropertyScope.SESSION));
-		int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
+        int range = Integer.parseInt(message.getProperty(Constants.RANGE, PropertyScope.SESSION));
+        int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
 
-		SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
-		apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
+        SquarePayload sqPayload = (SquarePayload) message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
+        apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
 
-		accessToken = sqPayload.getAccessToken(this.encryptionKey);
-		merchantId = sqPayload.getMerchantId();
+        accessToken = sqPayload.getAccessToken(this.encryptionKey);
+        merchantId = sqPayload.getMerchantId();
 
 		SquareClientV2 client = new SquareClientV2(apiUrl, accessToken, merchantId);
 		sqPayload.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
