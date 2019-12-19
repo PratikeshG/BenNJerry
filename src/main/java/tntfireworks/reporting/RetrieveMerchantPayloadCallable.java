@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final int ITEM_SALES_REPORT_TYPE = 7;
     private static final int CREDIT_DEBIT_REPORT_TYPE = 8;
     private static final int GROSS_SALES_REPORT_TYPE = 9;
+    private static final int YOY_GROSS_SALES_REPORT_TYPE = 10;
     private static final String SEASON_REPORTING_ENABLED = "TRUE";
     private static final String TNT_DEFAULT_LOCATION_NAME_PREFIX = "DEFAULT";
 
@@ -223,6 +225,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                             merchantPayload.add(generateGrossSalesPayload(squareClientV1, locationDetails,
                                     aggregateIntervalParams, dayTimeInterval));
                             break;
+                        case YOY_GROSS_SALES_REPORT_TYPE:
+                            merchantPayload.add(generateYoyGrossSalesPayload(squareClientV1, locationDetails,
+                                    aggregateIntervalParams, dayTimeInterval));
+                            break;
                     }
                 }
             }
@@ -379,5 +385,55 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         }
 
         return grossSalesPayload;
+    }
+
+    private YoyGrossSalesPayload generateYoyGrossSalesPayload(SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
+            Map<String, String> dayTimeInterval) throws Exception {
+        // get transaction data for gross sales payload
+        GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
+            currentGrossSalesPayload.addPayment(payment);
+        }
+
+        // get prior year time intervals
+        Map<String, String> prevDayTimeInterval = getPreviousTimeInterval(dayTimeInterval,
+                locationDetails.sqLocationTimeZone);
+        Map<String, String> prevAggregateIntervalParams = getPreviousTimeInterval(aggregateIntervalParams,
+                locationDetails.sqLocationTimeZone);
+        // generate gross sales payload from prior year
+        GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, prevDayTimeInterval, locationDetails);
+        prevAggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, prevAggregateIntervalParams)) {
+            prevGrossSalesPayload.addPayment(payment);
+        }
+
+        return new YoyGrossSalesPayload(timeZone, dayTimeInterval, locationDetails, currentGrossSalesPayload,
+                prevGrossSalesPayload);
+    }
+
+    private Map<String, String> getPreviousTimeInterval(Map<String, String> timeInterval, String timeZone)
+            throws ParseException {
+        Map<String, String> prevTimeInterval = new HashMap<>();
+
+        // use Calendar to calculate previous year
+        Calendar beginTime = TimeManager.toCalendar(timeInterval.get(util.Constants.BEGIN_TIME));
+        Calendar endTime = TimeManager.toCalendar(timeInterval.get(util.Constants.END_TIME));
+        logger.info("Old Begin time: " + TimeManager.toIso8601(beginTime, timeZone));
+        logger.info("Old End time: " + TimeManager.toIso8601(beginTime, timeZone));
+
+        // set time to 1 year prior
+        beginTime.add(Calendar.YEAR, -1);
+        endTime.add(Calendar.YEAR, -1);
+
+        // convert to iso8601 format
+        prevTimeInterval.put("begin_time", TimeManager.toIso8601(beginTime, timeZone));
+        prevTimeInterval.put("end_time", TimeManager.toIso8601(endTime, timeZone));
+
+        logger.info("New Begin time: " + TimeManager.toIso8601(beginTime, timeZone));
+        logger.info("New End time: " + TimeManager.toIso8601(beginTime, timeZone));
+
+        return prevTimeInterval;
     }
 }

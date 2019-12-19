@@ -26,7 +26,6 @@ import util.TimeManager;
  */
 public class GrossSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(GrossSalesPayload.class);
-
     private static final String GROSS_SALES_FILE_HEADER = String.format(
             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n",
             "Daily Sales Date", "Location Number", "RBU", "State", "Daily Cash Sales", "Daily Credit Sales",
@@ -36,25 +35,25 @@ public class GrossSalesPayload extends TntReportLocationPayload {
             "Gross Sales (YTD)", "# Transactions (YTD)", "Average Gross Sale Per Transaction (YTD)");
     private Calendar beginTime;
     private Calendar endTime;
-    private int dailyGrossSales;
-    private int seasonGrossSales;
-    private int dailyTransactionCount;
-    private int seasonTransactionCount;
-    private int dailyCreditTotals;
-    private int seasonCreditTotals;
-    private int dailyCashTotals;
-    private int seasonCashTotals;
-    private int dailyTotalCollected;
-    private int seasonTotalCollected;
-    private int dailyTaxTotals;
-    private int seasonTaxTotals;
-    private int dailyDiscountTotals;
-    private int seasonDiscountTotals;
-    private int dailyRefundTotals;
-    private int seasonRefundTotals;
-    private String dailySalesDate;
-    private int avgDailyGross;
-    private int avgSeasonGross;
+    protected int dailyGrossSales;
+    protected int seasonGrossSales;
+    protected int dailyTransactionCount;
+    protected int seasonTransactionCount;
+    protected int dailyCreditTotals;
+    protected int seasonCreditTotals;
+    protected int dailyCashTotals;
+    protected int seasonCashTotals;
+    protected int dailyTotalCollected;
+    protected int seasonTotalCollected;
+    protected int dailyTaxTotals;
+    protected int seasonTaxTotals;
+    protected int dailyDiscountTotals;
+    protected int seasonDiscountTotals;
+    protected int dailyRefundTotals;
+    protected int seasonRefundTotals;
+    protected String dailySalesDate;
+    protected int avgDailyGross;
+    protected int avgSeasonGross;
 
     public GrossSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
             throws ParseException {
