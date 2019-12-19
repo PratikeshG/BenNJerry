@@ -38,7 +38,8 @@ public class StateVariableGenerator implements Callable {
                     "ITEMS_WRITE" });
         } else {
             params.setScope(new String[] { "MERCHANT_PROFILE_READ", "SETTLEMENTS_READ", "PAYMENTS_READ", "ITEMS_READ",
-                    "ITEMS_WRITE", "EMPLOYEES_READ", "TIMECARDS_READ", "CUSTOMERS_READ", "CUSTOMERS_WRITE" });
+                    "ITEMS_WRITE", "INVENTORY_READ", "INVENTORY_WRITE", "EMPLOYEES_READ", "TIMECARDS_READ",
+                    "CUSTOMERS_READ", "CUSTOMERS_WRITE", "ORDERS_READ" });
         }
 
         SquareClient client = new SquareClient(apiUrl);

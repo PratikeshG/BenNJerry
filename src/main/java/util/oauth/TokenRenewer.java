@@ -41,23 +41,31 @@ public class TokenRenewer implements Callable {
         } else if (connectApp != null && connectApp.equals(legacyId)) {
             secret = legacySecret;
         } else {
-            throw new Exception("connect app '" + connectApp
-                    + "' associated with this token is not an official Managed Integrations application");
+            String error = "connect app '" + connectApp
+                    + "' associated with this token is not an official Managed Integrations application";
+
+            eventContext.getMessage().setProperty("error", error, PropertyScope.INVOCATION);
+            return false;
         }
 
         SquarePayload tokenEncryption = new SquarePayload();
         tokenEncryption.setEncryptedAccessToken(encryptedAccessToken);
 
         SquareClient client = new SquareClient(tokenEncryption.getAccessToken(encryptionKey), apiUrl);
-        OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
 
-        tokenEncryption.encryptAccessToken(newToken.getAccessToken(), encryptionKey);
+        try {
+            OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
+            tokenEncryption.encryptAccessToken(newToken.getAccessToken(), encryptionKey);
 
-        eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
-                PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("expiresAt", newToken.getExpiresAt(), PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
+                    PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("expiresAt", newToken.getExpiresAt(), PropertyScope.INVOCATION);
 
-        return true;
+            return true;
+        } catch (Exception e) {
+            eventContext.getMessage().setProperty("error", e.getMessage(), PropertyScope.INVOCATION);
+            return false;
+        }
     }
 }
