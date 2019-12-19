@@ -41,21 +41,10 @@ public class DetailsByDeploymentCallable implements Callable {
 
         SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                 deployment.getMerchantId(), deployment.getLocationId());
-        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
-                deployment.getMerchantId(), deployment.getLocationId());
+        SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
+        squareV2Client.setLogInfo(deployment.getMerchantId() + " - " + deployment.getLocationId());
 
-        Location location = null;
-
-        // We want to get the location store ID and time zone
-        // There is currently no retrieveLocation endpoint in V2
-        // Need to list locations then find the correct location
-        Location[] deploymentLocations = squareV2Client.locations().list();
-        for (Location loc : deploymentLocations) {
-            if (loc.getId().equals(deployment.getLocationId())) {
-                location = loc;
-                break;
-            }
-        }
+        Location location = squareV2Client.locations().retrieve(deployment.getLocationId());
         if (location == null) {
             throw new Exception("No matching location ID found in loyalty calculation!");
         }
@@ -88,7 +77,7 @@ public class DetailsByDeploymentCallable implements Callable {
 
         // V2 Transactions - ignore no-sales and cash-only transactions
         params.put("sort_order", "ASC"); // v2 default is DESC
-        Transaction[] allTransactions = squareV2Client.transactions().list(params);
+        Transaction[] allTransactions = squareV2Client.transactions().list(location.getId(), params);
         List<Transaction> validTransactions = new ArrayList<Transaction>();
         for (Transaction transaction : allTransactions) {
             boolean hasValidTransactionTender = false;

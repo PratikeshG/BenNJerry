@@ -84,9 +84,10 @@ public class CustomerVerificationCallable implements Callable {
         // Process Customers for each location
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
             SquareClientV2 squareV2Client = new SquareClientV2(apiUrl,
-                    squarePayloads.get(locationTransactionDetails.getLocation().getId()).getAccessToken(encryptionKey),
-                    squarePayloads.get(locationTransactionDetails.getLocation().getId()).getMerchantId(),
-                    squarePayloads.get(locationTransactionDetails.getLocation().getId()).getLocationId());
+                    squarePayloads.get(locationTransactionDetails.getLocation().getId()).getAccessToken(encryptionKey));
+            squareV2Client.setLogInfo(
+                    squarePayloads.get(locationTransactionDetails.getLocation().getId()).getMerchantId() + " - "
+                            + squarePayloads.get(locationTransactionDetails.getLocation().getId()).getLocationId());
 
             String storeId = Util.getStoreNumber(locationTransactionDetails.getLocation().getName());
 

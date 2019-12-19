@@ -48,8 +48,8 @@ public class DepositsAggregateCallable implements Callable {
         for (SquarePayload deployment : deploymentPayloads) {
             SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                     deployment.getMerchantId(), deployment.getLocationId());
-            SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
-                    deployment.getMerchantId(), deployment.getLocationId());
+            SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
+            squareV2Client.setLogInfo(deployment.getMerchantId() + " - " + deployment.getLocationId());
 
             Location location = squareV2Client.locations().retrieve(deployment.getLocationId());
             if (location == null) {

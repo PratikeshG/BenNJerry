@@ -75,9 +75,8 @@ public class TlogGenerator implements Callable {
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
                 tlogGeneratorPayload.getSquarePayload().getMerchantId(), locationId);
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl,
-                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey),
-                tlogGeneratorPayload.getSquarePayload().getMerchantId(),
-                tlogGeneratorPayload.getSquarePayload().getLocationId());
+                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey));
+        squareV2Client.setLogInfo(tlogGeneratorPayload.getSquarePayload().getMerchantId() + " - " + locationId);
 
         // Locations
         Merchant[] locations = squareV1Client.businessLocations().list();
@@ -134,7 +133,7 @@ public class TlogGenerator implements Callable {
             // Get customer transactions
             Map<String, String> v2Params = tlogGeneratorPayload.getParams();
             v2Params.put("sort_order", "ASC"); // v2 default is DESC
-            Transaction[] transactions = squareV2Client.transactions().list(v2Params);
+            Transaction[] transactions = squareV2Client.transactions().list(locationId, v2Params);
             for (Transaction transaction : transactions) {
                 for (Tender tender : transaction.getTenders()) {
                     if (tender.getCustomerId() != null) {

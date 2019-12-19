@@ -31,7 +31,7 @@ public class LocationsCallable implements Callable {
         String accessToken = squarePayload.getAccessToken(this.encryptionKey);
         String merchantId = squarePayload.getMerchantId();
 
-        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, accessToken, merchantId);
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, accessToken);
 
         List<Location> locations = Arrays.asList(clientV2.locations().list());
 

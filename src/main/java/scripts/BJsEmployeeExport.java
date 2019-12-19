@@ -31,7 +31,7 @@ public class BJsEmployeeExport {
         account.setEncryptedAccessToken(MASTER_ACCOUNT_TOKEN);
 
         SquareClient clientV1 = new SquareClient(account.getAccessToken(ENCRYPTION_KEY), API_URL, "v1", MERCHANT_ID);
-        SquareClientV2 clientV2 = new SquareClientV2(API_URL, account.getAccessToken(ENCRYPTION_KEY), MERCHANT_ID);
+        SquareClientV2 clientV2 = new SquareClientV2(API_URL, account.getAccessToken(ENCRYPTION_KEY));
 
         List<Location> locations = Arrays.asList(clientV2.locations().list());
         Employee[] employees = clientV1.employees().list();

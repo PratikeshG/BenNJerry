@@ -29,7 +29,8 @@ public class SmartWoolReportLinks implements Callable {
 
         // set SquareClientV2 for API calls
         SquarePayload payload = (SquarePayload) message.getPayload();
-        SquareClientV2 client = new SquareClientV2(apiUrl, payload.getAccessToken(this.encryptionKey), payload.getMerchantId());
+        SquareClientV2 client = new SquareClientV2(apiUrl, payload.getAccessToken(this.encryptionKey));
+        client.setLogInfo(payload.getMerchantId());
 
         // final payload as emailBody in html
         StringBuilder emailBody = new StringBuilder();
