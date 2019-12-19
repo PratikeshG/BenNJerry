@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <set-payload value="BJs mothly reports generated with offset: #[sessionVars.offset]" doc:name="Response message"/>
     </flow>
     <flow name="BJs-monthly-report-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-bjs-monthly-1522544165" cronExpression="0 5 9 2 * ?" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run second of every month at 9:05am PST">
+        <quartz:inbound-endpoint jobName="quartz-bjs-monthly-1522544999" cronExpression="0 45 20 1 * ?" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run first of every month at 8:45pm EST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
