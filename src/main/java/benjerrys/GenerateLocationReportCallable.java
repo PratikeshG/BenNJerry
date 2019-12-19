@@ -1,5 +1,8 @@
 package benjerrys;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +16,10 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Refund;
@@ -20,12 +27,24 @@ import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
 
 import util.Constants;
+import util.SftpApi;
 import util.SquarePayload;
 import util.TimeManager;
 
 public class GenerateLocationReportCallable implements Callable {
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
+
+    @Value("${benjerrys.sftp.ip}")
+    private String sftpHost;
+    @Value("${benjerrys.sftp.port}")
+    private int sftpPort;
+    @Value("${benjerrys.sftp.user}")
+    private String sftpUser;
+    @Value("${benjerrys.sftp.password}")
+    private String sftpPassword;
+    @Value("${benjerrys.sftp.path}")
+    private String sftpPath;
 
     private static String VAR_LOCATION_OVERRIDE = "locationOverride";
     private static String VAR_DATE_MONTH_YEAR = "dateMonthYear";
@@ -67,6 +86,8 @@ public class GenerateLocationReportCallable implements Callable {
             return summary;
         }
 
+        uploadReportsToSftp(reportBuilder, location.getName(), dateMonthYear);
+
         attachMonthlyCalculationReport(eventContext, reportBuilder, location.getName(), dateMonthYear);
         attachMonthlySummaryReport(eventContext, reportBuilder, location.getName(), dateMonthYear);
 
@@ -75,6 +96,31 @@ public class GenerateLocationReportCallable implements Callable {
         summary.isProcessed(true);
 
         return summary;
+    }
+
+    private void uploadReportsToSftp(MonthlyReportBuilder reportBuilder, String locationName, String dateMonthYear)
+            throws IOException, JSchException, SftpException {
+
+        Session session = SftpApi.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+
+        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+
+        sftpChannel.cd(sftpPath);
+
+        InputStream calcReportStream = new ByteArrayInputStream(reportBuilder.generateCalculationReport().getBytes());
+        String calcReportName = generateReportNameString("Calc", locationName, dateMonthYear);
+        sftpChannel.put(calcReportStream, calcReportName);
+
+        InputStream summaryReportStream = new ByteArrayInputStream(reportBuilder.generateSummaryReport().getBytes());
+        String summaryReportName = generateReportNameString("Report", locationName, dateMonthYear);
+        sftpChannel.put(summaryReportStream, summaryReportName);
+
+        calcReportStream.close();
+        summaryReportStream.close();
+
+        sftpChannel.disconnect();
+        session.disconnect();
     }
 
     private List<String> setLocationEmailRecipients(MuleMessage message, Location location, Employee[] employees) {
@@ -132,7 +178,8 @@ public class GenerateLocationReportCallable implements Callable {
         String merchantId = squarePayload.getMerchantId();
         Map<String, String> dateParams = TimeManager.getPastMonthInterval(monthOffset, location.getTimezone());
 
-        SquareClient client = new SquareClient(accessToken, apiUrl, "v1", merchantId, location.getId());
+        SquareClient client = new SquareClient(accessToken, "https://connect.squareup.com", "v1", merchantId,
+                location.getId());
 
         MonthlyReportBuilder reportBuilder = new MonthlyReportBuilder(location.getName(), dateMonthYear,
                 dateParams.get(Constants.BEGIN_TIME), dateParams.get(Constants.END_TIME));
