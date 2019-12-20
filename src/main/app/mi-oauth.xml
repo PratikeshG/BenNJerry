@@ -78,10 +78,10 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAc
         </db:select>
     </sub-flow>
     <flow name="MI:OAuth:renew-expiring-tokens">
-        <quartz:inbound-endpoint jobName="quartz-mi-renew-tokens-1522527699" cronExpression="0 0 10 ? * MON" repeatInterval="0" responseTimeout="10000" doc:name="Run every Monday at 10:00am (PST)" connector-ref="Quartz-OAuth" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-mi-renew-tokens-1565311692" cronExpression="0 0 10 ? * MON,THU" repeatInterval="0" responseTimeout="10000" doc:name="Run every Monday &amp; Thursday at 10:00am (PST)" connector-ref="Quartz-OAuth" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-payload value="#[server.dateTime.plusDays(7).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date one week in the future in ISO8601 format"/>
+        <set-payload value="#[server.dateTime.plusDays(14).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date two weeks in the future in ISO8601 format"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE expiryDate < #[payload];]]></db:parameterized-query>
         </db:select>
@@ -89,11 +89,23 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAc
             <component doc:name="Renew token">
                 <prototype-object class="util.oauth.TokenRenewer"/>
             </component>
-            <db:update config-ref="MySQL_Configuration" doc:name="Update token in database">
-                <db:parameterized-query><![CDATA[UPDATE `token`
+            <choice doc:name="Process token">
+                <when expression="#[payload == false]">
+                    <logger message="Error attempting to renew token: #[flowVars.error]" level="INFO" doc:name="Log error"/>
+                </when>
+                <otherwise>
+                    <db:update config-ref="MySQL_Configuration" doc:name="Update token in database">
+                        <db:parameterized-query><![CDATA[UPDATE `token`
 SET encryptedAccessToken = #[flowVars.encryptedAccessToken], expiryDate = #[flowVars.expiresAt]
 WHERE id = #[flowVars.tokenId];]]></db:parameterized-query>
-            </db:update>
+                    </db:update>
+                </otherwise>
+            </choice>
         </foreach>
+    </flow>
+    <flow name="MI:OAuth:trigger-oauth-refresh">
+        <http:listener config-ref="${default.http.config}" path="/oauth/refresh/${urlKey}" doc:name="/oauth/refresh"/>
+        <flow-ref name="MI:OAuth:renew-expiring-tokens" doc:name="MI:OAuth:renew-expiring-tokens"/>
+        <set-payload value="Running OAuth refresh..." doc:name="Set Payload"/>
     </flow>
 </mule>

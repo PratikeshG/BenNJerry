@@ -53,18 +53,18 @@ public class MonthlyReportBuilder {
     private static String CATEGORY_UNASSIGNED_REFUNDS = "UNASSIGNED REFUNDS";
 
     private static String CATEGORY_GIFT_CARD = "GIFT CARD";
+    private static String CATEGORY_SERVICE_CHARGE = "SERVICE CHARGE";
 
     private static List<String> GROUP_IC_AND_TOPPINGS = new ArrayList<String>();
     private static List<String> GROUP_OFF_PREMISE = new ArrayList<String>();
     private static List<String> GROUP_TOTAL_ICE_CREAM = new ArrayList<String>();
     private static List<String> GROUP_TOTAL_RETAIL = new ArrayList<String>();
     private static List<String> GROUP_TOTAL_NET_SALES = new ArrayList<String>();
-    private static List<String> GROUP_TOTAL_SUMMARY = new ArrayList<String>();
+    private static List<String> GROUP_ALL = new ArrayList<String>();
 
     private static String LABEL_TOTAL_IC_TOPPINGS = "Total IC & Toppings";
     private static String LABEL_OFF_PREMISE = "OFF PREMISE";
     private static String LABEL_TOTAL_RETAIL = "Total Retail";
-    private static String LABEL_BLANK = "";
 
     static {
         // GROUP_IC_AND_TOPPINGS
@@ -93,9 +93,10 @@ public class MonthlyReportBuilder {
                 CATEGORY_UNASSIGNED_REFUNDS));
         GROUP_TOTAL_NET_SALES.add(CATEGORY_UNCATEGORIZED);
 
-        // GROUP_TOTAL_SUMMARY
-        GROUP_TOTAL_SUMMARY.addAll(GROUP_TOTAL_NET_SALES);
-        GROUP_TOTAL_SUMMARY.add(CATEGORY_GIFT_CARD);
+        // Track all categories in one place
+        GROUP_ALL.addAll(GROUP_TOTAL_NET_SALES);
+        GROUP_ALL.add(CATEGORY_GIFT_CARD);
+        GROUP_ALL.add(CATEGORY_SERVICE_CHARGE);
     }
 
     private String location;
@@ -133,7 +134,7 @@ public class MonthlyReportBuilder {
     private void initCategoryTotals() {
         categoryTotals = new HashMap<String, CategoryData>();
 
-        for (String category : GROUP_TOTAL_SUMMARY) {
+        for (String category : GROUP_ALL) {
             categoryTotals.put(category, new CategoryData(category));
         }
     }
@@ -280,10 +281,6 @@ public class MonthlyReportBuilder {
         return mergeCategoryGroup(LABEL_TOTAL_RETAIL, GROUP_TOTAL_RETAIL);
     }
 
-    private CategoryData getTotalSummaryData() {
-        return mergeCategoryGroup(LABEL_BLANK, GROUP_TOTAL_SUMMARY);
-    }
-
     private int getReportableSalesTotal() {
         // Discounts are a negative value
         return getNetSalesTotal() + getDiscountsTotal();
@@ -362,6 +359,7 @@ public class MonthlyReportBuilder {
                 .setColDollarValue(6, getReportableSalesTotal()).build());
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_GIFT_CARD)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_SERVICE_CHARGE)));
 
         for (CalculationReportRow row : rows) {
             reportBuilder.append(row.toString());

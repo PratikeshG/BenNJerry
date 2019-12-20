@@ -71,11 +71,11 @@ public class TntLocationDetails {
         return false;
     }
 
-    public static Transaction[] getTransactions(SquareClientV2 squareClientV2, Map<String, String> params)
-            throws Exception {
+    public static Transaction[] getTransactions(String locationId, SquareClientV2 squareClientV2,
+            Map<String, String> params) throws Exception {
         // V2 Transactions - ignore no-sales
         params.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2); // v2 default is DESC
-        Transaction[] allTransactions = squareClientV2.transactions().list(params);
+        Transaction[] allTransactions = squareClientV2.transactions().list(locationId, params);
         List<Transaction> transactions = new ArrayList<Transaction>();
 
         for (Transaction transaction : allTransactions) {

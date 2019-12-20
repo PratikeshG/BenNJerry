@@ -18,42 +18,42 @@ import util.reports.CSVGenerator;
 
 public class TransformRefundsToCsvCallable implements Callable {
 
-	public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Gross Sales", "Discounts", "Net Sales",
-			"Gift Card Sales", "Tax", "Tip", "Partial Refunds", "Total Collected", "Source", "Card",
-			"Card Entry Methods", "Cash", "Square Gift Card", "Other Tender", "Other Tender Type", "Other Tender Note",
-			"Fees", "Net Total", "Transaction ID", "Payment ID", "Card Brand", "PAN Suffix", "Device Name",
-			"Staff Name", "Staff ID", "Details", "Description", "Event Type", "Location", "Dining Option",
-			"Customer ID", "Customer Name", "Customer Reference ID", "Device Nickname" };
+    public final String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Gross Sales", "Discounts", "Net Sales",
+            "Gift Card Sales", "Tax", "Tip", "Partial Refunds", "Total Collected", "Source", "Card",
+            "Card Entry Methods", "Cash", "Square Gift Card", "Other Tender", "Other Tender Type", "Other Tender Note",
+            "Fees", "Net Total", "Transaction ID", "Payment ID", "Card Brand", "PAN Suffix", "Device Name",
+            "Staff Name", "Staff ID", "Details", "Description", "Event Type", "Location", "Dining Option",
+            "Customer ID", "Customer Name", "Customer Reference ID", "Device Nickname" };
 
-	@Value("${domain.url}")
-	private String DOMAIN_URL;
-	@Value("${encryption.key.tokens}")
-	private String ENCRYPTION_KEY;
+    @Value("${domain.url}")
+    private String DOMAIN_URL;
+    @Value("${encryption.key.tokens}")
+    private String ENCRYPTION_KEY;
 
-	@Override
-	public Object onCall(MuleEventContext eventContext) throws Exception {
-		MuleMessage message = eventContext.getMessage();
-		Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
-				PropertyScope.INVOCATION);
+    @Override
+    public Object onCall(MuleEventContext eventContext) throws Exception {
+        MuleMessage message = eventContext.getMessage();
+        Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
+                PropertyScope.INVOCATION);
 
-		String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
-		SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
+        String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
+        SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
-		CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
+        CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
-		DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
 
-		for (String locationId : locationContexts.keySet()) {
-			LocationContext locationCtx = locationContexts.get(locationId);
-			SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY),
-					sqPayload.getMerchantId(), locationId);
+        for (String locationId : locationContexts.keySet()) {
+            LocationContext locationCtx = locationContexts.get(locationId);
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
 
-			Refund[] refunds = clientv2.refunds().list(locationCtx.generateQueryParamMap());
-			for (Refund refund : refunds) {
-				csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
-			}
-		}
-		return csvGenerator.build();
-	}
+            Refund[] refunds = clientv2.refunds().list(locationId, locationCtx.generateQueryParamMap());
+            for (Refund refund : refunds) {
+                csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
+            }
+        }
+        return csvGenerator.build();
+    }
 
 }

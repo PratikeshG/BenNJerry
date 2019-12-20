@@ -29,8 +29,6 @@ import util.TimeManager;
 public class TlogGenerator implements Callable {
     private final int LOYALTY_CUSTOMER_ID_LENGTH = 17;
 
-    @Value("${vfcorp.itemNumberLookupLength}")
-    private int itemNumberLookupLength;
     @Value("${api.url}")
     private String apiUrl;
     @Value("${encryption.key.tokens}")
@@ -51,6 +49,9 @@ public class TlogGenerator implements Callable {
         boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
                 ? true : false;
 
+        boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
+
         // Loyalty settings
         boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
                 .equals("true") ? true : false;
@@ -62,18 +63,20 @@ public class TlogGenerator implements Callable {
         String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
+        int itemNumberLookupLength = Integer
+                .parseInt(message.getProperty("itemNumberLookupLength", PropertyScope.INVOCATION));
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.INVOCATION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
+        String locationId = tlogGeneratorPayload.getSquarePayload().getLocationId();
+
         SquareClient squareV1Client = new SquareClient(
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
-                tlogGeneratorPayload.getSquarePayload().getMerchantId(),
-                tlogGeneratorPayload.getSquarePayload().getLocationId());
+                tlogGeneratorPayload.getSquarePayload().getMerchantId(), locationId);
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl,
-                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey),
-                tlogGeneratorPayload.getSquarePayload().getMerchantId(),
-                tlogGeneratorPayload.getSquarePayload().getLocationId());
+                tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey));
+        squareV2Client.setLogInfo(tlogGeneratorPayload.getSquarePayload().getMerchantId() + " - " + locationId);
 
         // Locations
         Merchant[] locations = squareV1Client.businessLocations().list();
@@ -86,7 +89,7 @@ public class TlogGenerator implements Callable {
         // Payments
         Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
         Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
-        List<Payment> nonCashPayments = new ArrayList<Payment>();
+        List<Payment> validPayments = new ArrayList<Payment>();
         for (Payment payment : payments) {
             boolean hasValidPaymentTender = false;
 
@@ -95,17 +98,23 @@ public class TlogGenerator implements Callable {
             for (com.squareup.connect.Tender tender : payment.getTender()) {
                 paymentsCache.put(tender.getId(), payment);
 
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidPaymentTender = true;
+                if (allowCashTransactions) {
+                    if (!tender.getType().equals("NO_SALE")) {
+                        hasValidPaymentTender = true;
+                    }
+                } else {
+                    if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                        hasValidPaymentTender = true;
+                    }
                 }
             }
 
-            // Don't process cash-only payments for TLOGs
+            // Example: Don't process cash-only payments for this deployment's TLOGs
             if (hasValidPaymentTender) {
-                nonCashPayments.add(payment);
+                validPayments.add(payment);
             }
         }
-        tlogGeneratorPayload.setPayments(nonCashPayments.toArray(new Payment[0]));
+        tlogGeneratorPayload.setPayments(validPayments.toArray(new Payment[0]));
 
         // Get PCM counters
         Map<String, Integer> nextPreferredCustomerNumbers = new HashMap<String, Integer>();
@@ -124,7 +133,7 @@ public class TlogGenerator implements Callable {
             // Get customer transactions
             Map<String, String> v2Params = tlogGeneratorPayload.getParams();
             v2Params.put("sort_order", "ASC"); // v2 default is DESC
-            Transaction[] transactions = squareV2Client.transactions().list(v2Params);
+            Transaction[] transactions = squareV2Client.transactions().list(locationId, v2Params);
             for (Transaction transaction : transactions) {
                 for (Tender tender : transaction.getTenders()) {
                     if (tender.getCustomerId() != null) {

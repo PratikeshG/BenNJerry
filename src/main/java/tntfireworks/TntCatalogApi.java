@@ -495,6 +495,6 @@ public class TntCatalogApi {
     }
 
     private String logString(String message) {
-        return String.format("[%s] ::: %s", clientV2.getMerchantId(), message);
+        return String.format("[%s] ::: %s", clientV2.getLogInfo(), message);
     }
 }

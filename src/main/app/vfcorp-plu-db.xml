@@ -22,6 +22,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     <quartz:connector name="Quartz-VFC-plu" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-plu"/>
     </quartz:connector>
+    <quartz:connector name="Quartz-VFO-plu" validateConnections="true" doc:name="Quartz"/>
     <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636323" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-VFC-plu">
             <quartz:event-generator-job/>
@@ -57,6 +58,10 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <set-variable variableName="brand" value="Nautica" doc:name="brand: Nautica"/>
                 <set-variable variableName="encryptionKey" value="${vfcorp.nautica.encryption.key}" doc:name="Set encryptionKey"/>
             </when>
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-vfo-&quot;)]">
+                <set-variable variableName="brand" value="VFO" doc:name="brand: VFO"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.vfo.encryption.key}" doc:name="Set encryptionKey"/>
+            </when>
             <otherwise>
                 <set-variable variableName="brand" value="TNF" doc:name="brand: TNF"/>
                 <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="Set encryptionKey"/>
@@ -69,6 +74,28 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     </flow>
     <sub-flow name="VFC:plu-database-to-square-for-brand">
         <logger message="Initiating PLU Database to Square update for VFC brand: #[sessionVars.brand]" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Set brand-specific variables">
+            <when expression="#[sessionVars.brand.equals(&quot;nautica&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.nautica.itemNumberLookupLength}" doc:name="Nautica itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.nautica.ignoresSkuCheckDigit}" doc:name="Nautica ignoresSkuCheckDigit"/>
+            </when>
+            <when expression="#[sessionVars.brand.equals(&quot;kipling&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.kipling.itemNumberLookupLength}" doc:name="Kipling itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.kipling.ignoresSkuCheckDigit}" doc:name="Kipling ignoresSkuCheckDigit"/>
+            </when>
+            <when expression="#[sessionVars.brand.equals(&quot;vfo&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.vfo.itemNumberLookupLength}" doc:name="VFO itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.vfo.ignoresSkuCheckDigit}" doc:name="VFO ignoresSkuCheckDigit"/>
+            </when>
+            <when expression="#[sessionVars.brand.equals(&quot;tnfca&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnfca.itemNumberLookupLength}" doc:name="TNFCA itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.tnfca.ignoresSkuCheckDigit}" doc:name="TNFCA ignoresSkuCheckDigit"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnf.itemNumberLookupLength}" doc:name="TNF itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.tnf.ignoresSkuCheckDigit}" doc:name="TNF ignoresSkuCheckDigit"/>
+            </otherwise>
+        </choice>
         <component doc:name="Database to Square Catalog Update">
             <prototype-object class="vfcorp.PluDatabaseToSquareCallable"/>
         </component>
@@ -92,6 +119,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="tnf" doc:name="Set brand: tnf"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
+    <flow name="VFC:TNF-CA:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnfca-PLU-daily-1571074282" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: PLU Database to Square for TNF Canada" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="tnfca" doc:name="Set brand: tnfca"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+    </flow>
     <flow name="VFC:Kipling:plu-trigger-database-to-square" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-kipling-PLU-daily-1509908120" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
@@ -100,12 +135,20 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="kipling" doc:name="Set brand: kipling"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
-        <flow name="VFC:Nautica:plu-trigger-database-to-square" processingStrategy="synchronous">
+    <flow name="VFC:Nautica:plu-trigger-database-to-square" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-nautica-PLU-daily-1509908122" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <logger message="CRON: PLU Database to Square for Nautica" level="INFO" doc:name="Logger"/>
         <set-session-variable variableName="brand" value="nautica" doc:name="Set brand: nautica"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+    </flow>
+    <flow name="VFC:VFO:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vfo-PLU-daily-1509908999" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFO-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: PLU Database to Square for VF Outlet" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="vfo" doc:name="Set brand: vfo"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
     <flow name="VFC:clean-plu-sale-db" processingStrategy="synchronous">

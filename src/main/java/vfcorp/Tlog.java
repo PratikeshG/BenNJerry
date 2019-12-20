@@ -111,8 +111,8 @@ public class Tlog {
             Customer loyaltyCustomer = customerPaymentCache.get(payment.getId());
 
             String tenderType = payment.getTender()[0].getType();
-            if (payment.getTender() != null && tenderType.equals("NO_SALE")) {
-                // No longer report $0 transactions or single cash transactions
+            if (payment.getTender() != null && tenderType != null && tenderType.equals("NO_SALE")) {
+                // Don't report $0 "No Sale" transactions
                 continue;
             } else {
 

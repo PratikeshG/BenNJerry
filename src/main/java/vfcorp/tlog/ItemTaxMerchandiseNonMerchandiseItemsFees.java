@@ -64,10 +64,13 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
                 taxType = "02";
                 break;
             case "GST":
+            case "Goods and Services Tax":
                 taxType = "03";
                 break;
             case "GST/PST":
+            case "Provincial Sales Tax":
                 taxType = "04";
+                taxCode = "PST";
                 break;
             case "PST ON GST":
                 taxType = "05";
@@ -75,7 +78,10 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
             case "No tax":
                 taxType = "07";
                 break;
+            case "Youth Item Tax":
+                taxCode = "2";
             case "HST":
+            case "Harmonized Sales Tax":
                 taxType = "08";
                 break;
             case "Sales Tax":
