@@ -1,5 +1,8 @@
 package tntfireworks.reporting;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -7,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Tender;
 
 import util.TimeManager;
 
@@ -23,50 +27,192 @@ import util.TimeManager;
 public class GrossSalesPayload extends TntReportLocationPayload {
     private static Logger logger = LoggerFactory.getLogger(GrossSalesPayload.class);
 
-    private static final String GROSS_SALES_FILE_HEADER = String.format("%s, %s, %s, %s, %s\n", "Location Number",
-            "Gross Sales (Daily)", "Gross Sales (YTD)", "Daily Transactions", "YTD Transactions");
-    private Map<String, String> dayTimeInterval;
+    private static final String GROSS_SALES_FILE_HEADER = String.format(
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n",
+            "Daily Sales Date", "Location Number", "RBU", "State", "Daily Cash Sales", "Daily Credit Sales",
+            "Daily Total Collected Sales", "Daily Taxes", "Daily Discounts", "Daily Refunds", "Daily Gross Sales",
+            "# Daily Transactions", "Average Daily Gross Sale Per Transaction", "Cash Sales (YTD)",
+            "Credit Sales (YTD)", "Total Collected Sales (YTD)", "Taxes (YTD)", "Discounts (YTD)", "Refunds (YTD)",
+            "Gross Sales (YTD)", "# Transactions (YTD)", "Average Gross Sale Per Transaction (YTD)");
+    private Calendar beginTime;
+    private Calendar endTime;
     private int dailyGrossSales;
     private int seasonGrossSales;
     private int dailyTransactionCount;
     private int seasonTransactionCount;
+    private int dailyCreditTotals;
+    private int seasonCreditTotals;
+    private int dailyCashTotals;
+    private int seasonCashTotals;
+    private int dailyTotalCollected;
+    private int seasonTotalCollected;
+    private int dailyTaxTotals;
+    private int seasonTaxTotals;
+    private int dailyDiscountTotals;
+    private int seasonDiscountTotals;
+    private int dailyRefundTotals;
+    private int seasonRefundTotals;
+    private String dailySalesDate;
+    private int avgDailyGross;
+    private int avgSeasonGross;
 
-    public GrossSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails) {
+    public GrossSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
+            throws ParseException {
         super(timeZone, locationDetails, GROSS_SALES_FILE_HEADER);
-        this.dayTimeInterval = dayTimeInterval;
+        // init report values
         this.dailyGrossSales = 0;
         this.seasonGrossSales = 0;
         this.dailyTransactionCount = 0;
         this.seasonTransactionCount = 0;
+        this.dailyCreditTotals = 0;
+        this.seasonCreditTotals = 0;
+        this.dailyCashTotals = 0;
+        this.seasonCashTotals = 0;
+        this.dailyTotalCollected = 0;
+        this.seasonTotalCollected = 0;
+        this.dailyTaxTotals = 0;
+        this.seasonTaxTotals = 0;
+        this.dailyDiscountTotals = 0;
+        this.seasonDiscountTotals = 0;
+        this.dailyRefundTotals = 0;
+        this.seasonRefundTotals = 0;
+        this.avgDailyGross = 0;
+        this.avgSeasonGross = 0;
+        this.dailySalesDate = getDailySalesDate(dayTimeInterval);
+
+        // init day begin and end times
+        beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
+        endTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.END_TIME));
+
     }
 
-    public void addEntry(Payment payment) {
+    public void addPayment(Payment payment) {
         try {
             // use calendar objects to daily interval
-            Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
-            Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.END_TIME));
             Calendar transactionTime = TimeManager.toCalendar(payment.getCreatedAt());
 
-            // if payment occurred during current day, add to daily totals
-            // NOTE: TNT defines "Gross Sales" as sales amount before taxes and discounts
-            // V1 Payment.net_sales_money is total sales excluding taxes
-            if (payment.getNetSalesMoney() != null) {
-                if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                    dailyGrossSales += payment.getNetSalesMoney().getAmount();
-                    dailyTransactionCount++;
-                }
-                seasonGrossSales += payment.getNetSalesMoney().getAmount();
-                seasonTransactionCount++;
-            }
+            // add payment details to totals
+            addTotalCollectedMoney(payment, transactionTime);
+            addDiscountMoney(payment, transactionTime);
+            addRefundedMoney(payment, transactionTime);
+            addTaxMoney(payment, transactionTime);
+            addGrossSalesMoney(payment, transactionTime);
+            addTenderTotals(payment, transactionTime);
+
+            // calculate daily and seasonal averages as defined by TNT
+            // avg gross = gross sales / transaction count
+            avgDailyGross = calculateAvgGrossSales(dailyGrossSales, dailyTransactionCount);
+            avgSeasonGross = calculateAvgGrossSales(seasonGrossSales, seasonTransactionCount);
         } catch (Exception e) {
             logger.error("Calendar Exception from aggregating sales/payload data for Gross Sales: " + e);
         }
     }
 
+    private int calculateAvgGrossSales(int gross, int count) {
+        int resultPrecision = 0;
+        int divPrecision = 2;
+        BigDecimal result = BigDecimal.valueOf(0);
+
+        // if there are >0 transactions, avg = gross/count
+        // else return avg gross = 0
+        if (count > 0) {
+            // TNT requirement is to use HALF_UP rounding
+            result = BigDecimal.valueOf(gross).divide(BigDecimal.valueOf(count), divPrecision, RoundingMode.HALF_UP);
+        }
+
+        return result.setScale(resultPrecision, RoundingMode.HALF_UP).intValue();
+    }
+
+    private void addTotalCollectedMoney(Payment payment, Calendar transactionTime) {
+        if (payment.getTotalCollectedMoney() != null) {
+            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                dailyTotalCollected += payment.getTotalCollectedMoney().getAmount();
+                dailyTransactionCount++;
+            }
+            seasonTotalCollected += payment.getTotalCollectedMoney().getAmount();
+            seasonTransactionCount++;
+        }
+    }
+
+    private void addDiscountMoney(Payment payment, Calendar transactionTime) {
+        if (payment.getDiscountMoney() != null) {
+            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                dailyDiscountTotals += payment.getDiscountMoney().getAmount();
+            }
+            seasonDiscountTotals += payment.getDiscountMoney().getAmount();
+        }
+    }
+
+    private void addRefundedMoney(Payment payment, Calendar transactionTime) {
+        if (payment.getRefundedMoney() != null) {
+            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                dailyRefundTotals += payment.getRefundedMoney().getAmount();
+            }
+            seasonRefundTotals += payment.getRefundedMoney().getAmount();
+        }
+    }
+
+    private void addTaxMoney(Payment payment, Calendar transactionTime) {
+        if (payment.getTaxMoney() != null) {
+            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                dailyTaxTotals += payment.getTaxMoney().getAmount();
+            }
+            seasonTaxTotals += payment.getTaxMoney().getAmount();
+        }
+    }
+
+    private void addGrossSalesMoney(Payment payment, Calendar transactionTime) {
+        // NOTE: TNT defines "Gross Sales" as sales amount before taxes and discounts, refunds
+        // V1 Payment.gross_sales_money is total sales before taxes, discounts, and refunds
+        if (payment.getGrossSalesMoney() != null) {
+            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                dailyGrossSales += payment.getGrossSalesMoney().getAmount();
+            }
+            seasonGrossSales += payment.getGrossSalesMoney().getAmount();
+        }
+    }
+
+    private void addTenderTotals(Payment payment, Calendar transactionTime) {
+        // loop through payment tenders for cash / credit totals
+        for (Tender tender : payment.getTender()) {
+            if (tender.getTotalMoney() != null) {
+                if (tender.getType().equals(tender.TENDER_TYPE_CARD)) {
+                    if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                        dailyCreditTotals += tender.getTotalMoney().getAmount();
+                    }
+                    seasonCreditTotals += tender.getTotalMoney().getAmount();
+                }
+
+                if (tender.getType().equals(tender.TENDER_TYPE_CASH)) {
+                    if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                        dailyCashTotals += tender.getTotalMoney().getAmount();
+                    }
+                    seasonCashTotals += tender.getTotalMoney().getAmount();
+                }
+            }
+        }
+    }
+
     public String getRow() {
-        String row = String.format("%s, %s, %s, %s, %s\n", locationDetails.locationNumber, formatTotal(dailyGrossSales),
-                formatTotal(seasonGrossSales), dailyTransactionCount, seasonTransactionCount);
+        String row = String.format(
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n",
+                dailySalesDate, locationDetails.locationNumber, locationDetails.rbu, locationDetails.state,
+                formatTotal(dailyCashTotals), formatTotal(dailyCreditTotals), formatTotal(dailyTotalCollected),
+                formatTotal(dailyTaxTotals), formatTotal(dailyDiscountTotals), formatTotal(dailyRefundTotals),
+                formatTotal(dailyGrossSales), dailyTransactionCount, formatTotal(avgDailyGross),
+                formatTotal(seasonCashTotals), formatTotal(seasonCreditTotals), formatTotal(seasonTotalCollected),
+                formatTotal(seasonTaxTotals), formatTotal(seasonDiscountTotals), formatTotal(seasonRefundTotals),
+                formatTotal(seasonGrossSales), seasonTransactionCount, formatTotal(avgSeasonGross));
         return row;
+    }
+
+    private String getDailySalesDate(Map<String, String> dayTimeInterval) throws ParseException {
+        Calendar reportDate = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
+        String year = String.format("%04d", reportDate.get(Calendar.YEAR));
+        String month = String.format("%02d", reportDate.get(Calendar.MONTH) + 1);
+        String day = String.format("%02d", reportDate.get(Calendar.DATE));
+
+        return String.format("%s/%s/%s", month, day, year);
     }
 
     private boolean isDailyTransaction(Calendar beginTime, Calendar endTime, Calendar transactionTime) {

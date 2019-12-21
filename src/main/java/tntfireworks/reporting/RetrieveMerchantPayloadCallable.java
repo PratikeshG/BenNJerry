@@ -1,6 +1,5 @@
 package tntfireworks.reporting;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -18,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Payment;
+import com.squareup.connect.Refund;
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
@@ -142,7 +142,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClient squareClientV1,
-            SquareClientV2 squareClientV2, int offset, int range) throws ClassNotFoundException, SQLException {
+            SquareClientV2 squareClientV2, int offset, int range) throws Exception {
 
         // initialize dbConnection
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
@@ -175,21 +175,20 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             // iterate through each location in merchant and aggregate account
             // data
             for (Location location : squareClientV2.locations().list()) {
-                if (isValidLocation(location)) {
+                if (isValidLocation(location, dbLocationRows)) {
                     // initialize TntLocationDetails with DB data
-                    TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location.getName());
+                    TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location);
 
                     // define time intervals to pull payment data
                     // - dayTimeInterval is currently only used for 5/6, report 7, report 9
                     // - aggregateInterval is used by all flows
                     Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
-                            location.getTimezone());
+                            locationDetails.sqLocationTimeZone);
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
-                            location.getTimezone());
+                            locationDetails.sqLocationTimeZone);
 
                     // set squareClient to specific location
-                    squareClientV1.setLocation(location.getId());
-
+                    squareClientV1.setLocation(locationDetails.sqLocationId);
                     String locationId = location.getId();
 
                     switch (reportType) {
@@ -228,20 +227,28 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                 }
             }
         } catch (Exception e) {
-            logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e);
+            logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause());
         }
 
         return merchantPayload;
+
     }
 
-    private boolean isValidLocation(Location location) {
-        return location.getStatus().equals(Location.LOCATION_STATUS_ACTIVE)
+    private boolean isValidLocation(Location location, List<Map<String, String>> dbLocationRows) {
+        return TntLocationDetails.isTntLocation(dbLocationRows, location.getName())
+                && location.getStatus().equals(Location.LOCATION_STATUS_ACTIVE)
                 && !location.getName().contains(TNT_DEFAULT_LOCATION_NAME_PREFIX);
     }
 
     private boolean hasFullRefund(Payment payment) {
-        // - check for existence of refunds
-        // - $0 POS transactions resulting from discounts should still be considered a reported item
+        // check for existence of type FULL refund
+        for (Refund refund : payment.getRefunds()) {
+            if (refund.getType().equals(Refund.TYPE_FULL)) {
+                return true;
+            }
+        }
+
+        // full refund also occurs if total refunded = total collected
         if (payment.getRefunds() != null && payment.getRefunds().length > 0) {
             return (Math.abs(payment.getRefundedMoney().getAmount()) == Math
                     .abs(payment.getTotalCollectedMoney().getAmount()));
@@ -332,7 +339,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             // only include payments that were not fully refunded (returned)
             if (!hasFullRefund(payment)) {
-                itemSalesPayload.addEntry(payment, dbItemRows);
+                itemSalesPayload.addPayment(payment, dbItemRows);
             }
         }
 
@@ -368,7 +375,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            grossSalesPayload.addEntry(payment);
+            grossSalesPayload.addPayment(payment);
         }
 
         return grossSalesPayload;

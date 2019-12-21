@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Settlement;
 import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Transaction;
 
@@ -23,9 +24,18 @@ public class TntLocationDetails {
     protected String rbu;
     protected String saName;
     protected String saNumber;
+    protected String sqLocationId;
+    protected String sqLocationName;
+    protected String sqLocationTimeZone;
 
-    public TntLocationDetails(List<Map<String, String>> dbLocationRows, String locationName) {
-        this.locationName = locationName.replaceAll(",", "");
+    public TntLocationDetails(List<Map<String, String>> dbLocationRows, Location location) {
+        // init square location values
+        this.sqLocationId = location.getId();
+        this.sqLocationName = location.getName();
+        this.sqLocationTimeZone = location.getTimezone();
+
+        // init TNT location values
+        this.locationName = location.getName().replaceAll(",", "");
         this.locationNumber = findLocationNumber(locationName);
         this.rbu = "";
         this.city = "";
@@ -46,8 +56,17 @@ public class TntLocationDetails {
         }
     }
 
+    public static boolean isTntLocation(List<Map<String, String>> dbLocationRows, String locationName) {
+        for (Map<String, String> row : dbLocationRows) {
+            if (findLocationNumber(locationName).equals(row.get(TntDatabaseApi.DB_LOCATION_LOCATION_NUMBER_COLUMN))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Payment[] getPayments(SquareClient squareClientV1, Map<String, String> params) throws Exception {
-        // V1 Payments - ignore no-sale and cash-only payments
+        // V1 Payments - ignore no-sale
         Payment[] allPayments = squareClientV1.payments().list(params);
         List<Payment> payments = new ArrayList<Payment>();
 
@@ -111,7 +130,7 @@ public class TntLocationDetails {
      * 'NAME (#LocationNumber)'
      *
      */
-    private String findLocationNumber(String locationName) {
+    private static String findLocationNumber(String locationName) {
         String locationNumber = "";
 
         // old location name = 'NAME (#Location Number)'
