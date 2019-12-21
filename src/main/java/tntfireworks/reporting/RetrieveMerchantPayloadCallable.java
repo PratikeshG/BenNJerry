@@ -189,9 +189,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
                             locationDetails.sqLocationTimeZone);
 
-                    // set squareClient to specific location
+                    // set V1 squareClient to specific location
                     squareClientV1.setLocation(locationDetails.sqLocationId);
-                    String locationId = location.getId();
 
                     switch (reportType) {
                         case SETTLEMENTS_REPORT_TYPE:
@@ -199,19 +198,19 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                                     aggregateIntervalParams));
                             break;
                         case TRANSACTIONS_REPORT_TYPE:
-                            merchantPayload.add(generateTransactionsPayload(locationId, squareClientV2, squareClientV1,
+                            merchantPayload.add(generateTransactionsPayload(squareClientV2, squareClientV1,
                                     locationDetails, aggregateIntervalParams));
                             break;
                         case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
-                            merchantPayload.add(generateAbnormalTransactionsPayload(locationId, squareClientV2,
-                                    locationDetails, aggregateIntervalParams));
+                            merchantPayload.add(generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
+                                    aggregateIntervalParams));
                             break;
                         case CHARGEBACK_REPORT_TYPE:
                             // report 4 is currently generated from a different source
                             break;
                         case LOCATION_SALES_REPORT_TYPE:
-                            merchantPayload.add(generateLocationSalesPayload(locationId, squareClientV2,
-                                    locationDetails, aggregateIntervalParams, dayTimeInterval));
+                            merchantPayload.add(generateLocationSalesPayload(squareClientV2, locationDetails,
+                                    aggregateIntervalParams, dayTimeInterval));
                             break;
                         case ITEM_SALES_REPORT_TYPE:
                             merchantPayload.add(generateItemSalesPayload(squareClientV1, locationDetails,
@@ -275,9 +274,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return settlementsPayload;
     }
 
-    private TransactionsPayload generateTransactionsPayload(String locationId, SquareClientV2 squareClientV2,
-            SquareClient squareClientV1, TntLocationDetails locationDetails,
-            Map<String, String> aggregateIntervalParams) throws Exception {
+    private TransactionsPayload generateTransactionsPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
         // - each TransactionsPayload includes transaction data from a single location
         // - while the payload object name may imply V2Transactions data, the payload
         // mainly consists of V1 Payments data and is called a TransactionsPayload because
@@ -289,7 +287,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
         Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationId, squareClientV2,
+        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
                 aggregateIntervalParams)) {
             for (Tender tender : transaction.getTenders()) {
                 tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
@@ -307,13 +305,12 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return transactionsPayload;
     }
 
-    private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(String locationId,
-            SquareClientV2 squareClientV2, TntLocationDetails locationDetails,
-            Map<String, String> aggregateIntervalParams) throws Exception {
+    private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(SquareClientV2 squareClientV2,
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone,
                 locationDetails);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationId, squareClientV2,
+        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
                 aggregateIntervalParams)) {
             abnormalTransactionsPayload.addEntry(transaction);
         }
@@ -321,14 +318,14 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return abnormalTransactionsPayload;
     }
 
-    private LocationSalesPayload generateLocationSalesPayload(String locationId, SquareClientV2 squareClientV2,
+    private LocationSalesPayload generateLocationSalesPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             Map<String, String> dayTimeInterval) throws Exception {
         // get transaction data for location payload
         LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
                 locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationId, squareClientV2,
+        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
                 aggregateIntervalParams)) {
             locationSalesPayload.addEntry(transaction);
         }
@@ -420,8 +417,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         // use Calendar to calculate previous year
         Calendar beginTime = TimeManager.toCalendar(timeInterval.get(util.Constants.BEGIN_TIME));
         Calendar endTime = TimeManager.toCalendar(timeInterval.get(util.Constants.END_TIME));
-        logger.info("Old Begin time: " + TimeManager.toIso8601(beginTime, timeZone));
-        logger.info("Old End time: " + TimeManager.toIso8601(beginTime, timeZone));
 
         // set time to 1 year prior
         beginTime.add(Calendar.YEAR, -1);
@@ -430,9 +425,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         // convert to iso8601 format
         prevTimeInterval.put("begin_time", TimeManager.toIso8601(beginTime, timeZone));
         prevTimeInterval.put("end_time", TimeManager.toIso8601(endTime, timeZone));
-
-        logger.info("New Begin time: " + TimeManager.toIso8601(beginTime, timeZone));
-        logger.info("New End time: " + TimeManager.toIso8601(beginTime, timeZone));
 
         return prevTimeInterval;
     }
