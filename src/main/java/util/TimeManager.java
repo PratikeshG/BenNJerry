@@ -53,8 +53,11 @@ public class TimeManager {
         String beginTime = "";
         String endTime = "";
 
+        // subtract offset from current date
         c.add(Calendar.DATE, -offset);
 
+        // note: if offset = 0, calendar is not set to current time
+        //       therefore, value is currently defaulting to 00:00:00
         if (offset > 0) {
             c.set(Calendar.MILLISECOND, 999);
             c.set(Calendar.SECOND, 59);

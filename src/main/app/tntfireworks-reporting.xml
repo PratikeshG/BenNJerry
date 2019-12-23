@@ -145,6 +145,23 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </otherwise>
         </choice>
     </flow>
+    <flow name="TNTFireworks-yoy-gross-sales-batch-report-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-tnt-yoy-gross-sales-batch-report-1576640175" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 03:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <choice doc:name="Choice">
+            <when expression="#['${tntfireworks.report10.active}' == false]">
+                <logger message="TNTFireworks Report 10 Disabled" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <set-session-variable variableName="offset" value="1" doc:name="offset"/>
+                <set-session-variable variableName="range" value="365" doc:name="range"/>
+                <set-session-variable variableName="reportType" value="10" doc:name="reportType (10)"/>
+                <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
+            </otherwise>
+        </choice>
+    </flow>
     <flow name="TNTFireworks-generate-report">
         <logger message="Begin generating '#[sessionVars.reportType]'" level="INFO" doc:name="Logger"/>
         <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
@@ -191,6 +208,12 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         	        <prototype-object class="tntfireworks.reporting.GrossSalesReportAggregatorCallable"/>
                 </component>
                 <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 9 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report9.recipients}"/>
+            </when>
+            <when expression="#[sessionVars.reportType == 10]">
+                <component doc:name="Generate YoY Gross Sales Batch Report">
+        	        <prototype-object class="tntfireworks.reporting.YoyGrossSalesReportAggregatorCallable"/>
+                </component>
+                <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS"  from="${email.info.sending.from.reports}" subject="#['Square Daily Summary - Report 10 - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="${tntfireworks.report10.recipients}"/>
             </when>
             <otherwise>
                 <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>

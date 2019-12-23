@@ -6,3 +6,5 @@ src/main/app/mule-deploy.properties
 src/main/resources/development.*
 src/main/resources/google.json
 .settings/org.mulesoft.exportwizardsettings.prefs
+.settings/org.eclipse.jdt.core.prefs
+.settings/org.eclipse.jdt.ui.prefs
