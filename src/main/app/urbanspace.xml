@@ -2,7 +2,7 @@
 
 <mule xmlns:ssl="http://www.mulesoft.org/schema/mule/ssl" xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -88,8 +88,8 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
         <logger message="Starting Urbanspace daily for Max Brenner" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="urbanspace-bryant-park-mb" doc:name="Deployment ID: urbanspace-bryant-park-mb"/>
         <set-session-variable variableName="deploymentName" value="Max Brenner" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="1" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="1" doc:name="Time offset"/>
+        <set-session-variable variableName="range" value="#[new java.lang.Integer(1)]" doc:name="Time range"/>
+        <set-session-variable variableName="offset" value="#[new java.lang.Integer(1)]" doc:name="Time offset"/>
         <set-session-variable variableName="timeZone" value="America/New_York" doc:name="Timezone"/>
         <set-session-variable variableName="emails" value="dropbox_daily_sales_reports@urbanspacenyc.com,alulaj@urbanspacenyc.com,jasonh@squareup.com" doc:name="Emails"/>
         <set-property propertyName="MULE_CORRELATION_ID" value="#[java.util.UUID.randomUUID()] " doc:name="Set new correlation ID"/>
