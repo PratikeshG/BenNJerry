@@ -23,7 +23,7 @@ import com.squareup.connect.v2.SquareClientV2;
 public class TntCatalogApi {
     private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
 
-    private static final int BATCH_UPSERT_SIZE = 20;
+    private static final int BATCH_UPSERT_SIZE = 5;
 
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
