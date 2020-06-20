@@ -77,9 +77,9 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         // loop through payment itemizations and add to itemSalesPayloadEntries
         for (PaymentItemization itemization : payment.getItemizations()) {
             // add or update sale entries
-            String itemNumber = "";
-            String itemDesc = "";
-            String itemSku = "";
+            String itemNumber = DEFAULT_ITEM_NUMBER;
+            String itemDesc = DEFAULT_ITEM_DESCRIPTION;
+            String itemSku = DEFAULT_ITEM_SKU;
 
             // assign square item sku if it exists
             if (itemization.getItemDetail() != null && itemization.getItemDetail().getSku() != null) {
@@ -91,10 +91,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
                 if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
                     itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
                     itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
-                } else {
-                    itemNumber = DEFAULT_ITEM_NUMBER;
-                    itemDesc = DEFAULT_ITEM_DESCRIPTION;
-                    itemSku = DEFAULT_ITEM_SKU;
+                    break;
                 }
             }
 
@@ -117,7 +114,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         ArrayList<String> rows = new ArrayList<String>();
 
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
-            String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", dailySalesDate,
+            String row = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", dailySalesDate,
                     locationDetails.locationNumber, locationDetails.rbu, payloadEntry.itemNumber,
                     payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales), payloadEntry.dailySalesCounter,
                     formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter, payloadEntry.itemSku);
