@@ -149,7 +149,9 @@ public class InputParser {
 
         if (scanner.hasNextLine()) {
             String headerRow = scanner.nextLine();
-            if (!headerRow.equals(expectedHeader)) {
+            headerRow = headerRow.replaceAll("\\s+", "");
+            expectedHeader.replaceAll("\\s+", "");
+            if (!headerRow.equalsIgnoreCase(expectedHeader)) {
                 logger.error(
                         "Malformed header row.\n***EXPECTED***\n" + expectedHeader + "\n***FOUND***\n" + headerRow);
                 throw new MalformedHeaderRowException();

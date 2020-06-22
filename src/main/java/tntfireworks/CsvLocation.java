@@ -5,9 +5,7 @@ import javax.validation.constraints.Size;
 
 public class CsvLocation extends CsvRow {
 
-    public static final String HEADER_ROW = "LOC #, ADDRESS #, NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE,Square Dashboard Account";
-
-    //TODO: wtsang - Work with TNT Fireworks to clean up CSV headers (for example ' ADDRESS #' has leading space)
+    public static final String HEADER_ROW = "LOC #,ADDRESS #,NAME,ADDRESS,CITY,ST,ZIP,COUNTY,MKT PRG,LEGAL C,DISC,RBU,BP,CO,SA #,SA NAME,CUST #, NAME,SEASON,YEAR,MACHINE TYPE,Square Dashboard Account";
 
     @Size(min = 1)
     @NotNull
