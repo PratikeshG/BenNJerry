@@ -39,6 +39,10 @@ public class GrossSalesPayload extends TntReportLocationPayload {
     protected int seasonGrossSales;
     protected int dailyTransactionCount;
     protected int seasonTransactionCount;
+    protected int dailyCreditCount;
+    protected int seasonCreditCount;
+    protected int dailyCashCount;
+    protected int seasonCashCount;
     protected int dailyCreditTotals;
     protected int seasonCreditTotals;
     protected int dailyCashTotals;
@@ -63,6 +67,10 @@ public class GrossSalesPayload extends TntReportLocationPayload {
         this.seasonGrossSales = 0;
         this.dailyTransactionCount = 0;
         this.seasonTransactionCount = 0;
+        this.dailyCreditCount = 0;
+        this.seasonCreditCount = 0;
+        this.dailyCashCount = 0;
+        this.seasonCashCount = 0;
         this.dailyCreditTotals = 0;
         this.seasonCreditTotals = 0;
         this.dailyCashTotals = 0;
@@ -178,15 +186,19 @@ public class GrossSalesPayload extends TntReportLocationPayload {
                 if (tender.getType().equals(tender.TENDER_TYPE_CARD)) {
                     if (isDailyTransaction(beginTime, endTime, transactionTime)) {
                         dailyCreditTotals += tender.getTotalMoney().getAmount();
+                        dailyCreditCount++;
                     }
                     seasonCreditTotals += tender.getTotalMoney().getAmount();
+                    seasonCreditCount++;
                 }
 
                 if (tender.getType().equals(tender.TENDER_TYPE_CASH)) {
                     if (isDailyTransaction(beginTime, endTime, transactionTime)) {
                         dailyCashTotals += tender.getTotalMoney().getAmount();
+                        dailyCashCount++;
                     }
                     seasonCashTotals += tender.getTotalMoney().getAmount();
+                    seasonCashCount++;
                 }
             }
         }
