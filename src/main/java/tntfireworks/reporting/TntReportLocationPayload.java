@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Calendar;
@@ -10,6 +11,8 @@ import util.TimeManager;
 
 public abstract class TntReportLocationPayload {
     private static final String DEFAULT_DATE_FORMAT = "MM-dd-yy";
+    private static final int MAX_FRACTION_DIGITS = 2;
+    private static final int MIN_FRACTION_DIGITS = 2;
     private String payloadDate;
     private String payloadHeader;
     protected TntLocationDetails locationDetails;
@@ -46,8 +49,18 @@ public abstract class TntReportLocationPayload {
         return payloadHeader;
     }
 
-    public String formatTotal(int gpv) {
+    public String formatCurrencyTotal(int totals) {
         NumberFormat n = NumberFormat.getCurrencyInstance(Locale.US);
-        return n.format(gpv / 100.0).replaceAll(",", "");
+
+        return n.format(totals / 100.0).replaceAll(",", "");
+    }
+
+    public String formatDecimalTotal(int totals) {
+        NumberFormat n = NumberFormat.getInstance(Locale.US);
+        n.setMaximumFractionDigits(MAX_FRACTION_DIGITS);
+        n.setMinimumFractionDigits(MIN_FRACTION_DIGITS);
+        n.setRoundingMode(RoundingMode.HALF_EVEN); // HALF_EVEN = Banker's Rounding
+
+        return n.format(totals / 100.0).replaceAll(",", "");
     }
 }

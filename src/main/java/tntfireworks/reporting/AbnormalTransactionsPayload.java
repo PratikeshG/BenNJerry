@@ -335,7 +335,7 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
                     this.customerId = tender.getCustomerId();
                 }
                 if (tender.getAmountMoney() != null) {
-                    this.tenderAmt = formatTotal(tender.getAmountMoney().getAmount());
+                    this.tenderAmt = formatCurrencyTotal(tender.getAmountMoney().getAmount());
                 }
             }
         }

@@ -48,7 +48,7 @@ public class TransactionsPayload extends TntReportLocationPayload {
         for (Tender tender : payment.getTender()) {
             // get fee from tenderToFee mapping
             if (tenderToFee.containsKey(tender.getId())) {
-                tenderFee = formatTotal(tenderToFee.get(tender.getId()));
+                tenderFee = formatCurrencyTotal(tenderToFee.get(tender.getId()));
             }
 
             // retrieve entry method, if null (for cash), set to NA
@@ -67,11 +67,11 @@ public class TransactionsPayload extends TntReportLocationPayload {
             // write file row
             String row = String.format(
                     "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-                    entry.paymentId, entry.createdAt, formatTotal(entry.grossSales), formatTotal(entry.discounts),
-                    formatTotal(entry.netSales), formatTotal(entry.tax), formatTotal(entry.tip), entry.tenderId,
-                    entry.refundAmt, formatTotal(entry.totalCollected), entry.SOURCE, entry.cardAmt,
+                    entry.paymentId, entry.createdAt, formatCurrencyTotal(entry.grossSales), formatCurrencyTotal(entry.discounts),
+                    formatCurrencyTotal(entry.netSales), formatCurrencyTotal(entry.tax), formatCurrencyTotal(entry.tip), entry.tenderId,
+                    entry.refundAmt, formatCurrencyTotal(entry.totalCollected), entry.SOURCE, entry.cardAmt,
                     entry.tenderEntryMethod, entry.cashAmt, entry.otherTenderAmt, entry.otherTenderType,
-                    entry.tenderFee, formatTotal(entry.netTotal), locationDetails.locationNumber, locationDetails.city,
+                    entry.tenderFee, formatCurrencyTotal(entry.netTotal), locationDetails.locationNumber, locationDetails.city,
                     locationDetails.state, locationDetails.rbu, locationDetails.saName);
             rows.add(row);
         }
@@ -121,7 +121,7 @@ public class TransactionsPayload extends TntReportLocationPayload {
             cashAmt = "";
             otherTenderAmt = "";
             otherTenderType = "";
-            refundAmt = formatTotal(tender.getRefundedMoney().getAmount());
+            refundAmt = formatCurrencyTotal(tender.getRefundedMoney().getAmount());
             tenderId = tender.getId();
             this.tenderFee = tenderFee;
             this.tenderEntryMethod = tenderEntryMethod;
@@ -129,13 +129,13 @@ public class TransactionsPayload extends TntReportLocationPayload {
             // get tender details
             switch (tender.getType()) {
                 case Tender.TENDER_TYPE_CARD:
-                    cardAmt = formatTotal(tender.getTotalMoney().getAmount());
+                    cardAmt = formatCurrencyTotal(tender.getTotalMoney().getAmount());
                     break;
                 case Tender.TENDER_TYPE_CASH:
-                    cashAmt = formatTotal(tender.getTotalMoney().getAmount());
+                    cashAmt = formatCurrencyTotal(tender.getTotalMoney().getAmount());
                     break;
                 default:
-                    otherTenderAmt = formatTotal(tender.getTotalMoney().getAmount());
+                    otherTenderAmt = formatCurrencyTotal(tender.getTotalMoney().getAmount());
                     otherTenderType = tender.getType();
                     break;
             }

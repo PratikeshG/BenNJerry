@@ -208,12 +208,12 @@ public class GrossSalesPayload extends TntReportLocationPayload {
         String row = String.format(
                 "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n",
                 dailySalesDate, locationDetails.locationNumber, locationDetails.rbu, locationDetails.state,
-                formatTotal(dailyCashTotals), formatTotal(dailyCreditTotals), formatTotal(dailyTotalCollected),
-                formatTotal(dailyTaxTotals), formatTotal(dailyDiscountTotals), formatTotal(dailyRefundTotals),
-                formatTotal(dailyGrossSales), dailyTransactionCount, formatTotal(avgDailyGross),
-                formatTotal(seasonCashTotals), formatTotal(seasonCreditTotals), formatTotal(seasonTotalCollected),
-                formatTotal(seasonTaxTotals), formatTotal(seasonDiscountTotals), formatTotal(seasonRefundTotals),
-                formatTotal(seasonGrossSales), seasonTransactionCount, formatTotal(avgSeasonGross));
+                formatCurrencyTotal(dailyCashTotals), formatCurrencyTotal(dailyCreditTotals), formatCurrencyTotal(dailyTotalCollected),
+                formatCurrencyTotal(dailyTaxTotals), formatCurrencyTotal(dailyDiscountTotals), formatCurrencyTotal(dailyRefundTotals),
+                formatCurrencyTotal(dailyGrossSales), dailyTransactionCount, formatCurrencyTotal(avgDailyGross),
+                formatCurrencyTotal(seasonCashTotals), formatCurrencyTotal(seasonCreditTotals), formatCurrencyTotal(seasonTotalCollected),
+                formatCurrencyTotal(seasonTaxTotals), formatCurrencyTotal(seasonDiscountTotals), formatCurrencyTotal(seasonRefundTotals),
+                formatCurrencyTotal(seasonGrossSales), seasonTransactionCount, formatCurrencyTotal(avgSeasonGross));
         return row;
     }
 

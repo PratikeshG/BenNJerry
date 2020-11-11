@@ -78,8 +78,8 @@ public class LocationSalesPayload extends TntReportLocationPayload {
 
     public String getRow() {
         String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
-                locationDetails.rbu, locationDetails.city, locationDetails.saNumber, formatTotal(creditDailySales),
-                formatTotal(creditTotalSales), formatTotal(getCashCreditDaily()), formatTotal(getCashCreditTotal()));
+                locationDetails.rbu, locationDetails.city, locationDetails.saNumber, formatCurrencyTotal(creditDailySales),
+                formatCurrencyTotal(creditTotalSales), formatCurrencyTotal(getCashCreditDaily()), formatCurrencyTotal(getCashCreditTotal()));
         return row;
     }
 

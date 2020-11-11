@@ -43,8 +43,8 @@ public class SettlementsPayload extends TntReportLocationPayload {
                 // write row
                 String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
                         payloadEntry.settlementId, payloadEntry.initiatedAt,
-                        formatTotal(settlementEntry.getAmountMoney().getAmount()),
-                        formatTotal(settlementEntry.getFeeMoney().getAmount()), settlementEntry.getType(),
+                        formatCurrencyTotal(settlementEntry.getAmountMoney().getAmount()),
+                        formatCurrencyTotal(settlementEntry.getFeeMoney().getAmount()), settlementEntry.getType(),
                         locationDetails.rbu, locationDetails.city, locationDetails.state, locationDetails.zip);
                 rows.add(row);
             }
