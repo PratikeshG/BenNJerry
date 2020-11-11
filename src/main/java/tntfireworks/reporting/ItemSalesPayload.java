@@ -116,8 +116,9 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         for (ItemSalesPayloadEntry payloadEntry : itemSalesPayloadEntries.values()) {
             String row = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", dailySalesDate,
                     locationDetails.locationNumber, locationDetails.rbu, payloadEntry.itemNumber,
-                    payloadEntry.itemDescription, formatTotal(payloadEntry.dailySales), payloadEntry.dailySalesCounter,
-                    formatTotal(payloadEntry.totalSales), payloadEntry.totalSalesCounter, payloadEntry.itemSku);
+                    payloadEntry.itemDescription, formatDecimalTotal(payloadEntry.dailySales),
+                    payloadEntry.dailySalesCounter, formatDecimalTotal(payloadEntry.totalSales),
+                    payloadEntry.totalSalesCounter, payloadEntry.itemSku);
             rows.add(row);
         }
 

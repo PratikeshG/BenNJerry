@@ -94,10 +94,10 @@ public class CreditDebitPayload extends TntReportLocationPayload {
 
     public String getRow() {
         String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", SOURCE_TYPE,
-                Integer.toString(loadNumber), this.getPayloadDate(), formatTotal(netDepositAmt),
-                Integer.toString(ticketCount), Integer.toString(debitCount), formatTotal(debitAmt),
-                Integer.toString(creditCount), formatTotal(creditAmt), formatTotal(holdAmt),
-                locationDetails.locationName, formatTotal(achAmt), achDate, locationDetails.locationName);
+                Integer.toString(loadNumber), this.getPayloadDate(), formatCurrencyTotal(netDepositAmt),
+                Integer.toString(ticketCount), Integer.toString(debitCount), formatCurrencyTotal(debitAmt),
+                Integer.toString(creditCount), formatCurrencyTotal(creditAmt), formatCurrencyTotal(holdAmt),
+                locationDetails.locationName, formatCurrencyTotal(achAmt), achDate, locationDetails.locationName);
         return row;
     }
 }

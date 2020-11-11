@@ -191,34 +191,34 @@ public class YoyGrossSalesPayload extends TntReportLocationPayload {
     }
 
     private String getDailyTotalsRow(GrossSalesPayload payload) {
-        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s", formatTotal(payload.dailyCashTotals),
-                formatTotal(payload.dailyCreditTotals), formatTotal(payload.dailyTotalCollected),
-                formatTotal(payload.dailyTaxTotals), formatTotal(payload.dailyDiscountTotals),
-                formatTotal(payload.dailyRefundTotals), formatTotal(payload.dailyGrossSales), payload.dailyCreditCount,
-                formatTotal(payload.avgDailyGross));
+        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s", formatCurrencyTotal(payload.dailyCashTotals),
+                formatCurrencyTotal(payload.dailyCreditTotals), formatCurrencyTotal(payload.dailyTotalCollected),
+                formatCurrencyTotal(payload.dailyTaxTotals), formatCurrencyTotal(payload.dailyDiscountTotals),
+                formatCurrencyTotal(payload.dailyRefundTotals), formatCurrencyTotal(payload.dailyGrossSales), payload.dailyCreditCount,
+                formatCurrencyTotal(payload.avgDailyGross));
     }
 
     private String getSeasonTotalsRow(GrossSalesPayload payload) {
-        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s", formatTotal(payload.seasonCashTotals),
-                formatTotal(payload.seasonCreditTotals), formatTotal(payload.seasonTotalCollected),
-                formatTotal(payload.seasonTaxTotals), formatTotal(payload.seasonDiscountTotals),
-                formatTotal(payload.seasonRefundTotals), formatTotal(payload.seasonGrossSales),
-                payload.seasonCreditCount, formatTotal(payload.avgSeasonGross));
+        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s", formatCurrencyTotal(payload.seasonCashTotals),
+                formatCurrencyTotal(payload.seasonCreditTotals), formatCurrencyTotal(payload.seasonTotalCollected),
+                formatCurrencyTotal(payload.seasonTaxTotals), formatCurrencyTotal(payload.seasonDiscountTotals),
+                formatCurrencyTotal(payload.seasonRefundTotals), formatCurrencyTotal(payload.seasonGrossSales),
+                payload.seasonCreditCount, formatCurrencyTotal(payload.avgSeasonGross));
     }
 
     private String getDailyVarianceRow() {
-        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s", formatTotal(dailyCashVariance),
-                formatTotal(dailyCreditVariance), formatTotal(dailyTotalCollectedVariance),
-                formatTotal(dailyGrossSalesVariance), dailyTransactionCountVariance, formatTotal(dailyAvgGrossVariance),
+        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s", formatCurrencyTotal(dailyCashVariance),
+                formatCurrencyTotal(dailyCreditVariance), formatCurrencyTotal(dailyTotalCollectedVariance),
+                formatCurrencyTotal(dailyGrossSalesVariance), dailyTransactionCountVariance, formatCurrencyTotal(dailyAvgGrossVariance),
                 dailyCashVariancePercentage, dailyCreditVariancePercentage, dailyTotalCollectedVariancePercentage,
                 dailyGrossSalesVariancePercentage, dailyCreditCountVariancePercentage, dailyAvgGrossVariancePercentage);
     }
 
     private String getSeasonVarianceRow() {
-        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s", formatTotal(seasonCashVariance),
-                formatTotal(seasonCreditVariance), formatTotal(seasonTotalCollectedVariance),
-                formatTotal(seasonGrossSalesVariance), seasonTransactionCountVariance,
-                formatTotal(seasonAvgGrossVariance), seasonCashVariancePercentage, seasonCreditVariancePercentage,
+        return String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s", formatCurrencyTotal(seasonCashVariance),
+                formatCurrencyTotal(seasonCreditVariance), formatCurrencyTotal(seasonTotalCollectedVariance),
+                formatCurrencyTotal(seasonGrossSalesVariance), seasonTransactionCountVariance,
+                formatCurrencyTotal(seasonAvgGrossVariance), seasonCashVariancePercentage, seasonCreditVariancePercentage,
                 seasonTotalCollectedVariancePercentage, seasonGrossSalesVariancePercentage,
                 seasonCreditCountVariancePercentage, seasonAvgGrossVariancePercentage);
     }
