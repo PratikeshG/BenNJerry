@@ -43,7 +43,8 @@ public class ItemSalesReportAggregatorCallable extends TntReportAggregator imple
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
-        return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
+        // report 7 is SFTP only
+        return storeReport(reportName, generatedReport);
     }
 
     private boolean payloadExists(List<List<ItemSalesPayload>> payloadAggregate) {
