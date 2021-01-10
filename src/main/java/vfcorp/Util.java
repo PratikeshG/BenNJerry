@@ -12,6 +12,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
+import com.squareup.connect.PaymentItemization;
 
 import util.SquarePayload;
 
@@ -26,6 +27,17 @@ public class Util {
             if (firstIndex > -1 && lastIndex > -1 && lastIndex > firstIndex) {
                 value = input.substring(firstIndex + 1, lastIndex);
             }
+        }
+
+        return value;
+    }
+
+    public static String getValueInPipes(String input) {
+        String value = "";
+
+        if (input.indexOf("|") >= 0) {
+            value = input.substring(input.indexOf("|") + 1);
+            value = value.substring(0, value.indexOf("|"));
         }
 
         return value;
@@ -129,5 +141,36 @@ public class Util {
         }
 
         return deployments;
+    }
+
+    public static VfcDeployment getMasterAccountDeployment(String host, String user, String password, String brand)
+            throws Exception {
+        String whereFilter = String.format("vfcorp_deployments.deployment LIKE 'vfcorp-%s-%%'", brand);
+
+        ArrayList<VfcDeployment> matchingDeployments = (ArrayList<VfcDeployment>) getVfcDeployments(host, user,
+                password, whereFilter);
+
+        if (matchingDeployments.size() < 1) {
+            throw new Exception(String.format("No deployments for brand '%s' found.", brand));
+        }
+
+        return matchingDeployments.get(0);
+    }
+
+    public static boolean hasPriceOverride(PaymentItemization itemization) {
+        if (itemization.getItemizationType().equals("ITEM") && itemization.getNotes() != null
+                && itemization.getNotes().contains("Original Price:")) {
+            return true;
+        }
+        return false;
+    }
+
+    public static int getPriceBeforeOverride(PaymentItemization itemization) {
+        if (hasPriceOverride(itemization)) {
+            String price = itemization.getNotes().split("Original Price:", 2)[1];
+            price = price.replaceAll("[^0-9]", "");
+            return Integer.valueOf(price);
+        }
+        return itemization.getSingleQuantityMoney().getAmount();
     }
 }
