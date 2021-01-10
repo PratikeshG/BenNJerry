@@ -14,6 +14,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd">
 	<vm:connector name="BJS_REPORTING_VM" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="BJs_Reporting_Async_Processing_Strategy" maxThreads="${benjerrys.reporting.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="7200000"/>
+    <quartz:connector name="Quartz-BJs" validateConnections="true" doc:name="Quartz"/>
     <flow name="BJs-trigger-monthly-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/bjs/report/${urlKey}" doc:name="/bjs/report"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset != null ? message.inboundProperties.'http.query.params'.offset : &quot;1&quot;]" doc:name="Set offset"/>
@@ -23,7 +24,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <set-payload value="BJs mothly reports generated with offset: #[sessionVars.offset]" doc:name="Response message"/>
     </flow>
     <flow name="BJs-monthly-report-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-bjs-monthly-1522544999" cronExpression="0 45 20 1 * ?" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-tlog" responseTimeout="10000" doc:name="Run first of every month at 8:45pm EST">
+        <quartz:inbound-endpoint jobName="quartz-bjs-monthly-1591580704" cronExpression="0 45 20 1 * ?" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-BJs" responseTimeout="10000" doc:name="Run first of every month at 8:45pm EST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
