@@ -23,6 +23,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-plu"/>
     </quartz:connector>
     <quartz:connector name="Quartz-VFO-plu" validateConnections="true" doc:name="Quartz"/>
+    <quartz:connector name="Quartz-VFC-plu-whitelist" validateConnections="true" doc:name="Quartz"/>
     <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636323" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-VFC-plu">
             <quartz:event-generator-job/>
@@ -58,6 +59,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <set-variable variableName="brand" value="Nautica" doc:name="brand: Nautica"/>
                 <set-variable variableName="encryptionKey" value="${vfcorp.nautica.encryption.key}" doc:name="Set encryptionKey"/>
             </when>
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-vans-&quot;)]">
+                <set-variable variableName="brand" value="Vans" doc:name="brand: Vans"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.vans.encryption.key}" doc:name="Set encryptionKey"/>
+            </when>
+            <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-test-&quot;)]">
+                <set-variable variableName="brand" value="Test" doc:name="brand: Test"/>
+                <set-variable variableName="encryptionKey" value="${vfcorp.test.encryption.key}" doc:name="Set encryptionKey"/>
+            </when>
             <when expression="#[payload.getDeployment().getDeployment().startsWith(&quot;vfcorp-vfo-&quot;)]">
                 <set-variable variableName="brand" value="VFO" doc:name="brand: VFO"/>
                 <set-variable variableName="encryptionKey" value="${vfcorp.vfo.encryption.key}" doc:name="Set encryptionKey"/>
@@ -90,6 +99,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <when expression="#[sessionVars.brand.equals(&quot;tnfca&quot;)]">
                 <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnfca.itemNumberLookupLength}" doc:name="TNFCA itemNumberLookupLength"/>
                 <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.tnfca.ignoresSkuCheckDigit}" doc:name="TNFCA ignoresSkuCheckDigit"/>
+            </when>
+            <when expression="#[sessionVars.brand.equals(&quot;vans&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.vans.itemNumberLookupLength}" doc:name="Vans itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.vans.ignoresSkuCheckDigit}" doc:name="Vans ignoresSkuCheckDigit"/>
+            </when>
+            <when expression="#[sessionVars.brand.equals(&quot;test&quot;)]">
+                <set-variable variableName="itemNumberLookupLength" value="${vfcorp.test.itemNumberLookupLength}" doc:name="Test itemNumberLookupLength"/>
+                <set-variable variableName="ignoresSkuCheckDigit" value="${vfcorp.test.ignoresSkuCheckDigit}" doc:name="Test ignoresSkuCheckDigit"/>
             </when>
             <otherwise>
                 <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnf.itemNumberLookupLength}" doc:name="TNF itemNumberLookupLength"/>
@@ -127,6 +144,22 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="tnfca" doc:name="Set brand: tnfca"/>
         <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
     </flow>
+    <flow name="VFC:Vans:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans-PLU-daily-1571074999" cronExpression="0 30 3 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 3:30am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: PLU Database to Square for Vans" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="vans" doc:name="Set brand: vans"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+    </flow>
+    <flow name="VFC:Test:plu-trigger-database-to-square" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-test-PLU-daily-1571074888" cronExpression="0 30 3 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 3:30am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: PLU Database to Square for Test (Vans)" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="brand" value="test" doc:name="Set brand: test"/>
+        <flow-ref name="VFC:plu-database-to-square-for-brand" doc:name="VFC:plu-database-to-square-for-brand"/>
+    </flow>
     <flow name="VFC:Kipling:plu-trigger-database-to-square" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-kipling-PLU-daily-1509908120" cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 4:00am EST" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
@@ -162,6 +195,15 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </db:delete>
         <logger message="CRON: Deleted records for lookback period (#[flowVars.lookbackDate]) -- [payload]" level="INFO" doc:name="Logger"/>
     </flow>
+    <flow name="VFC:daily-plu-sftp-reset" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-PLU-sftp-reset-1509907999" cronExpression="0 10 3 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 3:10am EST" cronTimeZone="America/New_York">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="%" doc:name="Set brand: %"/>
+        <component doc:name="Check deployment SFTP processing folders for stale PLUs">
+		    <prototype-object class="vfcorp.PluProcessingResetCallable"/>
+		</component>
+    </flow>
     <flow name="VFC:trigger-plu-sftp-reset">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/vfc/plu/reset/${urlKey}/{brand}" doc:name="/plu/reset"/>
         <set-variable variableName="brand" value="#[message.inboundProperties.'http.uri.params'.brand]" doc:name="Set brand"/>
@@ -169,5 +211,66 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
 		    <prototype-object class="vfcorp.PluProcessingResetCallable"/>
 		</component>
         <set-payload value="Running PLU processing reset for VFC brand: #[flowVars.brand]" doc:name="Set Payload"/>
+    </flow>
+    <flow name="VFC:Vans-sync-whitelist" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636323" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 20 minutes">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="vans" doc:name="brand: vans"/>
+        <set-variable variableName="enabled" value="${vfcorp.vans.plu.whitelist.enabled}" doc:name="enabled: vans"/>
+        <set-variable variableName="sftpPath" value="${vfcorp.vans.sftp.path.whitelist}" doc:name="sftpPath: vans"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.vans.encryption.key}" doc:name="encryptionKey"/>
+        <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
+        <choice doc:name="newWhitelistProcessed?">
+            <when expression="#[flowVars.newWhitelistProcessed == true]">
+                <logger message="NEW VANS PROCESSED - SYNC TO SQUARE" level="INFO" doc:name="Logger"/>
+                <flow-ref name="VFC:Vans:plu-trigger-database-to-square" doc:name="VFC:Vans:plu-trigger-database-to-square"/>
+            </when>
+            <otherwise>
+                <logger message="VANS - NO WHITELIST PROCESSED - DO NOTHING" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="VFC:Test-sync-whitelist" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-14906363888" cronExpression="0 50 * 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every :50 minute">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="test" doc:name="brand: test"/>
+        <set-variable variableName="enabled" value="${vfcorp.test.plu.whitelist.enabled}" doc:name="enabled: test"/>
+        <set-variable variableName="sftpPath" value="${vfcorp.test.sftp.path.whitelist}" doc:name="sftpPath: test"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.test.encryption.key}" doc:name="encryptionKey"/>
+        <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
+        <choice doc:name="newWhitelistProcessed?">
+            <when expression="#[flowVars.newWhitelistProcessed == true]">
+                <logger message="NEW TEST WHITELIST PROCESSED - SYNC TO SQUARE" level="INFO" doc:name="_Logger"/>
+                <flow-ref name="VFC:Test:plu-trigger-database-to-square" doc:name="VFC:Test:plu-trigger-database-to-square"/>
+            </when>
+            <otherwise>
+                <logger message="TEST - NO WHITELIST PROCESSED - DO NOTHING" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <sub-flow name="VFC:sync-whitelist-for-brand">
+        <set-variable variableName="archiveFolder" value="#[flowVars.brand + '/whitelist']" doc:name="Archive bucket/folder"/>
+        <component doc:name="Check SFTP for whitelist file(s)">
+            <prototype-object class="vfcorp.WhitelistSyncToDatabaseCallable"/>
+        </component>
+    </sub-flow>
+    <flow name="VFC:vans-trigger-whitelist">
+        <http:listener config-ref="${default.http.config}" path="/vfc/whitelist/${urlKey}" doc:name="/vfc/whitelist"/>
+        <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.query.params'.brand]" doc:name="Set brand to session"/>
+        <async doc:name="Async">
+            <choice doc:name="test / vans">
+                <when expression="#[sessionVars.brand.equals(&quot;test&quot;)]">
+                    <logger message="Intiiating whitelist sync for Test..." level="INFO" doc:name="Logger"/>
+                    <flow-ref name="VFC:Test-sync-whitelist" doc:name="VFC:Test-sync-whitelist"/>
+                </when>
+                <otherwise>
+                    <logger message="Intiiating whitelist sync for Vans..." level="INFO" doc:name="Logger"/>
+                    <flow-ref name="VFC:Vans-sync-whitelist" doc:name="VFC:Vans-sync-whitelist"/>
+                </otherwise>
+            </choice>
+        </async>
+        <set-payload value="Ran whitelist sync for brand: #[sessionVars.brand]" doc:name="Set Payload"/>
     </flow>
 </mule>

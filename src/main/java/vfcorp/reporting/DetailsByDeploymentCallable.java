@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
@@ -39,6 +38,9 @@ public class DetailsByDeploymentCallable implements Callable {
         String apiUrl = message.getProperty("apiUrl", PropertyScope.SESSION);
         String apiVersion = message.getProperty("apiVersion", PropertyScope.SESSION);
 
+        boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.SESSION)
+                .equals("true") ? true : false;
+
         SquareClient squareV1Client = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
                 deployment.getMerchantId(), deployment.getLocationId());
         SquareClientV2 squareV2Client = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
@@ -53,26 +55,29 @@ public class DetailsByDeploymentCallable implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
+        boolean retrieveAnnualData = message.getProperty("sendDailyEmails", PropertyScope.SESSION).equals("true") ? true
+                : false;
+
         // V1 Payments - ignore no-sale and cash-only payments
         Payment[] allPayments = squareV1Client.payments().list(params);
         List<Payment> validPayments = new ArrayList<Payment>();
         for (Payment payment : allPayments) {
             boolean hasValidPaymentTender = false;
             for (com.squareup.connect.Tender tender : payment.getTender()) {
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidPaymentTender = true;
+
+                if (allowCashTransactions) {
+                    if (!tender.getType().equals("NO_SALE")) {
+                        hasValidPaymentTender = true;
+                    }
+                } else {
+                    if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                        hasValidPaymentTender = true;
+                    }
                 }
             }
             if (hasValidPaymentTender) {
                 validPayments.add(payment);
             }
-        }
-
-        // V1 Employees
-        HashMap<String, Employee> employees = new HashMap<String, Employee>();
-        Employee[] employeeList = squareV1Client.employees().list();
-        for (Employee employee : employeeList) {
-            employees.put(employee.getId(), employee);
         }
 
         // V2 Transactions - ignore no-sales and cash-only transactions
@@ -82,8 +87,14 @@ public class DetailsByDeploymentCallable implements Callable {
         for (Transaction transaction : allTransactions) {
             boolean hasValidTransactionTender = false;
             for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidTransactionTender = true;
+                if (allowCashTransactions) {
+                    if (!tender.getType().equals("NO_SALE")) {
+                        hasValidTransactionTender = true;
+                    }
+                } else {
+                    if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                        hasValidTransactionTender = true;
+                    }
                 }
             }
             if (hasValidTransactionTender) {
@@ -103,26 +114,33 @@ public class DetailsByDeploymentCallable implements Callable {
             }
         }
 
+        LocationTransactionDetails details = new LocationTransactionDetails(location,
+                validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), customers);
+
         // V1 YTD Payments - ignore no-sale and cash-only payments
-        Map<String, String> yearToDateParams = TimeManager.getYearToDateInterval(location.getTimezone());
-        Payment[] allYearToDatePayments = squareV1Client.payments().list(yearToDateParams);
-        List<Payment> validYearToDatePayments = new ArrayList<Payment>();
-        for (Payment payment : allYearToDatePayments) {
-            boolean hasValidPaymentTender = false;
-            for (com.squareup.connect.Tender tender : payment.getTender()) {
-                if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                    hasValidPaymentTender = true;
+        if (retrieveAnnualData) {
+            Map<String, String> yearToDateParams = TimeManager.getYearToDateInterval(location.getTimezone());
+            Payment[] allYearToDatePayments = squareV1Client.payments().list(yearToDateParams);
+            List<Payment> validYearToDatePayments = new ArrayList<Payment>();
+            for (Payment payment : allYearToDatePayments) {
+                boolean hasValidPaymentTender = false;
+                for (com.squareup.connect.Tender tender : payment.getTender()) {
+                    if (allowCashTransactions) {
+                        if (!tender.getType().equals("NO_SALE")) {
+                            hasValidPaymentTender = true;
+                        }
+                    } else {
+                        if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
+                            hasValidPaymentTender = true;
+                        }
+                    }
+                }
+                if (hasValidPaymentTender) {
+                    validYearToDatePayments.add(payment);
                 }
             }
-            if (hasValidPaymentTender) {
-                validYearToDatePayments.add(payment);
-            }
+            details.setYearToDatePayments(validYearToDatePayments.toArray(new Payment[0]));
         }
-
-        LocationTransactionDetails details = new LocationTransactionDetails(location,
-                validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), employees,
-                customers);
-        details.setYearToDatePayments(validYearToDatePayments.toArray(new Payment[0]));
 
         return details;
     }

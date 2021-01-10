@@ -1,6 +1,6 @@
 package vfcorp;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import java.util.TimeZone;
 import java.util.Vector;
 
 import org.mule.api.MuleEventContext;
+import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +20,9 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 
+import util.CloudStorageApi;
 import util.TimeManager;
 
 public class PluPollSyncToDatabaseCallable implements Callable {
@@ -44,11 +44,34 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     @Value("${vfcorp.sftp.password}")
     private String sftpPassword;
 
+    @Value("${vfcorp.vans.encryption.key}")
+    private String encryptionKeyVans;
+    @Value("${vfcorp.tnf.encryption.key}")
+    private String encryptionKeyTnf;
+    @Value("${vfcorp.tnfca.encryption.key}")
+    private String encryptionKeyTnfca;
+    @Value("${vfcorp.test.encryption.key}")
+    private String encryptionKeyTest;
+    @Value("${vfcorp.kipling.encryption.key}")
+    private String encryptionKeyKipling;
+    @Value("${vfcorp.vfo.encryption.key}")
+    private String encryptionKeyVfo;
+    @Value("${vfcorp.nautica.encryption.key}")
+    private String encryptionKeyNautica;
+
+    @Value("${google.storage.bucket.archive}")
+    private String archiveBucket;
+    @Value("${google.storage.account.credentials}")
+    private String storageCredentials;
+
+    private static final int MAX_REQUESTS = 200;
     private static final int RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MS = 60000; // 1 minute
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
+        MuleMessage message = eventContext.getMessage();
+
         ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
                 databaseUser, databasePassword, "enablePLU = 1");
 
@@ -56,7 +79,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                return getTnfPluSyncToDatabaseRequestsFromSftp(deployments);
+                return getVfcPluSyncToDatabaseRequestsFromSftp(deployments);
             } catch (Exception e) {
                 lastException = e;
                 lastException.printStackTrace();
@@ -67,8 +90,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         throw lastException;
     }
 
-    private Object getTnfPluSyncToDatabaseRequestsFromSftp(ArrayList<VfcDeployment> deployments)
-            throws JSchException, IOException, SftpException, ParseException, InterruptedException {
+    private Object getVfcPluSyncToDatabaseRequestsFromSftp(ArrayList<VfcDeployment> deployments) throws Exception {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         logger.info("VFC: SFTP session created");
 
@@ -88,7 +110,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     }
 
     private List<PluSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VfcDeployment> deployments)
-            throws SftpException, ParseException, InterruptedException {
+            throws Exception {
         HashMap<String, LsEntry> targetFiles = new HashMap<String, LsEntry>();
 
         for (VfcDeployment deployment : deployments) {
@@ -113,7 +135,14 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 String fileName = targetFile.getFilename();
 
                 int oldSize = (int) targetFile.getAttrs().getSize();
-                int currentSize = (int) channel.lstat(fileName).getSize();
+                int currentSize = 0;
+
+                try {
+                    currentSize = (int) channel.lstat(fileName).getSize();
+                } catch (Exception e) {
+                    logger.info(String.format("%s not found after delayed directory read (%s)", fileName,
+                            deployment.getDeployment()));
+                }
 
                 if (oldSize != currentSize) {
                     logger.info(
@@ -129,24 +158,87 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                     } else {
                         // Move for processing
                         String processingFileName = currentDatestamp() + Constants.PROCESSING_FILE_DELIMITER + fileName;
-                        channel.rename(fileName,
-                                String.format("%s/%s", Constants.PROCESSING_DIRECTORY, processingFileName));
+                        String processingFileLocation = String.format("%s/%s", Constants.PROCESSING_DIRECTORY,
+                                processingFileName);
+                        channel.rename(fileName, processingFileLocation);
 
                         logger.info(String.format("Queuing %s for processing (%s) for deployment %s...", fileName,
                                 processingFileName, deployment.getDeployment()));
+
+                        // Archive to Google Cloud Storage
+                        logger.info(String.format("Saving %s -- %s archive to GCP cloud...", deployment.getDeployment(),
+                                fileName));
+                        InputStream is = channel.get(processingFileLocation);
+
+                        String archiveFolder = getArchiveFolder(getBrand(deployment.getDeployment()),
+                                deployment.getStoreId());
+                        String encryptionKey = getEncryptionKey(deployment.getDeployment());
+                        String fileKey = String.format("%s/%s.secure", archiveFolder, processingFileName);
+
+                        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
+
+                        try {
+                            cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
+                        } catch (RuntimeException e) {
+                            logger.error(
+                                    "VFC SFTP connection error trying to upload to CloudStorage: " + e.getMessage());
+                        }
 
                         PluSyncToDatabaseRequest newRequest = new PluSyncToDatabaseRequest();
                         newRequest.setOriginalFileName(fileName);
                         newRequest.setProcessingFileName(processingFileName);
                         newRequest.setDeployment(deployment);
-
                         syncRequests.add(newRequest);
+
+                        if (syncRequests.size() > MAX_REQUESTS) {
+                            break;
+                        }
                     }
                 }
             }
         }
 
         return syncRequests;
+    }
+
+    private String getEncryptionKey(String deployment) throws Exception {
+        if (deployment.startsWith("vfcorp-kipling-")) {
+            return encryptionKeyKipling;
+        } else if (deployment.startsWith("vfcorp-nautica-")) {
+            return encryptionKeyNautica;
+        } else if (deployment.startsWith("vfcorp-vfo-")) {
+            return encryptionKeyVfo;
+        } else if (deployment.startsWith("vfcorp-test-")) {
+            return encryptionKeyTest;
+        } else if (deployment.startsWith("vfcorp-vans-")) {
+            return encryptionKeyVans;
+        } else if (deployment.startsWith("vfcorp-tnfca-")) {
+            return encryptionKeyTnfca;
+        } else if (deployment.startsWith("vfcorp-tnf-")) {
+            return encryptionKeyTnf;
+        }
+        throw new Exception("Invalid deployment " + deployment);
+    }
+
+    private String getArchiveFolder(String brand, String storeId) {
+        return String.format("%s/%s/PLU", brand, storeId);
+    }
+
+    private String getBrand(String deployment) throws Exception {
+        if (deployment.startsWith("vfcorp-kipling-")) {
+            return "Kipling";
+        } else if (deployment.startsWith("vfcorp-nautica-")) {
+            return "Nautica";
+        } else if (deployment.startsWith("vfcorp-vfo-")) {
+            return "VFO";
+        } else if (deployment.startsWith("vfcorp-test-")) {
+            return "Test";
+        } else if (deployment.startsWith("vfcorp-vans-")) {
+            return "Vans";
+        } else if (deployment.startsWith("vfcorp-tnf")) {
+            return "TNF";
+        }
+        throw new Exception("Invalid deployment " + deployment);
     }
 
     private String currentDatestamp() throws ParseException {

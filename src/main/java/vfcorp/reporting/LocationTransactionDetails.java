@@ -3,7 +3,6 @@ package vfcorp.reporting;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Location;
@@ -14,29 +13,26 @@ public class LocationTransactionDetails {
     private Transaction[] transactions;
     private Payment[] payments;
     private Payment[] yearToDatePayments;
-    private Map<String, Employee> employees;
     private Map<String, Customer> customers;
 
     public LocationTransactionDetails(Location location) {
-        this(location, new Transaction[0], new Payment[0], new HashMap<String, Employee>(),
-                new HashMap<String, Customer>());
+        this(location, new Transaction[0], new Payment[0], new HashMap<String, Customer>());
     }
 
     public LocationTransactionDetails(Location location, Transaction[] transactions) {
-        this(location, transactions, new Payment[0], new HashMap<String, Employee>(), new HashMap<String, Customer>());
+        this(location, transactions, new Payment[0], new HashMap<String, Customer>());
 
     }
 
     public LocationTransactionDetails(Location location, Transaction[] transactions, Payment[] payments) {
-        this(location, transactions, payments, new HashMap<String, Employee>(), new HashMap<String, Customer>());
+        this(location, transactions, payments, new HashMap<String, Customer>());
     }
 
     public LocationTransactionDetails(Location location, Transaction[] transactions, Payment[] payments,
-            Map<String, Employee> employees, Map<String, Customer> customers) {
+            Map<String, Customer> customers) {
         this.setLocation(location);
         this.transactions = transactions;
         this.payments = payments;
-        this.employees = employees;
         this.customers = customers;
     }
 
@@ -70,14 +66,6 @@ public class LocationTransactionDetails {
 
     public void setYearToDatePayments(Payment[] yearToDatePayments) {
         this.yearToDatePayments = yearToDatePayments;
-    }
-
-    public Map<String, Employee> getEmployees() {
-        return employees;
-    }
-
-    public void setEmployees(Map<String, Employee> employees) {
-        this.employees = employees;
     }
 
     public Map<String, Customer> getCustomers() {

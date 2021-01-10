@@ -1,7 +1,5 @@
 package vfcorp;
 
-import java.util.ArrayList;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
@@ -38,7 +36,8 @@ public class PluDatabaseToSquareCallable implements Callable {
                 .equals("true") ? true : false;
 
         // Retrieve a single deployment for credentials for master account
-        VfcDeployment masterAccount = getMasterAccountDeployment(brand);
+        VfcDeployment masterAccount = Util.getMasterAccountDeployment(databaseUrl, databaseUser, databasePassword,
+                brand);
 
         SquareClientV2 client = new SquareClientV2(apiUrl,
                 masterAccount.getSquarePayload().getAccessToken(encryptionKey));
@@ -48,9 +47,7 @@ public class PluDatabaseToSquareCallable implements Callable {
                 brand);
         catalogBuilder.setItemNumberLookupLength(itemNumberLookupLength);
         catalogBuilder.setPluFiltered(masterAccount.isPluFiltered());
-        if (ignoresSkuCheckDigit) {
-            catalogBuilder.setIgnoresSkuCheckDigit(true);
-        }
+        catalogBuilder.setIgnoresSkuCheckDigit(ignoresSkuCheckDigit);
 
         catalogBuilder.syncCategoriesFromDatabaseToSquare();
         catalogBuilder.syncItemsFromDatabaseToSquare();
@@ -58,18 +55,5 @@ public class PluDatabaseToSquareCallable implements Callable {
         logger.info(String.format("Done updating brand account: %s", brand));
 
         return null;
-    }
-
-    private VfcDeployment getMasterAccountDeployment(String brand) throws Exception {
-        String whereFilter = String.format("vfcorp_deployments.deployment LIKE 'vfcorp-%s-%%'", brand);
-
-        ArrayList<VfcDeployment> matchingDeployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
-                databaseUser, databasePassword, whereFilter);
-
-        if (matchingDeployments.size() < 1) {
-            throw new Exception(String.format("No deployments for brand '%s' found.", brand));
-        }
-
-        return matchingDeployments.get(0);
     }
 }

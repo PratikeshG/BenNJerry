@@ -1,0 +1,6 @@
+LOAD DATA LOCAL INFILE  '/Users/bhartard/desktop/mysql/nautica.csv'
+INTO TABLE product_whitelist
+FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+(productId, deployment)
+SET deployment = "vfcorp-nautica";

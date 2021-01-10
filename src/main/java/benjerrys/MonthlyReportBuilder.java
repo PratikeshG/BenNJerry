@@ -18,11 +18,16 @@ import util.TimeManager;
 
 public class MonthlyReportBuilder {
     private static String CATEGORY_IC_CONES = "IC CONES";
+    private static String CATEGORY_TO_IC_CONES = "TO - IC CONES";
     private static String CATEGORY_TOPPINGS = "TOPPINGS";
     private static String CATEGORY_IC_SUNDAE = "IC SUNDAE";
+    private static String CATEGORY_TO_IC_SUNDAE = "TO - IC SUNDAES";
     private static String CATEGORY_IC_DRINKS = "IC DRINKS";
+    private static String CATEGORY_TO_IC_DRINKS = "TO - IC DRINKS";
     private static String CATEGORY_IC_HANDPACK = "IC HANDPACK";
+    private static String CATEGORY_TO_FRESH_PACKED = "TO - FRESH PACKED";
     private static String CATEGORY_IC_CAKE_NOVELTY = "IC CAKE/NOVELTY";
+    private static String CATEGORY_TO_IC_CAKE_NOVELTY = "TO - IC CAKE/NOVELTY";
 
     private static String CATEGORY_CATERING = "CATERING";
     private static String CATEGORY_SPECIAL_EVENTS = "SPECIAL EVENTS";
@@ -33,8 +38,11 @@ public class MonthlyReportBuilder {
 
     private static String CATEGORY_SOFT_SERVE = "SOFT SERVE";
     private static String CATEGORY_COLD_BEVERAGES = "COLD BEVERAGES";
+    private static String CATEGORY_TO_COLD_BEVERAGES = "TO - COLD BEVERAGES";
     private static String CATEGORY_HOT_BEVERAGES = "HOT BEVERAGES";
+    private static String CATEGORY_TO_HOT_BEVERAGES = "TO - HOT BEVERAGES";
     private static String CATEGORY_BAKED_GOODS = "BAKED GOODS";
+    private static String CATEGORY_TO_BAKED_GOODS = "TO - BAKED GOODS";
     private static String CATEGORY_PASTRY = "PASTRY";
     private static String CATEGORY_CONFECTIONS = "CONFECTIONS";
     private static String CATEGORY_OTHER_FOODS = "OTHER FOODS";
@@ -48,12 +56,23 @@ public class MonthlyReportBuilder {
     private static String CATEGORY_OTHER_APPAREL = "OTHER APPAREL";
 
     private static String CATEGORY_PREPACKS = "PREPACKS";
+    private static String CATEGORY_TO_PREPACKS = "TO - PREPACKS";
 
     private static String CATEGORY_UNCATEGORIZED = "UNCATEGORIZED SALES";
     private static String CATEGORY_UNASSIGNED_REFUNDS = "UNASSIGNED REFUNDS";
 
     private static String CATEGORY_GIFT_CARD = "GIFT CARD";
     private static String CATEGORY_SERVICE_CHARGE = "SERVICE CHARGE";
+
+    private static List<String> IC_TO_MERGED_CONES = new ArrayList<String>();
+    private static List<String> IC_TO_MERGED_SUNDAE = new ArrayList<String>();
+    private static List<String> IC_TO_MERGED_DRINKS = new ArrayList<String>();
+    private static List<String> IC_TO_MERGED_PACKED = new ArrayList<String>();
+    private static List<String> IC_TO_MERGED_CAKE_NOVELTY = new ArrayList<String>();
+    private static List<String> TO_MERGED_COLD_BEVERAGES = new ArrayList<String>();
+    private static List<String> TO_MERGED_HOT_BEVERAGES = new ArrayList<String>();
+    private static List<String> TO_MERGED_BAKED_GOODS = new ArrayList<String>();
+    private static List<String> TO_MERGED_PREPACKS = new ArrayList<String>();
 
     private static List<String> GROUP_IC_AND_TOPPINGS = new ArrayList<String>();
     private static List<String> GROUP_OFF_PREMISE = new ArrayList<String>();
@@ -67,8 +86,19 @@ public class MonthlyReportBuilder {
     private static String LABEL_TOTAL_RETAIL = "Total Retail";
 
     static {
+        IC_TO_MERGED_CONES.addAll(Arrays.asList(CATEGORY_IC_CONES, CATEGORY_TO_IC_CONES));
+        IC_TO_MERGED_SUNDAE.addAll(Arrays.asList(CATEGORY_IC_SUNDAE, CATEGORY_TO_IC_SUNDAE));
+        IC_TO_MERGED_DRINKS.addAll(Arrays.asList(CATEGORY_IC_DRINKS, CATEGORY_TO_IC_DRINKS));
+        IC_TO_MERGED_PACKED.addAll(Arrays.asList(CATEGORY_IC_HANDPACK, CATEGORY_TO_FRESH_PACKED));
+        IC_TO_MERGED_CAKE_NOVELTY.addAll(Arrays.asList(CATEGORY_IC_CAKE_NOVELTY, CATEGORY_TO_IC_CAKE_NOVELTY));
+        TO_MERGED_COLD_BEVERAGES.addAll(Arrays.asList(CATEGORY_COLD_BEVERAGES, CATEGORY_TO_COLD_BEVERAGES));
+        TO_MERGED_HOT_BEVERAGES.addAll(Arrays.asList(CATEGORY_HOT_BEVERAGES, CATEGORY_TO_HOT_BEVERAGES));
+        TO_MERGED_BAKED_GOODS.addAll(Arrays.asList(CATEGORY_BAKED_GOODS, CATEGORY_TO_BAKED_GOODS));
+        TO_MERGED_PREPACKS.addAll(Arrays.asList(CATEGORY_PREPACKS, CATEGORY_TO_PREPACKS));
+
         // GROUP_IC_AND_TOPPINGS
-        GROUP_IC_AND_TOPPINGS.addAll(Arrays.asList(CATEGORY_IC_CONES, CATEGORY_TOPPINGS));
+        GROUP_IC_AND_TOPPINGS.addAll(IC_TO_MERGED_CONES);
+        GROUP_IC_AND_TOPPINGS.add(CATEGORY_TOPPINGS);
 
         // GROUP_OFF_PREMISE
         GROUP_OFF_PREMISE.addAll(Arrays.asList(CATEGORY_OFF_PREMISE, CATEGORY_OFF_PREMISE_FEES, CATEGORY_CATERING,
@@ -76,8 +106,10 @@ public class MonthlyReportBuilder {
 
         // GROUP_TOTAL_ICE_CREAM
         GROUP_TOTAL_ICE_CREAM.addAll(GROUP_IC_AND_TOPPINGS);
-        GROUP_TOTAL_ICE_CREAM.addAll(
-                Arrays.asList(CATEGORY_IC_SUNDAE, CATEGORY_IC_DRINKS, CATEGORY_IC_HANDPACK, CATEGORY_IC_CAKE_NOVELTY));
+        GROUP_TOTAL_ICE_CREAM.addAll(IC_TO_MERGED_SUNDAE);
+        GROUP_TOTAL_ICE_CREAM.addAll(IC_TO_MERGED_DRINKS);
+        GROUP_TOTAL_ICE_CREAM.addAll(IC_TO_MERGED_PACKED);
+        GROUP_TOTAL_ICE_CREAM.addAll(IC_TO_MERGED_CAKE_NOVELTY);
         GROUP_TOTAL_ICE_CREAM.addAll(GROUP_OFF_PREMISE);
         GROUP_TOTAL_ICE_CREAM.add(CATEGORY_ON_DEMAND);
 
@@ -88,9 +120,12 @@ public class MonthlyReportBuilder {
         // GROUP_TOTAL_NET_SALES
         GROUP_TOTAL_NET_SALES.addAll(GROUP_TOTAL_ICE_CREAM);
         GROUP_TOTAL_NET_SALES.addAll(GROUP_TOTAL_RETAIL);
-        GROUP_TOTAL_NET_SALES.addAll(Arrays.asList(CATEGORY_SOFT_SERVE, CATEGORY_COLD_BEVERAGES, CATEGORY_HOT_BEVERAGES,
-                CATEGORY_BAKED_GOODS, CATEGORY_PASTRY, CATEGORY_CONFECTIONS, CATEGORY_OTHER_FOODS, CATEGORY_PREPACKS,
-                CATEGORY_UNASSIGNED_REFUNDS));
+        GROUP_TOTAL_NET_SALES.addAll(TO_MERGED_COLD_BEVERAGES);
+        GROUP_TOTAL_NET_SALES.addAll(TO_MERGED_HOT_BEVERAGES);
+        GROUP_TOTAL_NET_SALES.addAll(TO_MERGED_BAKED_GOODS);
+        GROUP_TOTAL_NET_SALES.addAll(TO_MERGED_PREPACKS);
+        GROUP_TOTAL_NET_SALES.addAll(Arrays.asList(CATEGORY_SOFT_SERVE, CATEGORY_PASTRY, CATEGORY_CONFECTIONS,
+                CATEGORY_OTHER_FOODS, CATEGORY_UNASSIGNED_REFUNDS));
         GROUP_TOTAL_NET_SALES.add(CATEGORY_UNCATEGORIZED);
 
         // Track all categories in one place
@@ -269,6 +304,38 @@ public class MonthlyReportBuilder {
         return total;
     }
 
+    private CategoryData getMergedSundaeData() {
+        return mergeCategoryGroup(CATEGORY_IC_SUNDAE, IC_TO_MERGED_SUNDAE);
+    }
+
+    private CategoryData getMergedDrinksData() {
+        return mergeCategoryGroup(CATEGORY_IC_DRINKS, IC_TO_MERGED_DRINKS);
+    }
+
+    private CategoryData getMergedPackedData() {
+        return mergeCategoryGroup(CATEGORY_IC_HANDPACK, IC_TO_MERGED_PACKED);
+    }
+
+    private CategoryData getMergedCakeNoveltyData() {
+        return mergeCategoryGroup(CATEGORY_IC_CAKE_NOVELTY, IC_TO_MERGED_CAKE_NOVELTY);
+    }
+
+    private CategoryData getMergedColdBeveragesData() {
+        return mergeCategoryGroup(CATEGORY_COLD_BEVERAGES, TO_MERGED_COLD_BEVERAGES);
+    }
+
+    private CategoryData getMergedHotBeveragesData() {
+        return mergeCategoryGroup(CATEGORY_HOT_BEVERAGES, TO_MERGED_HOT_BEVERAGES);
+    }
+
+    private CategoryData getMergedBakedGoodsData() {
+        return mergeCategoryGroup(CATEGORY_BAKED_GOODS, TO_MERGED_BAKED_GOODS);
+    }
+
+    private CategoryData getMergedPrepacksData() {
+        return mergeCategoryGroup(CATEGORY_PREPACKS, TO_MERGED_PREPACKS);
+    }
+
     private CategoryData getTotalIcToppingsData() {
         return mergeCategoryGroup(LABEL_TOTAL_IC_TOPPINGS, GROUP_IC_AND_TOPPINGS);
     }
@@ -314,13 +381,18 @@ public class MonthlyReportBuilder {
                 .setCol(6, "Reportable Sales (Gross - Refund)").setCol(7, "Discounts & Comps").setCol(8, "Net Sales")
                 .setCol(9, "Taxes").build());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IC_CONES)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_IC_CONES)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TOPPINGS)));
         rows.add(new CalculationReportRow(getTotalIcToppingsData()));
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IC_SUNDAE)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_IC_SUNDAE)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IC_DRINKS)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_IC_DRINKS)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IC_HANDPACK)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_FRESH_PACKED)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IC_CAKE_NOVELTY)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_IC_CAKE_NOVELTY)));
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_CATERING)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_SPECIAL_EVENTS)));
@@ -333,8 +405,11 @@ public class MonthlyReportBuilder {
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_SOFT_SERVE)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_COLD_BEVERAGES)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_COLD_BEVERAGES)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_HOT_BEVERAGES)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_HOT_BEVERAGES)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_BAKED_GOODS)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_BAKED_GOODS)));
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_HOUSEWARE)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_IMPULSE)));
@@ -346,6 +421,7 @@ public class MonthlyReportBuilder {
         rows.add(new CalculationReportRow(getTotalRetailData()));
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_PREPACKS)));
+        rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_TO_PREPACKS)));
         rows.add(new CalculationReportRow());
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_UNCATEGORIZED)));
         rows.add(new CalculationReportRow(categoryTotals.get(CATEGORY_UNASSIGNED_REFUNDS)));
@@ -382,25 +458,33 @@ public class MonthlyReportBuilder {
         rows.add(new SummaryReportRow.RowBuilder().setCol(1, "Sales Mix").build());
         rows.add(new SummaryReportRow.RowBuilder().setCol(1, "IC Cones (includes Toppings)")
                 .setColDollarValue(2, getTotalIcToppingsData().getReportableSalesTotal()).build());
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_IC_SUNDAE)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_IC_DRINKS)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_IC_HANDPACK)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_IC_CAKE_NOVELTY)));
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_IC_SUNDAE)
+                .setColDollarValue(2, getMergedSundaeData().getReportableSalesTotal()).build());
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_IC_DRINKS)
+                .setColDollarValue(2, getMergedDrinksData().getReportableSalesTotal()).build());
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_IC_HANDPACK)
+                .setColDollarValue(2, getMergedPackedData().getReportableSalesTotal()).build());
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_IC_CAKE_NOVELTY)
+                .setColDollarValue(2, getMergedCakeNoveltyData().getReportableSalesTotal()).build());
         rows.add(new SummaryReportRow(getTotalOffPremiseData()));
         rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_ON_DEMAND)));
         rows.add(new SummaryReportRow.RowBuilder().setCol(1, "Total Ice Cream Sales")
                 .setColDollarValue(2, getTotalIceCreamSalesTotal()).build());
         rows.add(new SummaryReportRow());
         rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_SOFT_SERVE)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_COLD_BEVERAGES)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_HOT_BEVERAGES)));
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_BAKED_GOODS)));
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_COLD_BEVERAGES)
+                .setColDollarValue(2, getMergedColdBeveragesData().getReportableSalesTotal()).build());
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_HOT_BEVERAGES)
+                .setColDollarValue(2, getMergedHotBeveragesData().getReportableSalesTotal()).build());
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_BAKED_GOODS)
+                .setColDollarValue(2, getMergedBakedGoodsData().getReportableSalesTotal()).build());
         rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_PASTRY)));
         rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_CONFECTIONS)));
         rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_OTHER_FOODS)));
         rows.add(new SummaryReportRow.RowBuilder().setCol(1, "RETAIL / GIFT (All)")
                 .setColDollarValue(2, getTotalRetailData().getReportableSalesTotal()).build());
-        rows.add(new SummaryReportRow(categoryTotals.get(CATEGORY_PREPACKS)));
+        rows.add(new SummaryReportRow.RowBuilder().setCol(1, CATEGORY_PREPACKS)
+                .setColDollarValue(2, getMergedPrepacksData().getReportableSalesTotal()).build());
         rows.add(new SummaryReportRow());
         rows.add(new SummaryReportRow.RowBuilder(categoryTotals.get(CATEGORY_UNCATEGORIZED)).setCol(3, "**").build());
         rows.add(new SummaryReportRow.RowBuilder(categoryTotals.get(CATEGORY_UNASSIGNED_REFUNDS)).setCol(3, "****")

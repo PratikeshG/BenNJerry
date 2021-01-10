@@ -1,9 +1,6 @@
 package vfcorp;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -14,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.TimeZone;
@@ -21,13 +19,15 @@ import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.squareup.connect.v2.TeamMember;
+
 import util.TimeManager;
 
 public class VfcDatabaseApi {
     private static Logger logger = LoggerFactory.getLogger(VfcDatabaseApi.class);
     private Connection connection;
 
-    private static String SKU_FILTER_PATH = "/vfc-plu-filters/vfcorp-%s-onhand-sku.csv";
+    private static String WHITELIST_FILTER_BRAND_FORMAT = "vfcorp-%s";
 
     public VfcDatabaseApi(Connection connection) {
         this.connection = connection;
@@ -100,6 +100,70 @@ public class VfcDatabaseApi {
         return response;
     }
 
+    public int setWhitelistForBrand(String deployment, List<String> whitelist)
+            throws SQLException, IOException, ParseException {
+        return executeUpdate(generateWhitelistUpsertSQL(deployment, whitelist));
+    }
+
+    public int setWhitelistForBrandStore(String deployment, String storeId, List<String> whitelist)
+            throws SQLException, IOException, ParseException {
+        return executeUpdate(generateWhitelistUpsertStoreSQL(deployment, storeId, whitelist));
+    }
+
+    public List<String> getWhitelistForBrand(String deployment) throws SQLException, IOException, ParseException {
+        ArrayList<String> whitelist = new ArrayList<String>();
+        ArrayList<Map<String, String>> executedQuery = executeQuery(generateWhitelistSelectSQL(deployment));
+
+        for (Map<String, String> whitelistRecord : executedQuery) {
+            whitelist.add(whitelistRecord.get("productId"));
+        }
+
+        return whitelist;
+    }
+
+    public List<String> getWhitelistForBrandStore(String deployment, String storeId)
+            throws SQLException, IOException, ParseException {
+        ArrayList<String> whitelist = new ArrayList<String>();
+        ArrayList<Map<String, String>> executedQuery = executeQuery(
+                generateWhitelistSelectStoreSQL(deployment, storeId));
+
+        for (Map<String, String> whitelistRecord : executedQuery) {
+            whitelist.add(whitelistRecord.get("productId"));
+        }
+
+        return whitelist;
+    }
+
+    public int deleteEmployeesForBrand(String deployment) throws SQLException, IOException, ParseException {
+        return executeUpdate(generateEmployeeDeleteSQL(deployment));
+    }
+
+    public int setEmployeesForBrand(String deployment, TeamMember[] employees)
+            throws SQLException, IOException, ParseException {
+        return executeUpdate(generateEmployeeUpsertSQL(deployment, employees));
+    }
+
+    public Map<String, String> getEmployeeIdsForBrand(String deployment)
+            throws SQLException, IOException, ParseException {
+        Map<String, String> employees = new HashMap<String, String>();
+        ArrayList<Map<String, String>> executedQuery = executeQuery(generateEmployeeSelectSQL(deployment));
+
+        for (Map<String, String> employeeRecord : executedQuery) {
+            employees.put(employeeRecord.get("employeeId"), employeeRecord.get("externalId"));
+        }
+
+        return employees;
+    }
+
+    public int deleteWhitelistForBrand(String deployment) throws SQLException, IOException, ParseException {
+        return executeUpdate(generateWhitelistDeleteBrandSQL(deployment));
+    }
+
+    public int deleteWhitelistForBrandStore(String deployment, String storeId)
+            throws SQLException, IOException, ParseException {
+        return executeUpdate(generateWhitelistDeleteBrandStoreSQL(deployment, storeId));
+    }
+
     public ArrayList<Map<String, String>> queryDbDeptClass(String brand) throws SQLException, IOException {
         return executeQuery(generatePluDeptClassSQLSelect(brand));
     }
@@ -125,13 +189,36 @@ public class VfcDatabaseApi {
     }
 
     public String generatePluItemsSQLSelect(String locationId, boolean pluFiltered, String brand) throws IOException {
-        String query = String.format("SELECT * FROM vfcorp_plu_items WHERE locationId = '%s'", locationId);
+        String query = String.format(
+                "SELECT itemNumber, description, alternateDescription, retailPrice, deptNumber, classNumber FROM vfcorp_plu_items WHERE locationId = '%s'",
+                locationId);
 
         if (pluFiltered) {
             logger.info("Applying SKU whitelist filter");
-            query += String.format(" AND itemNumber IN (%s)", getFilteredSKUQueryString(brand));
+            String filteredQuery = String.format(
+                    " AND itemNumber IN (SELECT productId as itemNumber FROM product_whitelist WHERE deployment = '%s')",
+                    String.format(WHITELIST_FILTER_BRAND_FORMAT, brand));
+            query += filteredQuery;
         }
-        logger.debug(String.format("Generated query for location %s: %s", locationId, query));
+        logger.info(String.format("Generated query for location %s: %s", locationId, query));
+
+        return query;
+    }
+
+    public String generatePluItemsByStoreSQLSelect(String locationId, boolean pluFiltered, String brand, String storeId)
+            throws IOException {
+        String query = String.format(
+                "SELECT itemNumber, description, alternateDescription, retailPrice, deptNumber, classNumber FROM vfcorp_plu_items WHERE locationId = '%s'",
+                locationId);
+
+        if (pluFiltered) {
+            logger.info("Applying SKU whitelist filter");
+            String filteredQuery = String.format(
+                    " AND itemNumber IN (SELECT productId as itemNumber FROM product_whitelist WHERE deployment = '%s' AND storeId = '%s')",
+                    String.format(WHITELIST_FILTER_BRAND_FORMAT, brand), storeId);
+            query += filteredQuery;
+        }
+        logger.info(String.format("Generated query for location %s: %s", locationId, query));
 
         return query;
     }
@@ -180,28 +267,76 @@ public class VfcDatabaseApi {
         return updateStatement;
     }
 
-    private String getFilteredSKUQueryString(String brand) throws IOException {
-        HashMap<String, Boolean> skuFilter = new HashMap<String, Boolean>();
+    public String generateWhitelistDeleteBrandSQL(String deployment) throws IOException, ParseException {
+        return "DELETE FROM product_whitelist WHERE deployment = '" + deployment + "'";
+    }
 
-        String filterSKUPath = String.format(SKU_FILTER_PATH, brand);
-        InputStream iSKU = this.getClass().getResourceAsStream(filterSKUPath);
-        BufferedReader brSKU = new BufferedReader(new InputStreamReader(iSKU, "UTF-8"));
-        try {
-            String line;
-            while ((line = brSKU.readLine()) != null) {
-                skuFilter.put(line.trim(), new Boolean(true));
+    public String generateWhitelistDeleteBrandStoreSQL(String deployment, String storeId)
+            throws IOException, ParseException {
+        return "DELETE FROM product_whitelist WHERE deployment = '" + deployment + "' AND storeId = '" + storeId + "'";
+    }
+
+    public String generateWhitelistSelectSQL(String deployment) throws IOException, ParseException {
+        return "SELECT productId FROM product_whitelist WHERE deployment = '" + deployment + "'";
+    }
+
+    public String generateWhitelistSelectStoreSQL(String deployment, String storeId)
+            throws IOException, ParseException {
+        return "SELECT productId FROM product_whitelist WHERE deployment = '" + deployment + "' AND storeId = '"
+                + storeId + "'";
+    }
+
+    public String generateWhitelistUpsertSQL(String deployment, List<String> whitelist) {
+        String updateStatement = "";
+
+        if (whitelist.size() > 0) {
+            updateStatement = "INSERT INTO product_whitelist (deployment, productId) VALUES ";
+
+            StringJoiner sj = new StringJoiner(",");
+            for (String sku : whitelist) {
+                sj.add(String.format("('%s', '%s')", deployment, sku));
             }
-        } finally {
-            brSKU.close();
+            updateStatement += sj.toString() + ";";
         }
+        return updateStatement;
+    }
 
-        logger.info("Total SKU whitelist filtered: " + skuFilter.size());
+    public String generateWhitelistUpsertStoreSQL(String deployment, String storeId, List<String> whitelist) {
+        String updateStatement = "";
 
-        StringJoiner sj = new StringJoiner(",");
-        for (String sku : skuFilter.keySet()) {
-            sj.add(String.format("'%s'", sku));
+        if (whitelist.size() > 0) {
+            updateStatement = "INSERT INTO product_whitelist (deployment, storeId, productId) VALUES ";
+
+            StringJoiner sj = new StringJoiner(",");
+            for (String sku : whitelist) {
+                sj.add(String.format("('%s', '%s', '%s')", deployment, storeId, sku));
+            }
+            updateStatement += sj.toString() + ";";
         }
-        return sj.toString();
+        return updateStatement;
+    }
+
+    public String generateEmployeeDeleteSQL(String deployment) throws IOException, ParseException {
+        return "DELETE FROM employee_ids WHERE deployment = '" + deployment + "'";
+    }
+
+    public String generateEmployeeSelectSQL(String deployment) throws IOException, ParseException {
+        return "SELECT employeeId, externalId FROM employee_ids WHERE deployment = '" + deployment + "'";
+    }
+
+    public String generateEmployeeUpsertSQL(String deployment, TeamMember[] employees) {
+        String updateStatement = "";
+
+        if (employees.length > 0) {
+            updateStatement = "INSERT INTO employee_ids (deployment, employeeId, externalId) VALUES ";
+
+            StringJoiner sj = new StringJoiner(",");
+            for (TeamMember employee : employees) {
+                sj.add(String.format("('%s', '%s', '%s')", deployment, employee.getId(), employee.getReferenceId()));
+            }
+            updateStatement += sj.toString() + ";";
+        }
+        return updateStatement;
     }
 
     public void close() throws SQLException {

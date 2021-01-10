@@ -23,8 +23,15 @@ import util.CloudStorageApi;
 import util.TimeManager;
 
 public class TlogUploadToSftpCallable implements Callable {
-    private static final String TLOG_PREFIX = "SA";
-    private static final String TLOG_SUFFIX = ".NEW";
+    private static final String DEFAULT_TIMEZONE = "America/New_York";
+    private static final String BRAND_VANS = "vans";
+    private static final String BRAND_TEST = "test";
+    private static final String VFC_TLOG_PREFIX = "SA";
+    private static final String VFC_TLOG_SUFFIX = ".NEW";
+    private static final String VANS_EOD_TLOG_PREFIX = "sls07";
+    private static final String VANS_EOD_TLOG_SUFFIX = "HHmm";
+    private static final String VANS_STOREFORCE_TLOG_PREFIX = "sas";
+    private static final String VANS_STOREFORCE_TLOG_SUFFIX = ".new";
 
     @Value("${vfcorp.sftp.host}")
     private String sftpHost;
@@ -61,30 +68,30 @@ public class TlogUploadToSftpCallable implements Callable {
         String storeforceArchiveDirectory = message.getProperty("storeforceArchiveDirectory", PropertyScope.INVOCATION);
         String storeforceTrickleDirectory = message.getProperty("storeforceTrickleDirectory", PropertyScope.INVOCATION);
 
-        String uploadPattern = String.format("%s%s%s", TLOG_PREFIX, vfcorpStoreNumber, TLOG_SUFFIX);
+        String fileName = getVfcFilename(deployment, vfcorpStoreNumber);
 
         // Archive complete TLOGs to Google Cloud Storage
         if (!isStoreforceTrickle) {
             String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
             String cloudArchiveFolder = message.getProperty("cloudArchiveFolder", PropertyScope.INVOCATION);
-            String fileKey = String.format("%s%s.secure", cloudArchiveFolder, uploadPattern);
+            String fileKey = String.format("%s%s.secure", cloudArchiveFolder, fileName);
 
             CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
             cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
         }
 
         return uploadTlogsWithRetries(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber, deployment,
-                storeforceArchiveDirectory, storeforceTrickleDirectory, uploadPattern);
+                storeforceArchiveDirectory, storeforceTrickleDirectory);
     }
 
     private Object uploadTlogsWithRetries(MuleMessage message, String tlog, boolean isStoreforceTrickle,
             boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
-            String storeforceTrickleDirectory, String uploadPattern) throws InterruptedException, Exception {
+            String storeforceTrickleDirectory) throws InterruptedException, Exception {
         Exception lastException = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 return uploadTntTlogsViaSftp(message, tlog, isStoreforceTrickle, archiveTlog, vfcorpStoreNumber,
-                        deployment, storeforceArchiveDirectory, storeforceTrickleDirectory, uploadPattern);
+                        deployment, storeforceArchiveDirectory, storeforceTrickleDirectory);
 
             } catch (Exception e) {
                 lastException = e;
@@ -98,7 +105,7 @@ public class TlogUploadToSftpCallable implements Callable {
 
     private Object uploadTntTlogsViaSftp(MuleMessage message, String tlog, boolean isStoreforceTrickle,
             boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
-            String storeforceTrickleDirectory, String uploadPattern)
+            String storeforceTrickleDirectory)
             throws JSchException, IOException, UnsupportedEncodingException, SftpException, ParseException {
         Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
         ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
@@ -108,24 +115,19 @@ public class TlogUploadToSftpCallable implements Callable {
         if (!isStoreforceTrickle) {
             InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(deployment.getTlogPath());
-            sftpChannel.put(tlogUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
-        }
+            sftpChannel.put(tlogUploadStream, getVfcFilename(deployment, vfcorpStoreNumber), ChannelSftp.OVERWRITE);
 
-        // Archive copy enabled
-        if (!isStoreforceTrickle && archiveTlog) {
-            InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+            // Archive copy enabled
+            if (archiveTlog) {
+                InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+                String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
-            String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
-            Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
-            String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
-                    "yyyy-MM-dd-HH-mm-ss");
+                String archiveFilename = getVfcArchiveFilename(deployment, vfcorpStoreNumber, timeZone);
 
-            String archiveUploadPattern = String.format("%s_%s%s%s", currentDate, TLOG_PREFIX, vfcorpStoreNumber,
-                    TLOG_SUFFIX);
-
-            String archiveDirectory = deployment.getTlogPath() + "/Archive";
-            sftpChannel.cd(archiveDirectory);
-            sftpChannel.put(archiveUploadStream, archiveUploadPattern, ChannelSftp.OVERWRITE);
+                String archiveDirectory = deployment.getTlogPath() + "/Archive";
+                sftpChannel.cd(archiveDirectory);
+                sftpChannel.put(archiveUploadStream, archiveFilename, ChannelSftp.OVERWRITE);
+            }
         }
 
         // If deployment has Storeforce enabled, save copy of TLOG to SF archive directory
@@ -139,12 +141,48 @@ public class TlogUploadToSftpCallable implements Callable {
                 sftpChannel.cd(storeforceTrickleDirectory);
             }
 
-            sftpChannel.put(storeforceUploadStream, uploadPattern, ChannelSftp.OVERWRITE);
+            sftpChannel.put(storeforceUploadStream, getStoreforceFilename(deployment, vfcorpStoreNumber),
+                    ChannelSftp.OVERWRITE);
         }
 
         sftpChannel.disconnect();
         session.disconnect();
 
         return tlog;
+    }
+
+    private boolean isVansDeployment(VfcDeployment deployment) {
+        return deployment.getDeployment().contains(BRAND_VANS) || deployment.getDeployment().contains(BRAND_TEST);
+    }
+
+    private String getStoreforceFilename(VfcDeployment deployment, String vfcorpStoreNumber) {
+        if (isVansDeployment(deployment)) {
+            return String.format("%s%s%s", VANS_STOREFORCE_TLOG_PREFIX, fourDigitStoreNumber(vfcorpStoreNumber),
+                    VANS_STOREFORCE_TLOG_SUFFIX);
+        }
+        return String.format("%s%s%s", VFC_TLOG_PREFIX, vfcorpStoreNumber, VFC_TLOG_SUFFIX);
+    }
+
+    private String getVfcFilename(VfcDeployment deployment, String vfcorpStoreNumber) throws ParseException {
+        if (isVansDeployment(deployment)) {
+            Calendar c = Calendar.getInstance(TimeZone.getTimeZone(DEFAULT_TIMEZONE));
+            String dateSuffix = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, DEFAULT_TIMEZONE),
+                    DEFAULT_TIMEZONE, VANS_EOD_TLOG_SUFFIX);
+            return String.format("%s%s%s", VANS_EOD_TLOG_PREFIX, vfcorpStoreNumber, dateSuffix);
+        }
+        return String.format("%s%s%s", VFC_TLOG_PREFIX, vfcorpStoreNumber, VFC_TLOG_SUFFIX);
+    }
+
+    private String getVfcArchiveFilename(VfcDeployment deployment, String vfcorpStoreNumber, String timeZone)
+            throws ParseException {
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
+        String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
+                "yyyy-MM-dd-HH-mm-ss");
+
+        return String.format("%s_%s", currentDate, getVfcFilename(deployment, vfcorpStoreNumber));
+    }
+
+    private String fourDigitStoreNumber(String storeNumber) {
+        return storeNumber.substring(storeNumber.length() - 4);
     }
 }

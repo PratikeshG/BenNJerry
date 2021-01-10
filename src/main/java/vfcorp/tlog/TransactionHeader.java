@@ -1,13 +1,15 @@
 package vfcorp.tlog;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
-import com.squareup.connect.Tender;
 
 import util.TimeManager;
 import vfcorp.FieldDetails;
@@ -170,9 +172,10 @@ public class TransactionHeader extends Record {
     }
 
     public TransactionHeader parse(int transactionNumber, Merchant location, List<Payment> squarePaymentsList,
-            String registerNumber, String transactionType, int numberOfRecords, String deployment, String timeZoneId)
-            throws Exception {
+            String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
+            String processingForDate) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
+        params.put("Register Number", registerNumber);
 
         String lastDate = "";
         for (Payment squarePayment : squarePaymentsList) {
@@ -180,37 +183,28 @@ public class TransactionHeader extends Record {
                 lastDate = squarePayment.getCreatedAt();
             }
         }
-        if (lastDate != "") {
-            params.put("Transaction Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
-            params.put("Business Date", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "MMddyyyy"));
-            params.put("Transaction Time", TimeManager.toSimpleDateTimeInTimeZone(lastDate, timeZoneId, "HHmm"));
+
+        // Closing records cannot match same time as last transaction
+        if (!lastDate.equals("")) {
+            params.put("Transaction Date", incrementAndFormatDateTime(lastDate, timeZoneId, "MMddyyyy", 1));
+            params.put("Business Date", incrementAndFormatDateTime(lastDate, timeZoneId, "MMddyyyy", 1));
+            params.put("Transaction Time", incrementAndFormatDateTime(lastDate, timeZoneId, "HHmm", 1));
+        } else {
+            params.put("Transaction Date",
+                    TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "MMddyyyy"));
+            params.put("Business Date",
+                    TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "MMddyyyy"));
+            params.put("Transaction Time", "1200"); // default to noon for no payments
         }
 
-        params.put("Register Number", registerNumber);
-
-        return parse(transactionNumber, location, transactionType, numberOfRecords, deployment, registerNumber, params);
+        return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
     }
 
-    public TransactionHeader parse(int transactionNumber, Merchant location, Payment squarePayment,
-            List<Employee> squareEmployees, String transactionType, int numberOfRecords, String deployment,
-            String timeZoneId) throws Exception {
+    public TransactionHeader parse(int transactionNumber, Merchant location, Payment squarePayment, String employeeId,
+            String transactionType, int numberOfRecords, String timeZoneId) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
 
-        // TODO(colinlam): refactor to only include a single employee ID passed
-        // in
-        for (Tender tender : squarePayment.getTender()) {
-            if (tender.getEmployeeId() != null) {
-                for (Employee employee : squareEmployees) {
-                    if (employee.getId().equals(tender.getEmployeeId())) {
-                        if (employee.getExternalId() != null) {
-                            params.put("Employee Number", employee.getExternalId());
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
+        params.put("Employee Number", employeeId);
         params.put("Transaction Date",
                 TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
         params.put("Business Date",
@@ -218,15 +212,28 @@ public class TransactionHeader extends Record {
         params.put("Transaction Time",
                 TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
 
-        String registerNumber = Util.getRegisterNumber(squarePayment.getDevice().getName());
+        String registerName = (squarePayment.getDevice() != null) ? squarePayment.getDevice().getName() : null;
+        String registerNumber = Util.getRegisterNumber(registerName);
         params.put("Register Number", registerNumber);
 
-        return parse(transactionNumber, location, transactionType, numberOfRecords, deployment, registerNumber, params);
+        return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
+    }
+
+    private String incrementAndFormatDateTime(String dateTime, String timeZone, String format, int mins)
+            throws ParseException {
+        Calendar cal = TimeManager.toCalendar(dateTime);
+        cal.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+        cal.add(Calendar.MINUTE, mins);
+
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        sdf.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+        return sdf.format(cal.getTime());
     }
 
     private TransactionHeader parse(int transactionNumber, Merchant location, String transactionType,
-            int numberOfRecords, String deployment, String registerNumber, Map<String, String> params)
-            throws Exception {
+            int numberOfRecords, String registerNumber, Map<String, String> params) throws Exception {
 
         String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
         params.put("Store Number", storeNumber);

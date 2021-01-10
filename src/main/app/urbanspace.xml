@@ -82,9 +82,6 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
         <logger message="Finished running Urbanspace daily report generation for active deployments" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="Urbanspace:generate-daily-reports-mb" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-urbanspace-reports-mb-1512017999" cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-Urbanspace" responseTimeout="10000" doc:name="Run every day at 4:00am EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="Starting Urbanspace daily for Max Brenner" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deployment" value="urbanspace-bryant-park-mb" doc:name="Deployment ID: urbanspace-bryant-park-mb"/>
         <set-session-variable variableName="deploymentName" value="Max Brenner" doc:name="Deployment Name"/>
