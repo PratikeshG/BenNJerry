@@ -29,7 +29,7 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
 
     <smtp:gmail-connector name="SES_SMTP_STARTTLS" validateConnections="true" doc:name="Gmail"/>
     <smtp:gmail-connector name="SES_SMTP_STARTTLS_HTML" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
-    <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.tntfireworks.properties,${mule.env}.benjerrys.properties" doc:name="Secure Property Placeholder"/>
+    <secure-property-placeholder:config name="Secure_Property_Placeholder" key="${mule.decryptionKey}" location="${mule.env}.mi.properties,${mule.env}.vfcorp.properties,${mule.env}.urbanspace.properties,${mule.env}.tntfireworks.properties,${mule.env}.benjerrys.properties,${mule.env}.jockey.properties" doc:name="Secure Property Placeholder"/>
     <sub-flow name="GLOBAL:set-session-vars">
         <set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL"/>
         <set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version"/>
