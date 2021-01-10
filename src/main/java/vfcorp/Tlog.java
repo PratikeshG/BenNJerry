@@ -3,17 +3,19 @@ package vfcorp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.mule.api.store.ObjectStore;
 import org.mule.api.store.ObjectStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
+import com.squareup.connect.Money;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemization;
@@ -30,6 +32,7 @@ import vfcorp.tlog.DiscountTypeIndicator;
 import vfcorp.tlog.EmployeeDiscount;
 import vfcorp.tlog.EventGiveback;
 import vfcorp.tlog.ForInStoreReportingUseOnly;
+import vfcorp.tlog.InternationalCustomerNameAddress;
 import vfcorp.tlog.ItemTaxMerchandiseNonMerchandiseItemsFees;
 import vfcorp.tlog.LineItemAccountingString;
 import vfcorp.tlog.LineItemAssociateAndDiscountAccountingString;
@@ -37,6 +40,7 @@ import vfcorp.tlog.MerchandiseItem;
 import vfcorp.tlog.Name;
 import vfcorp.tlog.PhoneNumber;
 import vfcorp.tlog.PreferredCustomer;
+import vfcorp.tlog.ReasonCode;
 import vfcorp.tlog.SubHeaderStoreSystemLocalizationInformation;
 import vfcorp.tlog.TenderCount;
 import vfcorp.tlog.TransactionHeader;
@@ -47,6 +51,7 @@ import vfcorp.tlog.TransactionTotal;
 
 public class Tlog {
     private static final int MAX_TRANSACTION_NUMBER = 999999;
+    private static final int MIN_CONFIGURED_DEVICES = 2;
 
     private List<Record> transactionLog;
     private int itemNumberLookupLength;
@@ -57,6 +62,8 @@ public class Tlog {
     private ObjectStore<String> objectStore;
     private int nextTransactionNumber;
     private boolean isStoreforceTrickle;
+    private boolean trackPriceOverrides;
+    private int totalConfiguredDevices;
 
     public Tlog() {
         transactionLog = new LinkedList<Record>();
@@ -83,13 +90,23 @@ public class Tlog {
         this.isStoreforceTrickle = isStoreforceTrickle;
     }
 
-    public void parse(Merchant location, Payment[] squarePayments, Employee[] squareEmployees,
-            Map<String, Customer> customerPaymentCache) throws Exception {
+    public void trackPriceOverrides(boolean trackPriceOverrides) {
+        this.trackPriceOverrides = trackPriceOverrides;
+    }
+
+    public void setTotalConfiguredDevices(int totalConfiguredDevices) {
+        this.totalConfiguredDevices = totalConfiguredDevices;
+    }
+
+    public void parse(Merchant location, Payment[] squarePayments, Map<String, String> employees,
+            Map<String, Customer> customerPaymentCache, String processingForDate) throws Exception {
         List<Payment> payments = Arrays.asList(squarePayments);
-        List<Employee> employees = Arrays.asList(squareEmployees);
 
         createSaleRecords(location, payments, employees, customerPaymentCache);
-        createStoreCloseRecords(location, payments);
+
+        if (!isStoreforceTrickle) {
+            createStoreCloseRecords(location, payments, processingForDate);
+        }
     }
 
     @Override
@@ -104,7 +121,7 @@ public class Tlog {
     }
 
     private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList,
-            List<Employee> squareEmployeesList, Map<String, Customer> customerPaymentCache) throws Exception {
+            Map<String, String> squareEmployeesCache, Map<String, Customer> customerPaymentCache) throws Exception {
 
         for (Payment payment : squarePaymentsList) {
 
@@ -122,7 +139,11 @@ public class Tlog {
 
                 // 010 - CRM
                 if (loyaltyCustomer != null) {
-                    paymentList.add(new PreferredCustomer().parse(loyaltyCustomer.getReferenceId()));
+                    if (isVansDeployment()) {
+                        paymentList.add(new PreferredCustomer().parse(loyaltyCustomer.getReferenceId(), "0", "0"));
+                    } else {
+                        paymentList.add(new PreferredCustomer().parse(loyaltyCustomer.getReferenceId()));
+                    }
                 }
 
                 paymentList.add(new TransactionSubTotal().parse(payment));
@@ -167,45 +188,81 @@ public class Tlog {
                     // 031 - CRM
                     String phone = loyaltyCustomer.getPhoneNumber() != null
                             ? loyaltyCustomer.getPhoneNumber().replaceAll("[^\\d]", "") : "";
+
+                    // Vans should not have +1 prefix
+                    if (isVansDeployment() && phone.length() == 11 && phone.startsWith("1")) {
+                        phone = phone.substring(1);
+                    }
+
                     paymentList.add(new PhoneNumber().parse("1", phone)); // home
                     paymentList.add(new PhoneNumber().parse("2", "")); // work
                     paymentList.add(new PhoneNumber().parse("3", "")); // cell
+
+                    // 084
+                    if (isVansDeployment()) {
+                        paymentList.add(new InternationalCustomerNameAddress().parse());
+                    }
                 }
 
-                int itemSequence = 1;
-                for (PaymentItemization itemization : payment.getItemizations()) {
-                    paymentList.add(new MerchandiseItem().parse(itemization, itemSequence++, itemNumberLookupLength));
-
-                    String employeeId = "";
-                    boolean employeeIdShouldBePresent = false;
-                    boolean employeeFound = false;
-                    for (Tender tender : payment.getTender()) {
-                        if (tender.getEmployeeId() != null) {
-                            employeeIdShouldBePresent = true;
-                            for (Employee employee : squareEmployeesList) {
-                                if (tender.getEmployeeId().equals(employee.getId())) {
-                                    if (employee.getExternalId() != null) {
-                                        employeeId = employee.getExternalId();
-                                    }
-                                    employeeFound = true;
-                                    break;
-                                }
+                String employeeId = "";
+                boolean employeeIdShouldBePresent = false;
+                boolean employeeFound = false;
+                for (Tender tender : payment.getTender()) {
+                    if (tender.getEmployeeId() != null) {
+                        employeeIdShouldBePresent = true;
+                        if (squareEmployeesCache.containsKey(tender.getEmployeeId())) {
+                            if (squareEmployeesCache.get(tender.getEmployeeId()) != null) {
+                                employeeId = squareEmployeesCache.get(tender.getEmployeeId());
                             }
+                            employeeFound = true;
+                        }
+                    }
+                }
+
+                if (employeeIdShouldBePresent && !employeeFound) {
+                    String err = "tender had an employee ID that did not match any existing employee; aborting operation";
+                    logger.error(err);
+                    // throw new Exception(err);
+                }
+
+                // first split up itemizations with price overrides into separate line items
+                if (trackPriceOverrides) {
+                    ArrayList<PaymentItemization> itemizationsToProcess = new ArrayList<PaymentItemization>();
+
+                    for (PaymentItemization originalItemization : payment.getItemizations()) {
+                        if (Util.hasPriceOverride(originalItemization)
+                                && originalItemization.getQuantity().intValue() > 1) {
+                            // split mutli-quantity overrides into separate itemizations
+                            itemizationsToProcess.addAll(expandOverrideItemization(originalItemization));
+                        } else {
+                            // do nothing to normal itemizations
+                            itemizationsToProcess.add(originalItemization);
                         }
                     }
 
-                    if (employeeIdShouldBePresent && !employeeFound) {
-                        logger.error(
-                                "tender had an employee ID that did not match any existing employee; aborting operation");
-                        throw new Exception(
-                                "tender had an employee ID that did not match any existing employee; aborting operation");
-                    }
+                    payment.setItemizations(
+                            itemizationsToProcess.toArray(new PaymentItemization[itemizationsToProcess.size()]));
+                }
 
+                // now process itemizations
+                // 001
+                int itemSequence = 1;
+                for (PaymentItemization itemization : payment.getItemizations()) {
+                    paymentList.add(new MerchandiseItem().parse(itemization, itemSequence++, itemNumberLookupLength,
+                            trackPriceOverrides));
+
+                    // 026
                     if (employeeId.length() > 0) {
                         paymentList.add(new Associate().parse(employeeId));
                     }
 
-                    // Add promo records (071) after 056
+                    // 022 - price overrides
+                    if (trackPriceOverrides && Util.hasPriceOverride(itemization)) {
+                        paymentList.add(new ReasonCode().parse(ReasonCode.REASON_CODE_PRICE_CORRECT,
+                                ReasonCode.FUNCTION_INDICATOR_PRICE_CORRECT));
+                    }
+
+                    // Add promo records 071 after 056
                     // LineItemAssociateAndDiscountAccountingString records
                     ArrayList<EventGiveback> promoRecords = new ArrayList<EventGiveback>();
 
@@ -242,10 +299,13 @@ public class Tlog {
                         }
                     }
 
+                    // 025
                     for (PaymentTax tax : itemization.getTaxes()) {
                         paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, itemization));
                     }
 
+                    // 055
+                    // 056
                     int i = 1;
                     for (double q = itemization.getQuantity(); q > 0; q = q - 1) {
                         paymentList.add(new LineItemAccountingString().parse(itemization, itemNumberLookupLength, i));
@@ -259,8 +319,15 @@ public class Tlog {
                     }
                 }
 
+                // 061
+                // 065
                 for (Tender tender : payment.getTender()) {
-                    paymentList.add(new vfcorp.tlog.Tender().parse(tender));
+                    // don't create 061 records for zero-value tenders
+                    if (tender.getTotalMoney().getAmount() == 0) {
+                        continue;
+                    }
+
+                    paymentList.add(new vfcorp.tlog.Tender().parse(tender, deployment));
 
                     if (tender.getType().equals("CREDIT_CARD")) {
                         paymentList.add(new CreditCardTender().parse(tender));
@@ -272,25 +339,27 @@ public class Tlog {
                     // As part of TLOG generation, we have temporarily
                     // overridden company name (an unused field) to hold loyalty
                     // status).
-                    boolean isLoyalty = (loyaltyCustomer.getCompanyName() != null
-                            && loyaltyCustomer.getCompanyName().equals("1")) ? true : false;
+                    boolean isLoyalty = (isVansDeployment() || (loyaltyCustomer.getCompanyName() != null
+                            && loyaltyCustomer.getCompanyName().equals("1"))) ? true : false;
                     paymentList.add(new CrmLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
                 }
 
-                String registerNumber = Util.getRegisterNumber(payment.getDevice().getName());
+                String registerNumber = Util
+                        .getRegisterNumber(payment.getDevice() != null ? payment.getDevice().getName() : null);
                 String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
                 int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
 
-                paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, payment,
-                        squareEmployeesList, TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1,
-                        deployment, timeZoneId));
+                paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, payment, employeeId,
+                        TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, timeZoneId));
 
                 transactionLog.addAll(paymentList);
             }
         }
+
     }
 
-    private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments) throws Exception {
+    private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments, String processingForDate)
+            throws Exception {
         Map<String, List<Payment>> devicePaymentsList = new HashMap<String, List<Payment>>();
 
         for (Payment payment : locationPayments) {
@@ -306,35 +375,110 @@ public class Tlog {
             devicePayments.add(payment);
         }
 
+        // get empty payments list for all missing devices
+        int expectedNumberOfDevices = Math.max(MIN_CONFIGURED_DEVICES, totalConfiguredDevices);
+        if ((isVansDeployment()) && devicePaymentsList.keySet().size() < expectedNumberOfDevices) {
+            Set<String> missingDeviceIds = getDeviceIdsWithNoPayments(devicePaymentsList.keySet(),
+                    expectedNumberOfDevices);
+            for (String d : missingDeviceIds) {
+                List<Payment> emptyDevicePayments = new ArrayList<Payment>();
+                devicePaymentsList.put(d, emptyDevicePayments);
+            }
+        }
+
         for (String registerNumber : devicePaymentsList.keySet()) {
             List<Payment> registerPayments = devicePaymentsList.get(registerNumber);
             LinkedList<Record> newRecordList = new LinkedList<Record>();
 
             newRecordList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
             newRecordList.add(new CashierRegisterIdentification().parse(registerNumber));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CHEQUE, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerPayments));
-            newRecordList
-                    .add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE, registerPayments));
-            newRecordList
-                    .add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerPayments));
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD, registerPayments));
 
-            // Catch all for "other" - not used by TNF
-            if (!deployment.contains("tnf")) {
-                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments));
+            if (isVansDeployment()) {
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VANS_CARD, registerPayments,
+                        deployment));
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerPayments,
+                        deployment));
+                newRecordList
+                        .add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerPayments,
+                        deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE,
+                        registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE,
+                        registerPayments, deployment));
+                newRecordList
+                        .add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments, deployment));
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments, deployment));
+            } else {
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerPayments, deployment));
+
+                if (deployment.contains("tnf")) {
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX_BETA,
+                            registerPayments, deployment));
+                } else {
+                    newRecordList.add(
+                            new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX, registerPayments, deployment));
+                }
+
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerPayments, deployment));
+
+                if (deployment.contains("tnf")) {
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER_BETA,
+                            registerPayments, deployment));
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB_BETA, registerPayments,
+                            deployment));
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT_BETA,
+                            registerPayments, deployment));
+                } else {
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER, registerPayments,
+                            deployment));
+                    newRecordList.add(
+                            new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB, registerPayments, deployment));
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT, registerPayments,
+                            deployment));
+                }
+
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CHEQUE, registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerPayments,
+                        deployment));
+                newRecordList
+                        .add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerPayments,
+                        deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE,
+                        registerPayments, deployment));
+                newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE,
+                        registerPayments, deployment));
+
+                if (deployment.contains("tnf")) {
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA_BETA,
+                            registerPayments, deployment));
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD_BETA,
+                            registerPayments, deployment));
+                } else {
+                    newRecordList.add(
+                            new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerPayments, deployment));
+                    newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD,
+                            registerPayments, deployment));
+                }
+
+                // Catch all for "other" - not used by TNF
+                if (!deployment.contains("tnf")) {
+                    newRecordList.add(
+                            new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerPayments, deployment));
+                }
+                newRecordList.add(
+                        new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments, deployment));
             }
 
-            newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments));
             newRecordList.add(new ForInStoreReportingUseOnly()
                     .parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
             newRecordList.add(new ForInStoreReportingUseOnly()
@@ -346,10 +490,70 @@ public class Tlog {
             int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
             newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
                     registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
-                    deployment, timeZoneId));
+                    timeZoneId, processingForDate));
 
             transactionLog.addAll(newRecordList);
         }
+    }
+
+    private List<PaymentItemization> expandOverrideItemization(PaymentItemization itemization) {
+        ArrayList<PaymentItemization> expandedItemizations = new ArrayList<PaymentItemization>();
+
+        int itemQty = itemization.getQuantity().intValue();
+
+        for (int i = 0; i < itemQty; i++) {
+            PaymentItemization pi = new PaymentItemization();
+            pi.setName(itemization.getName());
+            pi.setQuantity(1.0);
+            pi.setItemizationType(itemization.getItemizationType());
+            pi.setItemDetail(itemization.getItemDetail());
+            pi.setNotes(itemization.getNotes());
+            pi.setItemVariationName(itemization.getItemVariationName());
+            pi.setSingleQuantityMoney(itemization.getSingleQuantityMoney());
+
+            int[] totalMonies = Util.divideIntegerEvenly(itemization.getTotalMoney().getAmount(), itemQty);
+            pi.setTotalMoney(new Money(totalMonies[i]));
+
+            int[] grossSaleMonies = Util.divideIntegerEvenly(itemization.getGrossSalesMoney().getAmount(), itemQty);
+            pi.setGrossSalesMoney(new Money(grossSaleMonies[i]));
+
+            int[] discountMonies = Util.divideIntegerEvenly(-itemization.getDiscountMoney().getAmount(), itemQty);
+            pi.setDiscountMoney(new Money(-discountMonies[i]));
+
+            pi.setNetSalesMoney(new Money(grossSaleMonies[i] - discountMonies[i]));
+
+            ArrayList<PaymentTax> newTaxes = new ArrayList<PaymentTax>();
+            for (PaymentTax tax : itemization.getTaxes()) {
+                PaymentTax newTax = new PaymentTax();
+                newTax.setName(tax.getName());
+                newTax.setRate(tax.getRate());
+                newTax.setInclusionType(tax.getInclusionType());
+                newTax.setFeeId(tax.getFeeId());
+
+                int[] appliedMonies = Util.divideIntegerEvenly(tax.getAppliedMoney().getAmount(), itemQty);
+                newTax.setAppliedMoney(new Money(appliedMonies[i]));
+
+                newTaxes.add(newTax);
+            }
+            pi.setTaxes(newTaxes.toArray(new PaymentTax[newTaxes.size()]));
+
+            ArrayList<PaymentDiscount> newDiscounts = new ArrayList<PaymentDiscount>();
+            for (PaymentDiscount discount : itemization.getDiscounts()) {
+                PaymentDiscount newDiscount = new PaymentDiscount();
+                newDiscount.setName(discount.getName());
+                newDiscount.setDiscountId(discount.getDiscountId());
+
+                int[] appliedMonies = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), itemQty);
+                newDiscount.setAppliedMoney(new Money(appliedMonies[i]));
+
+                newDiscounts.add(newDiscount);
+            }
+            pi.setDiscounts(newDiscounts.toArray(new PaymentDiscount[newDiscounts.size()]));
+
+            expandedItemizations.add(pi);
+        }
+
+        return expandedItemizations;
     }
 
     private int getNextTransactionNumber(String storeNumber, String registerNumber) {
@@ -388,5 +592,30 @@ public class Tlog {
         } catch (ObjectStoreException e) {
             return 1;
         }
+    }
+
+    private Set<String> getDeviceIdsWithNoPayments(Set<String> devicePaymentsList, int expectedCount) {
+        Set<String> missingDevices = new HashSet<String>();
+
+        if (devicePaymentsList.size() >= expectedCount) {
+            return missingDevices;
+        }
+
+        Set<Integer> missingDevicesAsInt = new HashSet<Integer>();
+        for (String d : devicePaymentsList) {
+            missingDevicesAsInt.add(Integer.parseInt(d));
+        }
+
+        for (int i = 99; i > 99 - expectedCount; i--) {
+            if (!missingDevicesAsInt.contains(i)) {
+                missingDevices.add(String.format("%03d", i));
+            }
+        }
+
+        return missingDevices;
+    }
+
+    private boolean isVansDeployment() {
+        return deployment.contains("vans") || deployment.contains("test");
     }
 }

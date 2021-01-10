@@ -52,6 +52,8 @@ public class CustomerVerificationCallable implements Callable {
         List<SquarePayload> payloads = (List<SquarePayload>) message.getProperty("squarePayloads",
                 PropertyScope.SESSION);
 
+        String brand = message.getProperty("brand", PropertyScope.SESSION);
+
         Map<String, SquarePayload> squarePayloads = new HashMap<String, SquarePayload>();
         for (SquarePayload p : payloads) {
             squarePayloads.put(p.getLocationId(), p);
@@ -129,7 +131,7 @@ public class CustomerVerificationCallable implements Callable {
                 }
             }
 
-            String deploymentId = String.format("vfcorp-tnf-%s", storeId);
+            String deploymentId = String.format("vfcorp-%s-%s", brand, storeId);
             String sqlUpdate = databaseApi.generatePreferredCustomerSQLUpsert(customerCounters, deploymentId, storeId);
             databaseApi.executeUpdate(sqlUpdate);
         }

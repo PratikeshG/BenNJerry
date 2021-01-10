@@ -3,7 +3,6 @@ package vfcorp;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
@@ -14,7 +13,7 @@ public class TlogGeneratorPayload {
     private SquarePayload squarePayload;
     private Merchant[] locations;
     private Payment[] payments;
-    private Employee[] employees;
+    private Map<String, String> employees = new HashMap<String, String>();
     private Map<String, Customer> customers = new HashMap<String, Customer>();
     private Map<String, String> params = new HashMap<String, String>();
 
@@ -42,14 +41,6 @@ public class TlogGeneratorPayload {
         this.payments = payments;
     }
 
-    public Employee[] getEmployees() {
-        return employees;
-    }
-
-    public void setEmployees(Employee[] employees) {
-        this.employees = employees;
-    }
-
     public Map<String, Customer> getCustomers() {
         return customers;
     }
@@ -64,5 +55,13 @@ public class TlogGeneratorPayload {
 
     public void setParams(Map<String, String> params) {
         this.params = params;
+    }
+
+    public Map<String, String> getEmployees() {
+        return employees;
+    }
+
+    public void setEmployees(Map<String, String> employees) {
+        this.employees = employees;
     }
 }

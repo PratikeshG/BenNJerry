@@ -13,14 +13,18 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
     <vm:connector name="VFC_VM_TLOG" validateConnections="true" doc:name="VM"/>
-    <queued-asynchronous-processing-strategy name="VFC_TLOG_Async_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="600000"/>
+    <queued-asynchronous-processing-strategy name="VFC_TLOG_Async_Processing_Strategy" maxThreads="${vfcorp.tlog.maxThreads}" doc:name="Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="${vfcorp.tlog.threadWaitTimeout}"/>
     <quartz:connector name="Quartz-VFC-tlog" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-tlog"/>
+    </quartz:connector>
+    <quartz:connector name="Quartz-VFC-Vans-tlog" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-Vans-tlog"/>
     </quartz:connector>
     <quartz:connector name="Quartz-VFC-storeforce" validateConnections="true" doc:name="Quartz">
         <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-VFC-storeforce"/>
     </quartz:connector>
     <quartz:connector name="Quartz-VFO-tlog" validateConnections="true" doc:name="Quartz"/>
+    <quartz:connector name="Quartz-VFC-Kipling-tlog" validateConnections="true" doc:name="Quartz"/>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.tnf.archive.enabled}" doc:name="enableTlogArchive"/>
@@ -33,6 +37,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
         <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnf.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
         <set-variable variableName="allowCashTransactions" value="${vfcorp.tnf.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.tnf.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:TNFCA:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
@@ -46,6 +51,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.tnfca.encryption.key}" doc:name="encryptionKey"/>
         <set-variable variableName="itemNumberLookupLength" value="${vfcorp.tnfca.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
         <set-variable variableName="allowCashTransactions" value="${vfcorp.tnfca.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.tnfca.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:Kipling:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['Kipling/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
@@ -59,6 +65,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.kipling.encryption.key}" doc:name="encryptionKey"/>
         <set-variable variableName="itemNumberLookupLength" value="${vfcorp.kipling.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
         <set-variable variableName="allowCashTransactions" value="${vfcorp.kipling.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.kipling.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:Nautica:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['Nautica/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
@@ -128,6 +135,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.vfo.encryption.key}" doc:name="encryptionKey"/>
         <set-variable variableName="itemNumberLookupLength" value="${vfcorp.vfo.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
         <set-variable variableName="allowCashTransactions" value="${vfcorp.vfo.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.vfo.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
         <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
@@ -162,6 +170,12 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </when>
             <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-vfo-&quot;)]">
                 <flow-ref name="VFC:VFO:generate-tlog-for-location-settings" doc:name="VFC:VFO:generate-tlog-for-location-settings"/>
+            </when>
+            <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-vans-&quot;)]">
+                <flow-ref name="VFC:Vans:generate-tlog-for-location-settings" doc:name="VFC:Vans:generate-tlog-for-location-settings"/>
+            </when>
+            <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-test-&quot;)]">
+                <flow-ref name="VFC:Test:generate-tlog-for-location-settings" doc:name="VFC:Test:generate-tlog-for-location-settings"/>
             </when>
             <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-tnfca-&quot;)]">
                 <flow-ref name="VFC:TNFCA:generate-tlog-for-location-settings" doc:name="VFC:TNFCA:generate-tlog-for-location-settings"/>
@@ -221,11 +235,54 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <logger message="Initiating TLOG generation for Storeforce trickle - TNFCA" level="INFO" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
+    <flow name="VFC:Vans:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-storeforce-1543099799" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-%" doc:name="Set deploymentGroup: vans-%"/>
+        <set-session-variable variableName="storeforceTrickle" value="true" doc:name="Set storeforceTrickle: true"/>
+        <logger message="Initiating TLOG generation for Storeforce trickle - Vans" level="INFO" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Test:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-test-storeforce-1543099888" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="test-%" doc:name="Set deploymentGroup: test-%"/>
+        <set-session-variable variableName="storeforceTrickle" value="true" doc:name="Set storeforceTrickle: true"/>
+        <logger message="Initiating TLOG generation for Storeforce trickle - Test" level="INFO" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:EB:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-eb-storeforce-1543099999" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="eb-%" doc:name="Set deploymentGroup: eb-%"/>
+        <set-session-variable variableName="storeforceTrickle" value="true" doc:name="Set storeforceTrickle: true"/>
+        <logger message="Initiating TLOG generation for Storeforce trickle - EB" level="INFO" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
     <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-hawaii-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="Pacific/Honolulu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Vans:tlog-trigger-HAWAII" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-hawaii-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="Pacific/Honolulu">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-hawaii" doc:name="Set deploymentGroup: vans-hawaii"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Kipling:tlog-trigger-HAWAII" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-hawaii-157496000" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="Pacific/Honolulu">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="kipling-hawaii" doc:name="Set deploymentGroup: kipling-hawaii"/>
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
@@ -245,6 +302,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
+    <flow name="VFC:Vans:tlog-trigger-WEST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-west-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-west" doc:name="Set deploymentGroup: vans-west"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Kipling:tlog-trigger-WEST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-west-1574900" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST" connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="kipling-west" doc:name="Set deploymentGroup: kipling-west"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
     <flow name="VFC:TNFCA:tlog-trigger-WEST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-west-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
@@ -258,6 +331,14 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-mountain" doc:name="Set deploymentGroup: tnf-mountain"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Vans:tlog-trigger-MOUNTAIN" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-mountain-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MDT " connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="America/Denver">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-mountain" doc:name="Set deploymentGroup: vans-mountain"/>
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
@@ -285,11 +366,35 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
+    <flow name="VFC:Vans:tlog-trigger-ARIZONA" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-arizona-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MST (NO DST)" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Phoenix">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-arizona" doc:name="Set deploymentGroup: vans-arizona"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
     <flow name="VFC:TNF:tlog-trigger-CENTRAL" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-central-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Chicago">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Vans:tlog-trigger-CENTRAL" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-central-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="America/Chicago">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-central" doc:name="Set deploymentGroup: vans-central"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Kipling:tlog-trigger-CENTRAL" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-central-1574960000" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="America/Chicago">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="kipling-central" doc:name="Set deploymentGroup: kipling-central"/>
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
@@ -310,7 +415,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Kipling:tlog-trigger-EAST" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-east-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-east-1574969999" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="kipling-east" doc:name="Set deploymentGroup: kipling-east"/>
@@ -322,6 +427,22 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="nautica-east" doc:name="Set deploymentGroup: nautica-east"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Vans:tlog-trigger-EAST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-east-1574969669" cronExpression="0 20 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:20pm EST / 8:20pm PST " connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="America/New_York">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="vans-east" doc:name="Set deploymentGroup: vans-east"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Test:tlog-trigger-EAST" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-test-east-1574969888" cronExpression="0 20 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:20pm EST / 8:20pm PST " connector-ref="Quartz-VFC-Vans-tlog" cronTimeZone="America/New_York">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="test-east" doc:name="Set deploymentGroup: test-east"/>
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>

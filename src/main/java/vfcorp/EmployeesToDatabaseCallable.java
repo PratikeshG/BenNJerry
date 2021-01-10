@@ -1,5 +1,8 @@
 package vfcorp;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
@@ -9,9 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.v2.SquareClientV2;
+import com.squareup.connect.v2.TeamMember;
 
-public class PluDatabaseToSquareCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(PluDatabaseToSquareCallable.class);
+public class EmployeesToDatabaseCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(EmployeesToDatabaseCallable.class);
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -29,11 +33,7 @@ public class PluDatabaseToSquareCallable implements Callable {
         MuleMessage message = eventContext.getMessage();
 
         String brand = (String) message.getProperty("brand", PropertyScope.SESSION);
-        int itemNumberLookupLength = Integer
-                .parseInt(message.getProperty("itemNumberLookupLength", PropertyScope.INVOCATION));
-
-        boolean ignoresSkuCheckDigit = message.getProperty("ignoresSkuCheckDigit", PropertyScope.INVOCATION)
-                .equals("true") ? true : false;
+        int minEmployees = Integer.parseInt(message.getProperty("minEmployees", PropertyScope.INVOCATION));
 
         // Retrieve a single deployment for credentials for master account
         VfcDeployment masterAccount = Util.getMasterAccountDeployment(databaseUrl, databaseUser, databasePassword,
@@ -43,16 +43,28 @@ public class PluDatabaseToSquareCallable implements Callable {
                 masterAccount.getSquarePayload().getAccessToken(encryptionKey));
         client.setLogInfo(masterAccount.getSquarePayload().getMerchantId());
 
-        PluCatalogBuilder catalogBuilder = new PluCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
-                brand);
-        catalogBuilder.setItemNumberLookupLength(itemNumberLookupLength);
-        catalogBuilder.setPluFiltered(masterAccount.isPluFiltered());
-        catalogBuilder.setIgnoresSkuCheckDigit(ignoresSkuCheckDigit);
+        TeamMember[] teamMembers = client.team().search();
 
-        catalogBuilder.syncCategoriesFromDatabaseToSquare();
-        catalogBuilder.syncItemsFromDatabaseToSquare();
+        logger.info("" + teamMembers.length);
+        if (teamMembers.length < minEmployees) {
+            logger.info("DO NOTHING - EMPLOYEES NUMBER SEEMS INVALID");
+            return null;
+        }
 
-        logger.info(String.format("Done updating brand account: %s", brand));
+        for (TeamMember tm : teamMembers) {
+            if (tm.getReferenceId() == null) {
+                tm.setReferenceId("");
+            }
+        }
+
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+
+        String deployment = "vfcorp-" + brand;
+        databaseApi.deleteEmployeesForBrand(deployment);
+
+        databaseApi.setEmployeesForBrand(deployment, teamMembers);
 
         return null;
     }

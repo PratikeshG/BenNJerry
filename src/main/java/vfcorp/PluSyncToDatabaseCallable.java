@@ -43,20 +43,14 @@ public class PluSyncToDatabaseCallable implements Callable {
     @Value("${mysql.password}")
     private String databasePassword;
 
+    private static final int RETRY_COUNT = 5;
+    private static final int RETRY_DELAY_MS = 60000; // 1 minute
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
         PluSyncToDatabaseRequest request = (PluSyncToDatabaseRequest) message.getPayload();
-
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        System.out.println("SFTP archive channel created.");
-
-        System.out.println("Saving archive stream...");
-        sftpChannel.cd(request.getDeployment().getPluPath() + "/" + Constants.PROCESSING_DIRECTORY);
-        InputStream is = sftpChannel.get(request.getProcessingFileName());
 
         // Archive to Google Cloud Storage
         String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
@@ -64,26 +58,6 @@ public class PluSyncToDatabaseCallable implements Callable {
         String fileKey = String.format("%s/%s.secure", archiveFolder, request.getProcessingFileName());
 
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-
-        try {
-            cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
-        } catch (RuntimeException e) {
-            logger.error("VFC SFTP connection error trying to upload to CloudStorage: " + e.getMessage());
-
-            // reset file on SFTP
-            queueFileForReProcessing(request.getProcessingFileName(), request.getDeployment());
-        } finally {
-            // close SFTP resources
-            if (sftpChannel != null && sftpChannel.isConnected()) {
-                sftpChannel.disconnect();
-                System.out.println("SFTP channel disconnected.");
-
-                if (session != null && session.isConnected()) {
-                    session.disconnect();
-                    System.out.println("SFTP session disconnected.");
-                }
-            }
-        }
 
         // Establish new input stream from archived file
         InputStream pluInputStream = cloudStorage.downloadAndDecryptObject(encryptionKey, archiveBucket, fileKey);
@@ -102,29 +76,22 @@ public class PluSyncToDatabaseCallable implements Callable {
         parser.setDatabasePassword(databasePassword);
         parser.syncToDatabase(bis, merchantId, locationId);
         bis.close();
-        System.out.println("PLU processed.");
 
         // Archive file on SFTP from temp processing directory
-        archiveProcessingFile(request.getProcessingFileName(), request.getDeployment().getPluPath());
+        Exception lastException = null;
+        for (int i = 0; i < RETRY_COUNT; i++) {
+            try {
+                archiveProcessingFile(request.getProcessingFileName(), request.getDeployment().getPluPath());
+                logger.info("PLU processed.");
+                return null;
+            } catch (Exception e) {
+                lastException = e;
+                lastException.printStackTrace();
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
 
-        return null;
-    }
-
-    private void queueFileForReProcessing(String processingFile, VfcDeployment deployment)
-            throws SftpException, JSchException, IOException {
-        logger.info(String.format("Re-queuing %s for deployment %s...", processingFile, deployment.getDeployment()));
-
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-
-        String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), Constants.PROCESSING_DIRECTORY,
-                processingFile);
-        String requeuePath = String.format("%s/%s", deployment.getPluPath(), processingFile.split(Constants.PROCESSING_FILE_DELIMITER, 2)[1]);
-        sftpChannel.rename(processingPath, requeuePath);
-
-        sftpChannel.disconnect();
-        session.disconnect();
+        throw lastException;
     }
 
     private void archiveProcessingFile(String fileName, String filePath)

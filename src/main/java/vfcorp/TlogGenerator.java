@@ -1,5 +1,7 @@
 package vfcorp;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -13,12 +15,12 @@ import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
+import com.squareup.connect.v2.DeviceCode;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
@@ -33,6 +35,13 @@ public class TlogGenerator implements Callable {
     private String apiUrl;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
+
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    private String databaseUrl;
+    @Value("${mysql.user}")
+    private String databaseUser;
+    @Value("${mysql.password}")
+    private String databasePassword;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -50,6 +59,9 @@ public class TlogGenerator implements Callable {
                 ? true : false;
 
         boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
+
+        boolean trackPriceOverrides = message.getProperty("trackPriceOverrides", PropertyScope.INVOCATION)
                 .equals("true") ? true : false;
 
         // Loyalty settings
@@ -83,8 +95,10 @@ public class TlogGenerator implements Callable {
         tlogGeneratorPayload.setLocations(locations);
 
         // Employees
-        Employee[] employees = squareV1Client.employees().list();
-        tlogGeneratorPayload.setEmployees(employees);
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+        tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
 
         // Payments
         Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
@@ -141,15 +155,11 @@ public class TlogGenerator implements Callable {
 
                         // Get customer's loyalty group status
                         boolean loyaltyCustomer = false;
-                        boolean emailOptIn = false;
                         if (customer.getGroups() != null) {
                             for (CustomerGroup group : customer.getGroups()) {
                                 if (group.getId().equals(CUSTOMER_GROUP_NEW)
                                         || group.getId().equals(CUSTOMER_GROUP_EXISTING)) {
                                     loyaltyCustomer = true;
-                                }
-                                if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
-                                    emailOptIn = true;
                                 }
                             }
                         }
@@ -208,20 +218,38 @@ public class TlogGenerator implements Callable {
 
         if (matchingMerchant != null) {
 
+            // How many device codes are configured for this business?
+            int totalConfiguredDevices = 2;
+            if (deployment.contains("vans") || deployment.contains("test")) {
+                int pairedDevices = 0;
+                DeviceCode[] devices = squareV2Client.devices().list(locationId);
+
+                for (DeviceCode d : devices) {
+                    if (d.getStatus().equals("PAIRED") && d.getLocationId().equals(locationId)) {
+                        pairedDevices++;
+                    }
+                }
+
+                totalConfiguredDevices = pairedDevices;
+            }
+
             String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
 
             Tlog tlog = new Tlog();
             tlog.setItemNumberLookupLength(itemNumberLookupLength);
             tlog.setDeployment(deploymentId);
             tlog.setTimeZoneId(timeZone);
+            tlog.setIsStoreforceTrickle(isStoreforceTrickle);
+            tlog.trackPriceOverrides(trackPriceOverrides);
+            tlog.setTotalConfiguredDevices(totalConfiguredDevices);
 
             // Get Cloudhub default object store
             ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
                     .lookupObject("_defaultUserObjectStore");
             tlog.setObjectStore(objectStore);
-            tlog.setIsStoreforceTrickle(isStoreforceTrickle);
+
             tlog.parse(matchingMerchant, tlogGeneratorPayload.getPayments(), tlogGeneratorPayload.getEmployees(),
-                    tlogGeneratorPayload.getCustomers());
+                    tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
 
             message.setProperty("vfcorpStoreNumber",
                     Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
@@ -273,5 +301,9 @@ public class TlogGenerator implements Callable {
         }
 
         return updateStatement;
+    }
+
+    private String getBrandFromDeployment(String deployment) {
+        return deployment.split("-", 3)[0] + "-" + deployment.split("-", 3)[1];
     }
 }

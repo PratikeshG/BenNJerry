@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.squareup.connect.v2.CatalogItem;
@@ -15,6 +16,10 @@ import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.ItemVariationLocationOverride;
 
 public class TaxRules {
+    // VANS bag fees
+    private static final Set<String> VANS_BAG_SKUS_TAX_FREE = new HashSet<String>(
+            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
+
     // Canada deployments
     public static final String TNF_CANADA_DEPLOYMENT = "vfcorp-tnfca-";
     public static final String TNF_CANADA_YOUTH_SKUS_PATH = "/vfc-plu-filters/vfcorp-tnfca-youth-skus.txt";
@@ -63,8 +68,8 @@ public class TaxRules {
     private static boolean ENABLE_TNF_TN_TAX_HOLIDAY = false;
     private static final String TNF_TN_306 = "vfcorp-tnf-00306";
     private static final String TNF_TN_505 = "vfcorp-tnf-00505";
-    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
-    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 10000;
+    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 20000;
+    private static final int TN_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 20000;
 
     // FL
     private static boolean ENABLE_TNF_FL_TAX_HOLIDAY = false;
@@ -112,14 +117,20 @@ public class TaxRules {
     private static boolean ENABLE_TNF_TX_TAX_HOLIDAY = false;
     private static final String TNF_TX_59 = "vfcorp-tnf-00059";
     private static final String TNF_TX_83 = "vfcorp-tnf-00083";
+    private static final String TNF_TX_86 = "vfcorp-tnf-00086";
     private static final String TNF_TX_323 = "vfcorp-tnf-00323";
     private static final String TNF_TX_327 = "vfcorp-tnf-00327";
+    private static final String TNF_TX_515 = "vfcorp-tnf-00515";
+    private static final String TNF_TX_520 = "vfcorp-tnf-00520";
     private static final int TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
     private static final int TX_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 10000;
 
     // MD
     private static boolean ENABLE_TNF_MD_TAX_HOLIDAY = false;
+    private static final String TNF_MD_48 = "vfcorp-tnf-00048";
     private static final String TNF_MD_84 = "vfcorp-tnf-00084";
+    private static final String TNF_MD_514 = "vfcorp-tnf-00514";
+    private static final String TNF_MD_534 = "vfcorp-tnf-00534";
     private static final int MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
     private static final int MD_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 4000;
 
@@ -129,6 +140,13 @@ public class TaxRules {
     private static final String TNF_MO_529 = "vfcorp-tnf-00529";
     private static final int MO_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
     private static final int MO_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 5000;
+
+    // NM
+    private static boolean ENABLE_TNF_NM_TAX_HOLIDAY = false;
+    private static final String TNF_NM_54 = "vfcorp-tnf-00054";
+    private static final int NM_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int NM_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 3000;
+    private static final int NM_TAX_HOLIDAY_EXEMPT_THRESHOLD_BACKPACKS = 10000;
 
     // New York, NY - TNF Stores #12, 18, 516, 527
     // 0% on clothing & footwear below $110 per item
@@ -164,7 +182,7 @@ public class TaxRules {
     public final static String TNF_NY_RIVERHEAD = "vfcorp-tnf-00319";
 
     // MA
-    private static boolean ENABLE_TNF_MA_TAX_HOLIDAY = false;
+    private static boolean ENABLE_MA_TAX_HOLIDAY = false;
     private static final int MA_TAX_HOLIDAY_EXEMPT_THRESHOLD = 250000;
 
     // No sales tax on clothing (and shoes) that costs less than (or equal to) $175.
@@ -292,23 +310,66 @@ public class TaxRules {
             "27  2831", "27  2832", "29  2900", "29  2901", "29  2902", "29  2903", "29  2910", "29  2911", "29  2912",
             "29  2913", "29  2920", "29  2921", "29  2922", "29  2923", "29  2924", "29  2925", "29  2926", "29  2930",
             "29  2931", "29  2932", "29  2933", "29  2934", "29  2935", "29  2936", "97  9700", "97  9701", "97  9702",
-            "97  9710", "97  9711", "97  9712", "97  9720", "97  9721", "97  9722", "97  9730", "97  9732" }));
-
-    private static final Set<String> TNFCA_YOUTH_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
-            "15  5060", "15  5061", "15  5062", "15  5063", "15  5064", "15  5065", "15  5070", "15  5071", "15  5072",
-            "15  5073", "15  5074", "15  5075", "15  5110", "15  5111", "15  5112", "15  5113", "15  5114", "15  5115",
-            "15  5130", "15  5131", "15  5132", "15  5133", "15  5134", "15  5135", "15  5140", "15  5141", "15  5142",
-            "15  5143", "15  5144", "15  5145", "15  5200", "15  5201", "15  5202", "15  5203", "15  5204", "15  5205",
-            "15  5250", "15  5251", "15  5252", "15  5253", "15  5254", "15  5300", "15  5301", "15  5302", "15  5303",
-            "15  5304", "15  5305", "15  5306", "15  5307", "15  5320", "15  5321", "15  5322", "15  5323", "15  5324",
-            "15  5325", "15  5326", "15  5327", "15  5330", "15  5331", "15  5332", "15  5333", "15  5334", "15  5335",
-            "15  5336", "15  5337", "15  5400", "15  5401", "15  5402", "15  5403", "15  5420", "15  5421", "15  5422",
-            "15  5423", "15  5520", "15  5521", "15  5522", "15  5523", "15  5530", "15  5531", "15  5532", "15  5533",
-            "15  5540", "15  5541", "15  5542", "15  5543", "15  5620", "15  5621", "15  5622", "15  5623", "15  5624",
-            "15  5625", "15  5630", "15  5631", "15  5632", "15  5633", "15  5634", "15  5635", "15  5636", "15  5720",
-            "15  5721", "15  5722", "15  5723", "15  5724", "15  5725", "15  5730", "15  5731", "15  5732", "15  5733",
-            "15  5734", "15  5735", "15  5740", "15  5741", "15  5742", "15  5743", "15  5744", "15  5745", "21  6600",
-            "21  6601", "21  6602", "21  6603", "22  7015", "24  9030", "24  9031", "23  8105" }));
+            "97  9710", "97  9711", "97  9712", "97  9720", "97  9721", "97  9722", "97  9730", "97  9732", "110 1011",
+            "110 1012", "110 1013", "110 1014", "110 1015", "110 1016", "111 1201", "111 1202", "111 1203", "111 1204",
+            "111 1205", "111 1206", "111 1207", "111 1208", "112 1101", "112 1102", "112 1103", "112 1104", "112 1105",
+            "112 1106", "113 1300", "113 1301", "113 1302", "113 1303", "113 1304", "113 1305", "113 1306", "113 1307",
+            "113 1308", "113 1309", "120 2005", "120 2006", "120 2007", "120 2008", "120 2009", "120 2010", "120 2200",
+            "120 2201", "120 2202", "120 2203", "120 2204", "120 2205", "120 2400", "120 2401", "120 2402", "120 2403",
+            "120 2404", "120 2405", "120 2600", "120 2601", "120 2602", "120 2603", "121 2100", "121 2101", "121 2102",
+            "121 2103", "121 2104", "121 2105", "121 2300", "121 2301", "121 2302", "121 2303", "121 2304", "121 2305",
+            "121 2505", "121 2506", "121 2507", "121 2508", "121 2509", "121 2510", "121 2511", "121 2512", "121 2700",
+            "121 2701", "123 2604", "123 2702", "123 2703", "123 2704", "131 3050", "131 3051", "131 3052", "131 3053",
+            "131 3054", "131 3200", "131 3201", "131 3202", "131 3203", "131 3204", "131 3400", "131 3401", "131 3402",
+            "131 3403", "131 3404", "132 3100", "132 3101", "132 3102", "132 3103", "132 3104", "132 3300", "132 3301",
+            "132 3302", "132 3303", "132 3304", "132 3305", "132 3306", "132 3307", "132 3500", "132 3501", "132 3502",
+            "132 3503", "132 3504", "132 3505", "132 3506", "132 3507", "132 3800", "132 3801", "132 3803", "132 3804",
+            "132 3806", "133 3600", "133 3601", "133 3602", "133 3603", "133 3802", "133 3805", "140 4010", "140 4011",
+            "140 4012", "140 4013", "140 4014", "141 4100", "141 4101", "141 4102", "141 4103", "141 4104", "150 5060",
+            "150 5061", "150 5062", "150 5063", "150 5064", "150 5065", "150 5073", "150 5200", "150 5201", "150 5202",
+            "150 5203", "150 5205", "150 5400", "150 5401", "150 5403", "150 5404", "150 5620", "150 5621", "150 5624",
+            "151 5110", "151 5111", "151 5112", "151 5113", "151 5114", "151 5115", "151 5204", "151 5253", "151 5300",
+            "151 5301", "151 5302", "151 5303", "151 5304", "151 5305", "151 5306", "151 5307", "151 5323", "151 5324",
+            "151 5326", "151 5333", "151 5334", "151 5336", "151 5520", "151 5521", "151 5523", "151 5524", "151 5721",
+            "151 5724", "152 5070", "152 5071", "152 5072", "152 5074", "152 5075", "152 5130", "152 5131", "152 5132",
+            "152 5133", "152 5134", "152 5135", "152 5143", "152 5250", "152 5251", "152 5252", "152 5254", "152 5320",
+            "152 5321", "152 5322", "152 5325", "152 5327", "152 5402", "152 5420", "152 5421", "152 5422", "152 5423",
+            "152 5424", "152 5522", "152 5530", "152 5531", "152 5532", "152 5533", "152 5534", "152 5541", "152 5542",
+            "152 5630", "152 5731", "152 5734", "153 5140", "153 5141", "153 5142", "153 5144", "153 5145", "153 5330",
+            "153 5331", "153 5332", "153 5335", "153 5337", "153 5540", "153 5543", "153 5544", "153 5622", "153 5623",
+            "153 5625", "153 5631", "153 5632", "153 5633", "153 5634", "153 5635", "153 5636", "153 5720", "153 5722",
+            "153 5723", "153 5725", "153 5730", "153 5732", "153 5733", "153 5735", "153 5740", "153 5741", "153 5742",
+            "153 5743", "153 5744", "153 5745", "210 6005", "210 6006", "210 6105", "210 6106", "211 6205", "211 6206",
+            "211 6305", "211 6306", "212 6400", "212 6401", "212 6402", "212 6403", "212 6900", "213 6600", "213 6601",
+            "214 6602", "214 6603", "214 6700", "214 6701", "214 6702", "214 6703", "214 6704", "214 6800", "214 6801",
+            "214 6802", "214 6803", "214 6804", "220 7010", "220 7011", "220 7012", "220 7013", "220 7014", "220 7015",
+            "220 7016", "221 7120", "221 7121", "221 7122", "221 7123", "223 7200", "223 7300", "223 7301", "223 7302",
+            "223 7303", "223 7304", "224 7400", "224 7401", "224 7402", "225 7501", "225 7502", "225 7503", "225 7504",
+            "225 7505", "230 8015", "230 8016", "230 8017", "230 8018", "230 8019", "230 8020", "230 8021", "230 8022",
+            "230 8023", "230 8024", "230 8025", "230 8026", "230 8027", "230 8028", "230 8029", "230 8030", "230 8031",
+            "230 8033", "230 8034", "231 8101", "231 8102", "231 8103", "231 8104", "231 8105", "231 8106", "232 8200",
+            "232 8201", "232 8202", "232 8203", "233 8300", "233 8301", "233 8302", "233 8303", "233 8304", "233 8305",
+            "240 9010", "240 9011", "240 9012", "240 9013", "240 9014", "240 9015", "240 9016", "240 9040", "241 9020",
+            "241 9021", "241 9022", "241 9023", "241 9024", "241 9025", "241 9026", "242 9030", "242 9031", "250 9110",
+            "251 9920", "251 9921", "251 9922", "251 9923", "251 9930", "251 9931", "251 9932", "251 9933", "251 9940",
+            "251 9941", "251 9942", "280 2801", "280 2802", "280 2803", "281 2811", "281 2812", "281 2813", "282 2821",
+            "282 2822", "282 2823", "283 2831", "283 2832", "290 2900", "290 2901", "290 2902", "290 2903", "290 2920",
+            "290 2921", "290 2922", "290 2923", "290 2924", "290 2925", "290 2926", "291 2910", "291 2911", "291 2912",
+            "291 2913", "291 2930", "291 2931", "291 2932", "291 2933", "291 2934", "291 2935", "291 2936", "295 2950",
+            "296 2960", "310 9140", "310 9141", "310 9142", "310 9143", "310 9144", "310 9145", "310 9146", "310 9147",
+            "370 3700", "370 3701", "370 3705", "370 3706", "371 3710", "371 3711", "371 3712", "371 3713", "371 3714",
+            "371 3715", "371 3720", "371 3721", "371 3722", "371 3723", "371 3724", "371 3725", "373 3730", "373 3731",
+            "373 3735", "373 3736", "374 3740", "374 3741", "374 3744", "374 3745", "374 3746", "374 3747", "374 3748",
+            "374 3749", "375 3750", "375 3751", "375 3752", "375 3753", "375 3755", "375 3756", "375 3757", "375 3758",
+            "376 3760", "376 3765", "377 3770", "377 3771", "377 3772", "377 3773", "377 3775", "377 3776", "377 3778",
+            "377 3779", "378 3780", "900 9001", "900 9004", "900 9005", "900 9006", "900 9007", "920 9200", "920 9201",
+            "920 9202", "920 9203", "920 9204", "920 9210", "920 9211", "920 9220", "920 9221", "921 9250", "921 9251",
+            "921 9252", "921 9253", "921 9254", "921 9260", "921 9261", "921 9270", "921 9271", "930 9300", "930 9301",
+            "930 9302", "930 9303", "930 9310", "930 9311", "931 9350", "931 9351", "931 9352", "931 9353", "931 9360",
+            "931 9361", "940 9400", "940 9410", "941 9450", "941 9460", "950 9500", "950 9501", "950 9502", "950 9503",
+            "951 9550", "951 9551", "951 9552", "951 9553", "960 9600", "960 9610", "961 9620", "961 9630", "970 9700",
+            "970 9701", "970 9702", "971 9710", "971 9711", "971 9712", "972 9720", "972 9721", "972 9722", "972 9723",
+            "973 9730", "973 9731", "973 9732", "980 9800", "980 9801", "980 9802", "990 9900", "990 9910" }));
 
     private static final Set<String> TNFCA_TAX_EXEMPT_DEPT_CLASS = new HashSet<String>(
             Arrays.asList(new String[] { "90  9007" }));
@@ -316,13 +377,75 @@ public class TaxRules {
     // Includes book bags -- day packs
     private static final Set<String> TNF_SCHOOL_SUPPLIES_DEPT_CLASS = new HashSet<String>(
             Arrays.asList(new String[] { "22  7010", "22  7011", "22  7012", "22  7013", "22  7014", "22  7015",
-                    "27  2821", "31  9146", "31  9147" }));
+                    "27  2821", "31  9146", "31  9147", "220 7010", "220 7011", "220 7012", "220 7013", "220 7014",
+                    "220 7015", "270 2821", "282 2821", "310 9146", "310 9147" }));
 
     // NUATICA #88 - NJ no nothing tax
     public final static String NAUTICA_NJ_ELIZABETH = "vfcorp-nautica-00088";
 
     private static final Set<String> NAUTICA_NON_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
             "208 1093", "770 7770", "777 7779", "777 7777", "818 8183", "202 1098", "202 1094", "200 1092" }));
+
+    // VANS - Minnesota, Vermont, New Jersey, Pennsylvania - sales tax free clothing
+    private static final List<String> VANS_MINNESOTA_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00082", "vfcorp-vans-00507" }));
+    private static final List<String> VANS_VERMONT_STORES = new ArrayList<String>(Arrays.asList(new String[] {}));
+    private static final List<String> VANS_NEW_JERSEY_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00119", "vfcorp-vans-00247", "vfcorp-vans-00331",
+                    "vfcorp-vans-00334", "vfcorp-vans-00382", "vfcorp-vans-00383", "vfcorp-vans-00411",
+                    "vfcorp-vans-00418", "vfcorp-vans-00527", "vfcorp-vans-00542", "vfcorp-vans-00549" }));
+    private static final List<String> VANS_PENNSYLVANIA_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00120", "vfcorp-vans-00384", "vfcorp-vans-00390",
+                    "vfcorp-vans-00402", "vfcorp-vans-00421", "vfcorp-vans-00480", "vfcorp-vans-00481" }));
+
+    // VANS - New York - exemption is limited to clothing costing less than $110 per item or pair.
+    private static final List<String> VANS_NEW_YORK_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-321", "vfcorp-vans-322", "vfcorp-vans-330", "vfcorp-vans-358",
+                    "vfcorp-vans-365", "vfcorp-vans-425", "vfcorp-vans-458", "vfcorp-vans-459", "vfcorp-vans-460",
+                    "vfcorp-vans-464", "vfcorp-vans-479", "vfcorp-vans-493", "vfcorp-vans-550     ", "vfcorp-vans-572",
+                    "vfcorp-vans-429", "vfcorp-vans-325", "vfcorp-vans-329", "vfcorp-vans-456", "vfcorp-vans-566",
+                    "vfcorp-vans-498", "vfcorp-vans-512", "vfcorp-vans-528", "vfcorp-vans-533", "vfcorp-vans-539",
+                    "vfcorp-vans-540", "vfcorp-vans-566", "vfcorp-test-00528", "vfcorp-test-00990" }));
+
+    // VANS - New York - no county exemption on clothing
+    private static final List<String> VANS_NEW_YORK_STORES_NON_EXEMPT = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-321", "vfcorp-vans-322", "vfcorp-vans-330", "vfcorp-vans-358",
+                    "vfcorp-vans-365", "vfcorp-vans-425", "vfcorp-vans-458", "vfcorp-vans-459", "vfcorp-vans-460",
+                    "vfcorp-vans-464", "vfcorp-vans-479", "vfcorp-vans-493", "vfcorp-vans-550", "vfcorp-vans-572" }));
+
+    // VANS - Massachusetts - clothing exemption is limited to the first $175 of an article of clothing. Anything over $175 per item is taxable.
+    private static final List<String> VANS_MASSACHUSETTS_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00377", "vfcorp-vans-00378", "vfcorp-vans-00389",
+                    "vfcorp-vans-00451", "vfcorp-vans-00517", "vfcorp-vans-00552" }));
+
+    // VANS - Rhode Island – exemption applies to first $250 of sales price per item of clothing. Anything over $250 is taxable per item.
+    private static final List<String> VANS_RHODE_ISLAND_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00380" }));
+
+    private static final Set<String> VANS_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
+            "390 3970", "390 3965", "390 3960", "390 3955", "380 3820", "370 3775", "390 3935", "390 3930", "390 3945",
+            "390 3940", "390 3905", "390 3910", "390 2110", "390 3900", "381 3867", "381 3866", "381 3854", "381 3846",
+            "380 3875", "380 3880", "381 3801", "381 3830", "370 3799", "380 3800", "380 2102", "370 9920", "381 3836",
+            "390 3915", "390 3920", "390 3925", "380 3805", "380 3815", "380 3810", "370 2106", "370 2107", "370 2108",
+            "370 2301", "370 2302", "370 2304", "370 3720", "370 3725", "370 3755", "370 3760", "370 3765", "370 3770",
+            "800 8201", "750 7520", "750 7510", "750 7500", "720 7200", "710 7110", "720 7210", "710 7100", "700 7000",
+            "370 2105", "370 2104", "360 3635", "360 3625", "360 3630", "360 3620", "360 3615", "360 3610", "360 3605",
+            "360 3600", "350 3530", "350 3500", "350 3510", "350 3515", "350 3520", "295 2959", "270 3788", "270 2410",
+            "295 2954", "300 3009", "370 2100", "360 3640", "360 3645", "370 3750", "370 3745", "370 3740", "380 3870",
+            "380 3868", "380 3865", "380 3860", "380 3850", "380 3855", "380 3845", "380 3840", "380 3835", "380 3825",
+            "380 3830", "370 2306", "370 2350", "370 2901", "370 3715", "370 2902", "370 3705", "370 3710", "370 3700",
+            "370 3725", "370 3730", "370 3735", "270 2006", "295 2009", "295 2950", "270 3788", "270 2514", "103 1240",
+            "103 1040", "270 2508", "270 2509", "270 2510", "295 2955", "270 0225", "270 2512", "270 2505", "270 2506",
+            "270 2507", "270 2511", "270 2513", "100 1005", "100 1006", "100 1007", "100 1008", "100 1009", "100 1010",
+            "100 1011", "100 1012", "100 1013", "100 1014", "100 1015", "100 1020", "103 1030", "103 1130", "103 1230",
+            "110 1105", "110 1105", "110 1106", "110 1107", "110 1108", "110 1109", "110 1110", "110 1111", "110 1112",
+            "110 1113", "110 1114", "110 1115", "110 1115", "110 1120", "120 1205", "120 1206", "120 1207", "120 1208",
+            "120 1209", "120 1210", "120 1211", "120 1212", "120 1213", "120 1214", "120 1215", "130 1305", "130 1306",
+            "130 1307", "130 1308", "130 1309", "130 1310", "130 1311", "130 1312", "130 1315", "130 1320", "140 1405",
+            "140 1406", "140 1408", "140 1409", "140 1410", "140 1411", "140 1415", "150 1505", "150 1506", "150 1507",
+            "150 1508", "150 1509", "150 1510", "150 1511", "150 1512", "150 1515", "150 1520", "160 1606", "160 1608",
+            "160 1610", "160 9900", "300 3099", "300 3199", "300 3299", "300 3399", "300 3499", "300 3599",
+            "300 3699" }));
 
     private static int getLocationPrice(CatalogItemVariation itemVariation, String locationId) {
         if (itemVariation.getLocationOverrides() != null) {
@@ -349,7 +472,8 @@ public class TaxRules {
 
         if (itemVariation.getSku() != null && (itemVariation.getSku().equals(BAG_4508)
                 || itemVariation.getSku().equals(BAG_4909) || itemVariation.getSku().equals(BAG_3039)
-                || itemVariation.getSku().equals(BAG_4632) || itemVariation.getSku().equals(BAG_8465))) {
+                || itemVariation.getSku().equals(BAG_4632) || itemVariation.getSku().equals(BAG_8465)
+                || VANS_BAG_SKUS_TAX_FREE.contains(itemVariation.getSku()))) {
             return new String[0];
         } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH) || deployment.equals(TNF_NYC_SOHO)) {
@@ -531,8 +655,9 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
-        } else if (deployment.equals(TNF_TX_59) || deployment.equals(TNF_TX_83) || deployment.equals(TNF_TX_323)
-                || deployment.equals(TNF_TX_327)) {
+        } else if (deployment.equals(TNF_TX_59) || deployment.equals(TNF_TX_83) || deployment.equals(TNF_TX_86)
+                || deployment.equals(TNF_TX_323) || deployment.equals(TNF_TX_327) || deployment.equals(TNF_TX_515)
+                || deployment.equals(TNF_TX_520)) {
             if (taxes.length != 1) {
                 throw new Exception("TX with incorrect number of taxes: " + deployment);
             }
@@ -542,7 +667,8 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
-        } else if (deployment.equals(TNF_MD_84)) {
+        } else if (deployment.equals(TNF_MD_48) || deployment.equals(TNF_MD_84) || deployment.equals(TNF_MD_514)
+                || deployment.equals(TNF_MD_534)) {
             if (taxes.length != 1) {
                 throw new Exception("MD with incorrect number of taxes: " + deployment);
             }
@@ -562,6 +688,16 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
+        } else if (deployment.equals(TNF_NM_54)) {
+            if (taxes.length != 1) {
+                throw new Exception("NM with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemNM(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
         } else if (deployment.equals(NAUTICA_NJ_ELIZABETH)) {
             if (taxes.length != 1) {
                 throw new Exception("NJ location with incorrect number of taxes: " + deployment);
@@ -571,6 +707,62 @@ public class TaxRules {
                 return new String[] { taxes[0].getId() };
             } else {
                 return new String[0];
+            }
+        } else if (VANS_VERMONT_STORES.contains(deployment) || VANS_MINNESOTA_STORES.contains(deployment)
+                || VANS_PENNSYLVANIA_STORES.contains(deployment) || VANS_NEW_JERSEY_STORES.contains(deployment)) {
+            if (taxes.length != 1) {
+                throw new Exception("VANS clothing tax free location with incorrect number of taxes: " + deployment);
+            }
+
+            if (!VANS_CLOTHING_DEPT_CLASS.contains(itemDeptClass)) {
+                return new String[] { taxes[0].getId() };
+            } else {
+                return new String[0];
+            }
+        } else if (VANS_NEW_YORK_STORES.contains(deployment)) {
+            if (VANS_NEW_YORK_STORES_NON_EXEMPT.contains(deployment)) {
+                if (taxes.length != 2) {
+                    //throw new Exception("NYS deployment with incorrect number of taxes: " + deployment);
+                }
+
+                CatalogObject lowTax = getLowerTax(taxes[0], taxes[1]);
+                CatalogObject highTax = getHigherTax(taxes[0], taxes[1]);
+
+                if (vansIsSpecialTaxCategoryNY(itemPrice, itemDeptClass)) {
+                    return new String[] { lowTax.getId() };
+                } else {
+                    return new String[] { highTax.getId() };
+                }
+            } else {
+                if (taxes.length != 1) {
+                    throw new Exception("VANS NY location with incorrect number of taxes: " + deployment);
+                }
+
+                if (vansIsSpecialTaxCategoryNY(itemPrice, itemDeptClass)) {
+                    return new String[0];
+                } else {
+                    return new String[] { taxes[0].getId() };
+                }
+            }
+        } else if (VANS_MASSACHUSETTS_STORES.contains(deployment)) {
+            if (taxes.length != 1) {
+                throw new Exception("VANS MA location with incorrect number of taxes: " + deployment);
+            }
+
+            if (isSpecialVansTaxCategoryMA(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
+        } else if (VANS_RHODE_ISLAND_STORES.contains(deployment)) {
+            if (taxes.length != 1) {
+                throw new Exception("VANS RI location with incorrect number of taxes: " + deployment);
+            }
+
+            if (isSpecialVansTaxCategoryRhodeIsland(itemPrice, itemDeptClass)) {
+                return new String[0];
+            } else {
+                return new String[] { taxes[0].getId() };
             }
         } else if (deployment.startsWith(TNF_CANADA_DEPLOYMENT)) {
             if (taxes.length < 1) {
@@ -611,11 +803,10 @@ public class TaxRules {
                 }
             }
         } else if (taxes.length != 1) {
-            throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
+            //throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
         }
 
         return new String[] { taxes[0].getId() };
-
     }
 
     public static boolean isSpecialTaxCategoryCanadaYouth(String sku) throws IOException {
@@ -846,8 +1037,26 @@ public class TaxRules {
         return false;
     }
 
+    private static boolean isTaxHolidayItemNM(int price, String deptClass) {
+        if (!ENABLE_TNF_NM_TAX_HOLIDAY) {
+            return false;
+        }
+
+        // Clothing under $100
+        if (price <= NM_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+
+        // Backpacks $100 or less (backpacks are only values in supplies list)
+        if (price <= NM_TAX_HOLIDAY_EXEMPT_THRESHOLD_BACKPACKS && deptClassIsSchoolSuppliesTaxCategory(deptClass)) {
+            return true;
+        }
+
+        return false;
+    }
+
     private static boolean isTaxHolidayItemMA(int price) {
-        if (!ENABLE_TNF_MA_TAX_HOLIDAY) {
+        if (!ENABLE_MA_TAX_HOLIDAY) {
             return false;
         }
 
@@ -861,6 +1070,13 @@ public class TaxRules {
 
     private static boolean isSpecialTaxCategoryNYS(int price, String deptClass) {
         if (price < NY_EXEMPT_THRESHOLD && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean vansIsSpecialTaxCategoryNY(int price, String deptClass) {
+        if (price < NY_EXEMPT_THRESHOLD && VANS_CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }
         return false;
@@ -880,10 +1096,29 @@ public class TaxRules {
         return false;
     }
 
+    private static boolean isSpecialVansTaxCategoryMA(int price, String deptClass) {
+        if (price <= MA_EXEMPT_THRESHOLD && VANS_CLOTHING_DEPT_CLASS.contains(deptClass)) {
+            return true;
+        }
+
+        if (isTaxHolidayItemMA(price)) {
+            return true;
+        }
+
+        return false;
+    }
+
     // TODO(bhartard): RI clothing tax is actually rate*(N-$250)
     // Need to treat these differently
     private static boolean isSpecialTaxCategoryRhodeIsland(int price, String deptClass) {
         if (price <= RI_EXEMPT_THRESHOLD && deptClassIsClothingTaxCategory(deptClass)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isSpecialVansTaxCategoryRhodeIsland(int price, String deptClass) {
+        if (price <= RI_EXEMPT_THRESHOLD && VANS_CLOTHING_DEPT_CLASS.contains(deptClass)) {
             return true;
         }
         return false;

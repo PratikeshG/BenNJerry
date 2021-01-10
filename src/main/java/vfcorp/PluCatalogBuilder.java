@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.ItemVariationLocationOverride;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
@@ -29,11 +30,19 @@ public class PluCatalogBuilder {
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
 
-    private static String DEPLOYMENT_TNF_CA = "tnfca";
+    private static String DEPLOYMENT_BRAND_TNF_CA = "tnfca";
+    private static String DEPLOYMENT_BRAND_VANS = "vans";
+    private static String DEPLOYMENT_BRAND_VANS_TEST = "test";
     private static String DEPLOYMENT_PREFIX = "vfcorp";
     private static String INVALID_STORE_ID = "00000";
 
-    private static int BATCH_UPSERT_SIZE = 5;
+    private static final Set<String> VANS_BAG_SKUS_TAX_FREE = new HashSet<String>(
+            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
+
+    private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
+            Arrays.asList(new String[] { "706420993945" }));
+
+    private static int BATCH_UPSERT_SIZE = 10;
 
     private SquareClientV2 client;
     private String databaseUrl;
@@ -105,6 +114,7 @@ public class PluCatalogBuilder {
 
         // Remove repeated item meta data, such as superfluous location price overrides
         prepareForUpsert(workingCatalog);
+        removeUnassignedLocationOverrides(workingCatalog);
 
         logger.info("TOTAL ITEMS IN ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
         logger.info("TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
@@ -119,6 +129,38 @@ public class PluCatalogBuilder {
     private void prepareForUpsert(Catalog catalog) {
         for (CatalogObject catalogObject : catalog.getItems().values()) {
             catalogObject.minimizePriceOverrides();
+        }
+    }
+
+    private void removeUnassignedLocationOverrides(Catalog catalog) {
+        for (CatalogObject item : catalog.getItems().values()) {
+            if (item.isPresentAtAllLocations() || item.getPresentAtLocationIds() == null) {
+                continue;
+            }
+
+            ArrayList<ItemVariationLocationOverride> itemActiveOverrides = new ArrayList<ItemVariationLocationOverride>();
+            ArrayList<String> itemActiveLocations = new ArrayList<String>();
+
+            if (item.getItemData() != null) {
+                for (String presentLocationId : item.getPresentAtLocationIds()) {
+                    itemActiveLocations.add(presentLocationId);
+                }
+
+                for (CatalogObject variation : item.getItemData().getVariations()) {
+                    if (variation.getItemVariationData() != null
+                            && variation.getItemVariationData().getLocationOverrides() != null) {
+                        for (ItemVariationLocationOverride override : variation.getItemVariationData()
+                                .getLocationOverrides()) {
+                            if (itemActiveLocations.contains(override.getLocationId())) {
+                                itemActiveOverrides.add(override);
+                            }
+                        }
+
+                        variation.getItemVariationData().setLocationOverrides(itemActiveOverrides
+                                .toArray(new ItemVariationLocationOverride[itemActiveOverrides.size()]));
+                    }
+                }
+            }
         }
     }
 
@@ -141,6 +183,10 @@ public class PluCatalogBuilder {
 
         syncLocationDbItems(databaseApi, catalog, location, deploymentId);
         syncLocationDbSalePrices(databaseApi, catalog, location);
+
+        if (isVansDeployment()) {
+            syncWhitelistForLocation(databaseApi, catalog, location, deploymentId);
+        }
     }
 
     private void assignLocationSpecificTaxes(Catalog catalog, Location location) throws Exception {
@@ -158,8 +204,24 @@ public class PluCatalogBuilder {
         }
     }
 
+    private void syncWhitelistForLocation(VfcDatabaseApi databaseApi, Catalog catalog, Location location,
+            String deploymentId) throws Exception {
+
+        String storeId = Util.getStoreNumber(location.getName());
+        ArrayList<String> productIds = (ArrayList<String>) databaseApi.getWhitelistForBrandStore("vfcorp-" + brand,
+                storeId);
+
+        HashSet<String> whitelistedSkus = new HashSet<String>();
+        for (String prodId : productIds) {
+            whitelistedSkus.add(convertItemNumberToScannableSku(prodId));
+        }
+
+        whitelistItemsForLocation(catalog, location, whitelistedSkus);
+    }
+
     private void syncLocationDbItems(VfcDatabaseApi databaseApi, Catalog catalog, Location location,
             String deploymentId) throws Exception {
+
         ArrayList<Map<String, String>> records = databaseApi.queryDbItems(location.getId(), pluFiltered, brand);
 
         for (Map<String, String> itemRecord : records) {
@@ -376,9 +438,22 @@ public class PluCatalogBuilder {
     private void applyLocationSpecificItemTaxes(CatalogObject[] items, CatalogObject[] locationSpecificTaxes,
             String deploymentId, String locationId) throws Exception {
         for (CatalogObject item : items) {
-            String[] taxIds = TaxRules.getItemTaxesForLocation(item.getItemData(), locationSpecificTaxes, deploymentId,
-                    locationId);
-            item.getItemData().appendTaxIds(taxIds);
+            boolean itemAssignedToLocation = false;
+
+            if (item.getPresentAtLocationIds() != null) {
+                for (String assignedLocationId : item.getPresentAtLocationIds()) {
+                    if (locationId.equals(assignedLocationId)) {
+                        itemAssignedToLocation = true;
+                        break;
+                    }
+                }
+            }
+
+            if (item.isPresentAtAllLocations() || itemAssignedToLocation) {
+                String[] taxIds = TaxRules.getItemTaxesForLocation(item.getItemData(), locationSpecificTaxes,
+                        deploymentId, locationId);
+                item.getItemData().appendTaxIds(taxIds);
+            }
         }
     }
 
@@ -409,6 +484,25 @@ public class PluCatalogBuilder {
         return item;
     }
 
+    private void whitelistItemsForLocation(Catalog catalog, Location location, HashSet<String> whitelistedSkus) {
+        for (String primaryKey : catalog.getItems().keySet()) {
+            CatalogObject item = catalog.getItems().get(primaryKey);
+            CatalogItemVariation variation = getFirstItemVariation(item);
+
+            String sku = variation.getSku();
+
+            if (VANS_BAG_SKUS_TAX_FREE.contains(sku) || VANS_BAG_SKUS_TAXABLE.contains(sku)) {
+                setPresentAtAllLocations(item, true);
+            } else {
+                setPresentAtAllLocations(item, false);
+
+                if (whitelistedSkus.contains(sku)) {
+                    item.enableAtLocation(location.getId());
+                }
+            }
+        }
+    }
+
     private void updateCatalogLocationWithItem(Catalog catalog, Location location, Map<String, String> record,
             String deploymentId) throws Exception {
         String sku = convertItemNumberToScannableSku(record.get("itemNumber"));
@@ -433,6 +527,12 @@ public class PluCatalogBuilder {
         int price = Integer.parseInt(rawPrice);
         Money locationPriceMoney = new Money(price, getAccountCurrency());
         if (price > 0 || updatedVariation.getPriceMoney() == null) {
+
+            // When price is set to 1c, it should actually be $0.00
+            if (price == 1) {
+                locationPriceMoney.setAmount(0);
+            }
+
             // We can't discern which location's price is the master price, so just override
             updatedVariation.setPriceMoney(locationPriceMoney);
         }
@@ -440,7 +540,8 @@ public class PluCatalogBuilder {
         // Variation Name
         String deptCodeClass = String.format("%-4s", record.get("deptNumber"))
                 + String.format("%-4s", record.get("classNumber"));
-        updatedVariation.setName(String.format("%s (%s)", sku, deptCodeClass));
+        String variationName = String.format("%s (%s)", sku, deptCodeClass);
+        updatedVariation.setName(variationName);
 
         // Item Category
         for (CatalogObject category : catalog.getCategories().values()) {
@@ -452,7 +553,7 @@ public class PluCatalogBuilder {
 
         // Availability
         String locationId = location.getId();
-        setPresentAtAllLocations(updatedItem);
+        setPresentAtAllLocations(updatedItem, true);
 
         // We need to exclude certain items from MA/RhodeIsland because we can't apply proper dynamic taxation
         // TNF requested these items not show up for sale in the POS
@@ -467,10 +568,10 @@ public class PluCatalogBuilder {
         catalog.addItem(updatedItem);
     }
 
-    private void setPresentAtAllLocations(CatalogObject object) {
-        object.setPresentAtAllLocations(true);
+    private void setPresentAtAllLocations(CatalogObject object, boolean val) {
+        object.setPresentAtAllLocations(val);
         if (object.getItemData() != null) {
-            object.getItemData().setPresentAtAllLocations(true);
+            object.getItemData().setPresentAtAllLocations(val);
         }
     }
 
@@ -549,6 +650,10 @@ public class PluCatalogBuilder {
     }
 
     private boolean isCanadaDeployment() {
-        return brand.equals(DEPLOYMENT_TNF_CA);
+        return brand.equals(DEPLOYMENT_BRAND_TNF_CA);
+    }
+
+    private boolean isVansDeployment() {
+        return brand.equals(DEPLOYMENT_BRAND_VANS) || brand.equals(DEPLOYMENT_BRAND_VANS_TEST);
     }
 }
