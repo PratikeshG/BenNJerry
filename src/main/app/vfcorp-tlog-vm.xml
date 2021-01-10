@@ -72,6 +72,49 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="encryptionKey" value="${vfcorp.nautica.encryption.key}" doc:name="encryptionKey"/>
         <set-variable variableName="itemNumberLookupLength" value="${vfcorp.nautica.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
         <set-variable variableName="allowCashTransactions" value="${vfcorp.nautica.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.nautica.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
+    </sub-flow>
+    <sub-flow name="VFC:EB:generate-tlog-for-location-settings">
+        <set-variable variableName="cloudArchiveFolder" value="#['EB/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.eb.archive.enabled}" doc:name="enableTlogArchive"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.eb.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.eb.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.eb.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.eb.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.eb.storeforce}" doc:name="storeforceArchiveDirectory"/>
+        <set-variable variableName="storeforceTrickleDirectory" value="${vfcorp.sftp.path.eb.storeforceTrickle}" doc:name="storeforceTrickleDirectory"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.eb.encryption.key}" doc:name="encryptionKey"/>
+        <set-variable variableName="itemNumberLookupLength" value="${vfcorp.eb.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
+        <set-variable variableName="allowCashTransactions" value="${vfcorp.eb.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.eb.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
+    </sub-flow>
+    <sub-flow name="VFC:Vans:generate-tlog-for-location-settings">
+        <set-variable variableName="cloudArchiveFolder" value="#['Vans/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.vans.archive.enabled}" doc:name="enableTlogArchive"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.vans.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.vans.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.vans.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.vans.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.vans.storeforce}" doc:name="storeforceArchiveDirectory"/>
+        <set-variable variableName="storeforceTrickleDirectory" value="${vfcorp.sftp.path.vans.storeforceTrickle}" doc:name="storeforceTrickleDirectory"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.vans.encryption.key}" doc:name="encryptionKey"/>
+        <set-variable variableName="itemNumberLookupLength" value="${vfcorp.vans.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
+        <set-variable variableName="allowCashTransactions" value="${vfcorp.vans.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.vans.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
+    </sub-flow>
+    <sub-flow name="VFC:Test:generate-tlog-for-location-settings">
+        <set-variable variableName="cloudArchiveFolder" value="#['Test/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
+        <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.test.archive.enabled}" doc:name="enableTlogArchive"/>
+        <set-variable variableName="enableCustomerLoyalty" value="${vfcorp.tlog.test.loyalty.enabled}" doc:name="enableCustomerLoyalty"/>
+        <set-variable variableName="customerGroupNew" value="${vfcorp.tlog.test.loyalty.group.new}" doc:name="customerGroupNew"/>
+        <set-variable variableName="customerGroupExisting" value="${vfcorp.tlog.test.loyalty.group.existing}" doc:name="customerGroupExisting"/>
+        <set-variable variableName="customerGroupEmail" value="${vfcorp.tlog.test.loyalty.group.email}" doc:name="customerGroupEmail"/>
+        <set-variable variableName="storeforceArchiveDirectory" value="${vfcorp.sftp.path.test.storeforce}" doc:name="storeforceArchiveDirectory"/>
+        <set-variable variableName="storeforceTrickleDirectory" value="${vfcorp.sftp.path.test.storeforceTrickle}" doc:name="storeforceTrickleDirectory"/>
+        <set-variable variableName="encryptionKey" value="${vfcorp.test.encryption.key}" doc:name="encryptionKey"/>
+        <set-variable variableName="itemNumberLookupLength" value="${vfcorp.test.itemNumberLookupLength}" doc:name="itemNumberLookupLength"/>
+        <set-variable variableName="allowCashTransactions" value="${vfcorp.test.allowCashTransactions}" doc:name="allowCashTransactions"/>
+        <set-variable variableName="trackPriceOverrides" value="${vfcorp.test.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:VFO:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['VFO/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
@@ -113,6 +156,9 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </when>
             <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-nautica-&quot;)]">
                 <flow-ref name="VFC:Nautica:generate-tlog-for-location-settings" doc:name="VFC:Nautica:generate-tlog-for-location-settings"/>
+            </when>
+            <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-eb-&quot;)]">
+                <flow-ref name="VFC:EB:generate-tlog-for-location-settings" doc:name="VFC:EB:generate-tlog-for-location-settings"/>
             </when>
             <when expression="#[payload.getDeployment().startsWith(&quot;vfcorp-vfo-&quot;)]">
                 <flow-ref name="VFC:VFO:generate-tlog-for-location-settings" doc:name="VFC:VFO:generate-tlog-for-location-settings"/>
@@ -220,6 +266,14 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="deploymentGroup" value="tnfca-mountain" doc:name="Set deploymentGroup: tnfca-mountain"/>
+        <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+	<flow name="VFC:EB:tlog-trigger-MOUNTAIN" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-eb-mountain-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MDT" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Denver">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="deploymentGroup" value="eb-mountain" doc:name="Set deploymentGroup: eb-mountain"/>
         <set-session-variable variableName="storeforceTrickle" value="false" doc:name="Set storeforceTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
