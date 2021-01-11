@@ -8,6 +8,9 @@ import com.jcraft.jsch.Session;
 
 public class Util {
     public static String getAmountAsXmlDecimal(int amount) {
+        boolean isNegative = amount < 0 ? true : false;
+
+        amount = Math.abs(amount);
         String amt = Integer.toString(amount);
         if (amt.length() == 1) {
             amt = "0.0" + amt + "00";
@@ -16,6 +19,11 @@ public class Util {
         } else {
             amt = amt.substring(0, amt.length() - 2) + "." + amt.substring(amt.length() - 2) + "00";
         }
+
+        if (isNegative) {
+            amt = "-" + amt;
+        }
+
         return amt;
     }
 
