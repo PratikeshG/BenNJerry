@@ -82,7 +82,7 @@ public class MerchandiseItem extends Record {
         String departmentNumber = "";
         String classNumber = "";
 
-        if (itemization.getItemizationType().equals("ITEM")) {
+        if (itemization.getItemizationType().equals("ITEM") && itemization.getItemVariationName() != null) {
             Matcher m = Pattern.compile("\\((.*?)\\)").matcher(itemization.getItemVariationName());
             while (m.find()) {
                 String deptClass = m.group(1);
