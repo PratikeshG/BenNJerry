@@ -147,7 +147,8 @@ public class GenerateLocationReportCallable implements Callable {
     }
 
     private String generateReportNameString(String reportName, String locationName, String dateMonthYear) {
-        return String.format(REPORT_NAME_FORMAT, locationName, reportName, dateMonthYear);
+        String name = String.format(REPORT_NAME_FORMAT, locationName, reportName, dateMonthYear);
+        return name.replace("*", "");
     }
 
     private boolean isEmailSkipped(MonthlyReportBuilder reportBuilder, List<String> emailRecipients) {
@@ -208,30 +209,37 @@ public class GenerateLocationReportCallable implements Callable {
     private List<String> reportRecipients(Location location, Employee[] employees) {
         ArrayList<String> recipientEmails = new ArrayList<String>();
 
-        for (Employee employee : employees) {
-            if (employeeAtLocation(employee, location) && employeeIsLocationOperator(employee)
-                    && employee.getStatus().equals(Employee.STATUS_ACTIVE) && employee.getEmail() != null
-                    && employee.getEmail().length() > 0) {
-                recipientEmails.add(employee.getEmail());
+        if (employees != null) {
+            for (Employee employee : employees) {
+                if (employeeAtLocation(employee, location) && employeeIsLocationOperator(employee)
+                        && employee.getStatus().equals(Employee.STATUS_ACTIVE) && employee.getEmail() != null
+                        && employee.getEmail().length() > 0) {
+                    recipientEmails.add(employee.getEmail());
+                }
             }
+
         }
 
         return recipientEmails;
     }
 
     private boolean employeeIsLocationOperator(Employee employee) {
-        for (String roleId : employee.getRoleIds()) {
-            if (roleId.equals(LOCATION_OPERATOR_ROLE_ID)) {
-                return true;
+        if (employee.getRoleIds() != null) {
+            for (String roleId : employee.getRoleIds()) {
+                if (roleId.equals(LOCATION_OPERATOR_ROLE_ID)) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
     private boolean employeeAtLocation(Employee employee, Location location) {
-        for (String authorizedLocationId : employee.getAuthorizedLocationIds()) {
-            if (authorizedLocationId.equals(location.getId())) {
-                return true;
+        if (employee.getAuthorizedLocationIds() != null) {
+            for (String authorizedLocationId : employee.getAuthorizedLocationIds()) {
+                if (authorizedLocationId.equals(location.getId())) {
+                    return true;
+                }
             }
         }
         return false;
