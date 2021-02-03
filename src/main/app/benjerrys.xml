@@ -18,8 +18,8 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
     <flow name="BJs-trigger-monthly-report">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/bjs/report/${urlKey}" doc:name="/bjs/report"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset != null ? message.inboundProperties.'http.query.params'.offset : &quot;1&quot;]" doc:name="Set offset"/>
-        <set-session-variable variableName="emailOverride" value="#[message.inboundProperties.'http.query.params'.email != null ? message.inboundProperties.'http.query.params'.email : &quot;&quot;]" doc:name="Set emailOverride"/>
-        <set-session-variable variableName="locationOverride" value="#[message.inboundProperties.'http.query.params'.location != null ? message.inboundProperties.'http.query.params'.location : &quot;&quot;]" doc:name="Set locationOverride"/>
+        <set-session-variable variableName="emailOverride" value="#[message.inboundProperties.'http.query.params'.email != null ? message.inboundProperties.'http.query.params'.email : &quot;&quot;]" doc:name="Set email (override)"/>
+        <set-session-variable variableName="locationOverride" value="#[message.inboundProperties.'http.query.params'.location != null ? message.inboundProperties.'http.query.params'.location : &quot;&quot;]" doc:name="Set location (override)"/>
         <flow-ref name="BJs-generate-monthly-report" doc:name="BJs-generate-monthly-report"/>
         <set-payload value="BJs mothly reports generated with offset: #[sessionVars.offset]" doc:name="Response message"/>
     </flow>
