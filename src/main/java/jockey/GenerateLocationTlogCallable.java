@@ -21,7 +21,6 @@ import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
-import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemDiscount;
@@ -229,39 +228,12 @@ public class GenerateLocationTlogCallable implements Callable {
 
         for (Order order : v2Orders) {
             String registerNumber = getRegisterNumberFromOrder(order, v1PaymentCache);
+            int transactionNumber = getTransactionNumber(order, registerNumber, nextDeviceTransactionNumbers,
+                    existingTransactionNumbers);
 
-            if (isExchangeOrder(order)) {
-                // Create both a return order + sales order from this exchange
-
-                // New Return
-                Order refund = createRefundFromExchange(order, sourceOrderCache);
-                int returnTransactionNumber = getTransactionNumber(refund, registerNumber, nextDeviceTransactionNumbers,
-                        existingTransactionNumbers);
-                SalesOrder returnSaleOrder = createSalesOrderFromRefund(location, employeeCache, v1PaymentCache,
-                        tenderCache, refund, returnTransactionNumber);
-                salesOrders.add(returnSaleOrder);
-
-                // New Sale
-                Order s = createSaleFromExchange(order, sourceOrderCache);
-                int saleTransactionNumber = getTransactionNumber(s, registerNumber, nextDeviceTransactionNumbers,
-                        existingTransactionNumbers);
-                SalesOrder saleOrder = createSalesOrderFromSale(location, employeeCache, v1PaymentCache, s,
-                        saleTransactionNumber);
-                salesOrders.add(saleOrder);
-
-            } else if (isReturnOrder(order)) {
-                int transactionNumber = getTransactionNumber(order, registerNumber, nextDeviceTransactionNumbers,
-                        existingTransactionNumbers);
-                SalesOrder returnOrder = createSalesOrderFromRefund(location, employeeCache, v1PaymentCache,
-                        tenderCache, order, transactionNumber);
-                salesOrders.add(returnOrder);
-            } else {
-                int transactionNumber = getTransactionNumber(order, registerNumber, nextDeviceTransactionNumbers,
-                        existingTransactionNumbers);
-                SalesOrder saleOrder = createSalesOrderFromSale(location, employeeCache, v1PaymentCache, order,
-                        transactionNumber);
-                salesOrders.add(saleOrder);
-            }
+            SalesOrder returnOrder = createSalesOrder(location, employeeCache, v1PaymentCache, tenderCache, order,
+                    transactionNumber);
+            salesOrders.add(returnOrder);
         }
 
         databaseApi.updateOrderNumbersForLocation(salesOrders, location.getId());
@@ -285,204 +257,6 @@ public class GenerateLocationTlogCallable implements Callable {
         }
 
         return transactionNumber;
-    }
-
-    private Order newBaseOrderFromExchange(Order order, String idSuffix) {
-        Order o = new Order();
-
-        o.setId(order.getId() + idSuffix);
-        o.setLocationId(order.getLocationId());
-        o.setCreatedAt(order.getCreatedAt().replace(".000Z", "Z"));
-        o.setUpdatedAt(order.getUpdatedAt().replace(".000Z", "Z"));
-        o.setState(order.getState());
-        o.setTotalTaxMoney(order.getTotalTaxMoney());
-        o.setTotalDiscountMoney(order.getTotalDiscountMoney());
-        o.setTotalTipMoney(order.getTotalTipMoney());
-        o.setTotalMoney(order.getTotalMoney());
-        o.setClosedAt(order.getClosedAt().replace(".000Z", "Z"));
-        o.setTotalServiceChargeMoney(order.getTotalServiceChargeMoney());
-
-        return o;
-    }
-
-    private Order createSaleFromExchange(Order order, Map<String, Order> sourceOrderCache) {
-        Order sourceOrder = sourceOrderCache.get(order.getId());
-        Order saleOrder = newBaseOrderFromExchange(order, "_sale");
-
-        // sales specific fields
-        saleOrder.setLineItems(order.getLineItems());
-        saleOrder.setTaxes(order.getTaxes());
-        saleOrder.setTenders(order.getTenders());
-
-        // evenExchange => has a $0 sale tender
-        // creditExchange => NO SALE TENDERS
-        // debitExchange => will have sale tender(s), but will represent partial total sales value
-        // We need to create a virtual tender that represents the remaining balance on full value of sale items
-        int totalSaleAmount = saleOrder.getTotalMoney().getAmount();
-        int attributedSaleAmount = 0;
-
-        Tender virtualTender = new Tender();
-
-        if (sourceOrder != null && sourceOrder.getTenders() != null && sourceOrder.getTenders()[0] != null) {
-            virtualTender.setId(sourceOrder.getTenders()[0].getId() + "_vt");
-            virtualTender.setType(sourceOrder.getTenders()[0].getType());
-        } else {
-            virtualTender.setId(sourceOrder.getId() + "_vt");
-            virtualTender.setType(Tender.TENDER_TYPE_OTHER);
-        }
-
-        virtualTender.setLocationId(sourceOrder.getLocationId());
-        virtualTender.setTransactionId(saleOrder.getId());
-        virtualTender.setCreatedAt(saleOrder.getCreatedAt());
-        Money money = new Money();
-        money.setAmount(totalSaleAmount);
-        money.setCurrency("USD");
-        virtualTender.setAmountMoney(money);
-
-        if (saleOrder.getTenders() == null) {
-            saleOrder.setTenders(new Tender[] { virtualTender });
-        }
-
-        for (Tender tender : saleOrder.getTenders()) {
-            tender.setTransactionId(order.getId());
-            attributedSaleAmount += tender.getAmountMoney().getAmount();
-        }
-
-        int missingTenderAmount = totalSaleAmount - attributedSaleAmount;
-        if (missingTenderAmount > 0) {
-            // Create a virtual tender to account for difference in sale tendered value;
-            virtualTender.getAmountMoney().setAmount(missingTenderAmount);
-
-            Tender[] newTenders = Arrays.copyOf(saleOrder.getTenders(), saleOrder.getTenders().length + 1);
-            newTenders[newTenders.length - 1] = virtualTender;
-            saleOrder.setTenders(newTenders);
-        }
-
-        return saleOrder;
-    }
-
-    private Order createRefundFromExchange(Order order, Map<String, Order> sourceOrderCache) {
-        Order sourceOrder = sourceOrderCache.get(order.getId());
-        Order refundOrder = newBaseOrderFromExchange(order, "_refund");
-
-        // refund specific fields
-        refundOrder.setReturns(order.getReturns());
-        refundOrder.setReturnAmounts(order.getReturnAmounts());
-        refundOrder.setRefunds(order.getRefunds());
-
-        // evenExchange => NO REFUND TENDERS
-        // creditExchange => will have refund tender(s), but will represent partial total refund value
-        // debitExchange => NO REFUND TENDERS
-        // We need to create a virtual tender that represents the remaining balance on full value of refund items
-        int totalRefundAmount = refundOrder.getReturnAmounts().getTotalMoney().getAmount();
-        int attributedRefundAmount = 0;
-
-        Refund virtualRefund = new Refund();
-
-        if (sourceOrder != null && sourceOrder.getTenders() != null && sourceOrder.getTenders()[0] != null) {
-            virtualRefund.setId(sourceOrder.getTenders()[0].getId() + "_vr");
-            virtualRefund.setTenderId(sourceOrder.getTenders()[0].getId());
-        } else {
-            virtualRefund.setId(sourceOrder.getId() + "_vr");
-            virtualRefund.setTenderId(sourceOrder.getId() + "_vt");
-        }
-
-        virtualRefund.setLocationId(sourceOrder.getLocationId());
-        virtualRefund.setTransactionId(sourceOrder.getId());
-        virtualRefund.setCreatedAt(refundOrder.getCreatedAt());
-        virtualRefund.setReason("Exchange");
-        Money money = new Money();
-        money.setAmount(totalRefundAmount);
-        money.setCurrency("USD");
-        virtualRefund.setAmountMoney(money);
-
-        if (refundOrder.getRefunds() == null) {
-            refundOrder.setRefunds(new Refund[] { virtualRefund });
-        }
-
-        for (Refund refund : refundOrder.getRefunds()) {
-            attributedRefundAmount += refund.getAmountMoney().getAmount();
-        }
-
-        int missingTenderAmount = totalRefundAmount - attributedRefundAmount;
-        if (missingTenderAmount > 0) {
-            // Create a virtual tender to account for difference in refunded tender value;
-            virtualRefund.getAmountMoney().setAmount(missingTenderAmount);
-
-            Refund[] newRefunds = Arrays.copyOf(refundOrder.getRefunds(), refundOrder.getRefunds().length + 1);
-            newRefunds[newRefunds.length - 1] = virtualRefund;
-            refundOrder.setRefunds(newRefunds);
-        }
-
-        return refundOrder;
-    }
-
-    private SalesOrder createSalesOrderFromSale(Location location, Map<String, Employee> employeeCache,
-            Map<String, Payment> v1PaymentCache, Order order, int transactionNumber) throws Exception {
-        SalesOrder so = new SalesOrder();
-
-        so.setThirdPartyOrderId(order.getId());
-        so.setTransactionNumber("" + transactionNumber);
-        so.setStoreNumber(getStoreNumber(location.getName()));
-        so.setDateCreated(formatDate(location, order.getCreatedAt()));
-        so.setDateCompleted(formatDate(location, order.getClosedAt()));
-        so.setSalesOrderCode(getOrderCode(order, v1PaymentCache));
-        so.setRegisterNumber(getRegisterNumberFromOrder(order, v1PaymentCache));
-
-        String cashierId = DEFUALT_CASHIER_ID;
-        Payment v1Payment = v1PaymentCache.get(getFirstTenderId(order));
-        if (v1Payment != null && v1Payment.getTender() != null && v1Payment.getTender().length > 0) {
-            cashierId = getExternalEmployeeId(employeeCache, v1Payment.getTender()[0].getEmployeeId());
-        }
-        so.setCashier(cashierId);
-
-        so.setShippingTotal(Util.getAmountAsXmlDecimal(0));
-        so.setTaxTotal(Util.getAmountAsXmlDecimal(getOrderTaxTotal(order)));
-        so.setTotal(Util.getAmountAsXmlDecimal(getOrderTotal(order)));
-
-        ArrayList<SalesOrderPayment> salesOrderPayments = new ArrayList<SalesOrderPayment>();
-        for (com.squareup.connect.v2.Tender tender : order.getTenders()) {
-            SalesOrderPayment sop = new SalesOrderPayment();
-            sop.setAmount(Util.getAmountAsXmlDecimal(tender.getAmountMoney().getAmount()));
-            sop.setPaymentCode(getPaymentCode(tender, v1PaymentCache));
-            sop.setPaymentId(tender.getId());
-            salesOrderPayments.add(sop);
-        }
-        so.setPayments(salesOrderPayments.toArray(new SalesOrderPayment[salesOrderPayments.size()]));
-
-        ArrayList<SalesOrderLineItem> salesOrderLineItems = new ArrayList<SalesOrderLineItem>();
-        if (order.getLineItems() != null) {
-            int i = 1;
-            for (OrderLineItem lineItem : order.getLineItems()) {
-                SalesOrderLineItem soli = new SalesOrderLineItem();
-
-                int qty = Integer.parseInt(lineItem.getQuantity());
-                int extendedPrice = lineItem.getTotalMoney().getAmount() - lineItem.getTotalTaxMoney().getAmount();
-
-                soli.setThirdPartyLineItemId(lineItem.getUid());
-                soli.setLineNumber("" + i++);
-                soli.setLineCode(getSaleLineCode(lineItem));
-                soli.setSku((lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku());
-                soli.setUpc((lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
-                        : getUpcFromItemVariationName(lineItem.getVariationName()));
-                soli.setQuantity(lineItem.getQuantity());
-                soli.setDisplayName(
-                        (lineItem.getCatalogObjectId() == null) ? DEFAULT_DISPLAY_NAME : lineItem.getVariationName());
-                soli.setListPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
-                soli.setPlacedPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
-                soli.setDiscountedItemPrice(Util.getAmountAsXmlDecimal(extendedPrice / qty));
-                soli.setExtendedPrice(Util.getAmountAsXmlDecimal(extendedPrice));
-                soli.setOrderLevelDiscountAmount(Util.getAmountAsXmlDecimal(sumOrderLevelDiscounts(lineItem)));
-                soli.setLineItemDiscountAmount(Util.getAmountAsXmlDecimal(sumItemLevelDiscounts(lineItem)));
-
-                soli.setWeaklyTypedProperties(getLineItemDiscountProperties(lineItem));
-
-                salesOrderLineItems.add(soli);
-            }
-        }
-        so.setLineItems(salesOrderLineItems.toArray(new SalesOrderLineItem[salesOrderLineItems.size()]));
-
-        return so;
     }
 
     private WeaklyTypedProperty[] getLineItemDiscountProperties(OrderLineItem lineItem) {
@@ -527,7 +301,7 @@ public class GenerateLocationTlogCallable implements Callable {
         return discountProperties.toArray(new WeaklyTypedProperty[discountProperties.size()]);
     }
 
-    private SalesOrder createSalesOrderFromRefund(Location location, Map<String, Employee> employeeCache,
+    private SalesOrder createSalesOrder(Location location, Map<String, Employee> employeeCache,
             Map<String, Payment> v1PaymentCache, Map<String, Tender> tenderCache, Order order, int transactionNumber)
             throws Exception {
         SalesOrder so = new SalesOrder();
@@ -553,20 +327,65 @@ public class GenerateLocationTlogCallable implements Callable {
         so.setTotal(Util.getAmountAsXmlDecimal(getOrderTotal(order)));
 
         ArrayList<SalesOrderPayment> salesOrderPayments = new ArrayList<SalesOrderPayment>();
-        for (Refund tenderRefund : order.getRefunds()) {
-            SalesOrderPayment sop = new SalesOrderPayment();
-            sop.setAmount(Util.getAmountAsXmlDecimal(tenderRefund.getAmountMoney().getAmount()));
-            sop.setPaymentCode(
-                    getPaymentCode(getOriginalTenderFromRefundTender(tenderCache, tenderRefund), v1PaymentCache));
-            sop.setPaymentId(tenderRefund.getId());
-            salesOrderPayments.add(sop);
+
+        if (order.getTenders() != null) {
+            for (com.squareup.connect.v2.Tender tender : order.getTenders()) {
+                SalesOrderPayment sop = new SalesOrderPayment();
+                sop.setAmount(Util.getAmountAsXmlDecimal(tender.getAmountMoney().getAmount()));
+                sop.setPaymentCode(getPaymentCode(tender, v1PaymentCache));
+                sop.setPaymentId(tender.getId());
+                salesOrderPayments.add(sop);
+            }
+        }
+        if (order.getRefunds() != null) {
+            for (Refund tenderRefund : order.getRefunds()) {
+                SalesOrderPayment sop = new SalesOrderPayment();
+                sop.setAmount(Util.getAmountAsXmlDecimal(-1 * tenderRefund.getAmountMoney().getAmount()));
+                sop.setPaymentCode(
+                        getPaymentCode(getOriginalTenderFromRefundTender(tenderCache, tenderRefund), v1PaymentCache));
+                sop.setPaymentId(tenderRefund.getId());
+                salesOrderPayments.add(sop);
+            }
         }
         so.setPayments(salesOrderPayments.toArray(new SalesOrderPayment[salesOrderPayments.size()]));
 
         ArrayList<SalesOrderLineItem> salesOrderLineItems = new ArrayList<SalesOrderLineItem>();
-        for (OrderReturn orderReturn : order.getReturns()) {
-            int i = 1;
-            for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
+        int i = 1;
+
+        if (order.getReturns() != null) {
+            for (OrderReturn orderReturn : order.getReturns()) {
+                for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
+                    SalesOrderLineItem soli = new SalesOrderLineItem();
+
+                    int qty = Integer.parseInt(lineItem.getQuantity());
+                    int extendedPrice = (lineItem.getTotalMoney().getAmount() - lineItem.getTotalTaxMoney().getAmount())
+                            * -1;
+
+                    soli.setThirdPartyLineItemId(lineItem.getUid());
+                    soli.setLineNumber("" + i++);
+                    soli.setLineCode(getReturnLineCode(lineItem));
+                    soli.setSku((lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku());
+                    soli.setUpc((lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
+                            : getUpcFromItemVariationName(lineItem.getVariationName()));
+                    soli.setQuantity(lineItem.getQuantity());
+                    soli.setDisplayName((lineItem.getCatalogObjectId() == null) ? DEFAULT_DISPLAY_NAME
+                            : lineItem.getVariationName());
+                    soli.setListPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
+                    soli.setPlacedPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
+                    soli.setDiscountedItemPrice(Util.getAmountAsXmlDecimal(extendedPrice / qty));
+                    soli.setExtendedPrice(Util.getAmountAsXmlDecimal(extendedPrice));
+                    soli.setOrderLevelDiscountAmount(Util.getAmountAsXmlDecimal(sumOrderLevelDiscounts(lineItem)));
+                    soli.setLineItemDiscountAmount(Util.getAmountAsXmlDecimal(sumItemLevelDiscounts(lineItem)));
+
+                    soli.setWeaklyTypedProperties(getLineItemDiscountProperties(lineItem));
+
+                    salesOrderLineItems.add(soli);
+                }
+            }
+        }
+
+        if (order.getLineItems() != null) {
+            for (OrderLineItem lineItem : order.getLineItems()) {
                 SalesOrderLineItem soli = new SalesOrderLineItem();
 
                 int qty = Integer.parseInt(lineItem.getQuantity());
@@ -574,7 +393,7 @@ public class GenerateLocationTlogCallable implements Callable {
 
                 soli.setThirdPartyLineItemId(lineItem.getUid());
                 soli.setLineNumber("" + i++);
-                soli.setLineCode(getReturnLineCode(lineItem));
+                soli.setLineCode(getSaleLineCode(lineItem));
                 soli.setSku((lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku());
                 soli.setUpc((lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
                         : getUpcFromItemVariationName(lineItem.getVariationName()));
@@ -593,6 +412,7 @@ public class GenerateLocationTlogCallable implements Callable {
                 salesOrderLineItems.add(soli);
             }
         }
+
         so.setLineItems(salesOrderLineItems.toArray(new SalesOrderLineItem[salesOrderLineItems.size()]));
 
         return so;
@@ -672,29 +492,21 @@ public class GenerateLocationTlogCallable implements Callable {
     }
 
     private String getFirstTenderId(Order order) {
-        if (isReturnOrder(order)) {
-            return order.getRefunds()[0].getTenderId();
-        } else {
-            String tenderId = order.getTenders()[0].getId();
-            tenderId = (tenderId.endsWith("_vt")) ? tenderId.replace("_vt", "") : tenderId;
-            return tenderId;
+        String tenderId = "";
+        if (order.getTenders() != null && order.getTenders().length > 0) {
+            tenderId = order.getTenders()[0].getId();
+        } else if (order.getRefunds() != null && order.getRefunds().length > 0) {
+            tenderId = order.getRefunds()[0].getTenderId();
         }
+        return tenderId;
     }
 
     private int getOrderTaxTotal(Order order) {
-        if (isReturnOrder(order)) {
-            return order.getReturnAmounts().getTaxMoney().getAmount();
-        } else {
-            return order.getTotalTaxMoney().getAmount();
-        }
+        return order.getNetAmounts().getTaxMoney().getAmount();
     }
 
     private int getOrderTotal(Order order) {
-        if (isReturnOrder(order)) {
-            return order.getReturnAmounts().getTotalMoney().getAmount();
-        } else {
-            return order.getTotalMoney().getAmount();
-        }
+        return order.getNetAmounts().getTotalMoney().getAmount();
     }
 
     private boolean isExchangeOrder(Order order) {
@@ -716,9 +528,10 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getOrderCode(Order order, Map<String, Payment> v1PaymentCache) {
         //"01"=Sale; "02"=BudgetSale; "03"=AltBudgetSale; "04"=EmployeeSale; "11"=Return; "14"=EmployeeReturn
+        // Returns and Exchanges share the same code rule(s)
 
         // return
-        if (isReturnOrder(order)) {
+        if (isReturnOrder(order) || isExchangeOrder(order)) {
             if (order.getReturns() != null) {
                 for (OrderReturn orderReturn : order.getReturns()) {
                     for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
@@ -917,13 +730,9 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getRegisterNumberFromOrder(Order order, Map<String, Payment> v1PaymentCache) {
         try {
-            if (isReturnOrder(order)) {
-                return getRegisterNumberFromPayment(v1PaymentCache.get(order.getRefunds()[0].getTenderId()));
-            } else {
-                return getRegisterNumberFromPayment(v1PaymentCache.get(order.getTenders()[0].getId()));
-            }
+            String tenderId = getFirstTenderId(order);
+            return getRegisterNumberFromPayment(v1PaymentCache.get(tenderId));
         } catch (Exception e) {
-            // virtual tenders won't
             return DEFUALT_DEVICE_ID;
         }
     }

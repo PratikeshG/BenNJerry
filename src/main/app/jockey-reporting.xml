@@ -22,7 +22,7 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
     <quartz:connector name="Quartz-Jockey" validateConnections="true" doc:name="Quartz"/>
         <sftp:connector name="SFTP-Jockey" validateConnections="true" doc:name="SFTP"/>
     <flow name="Jockey-trigger-tlog">
-        <http:listener config-ref="${default.http.config}" path="/jockey/tlog/${urlKey}" doc:name="/jockey/report"/>
+        <http:listener config-ref="${default.http.config}" path="/jockey/tlog/${urlKey}" doc:name="/jockey/tlog"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset != null ? message.inboundProperties.'http.query.params'.offset : &quot;1&quot;]" doc:name="Set offset"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range != null ? message.inboundProperties.'http.query.params'.range : &quot;1&quot;]" doc:name="Set range"/>
         <set-session-variable variableName="locationOverride" value="#[message.inboundProperties.'http.query.params'.locationOverride != null ? message.inboundProperties.'http.query.params'.locationOverride : &quot;&quot;]" doc:name="Set locationOverride"/>
