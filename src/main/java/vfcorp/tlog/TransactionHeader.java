@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
+import com.squareup.connect.v2.Location;
 
 import util.TimeManager;
 import vfcorp.FieldDetails;
@@ -171,7 +171,7 @@ public class TransactionHeader extends Record {
         return id;
     }
 
-    public TransactionHeader parse(int transactionNumber, Merchant location, List<Payment> squarePaymentsList,
+    public TransactionHeader parse(int transactionNumber, Location location, List<Payment> squarePaymentsList,
             String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
             String processingForDate) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
@@ -200,7 +200,7 @@ public class TransactionHeader extends Record {
         return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
     }
 
-    public TransactionHeader parse(int transactionNumber, Merchant location, Payment squarePayment, String employeeId,
+    public TransactionHeader parse(int transactionNumber, Location location, Payment squarePayment, String employeeId,
             String transactionType, int numberOfRecords, String timeZoneId) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
 
@@ -232,10 +232,10 @@ public class TransactionHeader extends Record {
         return sdf.format(cal.getTime());
     }
 
-    private TransactionHeader parse(int transactionNumber, Merchant location, String transactionType,
+    private TransactionHeader parse(int transactionNumber, Location location, String transactionType,
             int numberOfRecords, String registerNumber, Map<String, String> params) throws Exception {
 
-        String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
+        String storeNumber = Util.getStoreNumber(location.getName());
         params.put("Store Number", storeNumber);
         params.put("Transaction Number", "" + String.format("%06d", transactionNumber));
         params.put("Number of Records", "" + numberOfRecords);

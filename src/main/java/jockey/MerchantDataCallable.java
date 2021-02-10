@@ -27,7 +27,6 @@ public class MerchantDataCallable implements Callable {
         SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
-
         String accessToken = squarePayload.getAccessToken(this.encryptionKey);
         String merchantId = squarePayload.getMerchantId();
 

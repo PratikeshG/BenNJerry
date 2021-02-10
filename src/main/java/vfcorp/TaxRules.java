@@ -399,19 +399,20 @@ public class TaxRules {
                     "vfcorp-vans-00402", "vfcorp-vans-00421", "vfcorp-vans-00480", "vfcorp-vans-00481" }));
 
     // VANS - New York - exemption is limited to clothing costing less than $110 per item or pair.
-    private static final List<String> VANS_NEW_YORK_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-321", "vfcorp-vans-322", "vfcorp-vans-330", "vfcorp-vans-358",
-                    "vfcorp-vans-365", "vfcorp-vans-425", "vfcorp-vans-458", "vfcorp-vans-459", "vfcorp-vans-460",
-                    "vfcorp-vans-464", "vfcorp-vans-479", "vfcorp-vans-493", "vfcorp-vans-550     ", "vfcorp-vans-572",
-                    "vfcorp-vans-429", "vfcorp-vans-325", "vfcorp-vans-329", "vfcorp-vans-456", "vfcorp-vans-566",
-                    "vfcorp-vans-498", "vfcorp-vans-512", "vfcorp-vans-528", "vfcorp-vans-533", "vfcorp-vans-539",
-                    "vfcorp-vans-540", "vfcorp-vans-566", "vfcorp-test-00528", "vfcorp-test-00990" }));
+    private static final List<String> VANS_NEW_YORK_STORES = new ArrayList<String>(Arrays.asList(new String[] {
+            "vfcorp-vans-00321", "vfcorp-vans-00322", "vfcorp-vans-00330", "vfcorp-vans-00358", "vfcorp-vans-00365",
+            "vfcorp-vans-00425", "vfcorp-vans-00458", "vfcorp-vans-00459", "vfcorp-vans-00460", "vfcorp-vans-00464",
+            "vfcorp-vans-00479", "vfcorp-vans-00493", "vfcorp-vans-00550", "vfcorp-vans-00572", "vfcorp-vans-00429",
+            "vfcorp-vans-00325", "vfcorp-vans-00329", "vfcorp-vans-00456", "vfcorp-vans-00566", "vfcorp-vans-00498",
+            "vfcorp-vans-00512", "vfcorp-vans-00528", "vfcorp-vans-00533", "vfcorp-vans-00539", "vfcorp-vans-00540",
+            "vfcorp-vans-00566", "vfcorp-test-00528", "vfcorp-test-00990" }));
 
     // VANS - New York - no county exemption on clothing
     private static final List<String> VANS_NEW_YORK_STORES_NON_EXEMPT = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-321", "vfcorp-vans-322", "vfcorp-vans-330", "vfcorp-vans-358",
-                    "vfcorp-vans-365", "vfcorp-vans-425", "vfcorp-vans-458", "vfcorp-vans-459", "vfcorp-vans-460",
-                    "vfcorp-vans-464", "vfcorp-vans-479", "vfcorp-vans-493", "vfcorp-vans-550", "vfcorp-vans-572" }));
+            Arrays.asList(new String[] { "vfcorp-vans-00321", "vfcorp-vans-00322", "vfcorp-vans-00330",
+                    "vfcorp-vans-00358", "vfcorp-vans-00365", "vfcorp-vans-00425", "vfcorp-vans-00458",
+                    "vfcorp-vans-00459", "vfcorp-vans-00460", "vfcorp-vans-00464", "vfcorp-vans-00479",
+                    "vfcorp-vans-00493", "vfcorp-vans-00550", "vfcorp-vans-00572" }));
 
     // VANS - Massachusetts - clothing exemption is limited to the first $175 of an article of clothing. Anything over $175 per item is taxable.
     private static final List<String> VANS_MASSACHUSETTS_STORES = new ArrayList<String>(

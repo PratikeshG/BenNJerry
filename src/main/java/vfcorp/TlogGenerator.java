@@ -2,7 +2,9 @@ package vfcorp;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,20 +13,27 @@ import java.util.Map;
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
-import org.mule.api.store.ObjectStore;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Merchant;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
 import com.squareup.connect.v2.DeviceCode;
+import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
+import com.squareup.connect.v2.SearchOrdersFilter;
+import com.squareup.connect.v2.SearchOrdersQuery;
+import com.squareup.connect.v2.SearchOrdersSort;
+import com.squareup.connect.v2.SearchOrdersStateFilter;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
+import com.squareup.connect.v2.TimeRange;
 
+import util.SequentialRecord;
+import util.SequentialRecordsApi;
 import util.SquarePayload;
 import util.TimeManager;
 
@@ -46,42 +55,43 @@ public class TlogGenerator implements Callable {
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-
-        // TODO(bhartard): Refactor these into separate, testable functions
         SquarePayload squarePayload = (SquarePayload) message.getPayload();
 
         TlogGeneratorPayload tlogGeneratorPayload = new TlogGeneratorPayload();
         tlogGeneratorPayload.setSquarePayload(squarePayload);
 
+        String locationId = squarePayload.getLocationId();
         String storeId = message.getProperty("storeId", PropertyScope.INVOCATION);
-
-        boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
-                ? true : false;
-
-        boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.INVOCATION)
-                .equals("true") ? true : false;
-
-        boolean trackPriceOverrides = message.getProperty("trackPriceOverrides", PropertyScope.INVOCATION)
-                .equals("true") ? true : false;
-
-        // Loyalty settings
-        boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
-                .equals("true") ? true : false;
-        String CUSTOMER_GROUP_EMAIL = (String) message.getProperty("customerGroupEmail", PropertyScope.INVOCATION);
-        String CUSTOMER_GROUP_NEW = (String) message.getProperty("customerGroupNew", PropertyScope.INVOCATION);
-        String CUSTOMER_GROUP_EXISTING = (String) message.getProperty("customerGroupExisting",
-                PropertyScope.INVOCATION);
 
         String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
+        String tlogType = message.getProperty("tlogType", PropertyScope.SESSION);
+
+        boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
+        boolean trackPriceOverrides = message.getProperty("trackPriceOverrides", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
         int itemNumberLookupLength = Integer
                 .parseInt(message.getProperty("itemNumberLookupLength", PropertyScope.INVOCATION));
+
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.INVOCATION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.INVOCATION));
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
-        String locationId = tlogGeneratorPayload.getSquarePayload().getLocationId();
+        boolean createCloseRecords = message.getProperty("createCloseRecords", PropertyScope.SESSION).equals("true")
+                ? true : false;
+        if (tlogType.equals("SAP")) {
+            LocalTime closeRecordsCutoff = LocalTime.parse("23:30:00");
+
+            String currentTlogTime = TimeManager
+                    .toSimpleDateTimeInTimeZone(tlogGeneratorPayload.getParams().get("end_time"), timeZone, "HH:mm:ss");
+            LocalTime currentTlogLocalTime = LocalTime.parse(currentTlogTime);
+
+            if (currentTlogLocalTime.isAfter(closeRecordsCutoff)) {
+                createCloseRecords = true;
+            }
+        }
 
         SquareClient squareV1Client = new SquareClient(
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
@@ -90,20 +100,54 @@ public class TlogGenerator implements Callable {
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey));
         squareV2Client.setLogInfo(tlogGeneratorPayload.getSquarePayload().getMerchantId() + " - " + locationId);
 
-        // Locations
-        Merchant[] locations = squareV1Client.businessLocations().list();
-        tlogGeneratorPayload.setLocations(locations);
+        Location location = squareV2Client.locations().retrieve(locationId);
+        if (location == null) {
+            return null;
+        }
 
-        // Employees
+        // Loyalty settings
+        boolean customerLoyaltyEnabled = message.getProperty("enableCustomerLoyalty", PropertyScope.INVOCATION)
+                .equals("true") ? true : false;
+        String CUSTOMER_GROUP_NEW = (String) message.getProperty("customerGroupNew", PropertyScope.INVOCATION);
+        String CUSTOMER_GROUP_EXISTING = (String) message.getProperty("customerGroupExisting",
+                PropertyScope.INVOCATION);
+
+        // Establish DB connection
         Class.forName("com.mysql.jdbc.Driver");
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        SequentialRecordsApi sequentialRecordsApi = new SequentialRecordsApi(conn);
         VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+
+        // Sequential Order Numbers
+        Map<String, Integer> nextDeviceRecordNumbers = new HashMap<String, Integer>();
+        ArrayList<Map<String, String>> records = sequentialRecordsApi.queryRecordNumbersForLocation(location.getId());
+        System.out.println("LOCATION: " + location.getId());
+        for (Map<String, String> record : records) {
+            nextDeviceRecordNumbers.put(record.get("deviceId"), Integer.parseInt(record.get("lastRecordNumber")) + 1);
+        }
+
+        // How many device codes are configured for this business?
+        int totalConfiguredDevices = 2;
+        if (deployment.contains("vans") || deployment.contains("test")) {
+            int pairedDevices = 0;
+            DeviceCode[] devices = squareV2Client.devices().list(locationId);
+
+            for (DeviceCode d : devices) {
+                if (d.getStatus().equals("PAIRED") && d.getLocationId().equals(locationId)) {
+                    pairedDevices++;
+                }
+            }
+
+            totalConfiguredDevices = pairedDevices;
+        }
+
+        // Employees
         tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
 
         // Payments
         Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
         Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
-        List<Payment> validPayments = new ArrayList<Payment>();
+        List<Payment> allPaymentsInPeriod = new ArrayList<Payment>();
         for (Payment payment : payments) {
             boolean hasValidPaymentTender = false;
 
@@ -125,10 +169,48 @@ public class TlogGenerator implements Callable {
 
             // Example: Don't process cash-only payments for this deployment's TLOGs
             if (hasValidPaymentTender) {
-                validPayments.add(payment);
+                allPaymentsInPeriod.add(payment);
             }
         }
-        tlogGeneratorPayload.setPayments(validPayments.toArray(new Payment[0]));
+
+        // Get existing record numbers for Orders
+        List<String> recordIds = new ArrayList<String>();
+
+        // get closing record for each device (more than 1)
+        String recordDate = TimeManager.toSimpleDateTimeInTimeZone(tlogGeneratorPayload.getParams().get("end_time"),
+                timeZone, "yyyy-MM-dd");
+        for (int i = 99; i > 99 - Math.max(totalConfiguredDevices, 2); i--) {
+            String closingRecordId = "close-" + locationId + "-" + recordDate + "-" + String.format("%03d", i);
+            recordIds.add(closingRecordId);
+        }
+
+        for (Payment v1P : allPaymentsInPeriod) {
+            String v2OrderId = v1P.getPaymentUrl().split("transactions/", 2)[1];
+            recordIds.add(v2OrderId);
+        }
+
+        Map<String, SequentialRecord> existingRecordNumbersByDevice = new HashMap<String, SequentialRecord>();
+        ArrayList<Map<String, String>> existingSequentialRecords = sequentialRecordsApi.queryRecordsById(recordIds);
+        for (Map<String, String> record : existingSequentialRecords) {
+            SequentialRecord sr = new SequentialRecord();
+            sr.setLocationId(record.get("locationId"));
+            sr.setRecordId(record.get("recordId"));
+            sr.setDeviceId(record.get("deviceId"));
+            sr.setRecordNumber(Integer.parseInt(record.get("recordNumber")));
+            sr.setRecordCreatedAt(record.get("recordCreatedAt"));
+
+            existingRecordNumbersByDevice.put(sr.getRecordId(), sr);
+        }
+
+        List<Payment> paymentsInPeriodToProcess = new ArrayList<Payment>();
+        for (Payment v1P : allPaymentsInPeriod) {
+            String v2OrderId = v1P.getV2OrderId();
+
+            // only process new sales (during range) for SAP trickle flows
+            if (!tlogType.equals("SAP") || !existingRecordNumbersByDevice.containsKey(v2OrderId)) {
+                paymentsInPeriodToProcess.add(v1P);
+            }
+        }
 
         // Get PCM counters
         Map<String, Integer> nextPreferredCustomerNumbers = new HashMap<String, Integer>();
@@ -141,62 +223,84 @@ public class TlogGenerator implements Callable {
             nextPreferredCustomerNumbers.put(registerId, nextNumber);
         }
 
-        // Get V2 transactions/customers
+        // Get V2 orders/customers
         Map<String, Customer> customerPaymentCache = new HashMap<String, Customer>();
         if (customerLoyaltyEnabled) {
-            // Get customer transactions
-            Map<String, String> v2Params = tlogGeneratorPayload.getParams();
-            v2Params.put("sort_order", "ASC"); // v2 default is DESC
-            Transaction[] transactions = squareV2Client.transactions().list(locationId, v2Params);
-            for (Transaction transaction : transactions) {
-                for (Tender tender : transaction.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
+            // Get customer data
 
-                        // Get customer's loyalty group status
-                        boolean loyaltyCustomer = false;
-                        if (customer.getGroups() != null) {
-                            for (CustomerGroup group : customer.getGroups()) {
-                                if (group.getId().equals(CUSTOMER_GROUP_NEW)
-                                        || group.getId().equals(CUSTOMER_GROUP_EXISTING)) {
-                                    loyaltyCustomer = true;
+            SearchOrdersQuery orderQuery = new SearchOrdersQuery();
+            SearchOrdersFilter searchFilter = new SearchOrdersFilter();
+            SearchOrdersSort searchSort = new SearchOrdersSort();
+            orderQuery.setFilter(searchFilter);
+            orderQuery.setSort(searchSort);
+
+            SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
+            stateFilter.setStates(new String[] { "COMPLETED" });
+            searchFilter.setStateFilter(stateFilter);
+
+            SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
+            TimeRange timeRange = new TimeRange();
+            timeRange.setStartAt(tlogGeneratorPayload.getParams().getOrDefault("begin_time", ""));
+            timeRange.setEndAt(tlogGeneratorPayload.getParams().getOrDefault("end_time", ""));
+            dateFilter.setClosedAt(timeRange);
+            searchFilter.setDateTimeFilter(dateFilter);
+
+            searchSort.setSortField("CLOSED_AT");
+            searchSort.setSortOrder("ASC");
+
+            List<Order> v2Orders = Arrays.asList(squareV2Client.orders().search(location.getId(), orderQuery));
+
+            for (Order order : v2Orders) {
+                if (order.getTenders() != null) {
+                    for (Tender tender : order.getTenders()) {
+                        if (tender.getCustomerId() != null) {
+                            Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
+
+                            // Get customer's loyalty group status
+                            boolean loyaltyCustomer = false;
+                            if (customer.getGroups() != null) {
+                                for (CustomerGroup group : customer.getGroups()) {
+                                    if (group.getId().equals(CUSTOMER_GROUP_NEW)
+                                            || group.getId().equals(CUSTOMER_GROUP_EXISTING)) {
+                                        loyaltyCustomer = true;
+                                    }
                                 }
                             }
-                        }
 
-                        boolean customerProvidedEmail = customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0;
-                        boolean customerProvidedPhone = customer.getPhoneNumber() != null
-                                && customer.getPhoneNumber().length() > 0;
+                            boolean customerProvidedEmail = customer.getEmailAddress() != null
+                                    && customer.getEmailAddress().length() > 0;
+                            boolean customerProvidedPhone = customer.getPhoneNumber() != null
+                                    && customer.getPhoneNumber().length() > 0;
 
-                        /*
-                         * Set preferredCustomerId (if necessary)
-                         *
-                         * Square currently only returns a customer record when
-                         * the merchant adds the customer to the sale. This
-                         * could possible change in the future, so may need to
-                         * verify they are on the transactions as a loyalty
-                         * customer. For now, we are just going to verify the
-                         * customer has provided an email
-                         */
-                        if ((customerProvidedEmail || customerProvidedPhone) && (customer.getReferenceId() == null
-                                || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
-                            String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
-                                    paymentsCache.get(tender.getId()), storeId);
+                            /*
+                             * Set preferredCustomerId (if necessary)
+                             *
+                             * Square currently only returns a customer record when
+                             * the merchant adds the customer to the sale. This
+                             * could possible change in the future, so may need to
+                             * verify they are on the transactions as a loyalty
+                             * customer. For now, we are just going to verify the
+                             * customer has provided an email
+                             */
+                            if ((customerProvidedEmail || customerProvidedPhone) && (customer.getReferenceId() == null
+                                    || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
+                                String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
+                                        paymentsCache.get(tender.getId()), storeId);
 
-                            customer.setReferenceId(newId);
-                            customer = squareV2Client.customers().update(customer);
+                                customer.setReferenceId(newId);
+                                customer = squareV2Client.customers().update(customer);
 
-                            System.out.println("New Customer ID: " + customer.getReferenceId());
-                        }
+                                System.out.println("New Customer ID: " + customer.getReferenceId());
+                            }
 
-                        // For now, we only track the customer if they have
-                        // provided an email address or phone number
-                        if (customerProvidedEmail || customerProvidedPhone) {
-                            customer.setCompanyName(loyaltyCustomer ? "1" : "0");
+                            // For now, we only track the customer if they have
+                            // provided an email address or phone number
+                            if (customerProvidedEmail || customerProvidedPhone) {
+                                customer.setCompanyName(loyaltyCustomer ? "1" : "0");
 
-                            customerPaymentCache.put(tender.getId(), customer);
-                            customerPaymentCache.put(tender.getTransactionId(), customer);
+                                customerPaymentCache.put(tender.getId(), customer);
+                                customerPaymentCache.put(tender.getTransactionId(), customer);
+                            }
                         }
                     }
                 }
@@ -209,54 +313,29 @@ public class TlogGenerator implements Callable {
                 PropertyScope.INVOCATION);
         message.setProperty("preferredCustomerSQLStatement", sqlUpdate, PropertyScope.INVOCATION);
 
-        Merchant matchingMerchant = null;
-        for (Merchant merchant : tlogGeneratorPayload.getLocations()) {
-            if (merchant.getId().equals(tlogGeneratorPayload.getSquarePayload().getLocationId())) {
-                matchingMerchant = merchant;
-            }
-        }
+        Tlog tlog = new Tlog();
+        tlog.setNextRecordNumbers(nextDeviceRecordNumbers);
+        tlog.setRecordNumberCache(existingRecordNumbersByDevice);
+        tlog.setItemNumberLookupLength(itemNumberLookupLength);
+        tlog.setDeployment(deployment);
+        tlog.setTimeZoneId(timeZone);
+        tlog.setType(tlogType);
+        tlog.trackPriceOverrides(trackPriceOverrides);
+        tlog.createCloseRecords(createCloseRecords);
+        tlog.setTotalConfiguredDevices(totalConfiguredDevices);
 
-        if (matchingMerchant != null) {
+        tlog.parse(location, allPaymentsInPeriod.toArray(new Payment[0]),
+                paymentsInPeriodToProcess.toArray(new Payment[0]), tlogGeneratorPayload.getEmployees(),
+                tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
 
-            // How many device codes are configured for this business?
-            int totalConfiguredDevices = 2;
-            if (deployment.contains("vans") || deployment.contains("test")) {
-                int pairedDevices = 0;
-                DeviceCode[] devices = squareV2Client.devices().list(locationId);
+        message.setProperty("vfcorpStoreNumber", Util.getStoreNumber(location.getName()), PropertyScope.INVOCATION);
+        message.setProperty("tlog", tlog.toString(), PropertyScope.INVOCATION);
 
-                for (DeviceCode d : devices) {
-                    if (d.getStatus().equals("PAIRED") && d.getLocationId().equals(locationId)) {
-                        pairedDevices++;
-                    }
-                }
+        List<SequentialRecord> srs = new ArrayList<SequentialRecord>(tlog.getRecordNumberCache().values());
+        sequentialRecordsApi.updateRecordNumbersForLocation(srs, location.getId());
+        sequentialRecordsApi.close();
 
-                totalConfiguredDevices = pairedDevices;
-            }
-
-            String deploymentId = (String) message.getProperty("deploymentId", PropertyScope.SESSION) + 1;
-
-            Tlog tlog = new Tlog();
-            tlog.setItemNumberLookupLength(itemNumberLookupLength);
-            tlog.setDeployment(deploymentId);
-            tlog.setTimeZoneId(timeZone);
-            tlog.setIsStoreforceTrickle(isStoreforceTrickle);
-            tlog.trackPriceOverrides(trackPriceOverrides);
-            tlog.setTotalConfiguredDevices(totalConfiguredDevices);
-
-            // Get Cloudhub default object store
-            ObjectStore<String> objectStore = eventContext.getMuleContext().getRegistry()
-                    .lookupObject("_defaultUserObjectStore");
-            tlog.setObjectStore(objectStore);
-
-            tlog.parse(matchingMerchant, tlogGeneratorPayload.getPayments(), tlogGeneratorPayload.getEmployees(),
-                    tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
-
-            message.setProperty("vfcorpStoreNumber",
-                    Util.getStoreNumber(matchingMerchant.getLocationDetails().getNickname()), PropertyScope.INVOCATION);
-            message.setProperty("tlog", tlog.toString(), PropertyScope.INVOCATION);
-        }
-
-        return null;
+        return true;
     }
 
     private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,

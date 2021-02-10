@@ -219,8 +219,8 @@ public class GenerateLocationTlogCallable implements Callable {
         if (orderIds.size() > 0) {
             ArrayList<Map<String, String>> existingOrderRecords = databaseApi.queryOrdersById(orderIds);
             for (Map<String, String> orderRecord : existingOrderRecords) {
-                existingTransactionNumbers.put(orderRecord.get("orderId"),
-                        Integer.parseInt(orderRecord.get("orderNumber")));
+                existingTransactionNumbers.put(orderRecord.get("recordId"),
+                        Integer.parseInt(orderRecord.get("recordNumber")));
             }
         }
 
