@@ -27,6 +27,5 @@
 	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
 	<classpathentry kind="lib" path="resources/commons-csv-1.5.jar"/>
-	<classpathentry kind="src" path="/migrations"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
