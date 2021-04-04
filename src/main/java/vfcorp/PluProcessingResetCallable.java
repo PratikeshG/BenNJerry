@@ -73,7 +73,7 @@ public class PluProcessingResetCallable implements Callable {
             channel.cd(deployment.getPluPath());
 
             Vector<LsEntry> processingFiles = channel
-                    .ls(String.format("%s/*_plu.chg*", Constants.PROCESSING_DIRECTORY));
+                    .ls(String.format("%s/%s_*", Constants.PROCESSING_DIRECTORY, deployment.getStoreId()));
             for (ChannelSftp.LsEntry entry : processingFiles) {
                 logger.info(String.format("Found stale PLU file for deployment %s: %s", entry.getFilename(),
                         deployment.getDeployment()));
@@ -90,7 +90,7 @@ public class PluProcessingResetCallable implements Callable {
         String processingPath = String.format("%s/%s/%s", deployment.getPluPath(), Constants.PROCESSING_DIRECTORY,
                 processingFile);
         String requeuePath = String.format("%s/%s", deployment.getPluPath(),
-                processingFile.split(Constants.PROCESSING_FILE_DELIMITER, 2)[1]);
+                processingFile.split(Constants.PROCESSING_FILE_DELIMITER, 3)[2]);
 
         channel.rename(processingPath, requeuePath);
     }

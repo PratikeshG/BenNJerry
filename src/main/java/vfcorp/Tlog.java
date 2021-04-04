@@ -408,6 +408,7 @@ public class Tlog {
 
             // already processed this closing record, don't include in trickle TLOG
             if (type.equals("SAP") && recordNumberCache.containsKey(closingRecordId)) {
+                logger.debug("Skipping closing records for TLOG " + closingRecordId);
                 continue;
             }
 

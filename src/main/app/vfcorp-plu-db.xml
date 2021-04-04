@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -25,7 +25,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     <quartz:connector name="Quartz-VFO-plu" validateConnections="true" doc:name="Quartz"/>
     <quartz:connector name="Quartz-VFC-plu-whitelist" validateConnections="true" doc:name="Quartz"/>
     <flow name="VFC:plu-sftp-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636323" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-VFC-plu">
+        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490636399" cronExpression="0 0/15 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 15 minutes" connector-ref="Quartz-VFC-plu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <component doc:name="Check deployment SFTP folders for PLU files">

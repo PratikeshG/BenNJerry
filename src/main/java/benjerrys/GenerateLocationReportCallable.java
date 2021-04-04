@@ -235,7 +235,7 @@ public class GenerateLocationReportCallable implements Callable {
     }
 
     private boolean employeeAtLocation(Employee employee, Location location) {
-        if (employee.getAuthorizedLocationIds() != null) {
+        if (employee != null && employee.getAuthorizedLocationIds() != null) {
             for (String authorizedLocationId : employee.getAuthorizedLocationIds()) {
                 if (authorizedLocationId.equals(location.getId())) {
                     return true;

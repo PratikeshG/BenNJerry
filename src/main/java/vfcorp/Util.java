@@ -171,4 +171,11 @@ public class Util {
         }
         return itemization.getSingleQuantityMoney().getAmount();
     }
+
+    public static boolean isVansDeployment(String deployment) {
+        if (deployment.contains("vans") || deployment.contains("test")) {
+            return true;
+        }
+        return false;
+    }
 }

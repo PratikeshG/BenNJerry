@@ -605,10 +605,20 @@ public class GenerateLocationTlogCallable implements Callable {
         return false;
     }
 
+    private boolean returnLineItemIsDonation(OrderReturnLineItem lineItem) {
+        if (lineItem.getName() != null && lineItem.getName().toLowerCase().contains("family donation")) {
+            return true;
+        }
+
+        return false;
+    }
+
     private String getReturnLineCode(OrderReturnLineItem lineItem) {
         // "11"=Return; "14"=EmployeeReturn
         if (lineItemReturnHasEmployeeDiscount(lineItem)) {
             return "14";
+        } else if (returnLineItemIsDonation(lineItem)) {
+            return "DO";
         }
         return "11";
     }

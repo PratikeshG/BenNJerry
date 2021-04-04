@@ -14,6 +14,8 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.Payment;
@@ -52,6 +54,8 @@ public class TlogGenerator implements Callable {
     @Value("${mysql.password}")
     private String databasePassword;
 
+    private static Logger logger = LoggerFactory.getLogger(TlogGenerator.class);
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -82,13 +86,15 @@ public class TlogGenerator implements Callable {
         boolean createCloseRecords = message.getProperty("createCloseRecords", PropertyScope.SESSION).equals("true")
                 ? true : false;
         if (tlogType.equals("SAP")) {
-            LocalTime closeRecordsCutoff = LocalTime.parse("23:30:00");
+            LocalTime closeRecordsCutoff = LocalTime.parse("23:00:00");
 
             String currentTlogTime = TimeManager
                     .toSimpleDateTimeInTimeZone(tlogGeneratorPayload.getParams().get("end_time"), timeZone, "HH:mm:ss");
             LocalTime currentTlogLocalTime = LocalTime.parse(currentTlogTime);
 
             if (currentTlogLocalTime.isAfter(closeRecordsCutoff)) {
+                logger.debug("createCloseRecords TRUE -- Overriding and creating closing records for TLOG eod time "
+                        + currentTlogTime + " - " + deployment);
                 createCloseRecords = true;
             }
         }

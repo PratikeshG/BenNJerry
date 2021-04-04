@@ -12,6 +12,8 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -35,6 +37,8 @@ public class TlogUploadToSftpCallable implements Callable {
     private static final String VANS_SAP_TLOG_PREFIX = "SA";
     private static final String VANS_SAP_TLOG_DATE = "MMddyyyyHHmmss";
     private static final String VANS_SAP_TLOG_SUFFIX = ".vans_us.Processed";
+
+    private static Logger logger = LoggerFactory.getLogger(TlogUploadToSftpCallable.class);
 
     @Value("${vfcorp.sftp.host}")
     private String sftpHost;
@@ -140,8 +144,11 @@ public class TlogUploadToSftpCallable implements Callable {
                 sftpChannel.put(archiveUploadStream, archiveFilename, ChannelSftp.OVERWRITE);
             }
         } else if (tlogType.equals("SAP")) {
+            logger.debug(deployment + ": tlogType is SAP");
+
             // Skip SAP trickle when there is no new transactions
             if (tlog.length() < 1) {
+                logger.debug(deployment + ": tlogType EMPTY - skipping");
                 return tlog;
             }
 
