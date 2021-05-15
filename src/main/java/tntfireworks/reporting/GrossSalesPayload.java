@@ -59,9 +59,9 @@ public class GrossSalesPayload extends TntReportLocationPayload {
     protected int avgDailyGross;
     protected int avgSeasonGross;
 
-    public GrossSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
+    public GrossSalesPayload(String timeZone, int offset, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
             throws ParseException {
-        super(timeZone, locationDetails, GROSS_SALES_FILE_HEADER);
+        super(timeZone, offset, locationDetails, GROSS_SALES_FILE_HEADER);
         // init report values
         this.dailyGrossSales = 0;
         this.seasonGrossSales = 0;

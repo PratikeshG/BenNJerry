@@ -10,6 +10,7 @@ public class SquarePayload implements Serializable {
     private String locationId;
     private String encryptedAccessToken;
     private String merchantAlias;
+    private String startOfSeason;
     private boolean legacySingleLocationSquareAccount;
 
     public String getMerchantId() {
@@ -42,6 +43,14 @@ public class SquarePayload implements Serializable {
 
     public void setMerchantAlias(String merchantAlias) {
         this.merchantAlias = merchantAlias;
+    }
+
+    public String getStartOfSeason() {
+    	return startOfSeason;
+    }
+
+    public void setStartOfSeason(String startOfSeason) {
+    	this.startOfSeason = startOfSeason;
     }
 
     public boolean isLegacySingleLocationSquareAccount() {

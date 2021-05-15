@@ -46,9 +46,9 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     private String dailySalesDate;
 
     // ItemSalesPayload represent item sales for a single Square location
-    public ItemSalesPayload(String timeZone, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
+    public ItemSalesPayload(String timeZone, int offset, Map<String, String> dayTimeInterval, TntLocationDetails locationDetails)
             throws ParseException {
-        super(timeZone, locationDetails, ITEM_SALES_FILE_HEADER);
+        super(timeZone, offset, locationDetails, ITEM_SALES_FILE_HEADER);
         this.itemSalesPayloadEntries = new HashMap<String, ItemSalesPayloadEntry>();
         this.dayTimeInterval = dayTimeInterval;
         this.dailySalesDate = getDailySalesDate();

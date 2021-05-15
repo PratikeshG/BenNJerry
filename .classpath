@@ -8,9 +8,8 @@
 	<classpathentry kind="src" output="target/test-classes" path="src/test/resources"/>
 	<classpathentry kind="src" path="src/main/api"/>
 	<classpathentry exported="true" kind="lib" path="resources/mysql-connector-java-5.0.8-bin.jar"/>
-	<classpathentry exported="true" kind="con" path="MULE_LIB/ObjectStore/org.mule.tooling.ui.contribution.objectstore"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/connect-v1-java-sdk"/>
-	<classpathentry kind="con" path="MULE_LIB/Secure Property Placeholder/org.mule.tooling.ui.contribution.secure-property-placeholder.3.5.0"/>
+	<classpathentry kind="con" path="MULE_LIB/Secure Property Placeholder/org.mule.tooling.ui.contribution.secure-property-placeholder.3.6.0"/>
 	<classpathentry exported="true" kind="con" path="MULE_LIB/Amazon S3/org.mule.tooling.ui.contribution.s3.3.5.0"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/square-connect-v2-java-sdk"/>
 	<classpathentry kind="lib" path="resources/hibernate-validator-4.3.2.Final.jar"/>
@@ -23,9 +22,10 @@
 	<classpathentry kind="lib" path="resources/google-oauth-client-1.22.0.jar"/>
 	<classpathentry kind="lib" path="resources/jsr305-1.3.9.jar"/>
 	<classpathentry kind="lib" path="resources/google-http-client-jackson2-1.22.0.jar"/>
-	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.8.0.ee"/>
+	<classpathentry kind="lib" path="resources/commons-csv-1.5.jar"/>
+	<classpathentry kind="con" path="MULE_LIB/Amazon SQS/org.mule.tooling.ui.contribution.sqs.3.5.0"/>
+	<classpathentry kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.9.0.ee"/>
 	<classpathentry kind="con" path="MUNIT_RUNTIME"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/munit"/>
-	<classpathentry kind="lib" path="resources/commons-csv-1.5.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

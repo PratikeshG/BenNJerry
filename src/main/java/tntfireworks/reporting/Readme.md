@@ -38,7 +38,7 @@ Each row in the file represents a single transaction and is associated with a tr
 
 Report 5 and 6 were merged into one report. Report 5 initially contained aggregate daily and "YTD" seasonal credit card sales information per location. Report 6 was the same report, but included cash sales information. 
 
-Report 5 now contains columns for both 1) credit card sales and 2) credit card + cash sales.  Each row in the report represents aggregate sales for a single location. The season range is determined as the period between the current date for the report (unless explicitly set elsewhere) and the set start date for the season as defined in tntfireworks.reporting.properties file as 'startOfSeason'. In order to calculate the seasonal sales amount for each location, payment and transaction data is pulled for the entire season range.
+Report 5 now contains columns for both 1) credit card sales and 2) credit card + cash sales.  Each row in the report represents aggregate sales for a single location. The season range is determined as the period between the current date for the report (unless explicitly set elsewhere) and the set start date for the season as defined in the tntfireworks_deployments table as 'startOfSeason'. In order to calculate the seasonal sales amount for each location, payment and transaction data is pulled for the entire season range.
 
 #### Report 7 - "Item Sales Report" - Emailed daily
 
@@ -54,4 +54,4 @@ A "load number" is also set each season with a starting value of 1 and stored in
 
 #### Report 9 - "Gross Sales Report" - Emailed daily
 
-Report 9 contains columns for both daily and seasonal gross sales (TNT defines gross sales as sales amount before discounts and taxes. Each row in the report represents sales for a single location. The season range is determined as the period between the current date for the report (unless explicitly set elsewhere) and the set start date for the season as defined in tntfireworks.reporting.properties file as 'startOfSeason'. In order to calculate the seasonal gross sales amount for each location, payment and transaction data is pulled for the entire season range.
+Report 9 contains columns for both daily and seasonal gross sales (TNT defines gross sales as sales amount before discounts and taxes. Each row in the report represents sales for a single location. The season range is determined as the period between the current date for the report (unless explicitly set elsewhere) and the set start date for the season as defined in the tntfireworks_deployments table as 'startOfSeason'. In order to calculate the seasonal gross sales amount for each location, payment and transaction data is pulled for the entire season range.

@@ -15,7 +15,8 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-        int reportType = Integer.parseInt(message.getProperty("reportType", PropertyScope.SESSION));
+        String adhoc = message.getProperty("adhoc", PropertyScope.SESSION);
+        int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
 
         logger.info("Aggregate settlements report payloads...");
         // build report from payloads
@@ -45,6 +46,11 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
 
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
+
+        // if ad-hoc run, store report on SFTP in adhoc directory
+        if (adhoc.equals("TRUE")) {
+        	return storeReport(reportName, generatedReport,TntReportAggregator.ADHOC_DIRECTORY);
+        }
 
         return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }

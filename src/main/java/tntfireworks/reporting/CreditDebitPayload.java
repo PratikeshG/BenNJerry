@@ -40,8 +40,8 @@ public class CreditDebitPayload extends TntReportLocationPayload {
     private int achAmt;
     private String achDate;
 
-    public CreditDebitPayload(String timeZone, int loadNumber, TntLocationDetails locationDetails) {
-        super(timeZone, locationDetails, CREDIT_DEBIT_FILE_HEADER);
+    public CreditDebitPayload(String timeZone, int offset, int loadNumber, TntLocationDetails locationDetails) {
+        super(timeZone, offset, locationDetails, CREDIT_DEBIT_FILE_HEADER);
 
         // initialize values that are currently static
         // (may change in the future depending on TNT requirements)

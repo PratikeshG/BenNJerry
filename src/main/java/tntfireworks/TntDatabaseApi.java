@@ -52,6 +52,8 @@ public class TntDatabaseApi {
     public static final String DB_DEPLOYMENT_DEPLOYMENT_COLUMN = "deployment";
     public static final String DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN = "enableReporting";
     public static final String DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN = "enableCatalogSync";
+    public static final String DB_DEPLOYMENT_ENABLE_ADHOC_COLUMN = "enableAdHoc";
+    public static final String DB_DEPLOYMENT_SEASON_DATE_COLUMN = "startOfSeason";
 
     // token DB constants
     public static final String DB_TOKEN_DEPLOYMENT_COLUMN = "deployment";
@@ -111,8 +113,8 @@ public class TntDatabaseApi {
 
     public String generateDeploymentSQLSelect(String whereFilter) {
         // initialize SQL statement components
-        String selectColumns = String.format("%s, %s, %s", DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN,
-                DB_TOKEN_MERCHANT_ID_COLUMN, DB_TOKEN_MERCHANT_ALIAS_COLUMN);
+        String selectColumns = String.format("%s, %s, %s, %s", DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN,
+                DB_TOKEN_MERCHANT_ID_COLUMN, DB_TOKEN_MERCHANT_ALIAS_COLUMN, DB_DEPLOYMENT_SEASON_DATE_COLUMN);
         String leftTable = DB_DEPLOYMENT;
         String rightTable = DB_TOKEN;
         String leftJoinColumn = String.format("%s.%s", DB_DEPLOYMENT, DB_DEPLOYMENT_DEPLOYMENT_COLUMN);

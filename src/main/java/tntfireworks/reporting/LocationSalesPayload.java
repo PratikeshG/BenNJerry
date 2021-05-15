@@ -38,9 +38,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     private int creditTotalSales;
     private int cashTotalSales;
 
-    public LocationSalesPayload(String timeZone, Map<String, String> dayTimeInterval,
+    public LocationSalesPayload(String timeZone, int offset, Map<String, String> dayTimeInterval,
             TntLocationDetails locationDetails) {
-        super(timeZone, locationDetails, LOCATION_SALES_FILE_HEADER);
+        super(timeZone, offset, locationDetails, LOCATION_SALES_FILE_HEADER);
         this.dayTimeInterval = dayTimeInterval;
         this.creditDailySales = 0;
         this.creditTotalSales = 0;

@@ -17,19 +17,20 @@ public abstract class TntReportLocationPayload {
     private String payloadHeader;
     protected TntLocationDetails locationDetails;
 
-    public TntReportLocationPayload(String timeZone, String dateFormat, TntLocationDetails locationDetails,
+    public TntReportLocationPayload(String timeZone, int offset, String dateFormat, TntLocationDetails locationDetails,
             String payloadHeader) {
         this.payloadHeader = payloadHeader;
         this.locationDetails = locationDetails;
-        this.payloadDate = setPayloadDate(timeZone, dateFormat);
+        this.payloadDate = setPayloadDate(timeZone, dateFormat, offset);
     }
 
-    public TntReportLocationPayload(String timeZone, TntLocationDetails locationDetails, String payloadHeader) {
-        this(timeZone, DEFAULT_DATE_FORMAT, locationDetails, payloadHeader);
+    public TntReportLocationPayload(String timeZone, int offset, TntLocationDetails locationDetails, String payloadHeader) {
+        this(timeZone, offset, DEFAULT_DATE_FORMAT, locationDetails, payloadHeader);
     }
 
-    public String setPayloadDate(String timeZone, String dateFormat) {
+    public String setPayloadDate(String timeZone, String dateFormat, int offset) {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
+        cal.add(Calendar.DATE, -offset);
         String payloadDate;
         try {
             payloadDate = TimeManager.toSimpleDateTimeInTimeZone(cal, timeZone, dateFormat);
@@ -43,6 +44,10 @@ public abstract class TntReportLocationPayload {
 
     public String getPayloadDate() {
         return payloadDate;
+    }
+
+    public void setPayloadDate(String payloadDate) {
+    	this.payloadDate = payloadDate;
     }
 
     public String getPayloadHeader() {
