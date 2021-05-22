@@ -5,9 +5,10 @@ import javax.validation.constraints.Size;
 
 public class CsvInventoryAdjustment extends CsvRow {
 
-    public static final String HEADER_ROW = "Revenue Business Unit,Business Unit,Loc No,Address Number,Alpha Name,Item No,Description,UPC Code,Pkg,Ship Condition,QTY Adjustment,Selling UOM,UM,Order Amount,Primary DG,CsCv,S/O Season,LT,QTY Reset,Reset";
-    public static final int HEADER_LENGTH = 20;
+    public static final String HEADER_ROW = "Revenue Business Unit,Business Unit,Loc No,Address Number,Alpha Name,Item No,Description,UPC Code,Pkg,Ship Condition,QTY Adjustment,Selling UOM,UM,Order Amount,Primary DG,CsCv,S/O Season,LT,QTY Reset,Reset,Change Date";
+    public static final int HEADER_LENGTH = 21;
 
+    private String id;
     private String rbu;
     private String bu;
     @Size(min = 1)
@@ -15,8 +16,6 @@ public class CsvInventoryAdjustment extends CsvRow {
     private String locationNum;
     private String address;
     private String alphaName;
-    @Size(min = 1)
-    @NotNull
     private String itemNum;
     private String description;
     @Size(min = 1)
@@ -24,6 +23,8 @@ public class CsvInventoryAdjustment extends CsvRow {
     private String upc;
     private String pkg;
     private String shipCondition;
+    @Size(min = 1)
+    @NotNull
     private String qtyAdj;
     private String sellingUom;
     private String um;
@@ -32,10 +33,36 @@ public class CsvInventoryAdjustment extends CsvRow {
     private String cscv;
     private String soSeason;
     private String lt;
-    @Size(min = 1)
-    @NotNull
     private String qtyReset;
     private String reset;
+    @Size(min = 1)
+    @NotNull
+    private String changeDate;
+
+    public CsvInventoryAdjustment() {
+        id = "";
+        rbu = "";
+        bu = "";
+        locationNum = "";
+        address = "";
+        alphaName = "";
+        itemNum = "";
+        description = "";
+        upc = "";
+        pkg = "";
+        shipCondition = "";
+        qtyAdj = "";
+        sellingUom = "";
+        um = "";
+        orderAmt = "";
+        primaryDg = "";
+        cscv = "";
+        soSeason = "";
+        lt = "";
+        qtyReset = "";
+        reset = "";
+        changeDate = "";
+    }
 
     public CsvInventoryAdjustment(String[] inventoryFields) {
         if (inventoryFields.length != HEADER_LENGTH) {
@@ -49,6 +76,7 @@ public class CsvInventoryAdjustment extends CsvRow {
         }
 
         // initialize class values
+        id = "";
         rbu = inventoryFields[0];
         bu = inventoryFields[1];
         locationNum = inventoryFields[2];
@@ -69,6 +97,15 @@ public class CsvInventoryAdjustment extends CsvRow {
         lt = inventoryFields[17];
         qtyReset = inventoryFields[18];
         reset = inventoryFields[19];
+        changeDate = inventoryFields[20];
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getRbu() {
@@ -229,5 +266,13 @@ public class CsvInventoryAdjustment extends CsvRow {
 
     public void setReset(String reset) {
         this.reset = reset;
+    }
+
+    public String getChangeDate() {
+        return changeDate;
+    }
+
+    public void setChangeDate(String changeDate) {
+        this.changeDate = changeDate;
     }
 }

@@ -34,14 +34,22 @@ public class DatabaseToSquareCallable implements Callable {
 
         HashMap<String, String> locationMarketingPlanCache = getSessionProperty("locationMarketingPlanCache", message);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = getSessionProperty("marketingPlanItemsCache", message);
+        HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache = getSessionProperty(
+                "inventoryAdjustmentsCache", message);
         SquarePayload deployment = (SquarePayload) message.getPayload();
 
+        // perform catalog pricing updates
         logger.info(String.format("Begin processing Catalog API updates for merchant token: %s",
                 deployment.getMerchantId()));
-
-        syncronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
-
+        synchronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
         logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
+                deployment.getMerchantId()));
+
+        // perform inventory updates
+        logger.info(String.format("Begin processing Inventory Adjustment updates for merchant token: %s",
+                deployment.getMerchantId()));
+        synchronizeInventoryAdjustmentsForDeployment(deployment, inventoryAdjustmentsCache);
+        logger.info(String.format("Done processing Inventory Adjustment updates for merchant token: %s",
                 deployment.getMerchantId()));
 
         return deployment;
@@ -57,10 +65,9 @@ public class DatabaseToSquareCallable implements Callable {
      * This is done in three operations - batch upserting categories, batch upserting items, and finally removing items
      * not present at any location for this deployment
      */
-    public void syncronizeItemsAndCategoriesForDeployment(SquarePayload deployment,
+    public void synchronizeItemsAndCategoriesForDeployment(SquarePayload deployment,
             HashMap<String, String> locationMarketingPlanCache,
             HashMap<String, List<CsvItem>> marketingPlanItemsCache) {
-
         Preconditions.checkNotNull(deployment);
         Preconditions.checkNotNull(locationMarketingPlanCache);
         Preconditions.checkNotNull(marketingPlanItemsCache);
@@ -72,5 +79,15 @@ public class DatabaseToSquareCallable implements Callable {
         tntCatalogApi.batchUpsertCategoriesFromDatabaseToSquare();
         tntCatalogApi.batchUpsertItemsIntoCatalog();
         tntCatalogApi.removeItemsNotPresentAtAnyLocations();
+    }
+
+    public void synchronizeInventoryAdjustmentsForDeployment(SquarePayload deployment,
+            HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache) {
+        Preconditions.checkNotNull(deployment);
+
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
+        clientV2.setLogInfo(deployment.getMerchantId());
+        TntInventoryApi tntInventoryApi = new TntInventoryApi(clientV2);
+        tntInventoryApi.batchUpsertInventoryChangesFromDb(inventoryAdjustmentsCache);
     }
 }

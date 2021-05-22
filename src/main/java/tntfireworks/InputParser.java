@@ -343,8 +343,8 @@ public class InputParser {
 
         if (adjustments.size() > 0) {
             updateStatement = "INSERT INTO tntfireworks_inventory (rbu, bu, locationNum, address, alphaName, itemNum, description, upc, pkg,"
-                    + "shipCondition, qtyAdj, sellingUom, um, orderAmt, primaryDg, cscv, soSeason, lt, qtyReset, reset) VALUES ";
-            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+                    + "shipCondition, qtyAdj, sellingUom, um, orderAmt, primaryDg, cscv, soSeason, lt, qtyReset, reset, changeDate) VALUES ";
+            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
 
             ArrayList<String> updates = new ArrayList<String>();
             for (CsvInventoryAdjustment adjustment : adjustments) {
@@ -353,7 +353,8 @@ public class InputParser {
                         adjustment.getItemNum(), adjustment.getDescription(), adjustment.getUpc(), adjustment.getPkg(),
                         adjustment.getShipCondition(), adjustment.getQtyAdj(), adjustment.getSellingUom(),
                         adjustment.getUm(), adjustment.getOrderAmt(), adjustment.getPrimaryDg(), adjustment.getCsCv(),
-                        adjustment.getSoSeason(), adjustment.getLt(), adjustment.getQtyReset(), adjustment.getReset()));
+                        adjustment.getSoSeason(), adjustment.getLt(), adjustment.getQtyReset(), adjustment.getReset(),
+                        adjustment.getChangeDate()));
             }
 
             updateStatement = appendWithListIterator(updateStatement, updates);
