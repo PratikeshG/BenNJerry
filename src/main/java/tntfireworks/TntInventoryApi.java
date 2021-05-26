@@ -84,6 +84,7 @@ public class TntInventoryApi {
     }
 
     public void batchUpsertInventoryAdjustmentsToSquare(ArrayList<InventoryChange> changes) {
+        logger.info(logString("NUMBER OF INVENTORY CHANGES TO BE SUBMITTED: " + changes.size()));
         try {
             logger.info(logString("Submitting inventory changes to Square..."));
             clientV2.inventory().batchChangeInventory(changes.toArray(new InventoryChange[0]));
@@ -121,7 +122,9 @@ public class TntInventoryApi {
             // skip location if no adjustments found in inventory adjustment entries from DB
             if (hasAdjustments(adjustments)) {
                 if (isValidLocation(tntLocationNum)) {
-                    changes = getInventoryChangesForLocation(location, adjustments);
+                    logger.info(logString(
+                            "LocationNum " + tntLocationNum + " expecting " + adjustments.size() + " adjustments."));
+                    changes.addAll(getInventoryChangesForLocation(location, adjustments));
                 }
             }
         }
@@ -142,7 +145,9 @@ public class TntInventoryApi {
                 if (hasValidItemVariation(item)) {
                     CatalogObject variation = item.getItemData().getVariations()[0];
                     if (variationIsPresentAtLocation(location, variation.getPresentAtLocationIds())) {
-                        // update item varition for inventory tracking
+                        logger.info(logString(
+                                "Found matching item variation for inventory adjustment: " + variation.getId()));
+                        // update item variation for inventory tracking
                         variation.getItemVariationData().setTrackInventory(true);
                         // create inventory change
                         InventoryAdjustment adjustment = createInventoryAdjustment(location.getId(), variation.getId(),
@@ -153,6 +158,8 @@ public class TntInventoryApi {
             }
         }
 
+        logger.info(logString(
+                "Returning " + changes.size() + " number of inventory changes for location " + location.getId()));
         return changes;
     }
 
@@ -172,6 +179,7 @@ public class TntInventoryApi {
 
     private InventoryAdjustment createInventoryAdjustment(String locationId, String variationId,
             CsvInventoryAdjustment csvAdjustment) {
+        // only support positive adjustments for now
         InventoryAdjustment adjustment = new InventoryAdjustment();
         adjustment.setFrom_state("NONE");
         adjustment.setTo_state("IN_STOCK");
@@ -183,6 +191,7 @@ public class TntInventoryApi {
     }
 
     private String getCurrentTimeStamp() {
+        // RFC3339 Format
         return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(new Date());
     }
 

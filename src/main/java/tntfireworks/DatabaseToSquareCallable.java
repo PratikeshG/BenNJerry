@@ -36,21 +36,26 @@ public class DatabaseToSquareCallable implements Callable {
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = getSessionProperty("marketingPlanItemsCache", message);
         HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache = getSessionProperty(
                 "inventoryAdjustmentsCache", message);
+        String syncType = getSessionProperty("syncType", message);
         SquarePayload deployment = (SquarePayload) message.getPayload();
 
-        // perform catalog pricing updates
-        logger.info(String.format("Begin processing Catalog API updates for merchant token: %s",
-                deployment.getMerchantId()));
-        synchronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
-        logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
-                deployment.getMerchantId()));
+        if (syncType.equals(TntCatalogSyncDeploymentsCallable.SYNC_TYPE_CATALOG)) {
+            // perform catalog pricing updates
+            logger.info(String.format("Begin processing Catalog API updates for merchant token: %s",
+                    deployment.getMerchantId()));
+            synchronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
+            logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
+                    deployment.getMerchantId()));
+        }
 
-        // perform inventory updates
-        logger.info(String.format("Begin processing Inventory Adjustment updates for merchant token: %s",
-                deployment.getMerchantId()));
-        synchronizeInventoryAdjustmentsForDeployment(deployment, inventoryAdjustmentsCache);
-        logger.info(String.format("Done processing Inventory Adjustment updates for merchant token: %s",
-                deployment.getMerchantId()));
+        if (syncType.equals(TntCatalogSyncDeploymentsCallable.SYNC_TYPE_INVENTORY)) {
+            // perform inventory updates
+            logger.info(String.format("Begin processing Inventory Adjustment updates for merchant token: %s",
+                    deployment.getMerchantId()));
+            synchronizeInventoryAdjustmentsForDeployment(deployment, inventoryAdjustmentsCache);
+            logger.info(String.format("Done processing Inventory Adjustment updates for merchant token: %s",
+                    deployment.getMerchantId()));
+        }
 
         return deployment;
     }
@@ -84,6 +89,7 @@ public class DatabaseToSquareCallable implements Callable {
     public void synchronizeInventoryAdjustmentsForDeployment(SquarePayload deployment,
             HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache) {
         Preconditions.checkNotNull(deployment);
+        Preconditions.checkNotNull(inventoryAdjustmentsCache);
 
         SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
         clientV2.setLogInfo(deployment.getMerchantId());

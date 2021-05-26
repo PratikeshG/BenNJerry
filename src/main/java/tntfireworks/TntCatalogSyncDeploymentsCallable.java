@@ -22,6 +22,8 @@ import util.SquarePayload;
 
 public class TntCatalogSyncDeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TntCatalogSyncDeploymentsCallable.class);
+    static final String SYNC_TYPE_CATALOG = "CATALOG";
+    static final String SYNC_TYPE_INVENTORY = "INVENTORY";
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -48,30 +50,42 @@ public class TntCatalogSyncDeploymentsCallable implements Callable {
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
-        logger.info("Starting database to Square sync...");
+        String syncType = message.getProperty("syncType", PropertyScope.SESSION);
+        List<SquarePayload> deploymentPayloads = null;
 
+        logger.info("Starting database to Square sync for syncType=" + syncType);
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
-        List<SquarePayload> deploymentPayloads = setUpDeployments(tntDatabaseApi, message);
+
+        // catalog sync is set to occur before inventory sync in Mule flow
+        // if enableInventorySync=1 in DB, recommend also setting enableCatalogSync=1 in DB
+        if (syncType.equals(SYNC_TYPE_CATALOG)) {
+            logger.info("Setting up Catalog deployments...");
+            deploymentPayloads = getCatalogSyncDeploymentsFromDb(tntDatabaseApi);
+        } else if (syncType.equals(SYNC_TYPE_INVENTORY)) {
+            logger.info("Setting up Inventory deployments...");
+            deploymentPayloads = getInventorySyncDeploymentsFromDb(tntDatabaseApi);
+        } else {
+            throw new RuntimeException("Invalid syncType for TNTFireworks Database-to-Square sync");
+        }
+
+        setCacheDataToSession(tntDatabaseApi, message);
         tntDatabaseApi.close();
 
         return deploymentPayloads;
     }
 
-    public List<SquarePayload> setUpDeployments(TntDatabaseApi tntDatabaseApi, MuleMessage message)
-            throws SQLException {
+    public void setCacheDataToSession(TntDatabaseApi tntDatabaseApi, MuleMessage message) throws SQLException {
+        // retrieve TNT marketing file, location file, and inventory file data from DB
         HashMap<String, String> locationMarketingPlanCache = generateLocationMarketingPlanCache(tntDatabaseApi);
         HashMap<String, List<CsvItem>> marketingPlanItemsCache = generateMarketingPlanItemsCache(tntDatabaseApi);
         HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache = generateInventoryAdjustmentsCache(
                 tntDatabaseApi);
-        List<SquarePayload> deploymentPayloads = getCatalogSyncDeploymentsFromDb(tntDatabaseApi);
 
-        // set mule session variables
+        // set data to mule session variables
         setMuleLocationMarketingPlanCache(locationMarketingPlanCache, message);
         setMuleMarketingPlanItemCacheFromDb(marketingPlanItemsCache, message);
         setMuleInventoryAdjustmentsCache(inventoryAdjustmentsCache, message);
-
-        return deploymentPayloads;
     }
 
     private void setMuleLocationMarketingPlanCache(HashMap<String, String> locationMarketingPlanCache,
@@ -92,9 +106,18 @@ public class TntCatalogSyncDeploymentsCallable implements Callable {
         logInventoryAdjustments(inventoryAdjustmentsCache);
     }
 
-    private List<SquarePayload> getCatalogSyncDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
+    List<SquarePayload> getCatalogSyncDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
         // retrieve deployments from db where catalog sync is enabled
         String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN);
+        ArrayList<Map<String, String>> dbRows = tntDatabaseApi
+                .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(whereFilter));
+
+        return generateDeploymentPayloads(tntDatabaseApi, dbRows);
+    }
+
+    private List<SquarePayload> getInventorySyncDeploymentsFromDb(TntDatabaseApi tntDatabaseApi) throws SQLException {
+        // retrieve deployments from db where inventory sync is enabled
+        String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_INVENTORY_SYNC_COLUMN);
         ArrayList<Map<String, String>> dbRows = tntDatabaseApi
                 .submitQuery(tntDatabaseApi.generateDeploymentSQLSelect(whereFilter));
 
@@ -209,7 +232,6 @@ public class TntCatalogSyncDeploymentsCallable implements Callable {
             adjustment.setQtyAdj(row.get(tntDatabaseApi.DB_INVENTORY_QTY_ADJUSTMENT_COLUMN));
             adjustment.setQtyReset(row.get(tntDatabaseApi.DB_INVENTORY_QTY_RESET_COLUMN));
             adjustment.setReset(row.get(tntDatabaseApi.DB_INVENTORY_RESET_COLUMN));
-            adjustment.setChangeDate(row.get(tntDatabaseApi.DB_INVENTORY_CHANGE_DATE_COLUMN));
             adjustments.add(adjustment);
         }
 

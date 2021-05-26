@@ -1,12 +1,14 @@
 package tntfireworks;
 
+import java.io.Serializable;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-public class CsvInventoryAdjustment extends CsvRow {
+public class CsvInventoryAdjustment extends CsvRow implements Serializable {
 
-    public static final String HEADER_ROW = "Revenue Business Unit,Business Unit,Loc No,Address Number,Alpha Name,Item No,Description,UPC Code,Pkg,Ship Condition,QTY Adjustment,Selling UOM,UM,Order Amount,Primary DG,CsCv,S/O Season,LT,QTY Reset,Reset,Change Date";
-    public static final int HEADER_LENGTH = 21;
+    public static final String HEADER_ROW = "Revenue Business Unit,Business Unit,Loc No,Address Number,Alpha Name,Item No,Description,UPC Code,Pkg,Ship Condition,QTY Adjustment,Selling UOM,UM,Order Amount,Primary DG,CsCv,S/O Season,LT,QTY Reset,Reset";
+    public static final int HEADER_LENGTH = 20;
 
     private String id;
     private String rbu;
@@ -35,9 +37,6 @@ public class CsvInventoryAdjustment extends CsvRow {
     private String lt;
     private String qtyReset;
     private String reset;
-    @Size(min = 1)
-    @NotNull
-    private String changeDate;
 
     public CsvInventoryAdjustment() {
         id = "";
@@ -61,7 +60,6 @@ public class CsvInventoryAdjustment extends CsvRow {
         lt = "";
         qtyReset = "";
         reset = "";
-        changeDate = "";
     }
 
     public CsvInventoryAdjustment(String[] inventoryFields) {
@@ -97,7 +95,6 @@ public class CsvInventoryAdjustment extends CsvRow {
         lt = inventoryFields[17];
         qtyReset = inventoryFields[18];
         reset = inventoryFields[19];
-        changeDate = inventoryFields[20];
     }
 
     public String getId() {
@@ -266,13 +263,5 @@ public class CsvInventoryAdjustment extends CsvRow {
 
     public void setReset(String reset) {
         this.reset = reset;
-    }
-
-    public String getChangeDate() {
-        return changeDate;
-    }
-
-    public void setChangeDate(String changeDate) {
-        this.changeDate = changeDate;
     }
 }

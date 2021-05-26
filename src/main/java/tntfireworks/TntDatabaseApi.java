@@ -54,6 +54,7 @@ public class TntDatabaseApi {
     public static final String DB_DEPLOYMENT_DEPLOYMENT_COLUMN = "deployment";
     public static final String DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN = "enableReporting";
     public static final String DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN = "enableCatalogSync";
+    public static final String DB_DEPLOYMENT_ENABLE_INVENTORY_SYNC_COLUMN = "enableInventorySync";
 
     // token DB constants
     public static final String DB_TOKEN_DEPLOYMENT_COLUMN = "deployment";
@@ -70,7 +71,6 @@ public class TntDatabaseApi {
     public static final String DB_INVENTORY_QTY_ADJUSTMENT_COLUMN = "qtyAdj";
     public static final String DB_INVENTORY_QTY_RESET_COLUMN = "qtyReset";
     public static final String DB_INVENTORY_RESET_COLUMN = "reset";
-    public static final String DB_INVENTORY_CHANGE_DATE_COLUMN = "changeDate";
 
     private DbConnection dbConnection;
 
@@ -154,10 +154,10 @@ public class TntDatabaseApi {
     }
 
     public String generateInventoryAdjustmentSQLSelect() {
-        String query = String.format("SELECT %s %s %s %s %s %s %s %s %s FROM %s", DB_INVENTORY_ID_COLUMN,
+        String query = String.format("SELECT %s, %s, %s, %s, %s, %s, %s, %s FROM %s", DB_INVENTORY_ID_COLUMN,
                 DB_INVENTORY_LOCATION_NUM_COLUMN, DB_INVENTORY_ITEM_NUM_COLUMN, DB_INVENTORY_ITEM_DESCRIPTION_COLUMN,
                 DB_INVENTORY_UPC_COLUMN, DB_INVENTORY_QTY_ADJUSTMENT_COLUMN, DB_INVENTORY_QTY_RESET_COLUMN,
-                DB_INVENTORY_RESET_COLUMN, DB_INVENTORY_CHANGE_DATE_COLUMN, DB_INVENTORY);
+                DB_INVENTORY_RESET_COLUMN, DB_INVENTORY);
         logger.info("Generated query: " + query);
         return query;
     }

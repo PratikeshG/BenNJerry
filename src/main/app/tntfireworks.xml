@@ -86,7 +86,14 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" >
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
-        <logger message="Initiating Database to Square Catalog API update for all TNT deployments" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating Database to Square Catalog/Inventory API updates for all necessary TNT deployments" level="INFO" doc:name="Logger"/>
+        <set-session-variable variableName="syncType" value="CATALOG" doc:name="syncType=CATALOG"/>
+        <flow-ref name="TNTFireworks:deployments-to-square" doc:name="TNTFireworks:catalog-to-square"/>
+        <set-session-variable variableName="syncType" value="INVENTORY" doc:name="syncType=INVENTORY"/>
+        <flow-ref name="TNTFireworks:deployments-to-square" doc:name="TNTFireworks:inventory-to-square"/>
+        <logger message="Completed Database to Square Catalog/Inventory API updates for all necessary TNT deployments" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="TNTFireworks:deployments-to-square" processingStrategy="synchronous">
         <component doc:name="Create deployment payloads">
             <prototype-object class="tntfireworks.TntCatalogSyncDeploymentsCallable"/>
         </component>
@@ -103,7 +110,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                         <collection-aggregator failOnTimeout="true" doc:name="Collection Aggregator"/>
                     </vm:inbound-endpoint>
                 </request-reply>
-                <set-payload value="Completed Catalog API updates to all TNT deployments." doc:name="Email Payload"/>
+                <set-payload value="Completed Catalog/Inventory API updates to all necessary TNT deployments." doc:name="Email Payload"/>
                 <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Catalog API UPDATES COMPLETE']" responseTimeout="10000" doc:name="Email DB to SQ Completed"/>
             </otherwise>
         </choice>
