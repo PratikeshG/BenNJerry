@@ -122,6 +122,17 @@ public class TntDatabaseApi {
         }
     }
 
+    public void executeQuery(String query) {
+        try {
+            dbConnection.executeQuery(query);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
+
     public String generateDeploymentSQLSelect(String whereFilter) {
         // initialize SQL statement components
         String selectColumns = String.format("%s, %s, %s", DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN,
@@ -158,6 +169,12 @@ public class TntDatabaseApi {
                 DB_INVENTORY_LOCATION_NUM_COLUMN, DB_INVENTORY_ITEM_NUM_COLUMN, DB_INVENTORY_ITEM_DESCRIPTION_COLUMN,
                 DB_INVENTORY_UPC_COLUMN, DB_INVENTORY_QTY_ADJUSTMENT_COLUMN, DB_INVENTORY_QTY_RESET_COLUMN,
                 DB_INVENTORY_RESET_COLUMN, DB_INVENTORY);
+        logger.info("Generated query: " + query);
+        return query;
+    }
+
+    public String generateInventoryAdjustmentSQLDelete(String id) {
+        String query = String.format("DELETE FROM %s where %s=%s", DB_INVENTORY, DB_INVENTORY_ID_COLUMN, id);
         logger.info("Generated query: " + query);
         return query;
     }

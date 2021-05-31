@@ -22,6 +22,8 @@ public class TntInventoryApi {
     private static final int BATCH_UPSERT_SIZE = 5;
     private static final String INACTIVE_LOCATION = "DEACTIVATED";
     private static final String DEFAULT_LOCATION = "DEFAULT";
+    static final String INVENTORY_API_VERSION = "2018-09-18";
+
     private Catalog catalog;
     private SquareClientV2 clientV2;
 
@@ -71,26 +73,38 @@ public class TntInventoryApi {
     }
 
     public void batchUpsertInventoryChangesFromDb(
-            HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache) {
+            HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache, TntDatabaseApi tntDatabaseApi) {
         ArrayList<InventoryChange> changes = getInventoryChangesForLocations(inventoryAdjustmentsCache,
                 getDeploymentLocations());
+        logger.info(logString("Found " + changes.size() + " number of inventory changes for all locations"));
 
         // Upsert set inventory tracking changes if any
         // catalog is modified in getInventoryChangesForLocations()
         batchUpsertItemsIntoCatalog();
 
         // Upsert inventory changes
-        batchUpsertInventoryAdjustmentsToSquare(changes);
+        batchUpsertInventoryAdjustmentsToSquare(changes, tntDatabaseApi);
     }
 
-    public void batchUpsertInventoryAdjustmentsToSquare(ArrayList<InventoryChange> changes) {
+    public void batchUpsertInventoryAdjustmentsToSquare(ArrayList<InventoryChange> changes,
+            TntDatabaseApi tntDatabaseApi) {
         logger.info(logString("NUMBER OF INVENTORY CHANGES TO BE SUBMITTED: " + changes.size()));
-        try {
-            logger.info(logString("Submitting inventory changes to Square..."));
-            clientV2.inventory().batchChangeInventory(changes.toArray(new InventoryChange[0]));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(logString("Failure to upsert inventory changes"));
+
+        // submit only 1 adjustment at a time and remove from DB on success
+        // this way we can recover from any request errors and rely on the  DB
+        // to hold all pending adjustments
+        for (InventoryChange change : changes) {
+            InventoryChange[] singleChange = new InventoryChange[] { change };
+            try {
+                logger.info(logString("Submitting inventory change to Square..."));
+                clientV2.inventory().batchChangeInventory(singleChange);
+                logger.info(logString("Successully submitted adjustment, removing adjustment entry from DB..."));
+                tntDatabaseApi.executeQuery(
+                        tntDatabaseApi.generateInventoryAdjustmentSQLDelete(change.getAdjustment().getReference_id()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(logString("Failure to upsert inventory changes"));
+            }
         }
 
         logString("Done updating inventory changes");
@@ -124,7 +138,7 @@ public class TntInventoryApi {
                 if (isValidLocation(tntLocationNum)) {
                     logger.info(logString(
                             "LocationNum " + tntLocationNum + " expecting " + adjustments.size() + " adjustments."));
-                    changes.addAll(getInventoryChangesForLocation(location, adjustments));
+                    changes.addAll(getInventoryChangesForSingleLocation(location, adjustments));
                 }
             }
         }
@@ -132,23 +146,29 @@ public class TntInventoryApi {
         return changes;
     }
 
-    private ArrayList<InventoryChange> getInventoryChangesForLocation(Location location,
+    private ArrayList<InventoryChange> getInventoryChangesForSingleLocation(Location location,
             List<CsvInventoryAdjustment> adjustments) {
         ArrayList<InventoryChange> changes = new ArrayList<InventoryChange>();
+
         // iterate through each adjustment and find corresonding sku
         for (CsvInventoryAdjustment csvAdjustment : adjustments) {
             CatalogObject item = catalog.getItem(csvAdjustment.getUpc());
+
             // if item is not found, no need to perform adjustment update
             if (item != null) {
+
                 // per TNT, only perform adjustment on first variation with matching SKU
                 // CatalogObject item.get(SKU) also only check SKU against first variation
                 if (hasValidItemVariation(item)) {
                     CatalogObject variation = item.getItemData().getVariations()[0];
+
                     if (variationIsPresentAtLocation(location, variation.getPresentAtLocationIds())) {
                         logger.info(logString(
                                 "Found matching item variation for inventory adjustment: " + variation.getId()));
-                        // update item variation for inventory tracking
-                        variation.getItemVariationData().setTrackInventory(true);
+
+                        // update item variation override for inventory tracking
+                        variation.setLocationTrackInventoryOverride(location.getId(), true);
+
                         // create inventory change
                         InventoryAdjustment adjustment = createInventoryAdjustment(location.getId(), variation.getId(),
                                 csvAdjustment);
@@ -187,6 +207,7 @@ public class TntInventoryApi {
         adjustment.setCatalog_object_id(variationId);
         adjustment.setQuantity(csvAdjustment.getQtyAdj());
         adjustment.setOccurred_at(getCurrentTimeStamp());
+        adjustment.setReference_id(csvAdjustment.getId());
         return adjustment;
     }
 

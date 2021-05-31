@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.SquareClientV2;
 
+import util.DbConnection;
 import util.SquarePayload;
 
 public class DatabaseToSquareCallable implements Callable {
@@ -23,6 +24,12 @@ public class DatabaseToSquareCallable implements Callable {
     private String apiUrl;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    private String databaseUrl;
+    @Value("${mysql.user}")
+    private String databaseUser;
+    @Value("${mysql.password}")
+    private String databasePassword;
 
     private <T> T getSessionProperty(String propertyName, MuleMessage message) {
         return message.getProperty(propertyName, PropertyScope.SESSION);
@@ -52,7 +59,17 @@ public class DatabaseToSquareCallable implements Callable {
             // perform inventory updates
             logger.info(String.format("Begin processing Inventory Adjustment updates for merchant token: %s",
                     deployment.getMerchantId()));
-            synchronizeInventoryAdjustmentsForDeployment(deployment, inventoryAdjustmentsCache);
+
+            // set up database connection to delete completed adjustment updates from DB
+            DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
+            TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
+
+            logger.info("Starting database to Square sync for syncType=" + syncType);
+            synchronizeInventoryAdjustmentsForDeployment(deployment, inventoryAdjustmentsCache, tntDatabaseApi);
+
+            // close DB connection
+            tntDatabaseApi.close();
+
             logger.info(String.format("Done processing Inventory Adjustment updates for merchant token: %s",
                     deployment.getMerchantId()));
         }
@@ -87,13 +104,14 @@ public class DatabaseToSquareCallable implements Callable {
     }
 
     public void synchronizeInventoryAdjustmentsForDeployment(SquarePayload deployment,
-            HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache) {
+            HashMap<String, List<CsvInventoryAdjustment>> inventoryAdjustmentsCache, TntDatabaseApi tntDatabaseApi) {
         Preconditions.checkNotNull(deployment);
         Preconditions.checkNotNull(inventoryAdjustmentsCache);
 
-        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey),
+                TntInventoryApi.INVENTORY_API_VERSION);
         clientV2.setLogInfo(deployment.getMerchantId());
         TntInventoryApi tntInventoryApi = new TntInventoryApi(clientV2);
-        tntInventoryApi.batchUpsertInventoryChangesFromDb(inventoryAdjustmentsCache);
+        tntInventoryApi.batchUpsertInventoryChangesFromDb(inventoryAdjustmentsCache, tntDatabaseApi);
     }
 }
