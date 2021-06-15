@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
-import com.squareup.connect.v2.ItemVariationLocationOverride;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
@@ -220,7 +219,6 @@ public class TntCatalogApi {
                     itemVariation.setPresentAtAllLocations(false);
                     itemVariation.setPresentAtLocationIds(new String[0]);
                     itemVariation.setAbsentAtLocationIds(new String[0]);
-                    itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
                 }
 
                 // get all unmanaged variation location ids
