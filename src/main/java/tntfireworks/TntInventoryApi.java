@@ -199,7 +199,16 @@ public class TntInventoryApi {
 
     private InventoryAdjustment createInventoryAdjustment(String locationId, String variationId,
             CsvInventoryAdjustment csvAdjustment) {
-        // only support positive adjustments for now
+        // check for corrections to inventory count
+        if (hasNegativeAdjustment(csvAdjustment)) {
+            return createNegativeInventoryAdjustment(locationId, variationId, csvAdjustment);
+        }
+
+        return createPositiveInventoryAdjustment(locationId, variationId, csvAdjustment);
+    }
+
+    private InventoryAdjustment createPositiveInventoryAdjustment(String locationId, String variationId,
+            CsvInventoryAdjustment csvAdjustment) {
         InventoryAdjustment adjustment = new InventoryAdjustment();
         adjustment.setFrom_state("NONE");
         adjustment.setTo_state("IN_STOCK");
@@ -209,6 +218,30 @@ public class TntInventoryApi {
         adjustment.setOccurred_at(getCurrentTimeStamp());
         adjustment.setReference_id(csvAdjustment.getId());
         return adjustment;
+    }
+
+    private InventoryAdjustment createNegativeInventoryAdjustment(String locationId, String variationId,
+            CsvInventoryAdjustment csvAdjustment) {
+        // convert "negative" String value to positive
+        String adjustmentQty = String.valueOf(Math.abs(Integer.parseInt(csvAdjustment.getQtyAdj())));
+
+        InventoryAdjustment adjustment = new InventoryAdjustment();
+        adjustment.setFrom_state("IN_STOCK");
+        adjustment.setTo_state("WASTE");
+        adjustment.setLocation_id(locationId);
+        adjustment.setCatalog_object_id(variationId);
+        adjustment.setQuantity(adjustmentQty);
+        adjustment.setOccurred_at(getCurrentTimeStamp());
+        adjustment.setReference_id(csvAdjustment.getId());
+        return adjustment;
+    }
+
+    private boolean hasNegativeAdjustment(CsvInventoryAdjustment csvAdjustment) {
+        if (Integer.parseInt(csvAdjustment.getQtyAdj()) < 0) {
+            return true;
+        }
+
+        return false;
     }
 
     private String getCurrentTimeStamp() {

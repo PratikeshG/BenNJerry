@@ -223,11 +223,6 @@ public class TntCatalogApi {
                     itemVariation.setPresentAtAllLocations(false);
                     itemVariation.setPresentAtLocationIds(new String[0]);
                     itemVariation.setAbsentAtLocationIds(new String[0]);
-
-                    // No longer need the following line, which overwrites/clears existing location overrides
-                    // that may still be relevant. LocationOverrides can exist on CatalogObject even if
-                    // CatalogObject is not present at location.
-                    // itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
                 }
 
                 // get all unmanaged variation location ids

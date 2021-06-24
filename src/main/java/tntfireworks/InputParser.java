@@ -19,6 +19,7 @@ import tntfireworks.exceptions.BadFilenameException;
 import tntfireworks.exceptions.EmptyCsvException;
 import tntfireworks.exceptions.EmptyLocationArrayException;
 import tntfireworks.exceptions.MalformedHeaderRowException;
+import tntfireworks.exceptions.MalformedInventoryFileException;
 import util.DbConnection;
 
 public class InputParser {
@@ -175,6 +176,7 @@ public class InputParser {
             inventoryAdjustments.add(adjustment);
         } catch (IllegalArgumentException e) {
             logMalformedInventoryAdjustment(inventoryFields, totalRecordsProcessed);
+            throw new MalformedInventoryFileException();
         }
     }
 
@@ -185,7 +187,8 @@ public class InputParser {
             contents += inventoryFields[i] + " | ";
         }
 
-        logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
+        logger.error(String.format("Did not process line, malformed record: %d %s length: %s", totalRecordsProcessed,
+                contents, inventoryFields.length));
     }
 
     public void processInventoryAdjustments(DbConnection dbConnection, Scanner scanner, String processingFile)
