@@ -19,6 +19,7 @@ import tntfireworks.exceptions.BadFilenameException;
 import tntfireworks.exceptions.EmptyCsvException;
 import tntfireworks.exceptions.EmptyLocationArrayException;
 import tntfireworks.exceptions.MalformedHeaderRowException;
+import tntfireworks.exceptions.MalformedInventoryFileException;
 import util.DbConnection;
 
 public class InputParser {
@@ -26,6 +27,7 @@ public class InputParser {
     private int syncGroupSize;
     private DbConnection dbConnection;
     public static final String LOCATIONS_FILENAME = "locations";
+    public static final String INVENTORY_FILENAME = "inventory";
 
     public InputParser(DbConnection dbConnection, int syncGroupSize) {
         this.syncGroupSize = syncGroupSize;
@@ -63,6 +65,8 @@ public class InputParser {
 
         if (processingFile.contains(LOCATIONS_FILENAME)) {
             processLocations(dbConnection, scanner, processingFile);
+        } else if (processingFile.contains(INVENTORY_FILENAME)) {
+            processInventoryAdjustments(dbConnection, scanner, processingFile);
         } else {
             String marketPlanId = getMarketPlan(processingFile);
             processMktPlan(dbConnection, scanner, processingFile, marketPlanId);
@@ -161,6 +165,64 @@ public class InputParser {
         }
     }
 
+    private void processInventoryAdjustment(String[] inventoryFields,
+            ArrayList<CsvInventoryAdjustment> inventoryAdjustments, int totalRecordsProcessed) {
+        Preconditions.checkNotNull(inventoryFields);
+        Preconditions.checkNotNull(inventoryAdjustments);
+        Preconditions.checkNotNull(totalRecordsProcessed);
+
+        try {
+            CsvInventoryAdjustment adjustment = new CsvInventoryAdjustment(inventoryFields);
+            inventoryAdjustments.add(adjustment);
+        } catch (IllegalArgumentException e) {
+            logMalformedInventoryAdjustment(inventoryFields, totalRecordsProcessed);
+            throw new MalformedInventoryFileException();
+        }
+    }
+
+    private void logMalformedInventoryAdjustment(String[] inventoryFields, int totalRecordsProcessed) {
+        String contents = "";
+
+        for (int i = 0; i < inventoryFields.length; i++) {
+            contents += inventoryFields[i] + " | ";
+        }
+
+        logger.error(String.format("Did not process line, malformed record: %d %s length: %s", totalRecordsProcessed,
+                contents, inventoryFields.length));
+    }
+
+    public void processInventoryAdjustments(DbConnection dbConnection, Scanner scanner, String processingFile)
+            throws ClassNotFoundException, SQLException {
+        Preconditions.checkNotNull(dbConnection);
+        Preconditions.checkNotNull(scanner);
+        Preconditions.checkNotNull(processingFile);
+
+        ArrayList<CsvInventoryAdjustment> adjustments = new ArrayList<CsvInventoryAdjustment>();
+        String[] inventoryFields = null;
+        int totalRecordsProcessed = 0;
+
+        verifyHeaderRowAndAdvanceToNextLine(scanner, CsvInventoryAdjustment.HEADER_ROW, processingFile);
+
+        while (scanner.hasNextLine()) {
+            totalRecordsProcessed++;
+            inventoryFields = scanner.nextLine().split(",");
+
+            processInventoryAdjustment(inventoryFields, adjustments, totalRecordsProcessed);
+
+            if (!scanner.hasNextLine() || totalRecordsProcessed % syncGroupSize == 0) {
+                dbConnection.executeQuery(generateInventoryAdjustmentsSQLUpsert(adjustments));
+                adjustments.clear();
+                logger.info(String.format("(%s) Processed %d records", processingFile, totalRecordsProcessed));
+            }
+        }
+
+        logger.info(String.format("(%s) Total records processed: %d", processingFile, totalRecordsProcessed));
+        if (totalRecordsProcessed == 0) {
+            logger.error("No records processed. Invalid input stream.");
+            throw new EmptyCsvException();
+        }
+    }
+
     private void processLocation(String[] locationFields, ArrayList<CsvLocation> locations, int totalRecordsProcessed) {
         Preconditions.checkNotNull(locationFields);
         Preconditions.checkNotNull(locations);
@@ -179,6 +241,7 @@ public class InputParser {
         for (int i = 0; i < locationFields.length; i++) {
             contents += locationFields[i] + " | ";
         }
+
         logger.error(String.format("Did not process line, malformed record: %d %s", totalRecordsProcessed, contents));
     }
 
@@ -248,7 +311,6 @@ public class InputParser {
 
     public String generateLocationsSQLUpsert(ArrayList<CsvLocation> locations) {
         Preconditions.checkNotNull(locations);
-
         String updateStatement = "";
 
         if (locations.size() > 0) {
@@ -278,6 +340,31 @@ public class InputParser {
         return updateStatement;
     }
 
+    public String generateInventoryAdjustmentsSQLUpsert(ArrayList<CsvInventoryAdjustment> adjustments) {
+        Preconditions.checkNotNull(adjustments);
+        String updateStatement = "";
+
+        if (adjustments.size() > 0) {
+            updateStatement = "INSERT INTO tntfireworks_inventory (rbu, bu, locationNum, address, alphaName, itemNum, description, upc, pkg,"
+                    + "shipCondition, qtyAdj, sellingUom, um, orderAmt, primaryDg, cscv, soSeason, lt, qtyReset, reset) VALUES ";
+            String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
+
+            ArrayList<String> updates = new ArrayList<String>();
+            for (CsvInventoryAdjustment adjustment : adjustments) {
+                updates.add(String.format(valuesFormat, adjustment.getRbu(), adjustment.getBu(),
+                        adjustment.getLocationNum(), adjustment.getAddress(), adjustment.getAlphaName(),
+                        adjustment.getItemNum(), adjustment.getDescription(), adjustment.getUpc(), adjustment.getPkg(),
+                        adjustment.getShipCondition(), adjustment.getQtyAdj(), adjustment.getSellingUom(),
+                        adjustment.getUm(), adjustment.getOrderAmt(), adjustment.getPrimaryDg(), adjustment.getCsCv(),
+                        adjustment.getSoSeason(), adjustment.getLt(), adjustment.getQtyReset(), adjustment.getReset()));
+            }
+
+            updateStatement = appendWithListIterator(updateStatement, updates);
+        }
+
+        return updateStatement;
+    }
+
     private String appendWithListIterator(String input, List<String> list) {
         Iterator<String> i = list.iterator();
         if (i.hasNext()) {
@@ -288,5 +375,4 @@ public class InputParser {
         }
         return input;
     }
-
 }

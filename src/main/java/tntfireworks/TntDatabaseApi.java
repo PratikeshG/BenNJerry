@@ -22,6 +22,7 @@ public class TntDatabaseApi {
     public static final String DB_MKT_PLAN = "tntfireworks_marketing_plans";
     public static final String DB_LOCATION = "tntfireworks_locations";
     public static final String DB_DEPLOYMENT = "tntfireworks_deployments";
+    public static final String DB_INVENTORY = "tntfireworks_inventory";
 
     // load number is specifically used for tntfireworks report 8 (settlements report) and used
     // internally by TNT; the load number is tracked in a database
@@ -47,17 +48,29 @@ public class TntDatabaseApi {
     public static final String DB_LOCATION_ZIP_COLUMN = "zip";
     public static final String DB_LOCATION_SA_NAME_COLUMN = "saName";
     public static final String DB_LOCATION_SA_NUMBER_COLUMN = "saNum";
+    public static final String DB_LOCATION_MKT_PLAN_COLUMN = "mktPlan";
 
     // deployment DB constants
     public static final String DB_DEPLOYMENT_DEPLOYMENT_COLUMN = "deployment";
     public static final String DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN = "enableReporting";
     public static final String DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN = "enableCatalogSync";
+    public static final String DB_DEPLOYMENT_ENABLE_INVENTORY_SYNC_COLUMN = "enableInventorySync";
 
     // token DB constants
     public static final String DB_TOKEN_DEPLOYMENT_COLUMN = "deployment";
     public static final String DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN = "encryptedAccessToken";
     public static final String DB_TOKEN_MERCHANT_ID_COLUMN = "merchantId";
     public static final String DB_TOKEN_MERCHANT_ALIAS_COLUMN = "merchantAlias";
+
+    // inventory DB constants
+    public static final String DB_INVENTORY_ID_COLUMN = "id";
+    public static final String DB_INVENTORY_LOCATION_NUM_COLUMN = "locationNum";
+    public static final String DB_INVENTORY_ITEM_NUM_COLUMN = "itemNum";
+    public static final String DB_INVENTORY_ITEM_DESCRIPTION_COLUMN = "description";
+    public static final String DB_INVENTORY_UPC_COLUMN = "upc";
+    public static final String DB_INVENTORY_QTY_ADJUSTMENT_COLUMN = "qtyAdj";
+    public static final String DB_INVENTORY_QTY_RESET_COLUMN = "qtyReset";
+    public static final String DB_INVENTORY_RESET_COLUMN = "reset";
 
     private DbConnection dbConnection;
 
@@ -109,6 +122,17 @@ public class TntDatabaseApi {
         }
     }
 
+    public void executeQuery(String query) {
+        try {
+            dbConnection.executeQuery(query);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
+
     public String generateDeploymentSQLSelect(String whereFilter) {
         // initialize SQL statement components
         String selectColumns = String.format("%s, %s, %s", DB_TOKEN_ENCRYPTED_ACCESS_TOKEN_COLUMN,
@@ -136,6 +160,21 @@ public class TntDatabaseApi {
                 DB_MKT_PLAN_CATEGORY_COLUMN, DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN, DB_MKT_PLAN_UPC_COLUMN,
                 DB_MKT_PLAN_NAME_COLUMN, DB_MKT_PLAN_CURRENCY_COLUMN, DB_MKT_PLAN_HALF_OFF_COLUMN,
                 DB_MKT_PLAN_SELLING_PRICE_COLUMN, DB_MKT_PLAN);
+        logger.info("Generated query: " + query);
+        return query;
+    }
+
+    public String generateInventoryAdjustmentSQLSelect() {
+        String query = String.format("SELECT %s, %s, %s, %s, %s, %s, %s, %s FROM %s", DB_INVENTORY_ID_COLUMN,
+                DB_INVENTORY_LOCATION_NUM_COLUMN, DB_INVENTORY_ITEM_NUM_COLUMN, DB_INVENTORY_ITEM_DESCRIPTION_COLUMN,
+                DB_INVENTORY_UPC_COLUMN, DB_INVENTORY_QTY_ADJUSTMENT_COLUMN, DB_INVENTORY_QTY_RESET_COLUMN,
+                DB_INVENTORY_RESET_COLUMN, DB_INVENTORY);
+        logger.info("Generated query: " + query);
+        return query;
+    }
+
+    public String generateInventoryAdjustmentSQLDelete(String id) {
+        String query = String.format("DELETE FROM %s where %s=%s", DB_INVENTORY, DB_INVENTORY_ID_COLUMN, id);
         logger.info("Generated query: " + query);
         return query;
     }
