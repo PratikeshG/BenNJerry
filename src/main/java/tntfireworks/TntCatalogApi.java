@@ -15,16 +15,13 @@ import com.google.common.base.Preconditions;
 import com.squareup.connect.v2.Catalog;
 import com.squareup.connect.v2.CatalogItemVariation;
 import com.squareup.connect.v2.CatalogObject;
-import com.squareup.connect.v2.ItemVariationLocationOverride;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
 
 public class TntCatalogApi {
     private static Logger logger = LoggerFactory.getLogger(TntCatalogApi.class);
-
     private static final int BATCH_UPSERT_SIZE = 5;
-
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
@@ -35,7 +32,6 @@ public class TntCatalogApi {
     //     - Deactivated locations exist within master accounts and need to be ignored
     private static final String INACTIVE_LOCATION = "DEACTIVATED";
     private static final String DEFAULT_LOCATION = "DEFAULT";
-
     private SquareClientV2 clientV2;
     public HashMap<String, List<String>> marketingPlanLocationsCache;
     public HashMap<String, List<CsvItem>> marketingPlanItemsCache;
@@ -92,6 +88,13 @@ public class TntCatalogApi {
         this.clientV2 = clientV2;
         this.marketingPlanLocationsCache = generateMarketingPlanLocationsCache(locationMarketingPlanCache, clientV2);
         this.marketingPlanItemsCache = marketingPlanItemsCache;
+        catalog = retrieveCatalogFromSquare();
+    }
+
+    public TntCatalogApi(SquareClientV2 clientV2) {
+        Preconditions.checkNotNull(clientV2);
+
+        this.clientV2 = clientV2;
         catalog = retrieveCatalogFromSquare();
     }
 
@@ -220,7 +223,6 @@ public class TntCatalogApi {
                     itemVariation.setPresentAtAllLocations(false);
                     itemVariation.setPresentAtLocationIds(new String[0]);
                     itemVariation.setAbsentAtLocationIds(new String[0]);
-                    itemVariation.getItemVariationData().setLocationOverrides(new ItemVariationLocationOverride[0]);
                 }
 
                 // get all unmanaged variation location ids

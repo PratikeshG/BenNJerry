@@ -226,7 +226,7 @@ public class CsvLocation extends CsvRow {
             throw new IllegalArgumentException();
         }
 
-        // trim and replace SQL chars
+        // trim and replace with SQL chars
         for (int i = 0; i < locationFields.length; i++) {
             locationFields[i] = locationFields[i].trim();
             locationFields[i] = locationFields[i].replaceAll("'", "''");
