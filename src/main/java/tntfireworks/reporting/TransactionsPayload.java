@@ -33,8 +33,8 @@ public class TransactionsPayload extends TntReportLocationPayload {
 
     private List<TransactionsPayloadEntry> transactionsPayloadEntries;
 
-    public TransactionsPayload(String timeZone, TntLocationDetails locationDetails) {
-        super(timeZone, locationDetails, TRANSACTIONS_FILE_HEADER);
+    public TransactionsPayload(String timeZone, int offset, TntLocationDetails locationDetails) {
+        super(timeZone, offset, locationDetails, TRANSACTIONS_FILE_HEADER);
         transactionsPayloadEntries = new ArrayList<TransactionsPayloadEntry>();
     }
 

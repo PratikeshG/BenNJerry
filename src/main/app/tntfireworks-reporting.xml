@@ -23,6 +23,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <set-session-variable variableName="reportType" value="#[message.inboundProperties.'http.query.params'.reportType]" doc:name="reportType"/>
         <set-session-variable variableName="ytd" value="#[message.inboundProperties.'http.query.params'.ytd]" doc:name="YTD"/>
+        <set-session-variable variableName="adhoc" value="#[message.inboundProperties.'http.query.params'.adhoc]" doc:name="adhoc"/>
         <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
         <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
     </flow>
@@ -39,6 +40,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="8" doc:name="reportType (8)"/>
                 <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -56,6 +58,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="31" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="1" doc:name="reportType (1)"/>
                 <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -73,6 +76,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="3" doc:name="reportType (3)"/>
                 <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -90,6 +94,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="1" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="2" doc:name="reportType (2)"/>
                 <set-session-variable variableName="ytd" value="FALSE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -107,6 +112,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="5" doc:name="reportType (5)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -124,6 +130,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="7" doc:name="reportType (7)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -141,6 +148,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="9" doc:name="reportType (9)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
@@ -158,6 +166,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-session-variable variableName="range" value="365" doc:name="range"/>
                 <set-session-variable variableName="reportType" value="10" doc:name="reportType (10)"/>
                 <set-session-variable variableName="ytd" value="TRUE" doc:name="YTD"/>
+                <set-session-variable variableName="adhoc" value="FALSE" doc:name="adhoc"/>
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>

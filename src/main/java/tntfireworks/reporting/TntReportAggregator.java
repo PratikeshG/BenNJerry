@@ -1,7 +1,10 @@
 package tntfireworks.reporting;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import javax.activation.DataHandler;
 
@@ -11,9 +14,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
 
 import tntfireworks.SshUtil;
 import util.CloudStorageApi;
+import util.TimeManager;
 
 public class TntReportAggregator {
     private static Logger logger = LoggerFactory.getLogger(TntReportAggregator.class);
@@ -22,6 +27,7 @@ public class TntReportAggregator {
     private static final int MAX_REPORT_SIZE = 9500000;
     // charset
     private static final String CHARSET = "UTF-8";
+    protected static final String ADHOC_DIRECTORY = "/Adhoc";
 
     // glcoud storage values
     @Value("${google.storage.bucket.archive}")
@@ -78,8 +84,8 @@ public class TntReportAggregator {
         return String.format("See attached report: %s", reportName);
     }
 
-    protected String storeReport(String reportName, String generatedReport) throws Exception {
-        String reportFullPath = sftpBasePath + sftpReportPath;
+    protected String storeReport(String reportName, String generatedReport, String directory) throws Exception {
+        String reportFullPath = sftpBasePath + sftpReportPath + directory;
 
         // store file in defined sftp location
         ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
@@ -89,5 +95,9 @@ public class TntReportAggregator {
         logger.info("Sent report to SFTP");
 
         return String.format("%s sent to SFTP.", reportName);
+    }
+
+    protected String storeReport(String reportName, String generatedReport) throws Exception {
+    	return storeReport(reportName, generatedReport, "");
     }
 }

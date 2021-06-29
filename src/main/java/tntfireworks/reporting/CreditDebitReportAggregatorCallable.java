@@ -5,6 +5,7 @@ import java.util.List;
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,8 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
+        String adhoc = message.getProperty("adhoc", PropertyScope.SESSION);
+
         logger.info("Start credit-debit report generation");
 
         // build report from payloads
@@ -60,6 +63,11 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
 
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
+
+        // if ad-hoc run, store report on SFTP in adhoc directory
+        if (adhoc.equals("TRUE")) {
+        	return storeReport(reportName, generatedReport,TntReportAggregator.ADHOC_DIRECTORY);
+        }
 
         // report 8 is SFTP only
         return storeReport(reportName, generatedReport);

@@ -77,10 +77,10 @@ public class YoyGrossSalesPayload extends TntReportLocationPayload {
     private String seasonCreditCountVariancePercentage;
     private String seasonAvgGrossVariancePercentage;
 
-    public YoyGrossSalesPayload(String timeZone, Map<String, String> dayTimeInterval,
+    public YoyGrossSalesPayload(String timeZone, int offset, Map<String, String> dayTimeInterval,
             TntLocationDetails locationDetails, GrossSalesPayload currentYearPayload,
             GrossSalesPayload previousYearPayload) throws ParseException {
-        super(timeZone, locationDetails, YOY_GROSS_SALES_FILE_HEADER);
+        super(timeZone, offset, locationDetails, YOY_GROSS_SALES_FILE_HEADER);
         this.currentYearPayload = currentYearPayload;
         this.previousYearPayload = previousYearPayload;
 

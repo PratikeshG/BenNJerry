@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -45,9 +46,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final int YOY_GROSS_SALES_REPORT_TYPE = 10;
     private static final String SEASON_REPORTING_ENABLED = "TRUE";
     private static final String TNT_DEFAULT_LOCATION_NAME_PREFIX = "DEFAULT";
-
-    @Value("${tntfireworks.startOfSeason}")
     private String startOfSeason;
+
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
     @Value("${mysql.user}")
@@ -68,11 +68,17 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        // get session vars
+        // get mule session vars
         int offset = Integer.parseInt(message.getProperty("offset", PropertyScope.SESSION));
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         int reportType = Integer.parseInt(message.getProperty("reportType", PropertyScope.SESSION));
         String ytd = message.getProperty("ytd", PropertyScope.SESSION);
+
+        // get deployment payload from queue-splitter
+        SquarePayload deployment = (SquarePayload) message.getPayload();
+
+        // get startOfSeason date
+        startOfSeason = deployment.getStartOfSeason();
 
         // get time zone for file
         timeZone = util.Constants.PST_TIME_ZONE_ID;
@@ -84,9 +90,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         if (ytd.equals(SEASON_REPORTING_ENABLED)) {
             range = computeSeasonInterval(startOfSeason, offset, TimeZone.getTimeZone(timeZone));
         }
-
-        // get deployment from queue-splitter
-        SquarePayload deployment = (SquarePayload) message.getPayload();
 
         // initialize connect v1/v2 api clients
         SquareClient squareClientV1 = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
@@ -195,38 +198,38 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                     switch (reportType) {
                         case SETTLEMENTS_REPORT_TYPE:
                             merchantPayload.add(generateSettlementsPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams));
+                                    aggregateIntervalParams, offset));
                             break;
                         case TRANSACTIONS_REPORT_TYPE:
                             merchantPayload.add(generateTransactionsPayload(squareClientV2, squareClientV1,
-                                    locationDetails, aggregateIntervalParams));
+                                    locationDetails, aggregateIntervalParams, offset));
                             break;
                         case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
                             merchantPayload.add(generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
-                                    aggregateIntervalParams));
+                                    aggregateIntervalParams, offset));
                             break;
                         case CHARGEBACK_REPORT_TYPE:
                             // report 4 is currently generated from a different source
                             break;
                         case LOCATION_SALES_REPORT_TYPE:
                             merchantPayload.add(generateLocationSalesPayload(squareClientV2, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval));
+                                    aggregateIntervalParams, dayTimeInterval, offset));
                             break;
                         case ITEM_SALES_REPORT_TYPE:
                             merchantPayload.add(generateItemSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval, dbItemRows));
+                                    aggregateIntervalParams, dayTimeInterval, dbItemRows, offset));
                             break;
                         case CREDIT_DEBIT_REPORT_TYPE:
                             merchantPayload.add(generateCreditDebitPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dbLoadNumbers));
+                                    aggregateIntervalParams, dbLoadNumbers, offset));
                             break;
                         case GROSS_SALES_REPORT_TYPE:
                             merchantPayload.add(generateGrossSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval));
+                                    aggregateIntervalParams, dayTimeInterval, offset));
                             break;
                         case YOY_GROSS_SALES_REPORT_TYPE:
                             merchantPayload.add(generateYoyGrossSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval));
+                                    aggregateIntervalParams, dayTimeInterval, offset));
                             break;
                     }
                 }
@@ -263,8 +266,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private SettlementsPayload generateSettlementsPayload(SquareClient squareClientV1,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
-        SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, locationDetails);
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
+        SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, offset, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
 
         for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1, aggregateIntervalParams)) {
@@ -275,12 +278,12 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private TransactionsPayload generateTransactionsPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
         // - each TransactionsPayload includes transaction data from a single location
         // - while the payload object name may imply V2Transactions data, the payload
         // mainly consists of V1 Payments data and is called a TransactionsPayload because
         // the report name is defined by TNT as 'Transactions Report'
-        TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, locationDetails);
+        TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, offset, locationDetails);
 
         // need to obtain Connect V2 Tender Fees and V2
         // Tender Entry Methods to map to V1 Tenders
@@ -306,9 +309,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(SquareClientV2 squareClientV2,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams) throws Exception {
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone,
+        AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone, offset,
                 locationDetails);
         for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
                 aggregateIntervalParams)) {
@@ -320,9 +323,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
     private LocationSalesPayload generateLocationSalesPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
-            Map<String, String> dayTimeInterval) throws Exception {
+            Map<String, String> dayTimeInterval, int offset) throws Exception {
         // get transaction data for location payload
-        LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, dayTimeInterval,
+        LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, offset, dayTimeInterval,
                 locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
@@ -335,9 +338,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
     private ItemSalesPayload generateItemSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
             Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval,
-            List<Map<String, String>> dbItemRows) throws Exception {
+            List<Map<String, String>> dbItemRows, int offset) throws Exception {
         // get item sales payload for single location
-        ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             // only include payments that were not fully refunded (returned)
@@ -351,7 +354,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
     private CreditDebitPayload generateCreditDebitPayload(SquareClient squareClientV1,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
-            List<Map<String, String>> dbLoadNumbers) throws Exception {
+            List<Map<String, String>> dbLoadNumbers, int offset) throws Exception {
         // "credit debit" report, payload is per location
         // loadNumber represents the total number of credit
         // debit reports sent and is tracked in DB
@@ -363,7 +366,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             }
         }
 
-        CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, loadNumber, locationDetails);
+        CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, offset, loadNumber, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             creditDebitPayload.addEntry(payment);
@@ -373,9 +376,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private GrossSalesPayload generateGrossSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
-            Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval) throws Exception {
+            Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval, int offset) throws Exception {
         // get transaction data for gross sales payload
-        GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             grossSalesPayload.addPayment(payment);
@@ -386,9 +389,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
     private YoyGrossSalesPayload generateYoyGrossSalesPayload(SquareClient squareClientV1,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
-            Map<String, String> dayTimeInterval) throws Exception {
+            Map<String, String> dayTimeInterval, int offset) throws Exception {
         // get transaction data for gross sales payload
-        GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, dayTimeInterval, locationDetails);
+        GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             currentGrossSalesPayload.addPayment(payment);
@@ -400,13 +403,13 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Map<String, String> prevAggregateIntervalParams = getPreviousTimeInterval(aggregateIntervalParams,
                 locationDetails.sqLocationTimeZone);
         // generate gross sales payload from prior year
-        GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, prevDayTimeInterval, locationDetails);
+        GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, offset, prevDayTimeInterval, locationDetails);
         prevAggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, prevAggregateIntervalParams)) {
             prevGrossSalesPayload.addPayment(payment);
         }
 
-        return new YoyGrossSalesPayload(timeZone, dayTimeInterval, locationDetails, currentGrossSalesPayload,
+        return new YoyGrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails, currentGrossSalesPayload,
                 prevGrossSalesPayload);
     }
 

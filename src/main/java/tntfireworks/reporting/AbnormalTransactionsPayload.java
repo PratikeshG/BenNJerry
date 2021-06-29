@@ -72,8 +72,8 @@ public class AbnormalTransactionsPayload extends TntReportLocationPayload {
     // previous amount needs to be stored for alert 5
     int prevAmt;
 
-    public AbnormalTransactionsPayload(String timeZone, TntLocationDetails locationDetails) {
-        super(timeZone, locationDetails, ABNORMAL_TRANSACTIONS_FILE_HEADER);
+    public AbnormalTransactionsPayload(String timeZone, int offset, TntLocationDetails locationDetails) {
+        super(timeZone, offset, locationDetails, ABNORMAL_TRANSACTIONS_FILE_HEADER);
         this.prevAmt = 0;
         alerts = new ArrayList<AbnormalTransactionsEntry>();
         alert3Transactions = new ArrayList<Transaction>();

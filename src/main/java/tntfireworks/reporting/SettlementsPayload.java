@@ -25,8 +25,8 @@ public class SettlementsPayload extends TntReportLocationPayload {
 
     // each SettlementsPayload object represents all settlements within a single
     // location
-    public SettlementsPayload(String timeZone, TntLocationDetails locationDetails) {
-        super(timeZone, locationDetails, SETTLEMENTS_FILE_HEADER);
+    public SettlementsPayload(String timeZone, int offset, TntLocationDetails locationDetails) {
+        super(timeZone, offset, locationDetails, SETTLEMENTS_FILE_HEADER);
         // initialize payload values
         payloadEntries = new ArrayList<SettlementsPayloadEntry>();
     }

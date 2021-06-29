@@ -8,6 +8,7 @@ import java.util.Map;
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
+import org.mule.api.transport.PropertyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,8 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
+        String adhoc = message.getProperty("adhoc", PropertyScope.SESSION);
+
         logger.info("Start abnormal transactions report generation");
 
         // build report from payloads
@@ -53,6 +56,11 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
         // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
+
+        // if ad-hoc run, store report on SFTP in adhoc directory
+        if (adhoc.equals("TRUE")) {
+        	return storeReport(reportName, generatedReport,TntReportAggregator.ADHOC_DIRECTORY);
+        }
 
         return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
