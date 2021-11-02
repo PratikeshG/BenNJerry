@@ -29,6 +29,7 @@ public class MerchantDataCallable implements Callable {
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
         String accessToken = squarePayload.getAccessToken(this.encryptionKey);
         String merchantId = squarePayload.getMerchantId();
+        apiUrl = "https://connect.squareup.com";
 
         SquareClientV2 clientV2 = new SquareClientV2(apiUrl, accessToken);
         List<Location> locations = Arrays.asList(clientV2.locations().list());

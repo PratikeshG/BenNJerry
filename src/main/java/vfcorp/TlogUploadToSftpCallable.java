@@ -144,18 +144,24 @@ public class TlogUploadToSftpCallable implements Callable {
                 sftpChannel.put(archiveUploadStream, archiveFilename, ChannelSftp.OVERWRITE);
             }
         } else if (tlogType.equals("SAP")) {
-            logger.debug(deployment + ": tlogType is SAP");
-
             // Skip SAP trickle when there is no new transactions
             if (tlog.length() < 1) {
                 logger.debug(deployment + ": tlogType EMPTY - skipping");
                 return tlog;
             }
 
+            String sapFilename = getVfcFilename(tlogType, deployment, vfcorpStoreNumber);
+
             InputStream saptrickleUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(sapTrickleDirectory);
-            sftpChannel.put(saptrickleUploadStream, getVfcFilename(tlogType, deployment, vfcorpStoreNumber),
-                    ChannelSftp.OVERWRITE);
+            sftpChannel.put(saptrickleUploadStream, sapFilename, ChannelSftp.OVERWRITE);
+
+            // Archive copy enabled
+            if (archiveTlog) {
+                InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
+                sftpChannel.cd(sapTrickleDirectory + "/Archive");
+                sftpChannel.put(archiveUploadStream, sapFilename, ChannelSftp.OVERWRITE);
+            }
         } else if (tlogType.equals("STOREFORCE")) {
             InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(storeforceTrickleDirectory);

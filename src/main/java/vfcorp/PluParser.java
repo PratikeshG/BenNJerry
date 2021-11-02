@@ -80,6 +80,11 @@ public class PluParser {
             if (rpcLine.length() < 2) {
                 continue;
             } else {
+                // skip unchanged records
+                if (rpcLine.contains("||||||||||")) {
+                    continue;
+                }
+
                 String recordType = rpcLine.substring(0, 2);
                 switch (recordType) {
                     case DEPARTMENT_CLASS_RECORD:
@@ -135,7 +140,7 @@ public class PluParser {
 
         logger.info(String.format("(%s) Total records processed: %d", deploymentId, totalRecordsProcessed));
         if (totalRecordsProcessed == 0) {
-            throw new Exception("No records processed. Invalid input stream.");
+            logger.warn("No records processed for deployment " + deploymentId);
         }
     }
 
