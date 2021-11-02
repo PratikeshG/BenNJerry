@@ -9,11 +9,11 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Category;
-import com.squareup.connect.Discount;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Refund;
 import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.SquareClientV2;
 
 public class IndividualLocationRequestsCallable implements Callable {
 
@@ -48,12 +48,14 @@ public class IndividualLocationRequestsCallable implements Callable {
             sp.setRefundPayments(squareRefundPayments.toArray(new Payment[squareRefundPayments.size()]));
         }
 
+        SquareClientV2 clientV2 = new SquareClientV2(apiUrl, sp.getSquarePayload().getAccessToken(encryptionKey));
+
         // Categories
-        Category[] categories = client.categories().list();
+        CatalogObject[] categories = clientV2.catalog().listCategories();
         sp.setCategories(categories);
 
         // Discounts
-        Discount[] discounts = client.discounts().list();
+        CatalogObject[] discounts = clientV2.catalog().listDiscounts();
         sp.setDiscounts(discounts);
 
         return sp;

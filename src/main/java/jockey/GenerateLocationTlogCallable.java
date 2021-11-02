@@ -3,6 +3,10 @@ package jockey;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.text.ParseException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.GiftCardActivity;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
@@ -64,14 +69,16 @@ public class GenerateLocationTlogCallable implements Callable {
     private String databasePassword;
 
     private static String VAR_LOCATION_OVERRIDE = "locationOverride";
+    private static String ITEM_TYPE_GIFT_CARD = "GIFT_CARD";
 
     private static String DEFAULT_UPC = "";
     private static String DEFAULT_SKU = "";
     private static String DEFAULT_DISPLAY_NAME = "Custom Amount";
-    private static String DEFUALT_CASHIER_ID = "9001";
-    private static String DEFUALT_DEVICE_ID = "9";
-    private static String DEFUALT_OTHER_TENDER_CODE = "ZZ";
+    private static String DEFAULT_CASHIER_ID = "9001";
+    private static String DEFAULT_DEVICE_ID = "9";
+    private static String DEFAULT_OTHER_TENDER_CODE = "ZZ";
     private static String DEFAULT_NO_TENDER_SALE_CODE = "7E";
+    private static String GIFT_CARD_SKU = "GIFTCARD";
     private static int MAX_TRANSACTION_NUMBER = 99999;
 
     private static Logger logger = LoggerFactory.getLogger(GenerateLocationTlogCallable.class);
@@ -96,6 +103,7 @@ public class GenerateLocationTlogCallable implements Callable {
         int range = Integer.parseInt(message.getProperty(Constants.RANGE, PropertyScope.SESSION));
         int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
+        apiUrl = "https://connect.squareup.com";
 
         Employee[] employees = (Employee[]) message.getProperty(Constants.EMPLOYEES, PropertyScope.SESSION);
         Map<String, Employee> employeeCache = new HashMap<String, Employee>();
@@ -214,13 +222,30 @@ public class GenerateLocationTlogCallable implements Callable {
             orderIds.add(order.getId());
         }
 
+        // Get details on unlinked refunds to gift card tenders
+        Map<String, Boolean> giftCardActivityCache = new HashMap<String, Boolean>();
+
+        HashMap<String, String> gcQuery = new HashMap<String, String>();
+        gcQuery.put("begin_time", dateParams.getOrDefault("begin_time", ""));
+        gcQuery.put("end_time", dateParams.getOrDefault("end_time", ""));
+        clientV2.setVersion("2021-06-16");
+        GiftCardActivity[] gcActivities = clientV2.giftCards().listActivities(gcQuery);
+
+        for (GiftCardActivity gcActivity : gcActivities) {
+            if (gcActivity.getType().equals("REFUND")) {
+                giftCardActivityCache.put(gcActivity.getRefundActivityDetails().getPaymentId(), true);
+            } else if (gcActivity.getType().equals("UNLINKED_ACTIVITY_REFUND")) {
+                giftCardActivityCache.put(gcActivity.getUnlinkedActivityRefundActivityDetails().getPaymentId(), true);
+            }
+        }
+
         // Get existing transaction numbers for Orders
         Map<String, Integer> existingTransactionNumbers = new HashMap<String, Integer>();
         if (orderIds.size() > 0) {
             ArrayList<Map<String, String>> existingOrderRecords = databaseApi.queryOrdersById(orderIds);
             for (Map<String, String> orderRecord : existingOrderRecords) {
-                existingTransactionNumbers.put(orderRecord.get("orderId"),
-                        Integer.parseInt(orderRecord.get("orderNumber")));
+                existingTransactionNumbers.put(orderRecord.get("recordId"),
+                        Integer.parseInt(orderRecord.get("recordNumber")));
             }
         }
 
@@ -231,9 +256,9 @@ public class GenerateLocationTlogCallable implements Callable {
             int transactionNumber = getTransactionNumber(order, registerNumber, nextDeviceTransactionNumbers,
                     existingTransactionNumbers);
 
-            SalesOrder returnOrder = createSalesOrder(location, employeeCache, v1PaymentCache, tenderCache, order,
-                    transactionNumber);
-            salesOrders.add(returnOrder);
+            SalesOrder sOrder = createSalesOrder(location, employeeCache, v1PaymentCache, tenderCache,
+                    giftCardActivityCache, order, transactionNumber);
+            salesOrders.add(sOrder);
         }
 
         databaseApi.updateOrderNumbersForLocation(salesOrders, location.getId());
@@ -302,8 +327,8 @@ public class GenerateLocationTlogCallable implements Callable {
     }
 
     private SalesOrder createSalesOrder(Location location, Map<String, Employee> employeeCache,
-            Map<String, Payment> v1PaymentCache, Map<String, Tender> tenderCache, Order order, int transactionNumber)
-            throws Exception {
+            Map<String, Payment> v1PaymentCache, Map<String, Tender> tenderCache,
+            Map<String, Boolean> giftCardActivityCache, Order order, int transactionNumber) throws Exception {
         SalesOrder so = new SalesOrder();
 
         so.setThirdPartyOrderId(order.getId());
@@ -315,7 +340,7 @@ public class GenerateLocationTlogCallable implements Callable {
         so.setRegisterNumber(getRegisterNumberFromOrder(order, v1PaymentCache));
 
         // the kind of shit you need to do because of our fragmented API
-        String cashierId = DEFUALT_CASHIER_ID;
+        String cashierId = DEFAULT_CASHIER_ID;
         Payment v1Payment = v1PaymentCache.get(getFirstTenderId(order));
         if (v1Payment != null && v1Payment.getTender() != null && v1Payment.getTender().length > 0) {
             cashierId = getExternalEmployeeId(employeeCache, v1Payment.getTender()[0].getEmployeeId());
@@ -332,7 +357,7 @@ public class GenerateLocationTlogCallable implements Callable {
             for (com.squareup.connect.v2.Tender tender : order.getTenders()) {
                 SalesOrderPayment sop = new SalesOrderPayment();
                 sop.setAmount(Util.getAmountAsXmlDecimal(tender.getAmountMoney().getAmount()));
-                sop.setPaymentCode(getPaymentCode(tender, v1PaymentCache));
+                sop.setPaymentCode(getPaymentCode(false, tender, v1PaymentCache, giftCardActivityCache));
                 sop.setPaymentId(tender.getId());
                 salesOrderPayments.add(sop);
             }
@@ -341,8 +366,8 @@ public class GenerateLocationTlogCallable implements Callable {
             for (Refund tenderRefund : order.getRefunds()) {
                 SalesOrderPayment sop = new SalesOrderPayment();
                 sop.setAmount(Util.getAmountAsXmlDecimal(-1 * tenderRefund.getAmountMoney().getAmount()));
-                sop.setPaymentCode(
-                        getPaymentCode(getOriginalTenderFromRefundTender(tenderCache, tenderRefund), v1PaymentCache));
+                sop.setPaymentCode(getPaymentCode(true, getOriginalTenderFromRefundTender(tenderCache, tenderRefund),
+                        v1PaymentCache, giftCardActivityCache));
                 sop.setPaymentId(tenderRefund.getId());
                 salesOrderPayments.add(sop);
             }
@@ -354,32 +379,33 @@ public class GenerateLocationTlogCallable implements Callable {
 
         if (order.getReturns() != null) {
             for (OrderReturn orderReturn : order.getReturns()) {
-                for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
-                    SalesOrderLineItem soli = new SalesOrderLineItem();
+                if (orderReturn.getReturnLineItems() != null) {
+                    for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
+                        SalesOrderLineItem soli = new SalesOrderLineItem();
 
-                    int qty = Integer.parseInt(lineItem.getQuantity());
-                    int extendedPrice = (lineItem.getTotalMoney().getAmount() - lineItem.getTotalTaxMoney().getAmount())
-                            * -1;
+                        int qty = Integer.parseInt(lineItem.getQuantity());
+                        int extendedPrice = (lineItem.getTotalMoney().getAmount()
+                                - lineItem.getTotalTaxMoney().getAmount()) * -1;
 
-                    soli.setThirdPartyLineItemId(lineItem.getUid());
-                    soli.setLineNumber("" + i++);
-                    soli.setLineCode(getReturnLineCode(lineItem));
-                    soli.setSku((lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku());
-                    soli.setUpc((lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
-                            : getUpcFromItemVariationName(lineItem.getVariationName()));
-                    soli.setQuantity(lineItem.getQuantity());
-                    soli.setDisplayName((lineItem.getCatalogObjectId() == null) ? DEFAULT_DISPLAY_NAME
-                            : lineItem.getVariationName());
-                    soli.setListPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
-                    soli.setPlacedPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
-                    soli.setDiscountedItemPrice(Util.getAmountAsXmlDecimal(extendedPrice / qty));
-                    soli.setExtendedPrice(Util.getAmountAsXmlDecimal(extendedPrice));
-                    soli.setOrderLevelDiscountAmount(Util.getAmountAsXmlDecimal(sumOrderLevelDiscounts(lineItem)));
-                    soli.setLineItemDiscountAmount(Util.getAmountAsXmlDecimal(sumItemLevelDiscounts(lineItem)));
+                        soli.setThirdPartyLineItemId(lineItem.getUid());
+                        soli.setLineNumber("" + i++);
+                        soli.setLineCode(getReturnLineCode(lineItem));
+                        soli.setSku(getSku(lineItem));
+                        soli.setUpc(getUpc(lineItem));
+                        soli.setQuantity(lineItem.getQuantity());
+                        soli.setDisplayName((lineItem.getCatalogObjectId() == null) ? DEFAULT_DISPLAY_NAME
+                                : lineItem.getVariationName());
+                        soli.setListPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
+                        soli.setPlacedPrice(Util.getAmountAsXmlDecimal(lineItem.getBasePriceMoney().getAmount()));
+                        soli.setDiscountedItemPrice(Util.getAmountAsXmlDecimal(extendedPrice / qty));
+                        soli.setExtendedPrice(Util.getAmountAsXmlDecimal(extendedPrice));
+                        soli.setOrderLevelDiscountAmount(Util.getAmountAsXmlDecimal(sumOrderLevelDiscounts(lineItem)));
+                        soli.setLineItemDiscountAmount(Util.getAmountAsXmlDecimal(sumItemLevelDiscounts(lineItem)));
 
-                    soli.setWeaklyTypedProperties(getLineItemDiscountProperties(lineItem));
+                        soli.setWeaklyTypedProperties(getLineItemDiscountProperties(lineItem));
 
-                    salesOrderLineItems.add(soli);
+                        salesOrderLineItems.add(soli);
+                    }
                 }
             }
         }
@@ -394,9 +420,8 @@ public class GenerateLocationTlogCallable implements Callable {
                 soli.setThirdPartyLineItemId(lineItem.getUid());
                 soli.setLineNumber("" + i++);
                 soli.setLineCode(getSaleLineCode(lineItem));
-                soli.setSku((lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku());
-                soli.setUpc((lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
-                        : getUpcFromItemVariationName(lineItem.getVariationName()));
+                soli.setSku(getSku(lineItem));
+                soli.setUpc(getUpc(lineItem));
                 soli.setQuantity(lineItem.getQuantity());
                 soli.setDisplayName(
                         (lineItem.getCatalogObjectId() == null) ? DEFAULT_DISPLAY_NAME : lineItem.getVariationName());
@@ -483,11 +508,7 @@ public class GenerateLocationTlogCallable implements Callable {
     }
 
     private Tender getOriginalTenderFromRefundTender(Map<String, Tender> tenderCache, Refund refund) throws Exception {
-
-        System.out.println(
-                "refund: " + refund.getTransactionId() + " --- " + refund.getId() + " ---" + refund.getTenderId());
         Tender refundedTender = tenderCache.get(refund.getTenderId());
-
         return refundedTender;
     }
 
@@ -502,11 +523,23 @@ public class GenerateLocationTlogCallable implements Callable {
     }
 
     private int getOrderTaxTotal(Order order) {
-        return order.getNetAmounts().getTaxMoney().getAmount();
+        int t = 0;
+
+        if (order.getNetAmounts() != null && order.getNetAmounts().getTaxMoney() != null) {
+            t = order.getNetAmounts().getTaxMoney().getAmount();
+        }
+
+        return t;
     }
 
     private int getOrderTotal(Order order) {
-        return order.getNetAmounts().getTotalMoney().getAmount();
+        int t = 0;
+
+        if (order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null) {
+            t = order.getNetAmounts().getTotalMoney().getAmount();
+        }
+
+        return t;
     }
 
     private boolean isExchangeOrder(Order order) {
@@ -534,9 +567,11 @@ public class GenerateLocationTlogCallable implements Callable {
         if (isReturnOrder(order) || isExchangeOrder(order)) {
             if (order.getReturns() != null) {
                 for (OrderReturn orderReturn : order.getReturns()) {
-                    for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
-                        if (lineItemReturnHasEmployeeDiscount(lineItem)) {
-                            return "14";
+                    if (orderReturn.getReturnLineItems() != null) {
+                        for (OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
+                            if (lineItemReturnHasEmployeeDiscount(lineItem)) {
+                                return "14";
+                            }
                         }
                     }
                 }
@@ -605,9 +640,19 @@ public class GenerateLocationTlogCallable implements Callable {
         return false;
     }
 
+    private boolean returnLineItemIsDonation(OrderReturnLineItem lineItem) {
+        if (lineItem.getName() != null && lineItem.getName().toLowerCase().contains("family donation")) {
+            return true;
+        }
+
+        return false;
+    }
+
     private String getReturnLineCode(OrderReturnLineItem lineItem) {
         // "11"=Return; "14"=EmployeeReturn
-        if (lineItemReturnHasEmployeeDiscount(lineItem)) {
+        if (returnLineItemIsDonation(lineItem)) {
+            return "DO";
+        } else if (lineItemReturnHasEmployeeDiscount(lineItem)) {
             return "14";
         }
         return "11";
@@ -615,10 +660,10 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getSaleLineCode(OrderLineItem lineItem) {
         // "01"=Sale; "02"=BudgetSale; "03"=AltBudgetSale; "04"=EmployeeSale
-        if (lineItemHasEmployeeDiscount(lineItem)) {
-            return "04";
-        } else if (lineItemIsDonation(lineItem)) {
+        if (lineItemIsDonation(lineItem)) {
             return "DO";
+        } else if (lineItemHasEmployeeDiscount(lineItem)) {
+            return "04";
         }
 
         return "01";
@@ -626,7 +671,7 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getExternalEmployeeId(Map<String, Employee> employeeCache, String creatorId) {
         return (employeeCache.get(creatorId) != null) ? employeeCache.get(creatorId).getExternalId()
-                : DEFUALT_CASHIER_ID;
+                : DEFAULT_CASHIER_ID;
     }
 
     // Item Variation name format: 100086878 | 1372 NoPanty Line Micro Hi Br | Toasted Beige | 6
@@ -646,11 +691,62 @@ public class GenerateLocationTlogCallable implements Callable {
         return upc;
     }
 
-    private String formatDate(Location location, String date) throws ParseException {
-        return TimeManager.toSimpleDateTimeInTimeZone(date, location.getTimezone(), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+    private String getSku(OrderLineItem lineItem) {
+        if (isGiftCardItem(lineItem)) {
+            return GIFT_CARD_SKU;
+        }
+
+        return (lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku();
     }
 
-    private String getPaymentCode(com.squareup.connect.v2.Tender tender, Map<String, Payment> v1PaymentCache) {
+    private String getSku(OrderReturnLineItem lineItem) {
+        if (isGiftCardReturnItem(lineItem)) {
+            return GIFT_CARD_SKU;
+        }
+
+        return (lineItem.getSku() == null) ? DEFAULT_SKU : lineItem.getSku();
+    }
+
+    private String getUpc(OrderLineItem lineItem) {
+        if (isGiftCardItem(lineItem)) {
+            return GIFT_CARD_SKU;
+        }
+
+        return (lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
+                : getUpcFromItemVariationName(lineItem.getVariationName());
+    }
+
+    private String getUpc(OrderReturnLineItem lineItem) {
+        if (isGiftCardReturnItem(lineItem)) {
+            return GIFT_CARD_SKU;
+        }
+
+        return (lineItem.getCatalogObjectId() == null) ? DEFAULT_UPC
+                : getUpcFromItemVariationName(lineItem.getVariationName());
+    }
+
+    private boolean isGiftCardItem(OrderLineItem lineItem) {
+        return lineItem.getItemType().equals(ITEM_TYPE_GIFT_CARD);
+    }
+
+    private boolean isGiftCardReturnItem(OrderReturnLineItem lineItem) {
+        return lineItem.getItemType().equals(ITEM_TYPE_GIFT_CARD);
+    }
+
+    private String formatDate(Location location, String date) throws ParseException {
+        Instant instant = Instant.parse(date);
+
+        ZoneId z = ZoneId.of(location.getTimezone());
+        ZonedDateTime zdt = instant.atZone(z);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+        String formattedString = zdt.format(formatter);
+
+        return formattedString;
+    }
+
+    private String getPaymentCode(boolean isRefund, com.squareup.connect.v2.Tender tender,
+            Map<String, Payment> v1PaymentCache, Map<String, Boolean> giftCardActivityCache) {
         String CASH = "CA";
         String CHECK = "CH";
         String VISA = "VI";
@@ -660,14 +756,20 @@ public class GenerateLocationTlogCallable implements Callable {
         String OTHER_BRAND = "OB";
         String BUDGET_TRANSACTION = "BB";
         String JCB = "OT";
-        String SQUARE_GIFT_CARD = "SQ";
         String INTERAC_EFTPOS_FELICA = "DF";
+        String GIFT_CARD_REDEMPTION = "G2";
+        String GIFT_CARD_MERCHANDISE_CREDIT = "DR";
 
         if (tender == null) {
-            return DEFUALT_OTHER_TENDER_CODE;
+            return DEFAULT_OTHER_TENDER_CODE;
         }
 
-        if (tender.getType().equals("CASH")) {
+        // This tender activity is actually a gift card refund (linked or unlinked)
+        if (isRefund && giftCardActivityCache.get(tender.getId()) != null) {
+            return GIFT_CARD_MERCHANDISE_CREDIT;
+        } else if (tender.getType().equals("SQUARE_GIFT_CARD")) {
+            return GIFT_CARD_REDEMPTION;
+        } else if (tender.getType().equals("CASH")) {
             return CASH;
         } else if (tender.getType().equals("OTHER")) {
             Payment v1Payment = v1PaymentCache.get(tender.getId());
@@ -680,11 +782,11 @@ public class GenerateLocationTlogCallable implements Callable {
                         } else if (v1T.getName() != null && v1T.getName().equals("CUSTOM")) {
                             return BUDGET_TRANSACTION;
                         }
-                        return DEFUALT_OTHER_TENDER_CODE;
+                        return DEFAULT_OTHER_TENDER_CODE;
                     }
                 }
             }
-            return DEFUALT_OTHER_TENDER_CODE;
+            return DEFAULT_OTHER_TENDER_CODE;
         } else if (tender.getType().equals("CARD") && tender.getCardDetails() != null
                 && tender.getCardDetails().getCard() != null) {
             // credit card
@@ -711,7 +813,7 @@ public class GenerateLocationTlogCallable implements Callable {
                     return OTHER_BRAND;
             }
         } else {
-            return DEFUALT_OTHER_TENDER_CODE;
+            return DEFAULT_OTHER_TENDER_CODE;
         }
     }
 
@@ -733,7 +835,7 @@ public class GenerateLocationTlogCallable implements Callable {
             String tenderId = getFirstTenderId(order);
             return getRegisterNumberFromPayment(v1PaymentCache.get(tenderId));
         } catch (Exception e) {
-            return DEFUALT_DEVICE_ID;
+            return DEFAULT_DEVICE_ID;
         }
     }
 
@@ -741,7 +843,7 @@ public class GenerateLocationTlogCallable implements Callable {
         try {
             Integer.parseInt(payment.getDevice().getName());
         } catch (NumberFormatException nfe) {
-            return DEFUALT_DEVICE_ID;
+            return DEFAULT_DEVICE_ID;
         }
 
         return payment.getDevice().getName();

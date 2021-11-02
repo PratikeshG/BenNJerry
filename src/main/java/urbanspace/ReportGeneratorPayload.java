@@ -3,10 +3,9 @@ package urbanspace;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Category;
-import com.squareup.connect.Discount;
 import com.squareup.connect.Payment;
 import com.squareup.connect.Refund;
+import com.squareup.connect.v2.CatalogObject;
 
 import util.SquarePayload;
 
@@ -15,8 +14,8 @@ public class ReportGeneratorPayload {
     private Payment[] payments;
     private Refund[] refunds;
     private Payment[] refundPayments;
-    private Category[] categories;
-    private Discount[] discounts;
+    private CatalogObject[] categories;
+    private CatalogObject[] discounts;
     private Map<String, String> params = new HashMap<String, String>();
 
     public SquarePayload getSquarePayload() {
@@ -51,19 +50,19 @@ public class ReportGeneratorPayload {
         this.refundPayments = refundPayments;
     }
 
-    public Category[] getCategories() {
+    public CatalogObject[] getCategories() {
         return categories;
     }
 
-    public void setCategories(Category[] categories) {
+    public void setCategories(CatalogObject[] categories) {
         this.categories = categories;
     }
 
-    public Discount[] getDiscounts() {
+    public CatalogObject[] getDiscounts() {
         return discounts;
     }
 
-    public void setDiscounts(Discount[] discounts) {
+    public void setDiscounts(CatalogObject[] discounts) {
         this.discounts = discounts;
     }
 

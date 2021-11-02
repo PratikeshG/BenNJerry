@@ -586,12 +586,12 @@ public class PluCatalogBuilder {
     private boolean skipItemForTaxReasons(CatalogObject item, String deploymentId) {
         if ((deploymentId.equals(TaxRules.TNF_BOSTON) || deploymentId.equals(TaxRules.TNF_PEABODY)
                 || deploymentId.equals(TaxRules.TNF_BRAINTREE))
-                && TaxRules.deptClassIsClothingTaxCategory(
+                && TaxRules.deptClassIsClothingTaxCategoryTnf(
                         Util.getValueInParenthesis(getFirstItemVariation(item).getName()))
                 && getFirstItemVariation(item).getPriceMoney().getAmount() > TaxRules.MA_EXEMPT_THRESHOLD) {
             return true;
         } else if (deploymentId.equals(TaxRules.TNF_RHODE_ISLAND)
-                && TaxRules.deptClassIsClothingTaxCategory(
+                && TaxRules.deptClassIsClothingTaxCategoryTnf(
                         Util.getValueInParenthesis(getFirstItemVariation(item).getName()))
                 && getFirstItemVariation(item).getPriceMoney().getAmount() > TaxRules.RI_EXEMPT_THRESHOLD) {
             return true;

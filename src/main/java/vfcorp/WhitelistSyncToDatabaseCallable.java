@@ -124,24 +124,22 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
                     continue;
                 }
 
-                // we only need to process the most recent file, immediately archive the rest
-                if (i == (filesToProcess.size() - 1)) {
-                    fileToProcess = String.format("%s%s", PROCESSING_PREFIX, file);
-                    sftpChannel.rename(file, fileToProcess);
+                fileToProcess = String.format("%s%s", PROCESSING_PREFIX, file);
+                sftpChannel.rename(file, fileToProcess);
 
-                    // Archive to Google Cloud Storage
-                    logger.info(String.format("Saving %s -- %s archive to GCP cloud...", deployment, fileToProcess));
-                    InputStream is = sftpChannel.get(fileToProcess);
-                    fileKey = String.format("%s/%s.secure", archiveFolder, fileToProcess);
+                // Archive to Google Cloud Storage
+                logger.info(String.format("Saving %s -- %s archive to GCP cloud...", deployment, fileToProcess));
+                InputStream is = sftpChannel.get(fileToProcess);
+                fileKey = String.format("%s/%s.secure", archiveFolder, fileToProcess);
 
-                    try {
-                        cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
-                    } catch (RuntimeException e) {
-                        logger.error("VFC whitelist error trying to upload to CloudStorage: " + e.getMessage());
-                    }
-                } else {
-                    sftpChannel.rename(file, String.format("%s/skipped_%s", ARCHIVE_PATH, file));
+                try {
+                    cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
+                } catch (RuntimeException e) {
+                    logger.error("VFC whitelist error trying to upload to CloudStorage: " + e.getMessage());
                 }
+
+                // don't process any more files in this job
+                break;
             }
         }
 

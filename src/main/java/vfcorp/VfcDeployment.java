@@ -9,8 +9,6 @@ public class VfcDeployment {
     private String pluPath;
     private boolean pluFiltered;
     private String tlogPath;
-    private int tlogRange;
-    private int tlogOffset;
     private SquarePayload squarePayload;
 
     public String getDeployment() {
@@ -59,22 +57,6 @@ public class VfcDeployment {
 
     public void setTlogPath(String tlogPath) {
         this.tlogPath = tlogPath;
-    }
-
-    public int getTlogRange() {
-        return tlogRange;
-    }
-
-    public void setTlogRange(int tlogRange) {
-        this.tlogRange = tlogRange;
-    }
-
-    public int getTlogOffset() {
-        return tlogOffset;
-    }
-
-    public void setTlogOffset(int tlogOffset) {
-        this.tlogOffset = tlogOffset;
     }
 
     public SquarePayload getSquarePayload() {

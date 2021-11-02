@@ -11,9 +11,8 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Merchant;
-import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Merchant;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.Constants;
@@ -47,7 +46,7 @@ public class GetLocationDetailsCallable implements Callable {
 
         SquareClientV2 client = new SquareClientV2(apiUrl, accessToken);
         client.setLogInfo(merchantId);
-        sqPayload.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl, merchantId));
+        sqPayload.setMerchantAlias(this.retrieveBusinessName(accessToken, apiUrl));
 
         List<Location> locations = Arrays.asList(client.locations().list());
         message.setProperty(Constants.LOCATIONS, locations, PropertyScope.INVOCATION);
@@ -68,9 +67,9 @@ public class GetLocationDetailsCallable implements Callable {
         return locationIdToLocationDetails;
     }
 
-    private String retrieveBusinessName(String accessToken, String apiUrl, String merchantId) throws Exception {
-        SquareClient v1Client = new SquareClient(accessToken, apiUrl, "v1", merchantId);
-        Merchant merchantInfo = v1Client.businessLocations().retrieve();
-        return merchantInfo.getName();
+    private String retrieveBusinessName(String accessToken, String apiUrl) throws Exception {
+        SquareClientV2 v2Client = new SquareClientV2(apiUrl, accessToken);
+        Merchant merchantInfo = v2Client.merchants().retrieve();
+        return merchantInfo.getBusinessName();
     }
 }

@@ -9,9 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import com.squareup.connect.Category;
-import com.squareup.connect.Discount;
 import com.squareup.connect.Payment;
+import com.squareup.connect.v2.CatalogObject;
 
 import util.TimeManager;
 
@@ -43,8 +42,8 @@ public class IndividualReportGenerator {
     public String generate(ReportGeneratorPayload reportGeneratorPayload) throws ParseException {
         Payment[] payments = reportGeneratorPayload.getPayments();
         Payment[] refundPayments = reportGeneratorPayload.getRefundPayments();
-        Category[] categories = reportGeneratorPayload.getCategories();
-        Discount[] discounts = reportGeneratorPayload.getDiscounts();
+        CatalogObject[] categories = reportGeneratorPayload.getCategories();
+        CatalogObject[] discounts = reportGeneratorPayload.getDiscounts();
 
         reportCalculator = new ReportCalculator(range, offset, timeZone);
 
@@ -818,12 +817,12 @@ public class IndividualReportGenerator {
     }
 
     private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesByTime(Payment[] payments,
-            Category[] categories) throws ParseException {
+            CatalogObject[] categories) throws ParseException {
         LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesByTime = new LinkedHashMap<String, LinkedHashMap<String, Integer>>();
 
-        for (Category category : categories) {
-            totalSalesForCategoriesByTime.put(category.getName(),
-                    totalSalesForCategoryByTime(payments, category.getName()));
+        for (CatalogObject category : categories) {
+            totalSalesForCategoriesByTime.put(category.getCategoryData().getName(),
+                    totalSalesForCategoryByTime(payments, category.getCategoryData().getName()));
         }
 
         totalSalesForCategoriesByTime.put("No category", totalSalesForCategoryByTime(payments, ""));
@@ -847,12 +846,12 @@ public class IndividualReportGenerator {
     }
 
     private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesRefundsByTime(
-            Payment[] payments, Category[] categories) throws ParseException {
+            Payment[] payments, CatalogObject[] categories) throws ParseException {
         LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForCategoriesRefundsByTime = new LinkedHashMap<String, LinkedHashMap<String, Integer>>();
 
-        for (Category category : categories) {
-            totalSalesForCategoriesRefundsByTime.put(category.getName(),
-                    totalSalesForCategoryRefundsByTime(payments, category.getName()));
+        for (CatalogObject category : categories) {
+            totalSalesForCategoriesRefundsByTime.put(category.getCategoryData().getName(),
+                    totalSalesForCategoryRefundsByTime(payments, category.getCategoryData().getName()));
         }
 
         totalSalesForCategoriesRefundsByTime.put("No category", totalSalesForCategoryRefundsByTime(payments, ""));
@@ -895,12 +894,12 @@ public class IndividualReportGenerator {
     }
 
     private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsByTime(Payment[] payments,
-            Discount[] discounts) throws ParseException {
+            CatalogObject[] discounts) throws ParseException {
         LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountByTime = new LinkedHashMap<String, LinkedHashMap<String, Integer>>();
 
-        for (Discount discount : discounts) {
-            totalSalesForDiscountByTime.put(discount.getName(),
-                    totalSalesForDiscountByTime(payments, discount.getName()));
+        for (CatalogObject discount : discounts) {
+            totalSalesForDiscountByTime.put(discount.getDiscountData().getName(),
+                    totalSalesForDiscountByTime(payments, discount.getDiscountData().getName()));
         }
 
         return totalSalesForDiscountByTime;
@@ -922,12 +921,12 @@ public class IndividualReportGenerator {
     }
 
     private LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsRefundsByTime(
-            Payment[] payments, Discount[] discounts) throws ParseException {
+            Payment[] payments, CatalogObject[] discounts) throws ParseException {
         LinkedHashMap<String, LinkedHashMap<String, Integer>> totalSalesForDiscountsRefundsByTime = new LinkedHashMap<String, LinkedHashMap<String, Integer>>();
 
-        for (Discount discount : discounts) {
-            totalSalesForDiscountsRefundsByTime.put(discount.getName(),
-                    totalSalesForDiscountRefundsByTime(payments, discount.getName()));
+        for (CatalogObject discount : discounts) {
+            totalSalesForDiscountsRefundsByTime.put(discount.getDiscountData().getName(),
+                    totalSalesForDiscountRefundsByTime(payments, discount.getDiscountData().getName()));
         }
 
         return totalSalesForDiscountsRefundsByTime;

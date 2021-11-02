@@ -1,4 +1,4 @@
-package jockey;
+package util;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -16,15 +16,15 @@ import java.util.StringJoiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JockeyDatabaseApi {
-    private static Logger logger = LoggerFactory.getLogger(JockeyDatabaseApi.class);
+public class SequentialRecordsApi {
+    private static Logger logger = LoggerFactory.getLogger(SequentialRecordsApi.class);
     private Connection connection;
 
-    public JockeyDatabaseApi(Connection connection) {
+    public SequentialRecordsApi(Connection connection) {
         this.connection = connection;
     }
 
-    public JockeyDatabaseApi() {
+    public SequentialRecordsApi() {
     }
 
     public ArrayList<Map<String, String>> executeQuery(String query) throws SQLException {
@@ -91,54 +91,53 @@ public class JockeyDatabaseApi {
         return response;
     }
 
-    public ArrayList<Map<String, String>> queryOrderNumbersForLocation(String locationId)
+    public ArrayList<Map<String, String>> queryRecordNumbersForLocation(String locationId)
             throws SQLException, IOException {
-        return executeQuery(generateOrderNumbersForLocationSQLSelect(locationId));
+        return executeQuery(generateRecordNumbersForLocationSQLSelect(locationId));
     }
 
-    public ArrayList<Map<String, String>> queryOrdersById(List<String> orderIds) throws SQLException, IOException {
-        return executeQuery(generateOrdersByDeviceSQLSelect(orderIds));
+    public ArrayList<Map<String, String>> queryRecordsById(List<String> recordIds) throws SQLException, IOException {
+        return executeQuery(generateRecordsByDeviceSQLSelect(recordIds));
     }
 
-    public int updateOrderNumbersForLocation(List<SalesOrder> orders, String locationId)
+    public int updateRecordNumbersForLocation(List<SequentialRecord> records, String locationId)
             throws SQLException, IOException {
-        return executeUpdate(generateOrdersByDeviceSQLUpsert(orders, locationId));
+        return executeUpdate(generateRecordsByDeviceSQLUpsert(records, locationId));
     }
 
-    public String generateOrderNumbersForLocationSQLSelect(String locationId) throws IOException {
+    public String generateRecordNumbersForLocationSQLSelect(String locationId) throws IOException {
         String query = String.format(
-                "SELECT MAX(recordNumber) as lastOrderNumber, deviceId FROM orders_by_device WHERE locationId = '%s' GROUP BY deviceId;",
+                "SELECT MAX(recordNumber) as lastRecordNumber, deviceId FROM orders_by_device WHERE locationId = '%s' GROUP BY deviceId;",
                 locationId);
 
-        logger.debug(String.format("Generated Jockey Order Numbers for Location Select query: %s", query));
+        logger.debug(String.format("Generated sequential record numbers for location SELECT query: %s", query));
 
         return query;
     }
 
-    public String generateOrdersByDeviceSQLSelect(List<String> orderIds) throws IOException {
+    public String generateRecordsByDeviceSQLSelect(List<String> recordIds) throws IOException {
         String query = String.format(
-                "SELECT recordId, recordNumber, deviceId FROM orders_by_device WHERE recordId IN (%s) GROUP BY recordId, recordNumber, deviceId;",
-                getOrderIdsQueryString(orderIds));
+                "SELECT recordId, recordNumber, deviceId, locationId, recordCreatedAt FROM orders_by_device WHERE recordId IN (%s) GROUP BY recordId, recordNumber, deviceId, locationId, recordCreatedAt;",
+                getRecordIdsQueryString(recordIds));
 
-        logger.debug(String.format("Generated Jockey Order Select query: %s", query));
+        logger.debug(String.format("Generated sequential record SELECT query: %s", query));
 
         return query;
     }
 
-    public String generateOrdersByDeviceSQLUpsert(List<SalesOrder> salesOrders, String locationId) {
+    public String generateRecordsByDeviceSQLUpsert(List<SequentialRecord> records, String locationId) {
         String updateStatement = "";
 
-        if (salesOrders.size() > 0) {
+        if (records.size() > 0) {
             updateStatement = "INSERT INTO orders_by_device (locationId, recordId, deviceId, recordNumber, recordCreatedAt) VALUES ";
 
             ArrayList<String> updates = new ArrayList<String>();
-            for (SalesOrder order : salesOrders) {
-                int n = Integer.parseInt(order.getTransactionNumber());
-                System.out.println(order.getThirdPartyOrderId() + " " + order.getDateCreated());
-                String createdDate = order.getDateCreated().split("\\.", 2)[0];
+            for (SequentialRecord record : records) {
+                System.out.println(record.getRecordId() + " " + record.getRecordCreatedAt());
+                String createdDate = record.getRecordCreatedAt().replace("Z", "").split("\\.", 2)[0];
 
-                updates.add(String.format("('%s', '%s', '%s', %d, '%s')", locationId, order.getThirdPartyOrderId(),
-                        order.getRegisterNumber(), n, createdDate));
+                updates.add(String.format("('%s', '%s', '%s', %d, '%s')", locationId, record.getRecordId(),
+                        record.getDeviceId(), record.getRecordNumber(), createdDate));
             }
 
             Iterator<String> i = updates.iterator();
@@ -149,21 +148,21 @@ public class JockeyDatabaseApi {
                 }
             }
 
-            // do nothing for existing orders
+            // do nothing for existing records
             updateStatement += " ON DUPLICATE KEY UPDATE locationId = locationId;";
         }
 
         return updateStatement;
     }
 
-    private String getOrderIdsQueryString(List<String> orderIds) throws IOException {
-        if (orderIds.size() < 1) {
+    private String getRecordIdsQueryString(List<String> recordIds) throws IOException {
+        if (recordIds.size() < 1) {
             return "''";
         }
 
         StringJoiner sj = new StringJoiner(",");
-        for (String orderId : orderIds) {
-            sj.add(String.format("'%s'", orderId));
+        for (String recordId : recordIds) {
+            sj.add(String.format("'%s'", recordId));
         }
         return sj.toString();
     }

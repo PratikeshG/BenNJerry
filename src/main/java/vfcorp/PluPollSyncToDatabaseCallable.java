@@ -64,7 +64,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final int MAX_REQUESTS = 200;
+    private static final int MAX_REQUESTS = 100;
     private static final int RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MS = 60000; // 1 minute
 
@@ -116,11 +116,16 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         for (VfcDeployment deployment : deployments) {
             channel.cd(deployment.getPluPath());
 
-            Vector<LsEntry> list = channel.ls("plu.chg*");
+            String pluPattern = "plu.chg*";
+            if (Util.isVansDeployment(deployment.getDeployment())) {
+                pluPattern = "PLU" + deployment.getStoreId() + ".CHG*";
+            }
+
+            Vector<LsEntry> list = channel.ls(pluPattern);
             LsEntry targetFile = getOldestPLUFile(list);
 
             if (targetFile != null) {
-                targetFiles.put(deployment.getPluPath(), targetFile);
+                targetFiles.put(deployment.getDeployment(), targetFile);
             }
         }
 
@@ -130,7 +135,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         for (VfcDeployment deployment : deployments) {
             channel.cd(deployment.getPluPath());
 
-            LsEntry targetFile = targetFiles.get(deployment.getPluPath());
+            LsEntry targetFile = targetFiles.get(deployment.getDeployment());
             if (targetFile != null) {
                 String fileName = targetFile.getFilename();
 
@@ -142,6 +147,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 } catch (Exception e) {
                     logger.info(String.format("%s not found after delayed directory read (%s)", fileName,
                             deployment.getDeployment()));
+                    continue;
                 }
 
                 if (oldSize != currentSize) {
@@ -150,17 +156,25 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 } else {
                     // Check for existing processing
                     Vector<LsEntry> processingFiles = channel
-                            .ls(String.format("%s/*_plu.chg.*", Constants.PROCESSING_DIRECTORY));
+                            .ls(String.format("%s/%s_*", Constants.PROCESSING_DIRECTORY, deployment.getStoreId()));
                     if (processingFiles.size() > 0) {
                         logger.info(String.format(
                                 "Can't begin processing %s. Already processing another file for deployment %s",
                                 fileName, deployment.getDeployment()));
                     } else {
                         // Move for processing
-                        String processingFileName = currentDatestamp() + Constants.PROCESSING_FILE_DELIMITER + fileName;
+                        String processingFileName = deployment.getStoreId() + Constants.PROCESSING_FILE_DELIMITER
+                                + currentDatestamp() + Constants.PROCESSING_FILE_DELIMITER + fileName;
                         String processingFileLocation = String.format("%s/%s", Constants.PROCESSING_DIRECTORY,
                                 processingFileName);
-                        channel.rename(fileName, processingFileLocation);
+
+                        try {
+                            channel.rename(fileName, processingFileLocation);
+                        } catch (Exception e) {
+                            logger.info(String.format("Can't begin processing %s. Failed renaming file for processing.",
+                                    fileName));
+                            continue;
+                        }
 
                         logger.info(String.format("Queuing %s for processing (%s) for deployment %s...", fileName,
                                 processingFileName, deployment.getDeployment()));
@@ -262,16 +276,26 @@ public class PluPollSyncToDatabaseCallable implements Callable {
             String currentFileName = entry.getFilename();
             Date currentFileDate = new Date();
 
-            // plu.chg.10042016 (daily upload)
-            if (entry.getFilename().length() == 16) {
+            if (currentFileName.endsWith(".ex")) {
+                currentFileName = currentFileName.substring(0, currentFileName.length() - 3);
+            }
+
+            // plu.chg.10042016 (TNF daily upload)
+            if (currentFileName.length() == 16) {
                 SimpleDateFormat sdf = new SimpleDateFormat("MMddyyyy");
                 currentFileDate = sdf.parse(currentFileName.substring(currentFileName.length() - 8));
             }
 
-            // plu.chg.20161004558833 (daily incremental)
-            if (entry.getFilename().length() == 22) {
+            // plu.chg.20161004558833 (TNF daily incremental)
+            if (currentFileName.length() == 22) {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
                 currentFileDate = sdf.parse(currentFileName.substring(currentFileName.length() - 14));
+            }
+
+            // pluSSSSS.chg.xMMDDHHMMSSmmm (vans PLU format)
+            if (currentFileName.length() == 27) {
+                SimpleDateFormat sdf = new SimpleDateFormat("MMddHHmmssSSS");
+                currentFileDate = sdf.parse(currentFileName.substring(currentFileName.length() - 13));
             }
 
             if (oldestFile == null || oldestFileDate.compareTo(currentFileDate) > 0) {

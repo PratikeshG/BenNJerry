@@ -22,10 +22,9 @@ public class TlogQueryDatabaseDeploymentGroupCallable implements Callable {
 
         String whereFilter;
         String deploymentGroup = message.getProperty("deploymentGroup", PropertyScope.INVOCATION);
-        boolean isStoreforceTrickle = message.getProperty("storeforceTrickle", PropertyScope.SESSION).equals("true")
-                ? true : false;
+        String tlogType = message.getProperty("tlogType", PropertyScope.SESSION);
 
-        if (isStoreforceTrickle) {
+        if (tlogType.equals("STOREFORCE") || tlogType.equals("SAP")) {
             whereFilter = String.format("deploymentGroup LIKE '%s' AND enableTLOG = 1", deploymentGroup);
         } else {
             whereFilter = String.format("deploymentGroup = '%s' AND enableTLOG = 1", deploymentGroup);

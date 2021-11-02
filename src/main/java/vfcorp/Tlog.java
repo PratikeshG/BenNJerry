@@ -9,12 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.mule.api.store.ObjectStore;
-import org.mule.api.store.ObjectStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Merchant;
 import com.squareup.connect.Money;
 import com.squareup.connect.Payment;
 import com.squareup.connect.PaymentDiscount;
@@ -22,7 +19,10 @@ import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Tender;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Location;
 
+import util.SequentialRecord;
+import util.TimeManager;
 import vfcorp.tlog.Address;
 import vfcorp.tlog.Associate;
 import vfcorp.tlog.CashierRegisterIdentification;
@@ -59,10 +59,12 @@ public class Tlog {
     private String timeZoneId;
     private static Logger logger = LoggerFactory.getLogger(Tlog.class);
 
-    private ObjectStore<String> objectStore;
+    private Map<String, Integer> nextRecordNumbers;
+    private Map<String, SequentialRecord> recordNumberCache;
     private int nextTransactionNumber;
-    private boolean isStoreforceTrickle;
+    private String type;
     private boolean trackPriceOverrides;
+    private boolean createCloseRecords;
     private int totalConfiguredDevices;
 
     public Tlog() {
@@ -82,30 +84,44 @@ public class Tlog {
         this.timeZoneId = timeZoneId;
     }
 
-    public void setObjectStore(ObjectStore<String> objectStore) {
-        this.objectStore = objectStore;
-    }
-
-    public void setIsStoreforceTrickle(boolean isStoreforceTrickle) {
-        this.isStoreforceTrickle = isStoreforceTrickle;
+    public void setType(String tlogType) {
+        this.type = tlogType;
     }
 
     public void trackPriceOverrides(boolean trackPriceOverrides) {
         this.trackPriceOverrides = trackPriceOverrides;
     }
 
+    public void createCloseRecords(boolean createCloseRecords) {
+        this.createCloseRecords = createCloseRecords;
+    }
+
     public void setTotalConfiguredDevices(int totalConfiguredDevices) {
         this.totalConfiguredDevices = totalConfiguredDevices;
     }
 
-    public void parse(Merchant location, Payment[] squarePayments, Map<String, String> employees,
-            Map<String, Customer> customerPaymentCache, String processingForDate) throws Exception {
-        List<Payment> payments = Arrays.asList(squarePayments);
+    public void setNextRecordNumbers(Map<String, Integer> nextRecordNumbers) {
+        this.nextRecordNumbers = nextRecordNumbers;
+    }
 
-        createSaleRecords(location, payments, employees, customerPaymentCache);
+    public Map<String, SequentialRecord> getRecordNumberCache() {
+        return recordNumberCache;
+    }
 
-        if (!isStoreforceTrickle) {
-            createStoreCloseRecords(location, payments, processingForDate);
+    public void setRecordNumberCache(Map<String, SequentialRecord> recordNumberCache) {
+        this.recordNumberCache = recordNumberCache;
+    }
+
+    public void parse(Location location, Payment[] paymentsForPeriod, Payment[] paymentsToProcess,
+            Map<String, String> employees, Map<String, Customer> customerPaymentCache, String processingForDate)
+            throws Exception {
+        List<Payment> tlogEntryPayments = Arrays.asList(paymentsToProcess);
+        List<Payment> tlogCloseRecordPayments = Arrays.asList(paymentsForPeriod);
+
+        createSaleRecords(location, tlogEntryPayments, employees, customerPaymentCache);
+
+        if (type.equals("EOD") || createCloseRecords) {
+            createStoreCloseRecords(location, tlogCloseRecordPayments, processingForDate);
         }
     }
 
@@ -120,7 +136,7 @@ public class Tlog {
         return sb.toString();
     }
 
-    private void createSaleRecords(Merchant location, List<Payment> squarePaymentsList,
+    private void createSaleRecords(Location location, List<Payment> squarePaymentsList,
             Map<String, String> squareEmployeesCache, Map<String, Customer> customerPaymentCache) throws Exception {
 
         for (Payment payment : squarePaymentsList) {
@@ -346,8 +362,8 @@ public class Tlog {
 
                 String registerNumber = Util
                         .getRegisterNumber(payment.getDevice() != null ? payment.getDevice().getName() : null);
-                String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
-                int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
+                int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
+                        payment.getV2OrderId(), payment.getCreatedAt());
 
                 paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, payment, employeeId,
                         TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, timeZoneId));
@@ -358,7 +374,7 @@ public class Tlog {
 
     }
 
-    private void createStoreCloseRecords(Merchant location, List<Payment> locationPayments, String processingForDate)
+    private void createStoreCloseRecords(Location location, List<Payment> locationPayments, String processingForDate)
             throws Exception {
         Map<String, List<Payment>> devicePaymentsList = new HashMap<String, List<Payment>>();
 
@@ -387,6 +403,15 @@ public class Tlog {
         }
 
         for (String registerNumber : devicePaymentsList.keySet()) {
+            String recordDate = TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "yyyy-MM-dd");
+            String closingRecordId = "close-" + location.getId() + "-" + recordDate + "-" + registerNumber;
+
+            // already processed this closing record, don't include in trickle TLOG
+            if (type.equals("SAP") && recordNumberCache.containsKey(closingRecordId)) {
+                logger.debug("Skipping closing records for TLOG " + closingRecordId);
+                continue;
+            }
+
             List<Payment> registerPayments = devicePaymentsList.get(registerNumber);
             LinkedList<Record> newRecordList = new LinkedList<Record>();
 
@@ -486,8 +511,8 @@ public class Tlog {
             newRecordList.add(new ForInStoreReportingUseOnly()
                     .parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
 
-            String storeNumber = Util.getStoreNumber(location.getLocationDetails().getNickname());
-            int transactionNumber = getNextTransactionNumber(storeNumber, registerNumber);
+            int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber, closingRecordId,
+                    recordDate);
             newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
                     registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
                     timeZoneId, processingForDate));
@@ -556,41 +581,40 @@ public class Tlog {
         return expandedItemizations;
     }
 
-    private int getNextTransactionNumber(String storeNumber, String registerNumber) {
-        if (isStoreforceTrickle) {
+    private int getNextTransactionNumberForRegister(Location location, String registerNumber, String recordId,
+            String createdAt) {
+        if (type.equals("STOREFORCE")) {
             return nextTransactionNumber++;
         }
 
-        if (storeNumber == null || storeNumber.equals("")) {
-            storeNumber = "0";
-        }
         if (registerNumber == null || registerNumber.equals("")) {
             registerNumber = "0";
         }
-
-        String storeNumberFormatted = String.format("%05d", Integer.parseInt(storeNumber));
         String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));
 
-        try {
-            String transactionNumberKey = deployment + "-transactionNumber-" + storeNumberFormatted + "-"
-                    + registerNumberFormatted;
+        if (recordNumberCache.containsKey(recordId)) {
+            return recordNumberCache.get(recordId).getRecordNumber();
+        } else {
+            int nextTransactionNumber = 1;
 
-            if (objectStore.contains(transactionNumberKey)) {
-                int transactionNumber = Integer.parseInt(objectStore.retrieve(transactionNumberKey)) + 1;
+            if (nextRecordNumbers.containsKey(registerNumberFormatted)) {
+                nextTransactionNumber = nextRecordNumbers.get(registerNumberFormatted);
 
-                if (transactionNumber > MAX_TRANSACTION_NUMBER) {
-                    transactionNumber = 1;
+                if (nextTransactionNumber > MAX_TRANSACTION_NUMBER) {
+                    nextTransactionNumber = 1;
                 }
-
-                objectStore.remove(transactionNumberKey);
-                objectStore.store(transactionNumberKey, "" + transactionNumber);
-                return transactionNumber;
-            } else {
-                objectStore.store(transactionNumberKey, "" + 1);
-                return 1;
             }
-        } catch (ObjectStoreException e) {
-            return 1;
+
+            SequentialRecord sr = new SequentialRecord();
+            sr.setLocationId(location.getId());
+            sr.setRecordId(recordId);
+            sr.setDeviceId(registerNumberFormatted);
+            sr.setRecordNumber(nextTransactionNumber);
+            sr.setRecordCreatedAt(createdAt);
+            recordNumberCache.put(recordId, sr);
+
+            nextRecordNumbers.put(registerNumberFormatted, nextTransactionNumber + 1);
+            return nextTransactionNumber;
         }
     }
 

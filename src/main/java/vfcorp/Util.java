@@ -114,7 +114,7 @@ public class Util {
         Statement stmt = conn.createStatement();
 
         String query = "SELECT vfcorp_deployments.deployment as deployment, storeId, timeZone, "
-                + "pluPath, pluFiltered, tlogPath, tlogRange, tlogOffset, encryptedAccessToken, merchantId, locationId FROM vfcorp_deployments "
+                + "pluPath, pluFiltered, tlogPath, encryptedAccessToken, merchantId, locationId FROM vfcorp_deployments "
                 + "LEFT JOIN token ON vfcorp_deployments.deployment = token.deployment WHERE " + whereFilter + ";";
 
         ResultSet result = (ResultSet) stmt.executeQuery(query);
@@ -128,8 +128,6 @@ public class Util {
             deployment.setPluPath(result.getString("pluPath"));
             deployment.setPluFiltered(result.getBoolean("pluFiltered"));
             deployment.setTlogPath(result.getString("tlogPath"));
-            deployment.setTlogRange(result.getInt("tlogRange"));
-            deployment.setTlogOffset(result.getInt("tlogOffset"));
 
             SquarePayload sp = new SquarePayload();
             sp.setEncryptedAccessToken(result.getString("encryptedAccessToken"));
@@ -172,5 +170,12 @@ public class Util {
             return Integer.valueOf(price);
         }
         return itemization.getSingleQuantityMoney().getAmount();
+    }
+
+    public static boolean isVansDeployment(String deployment) {
+        if (deployment.contains("vans") || deployment.contains("test")) {
+            return true;
+        }
+        return false;
     }
 }
