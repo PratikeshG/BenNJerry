@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -24,6 +24,16 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
     <sub-flow name="VFC:LOYALTY:brand-settings">
         <set-session-variable variableName="deploymentPattern" value="#['vfcorp-' + sessionVars.brand + '-%']" doc:name="deploymentPattern: vfcorp-brand-%"/>
         <choice doc:name="Set brand-specific variables">
+            <when expression="#[sessionVars.brand.equals(&quot;kipling&quot;)]">
+                <set-session-variable variableName="displayBrand" value="Kipling" doc:name="displayBrand: Kipling"/>
+		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.kipling.loyalty}" doc:name="sftpLoyaltyPath"/>
+		        <set-session-variable variableName="sendDailyEmails" value="false" doc:name="sendDailyEmails"/>
+		        <set-session-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
+		        <set-session-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
+		        <set-session-variable variableName="encryptionKey" value="${vfcorp.kipling.encryption.key}" doc:name="encryptionKey"/>
+		        <set-session-variable variableName="archiveFolder" value="Kipling/LOYALTY/" doc:name="archiveFolder"/>
+		        <set-session-variable variableName="allowCashTransactions" value="${vfcorp.kipling.allowCashTransactions}" doc:name="allowCashTransactions"/>
+            </when>
             <when expression="#[sessionVars.brand.equals(&quot;vans&quot;)]">
                 <set-session-variable variableName="displayBrand" value="Vans" doc:name="displayBrand: Vans"/>
 		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.vans.loyalty}" doc:name="sftpLoyaltyPath"/>
@@ -152,7 +162,7 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             </otherwise>
         </choice>
     </flow>
-        <flow name="VFC:VANS:generate-loyalty-file-cron" processingStrategy="synchronous">
+    <flow name="VFC:VANS:generate-loyalty-file-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-vans-generate-loyalty-152259999900" cronExpression="0 30 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 12:30am (PST)" connector-ref="Quartz-VFC-reporting" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -163,6 +173,24 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <logger message="#['Running ' + sessionVars.brand + ' loyalty cron...']" level="INFO" doc:name="debug Logger"/>
         <choice doc:name="Loyalty Enabled?">
             <when expression="#['${vfcorp.tlog.vans.loyalty.enabled}' == false]">
+                <logger message="#[sessionVars.brand + ' loyalty disabled. Not generating loyalty file.']" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <flow-ref name="VFC:LOYALTY:generate-loyalty-file" doc:name="VFC:LOYALTY:generate-loyalty-file"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="VFC:Kipling:generate-loyalty-file-cron" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-kipling-generate-loyalty-152259999999" cronExpression="0 25 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Cron every day at 12:25am (PST)" connector-ref="Quartz-VFC-reporting" cronTimeZone="America/Los_Angeles">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-session-variable variableName="brand" value="kipling" doc:name="brand: kipling"/>
+        <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
+        <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
+        <set-session-variable variableName="emailRecipients" value="${vfcorp.kipling.summary.email}" doc:name="emailRecipients: defaults"/>
+        <logger message="#['Running ' + sessionVars.brand + ' loyalty cron...']" level="INFO" doc:name="debug Logger"/>
+        <choice doc:name="Loyalty Enabled?">
+            <when expression="#['${vfcorp.tlog.kipling.loyalty.enabled}' == false]">
                 <logger message="#[sessionVars.brand + ' loyalty disabled. Not generating loyalty file.']" level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>

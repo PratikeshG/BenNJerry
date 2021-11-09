@@ -98,7 +98,7 @@ public class LoyaltyAggregationCallable implements Callable {
                             loyaltyPayload.setAssociateId(associateId);
                             loyaltyPayload.setCustomer(customer);
 
-                            if (brand.equals("vans") || brand.equals("test")) {
+                            if (brand.equals("kipling") || brand.equals("vans") || brand.equals("test")) {
                                 loyaltyPayload.setEmailOptIn(true);
                             } else {
                                 if (customer.getGroups() != null) {
@@ -153,7 +153,10 @@ public class LoyaltyAggregationCallable implements Callable {
             LoyaltyEntry entry = new LoyaltyEntry(cal, loyaltyPayload.getStoreId(), loyaltyPayload.getAssociateId(),
                     loyaltyPayload.getCustomer(), loyaltyPayload.isEmailOptIn());
 
-            if (brand.equals("vans") || brand.equals("test")) {
+            if (brand.equals("kipling")) {
+                entry.setBrandString("5");
+                entry.setSourceDatabaseId("58888");
+            } else if (brand.equals("vans") || brand.equals("test")) {
                 entry.setBrandString("7");
                 entry.setSourceDatabaseId("999");
 
