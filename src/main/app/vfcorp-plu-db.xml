@@ -221,15 +221,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-variable variableName="sftpPath" value="${vfcorp.vans.sftp.path.whitelist}" doc:name="sftpPath: vans"/>
         <set-variable variableName="encryptionKey" value="${vfcorp.vans.encryption.key}" doc:name="encryptionKey"/>
         <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
-        <choice doc:name="newWhitelistProcessed?">
-            <when expression="#[flowVars.newWhitelistProcessed == true]">
-                <logger message="NEW VANS PROCESSED - SYNC TO SQUARE" level="INFO" doc:name="Logger"/>
-                <flow-ref name="VFC:Vans:plu-trigger-database-to-square" doc:name="VFC:Vans:plu-trigger-database-to-square"/>
-            </when>
-            <otherwise>
-                <logger message="VANS - NO WHITELIST PROCESSED - DO NOTHING" level="INFO" doc:name="Logger"/>
-            </otherwise>
-        </choice>
     </flow>
     <flow name="VFC:Test-sync-whitelist" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-14906363888" cronExpression="0 50 * 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every :50 minute">
@@ -240,15 +231,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-variable variableName="sftpPath" value="${vfcorp.test.sftp.path.whitelist}" doc:name="sftpPath: test"/>
         <set-variable variableName="encryptionKey" value="${vfcorp.test.encryption.key}" doc:name="encryptionKey"/>
         <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
-        <choice doc:name="newWhitelistProcessed?">
-            <when expression="#[flowVars.newWhitelistProcessed == true]">
-                <logger message="NEW TEST WHITELIST PROCESSED - SYNC TO SQUARE" level="INFO" doc:name="_Logger"/>
-                <flow-ref name="VFC:Test:plu-trigger-database-to-square" doc:name="VFC:Test:plu-trigger-database-to-square"/>
-            </when>
-            <otherwise>
-                <logger message="TEST - NO WHITELIST PROCESSED - DO NOTHING" level="INFO" doc:name="Logger"/>
-            </otherwise>
-        </choice>
     </flow>
     <sub-flow name="VFC:sync-whitelist-for-brand">
         <set-variable variableName="archiveFolder" value="#[flowVars.brand + '/whitelist']" doc:name="Archive bucket/folder"/>
