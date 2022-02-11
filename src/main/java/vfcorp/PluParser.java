@@ -125,7 +125,7 @@ public class PluParser {
                 itemSaleRecords.clear();
                 itemAltDescriptionRecords.clear();
 
-                logger.info(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
+                logger.debug(String.format("(%s) Processed %d records", deploymentId, totalRecordsProcessed));
             }
         }
 

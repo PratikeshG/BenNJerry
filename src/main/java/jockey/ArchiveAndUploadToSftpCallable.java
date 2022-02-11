@@ -57,7 +57,6 @@ public class ArchiveAndUploadToSftpCallable implements Callable {
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
                 return uploadViaSftp(payload, fileName);
-
             } catch (Exception e) {
                 lastException = e;
                 lastException.printStackTrace();

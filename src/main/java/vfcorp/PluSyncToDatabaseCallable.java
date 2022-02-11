@@ -1,7 +1,6 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import org.mule.api.MuleEventContext;
@@ -13,9 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 
 import util.CloudStorageApi;
 
@@ -79,30 +76,38 @@ public class PluSyncToDatabaseCallable implements Callable {
 
         // Archive file on SFTP from temp processing directory
         Exception lastException = null;
+        Session session = null;
+        ChannelSftp sftpChannel = null;
+
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                archiveProcessingFile(request.getProcessingFileName(), request.getDeployment().getPluPath());
-                logger.info("PLU processed.");
-                return null;
+                session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+                sftpChannel = (ChannelSftp) session.openChannel("sftp");
+
+                sftpChannel.connect();
+
+                String fileName = request.getProcessingFileName();
+                String filePath = request.getDeployment().getPluPath();
+                sftpChannel.rename(filePath + "/processing/" + fileName, filePath + "/archive/" + fileName);
+                break;
             } catch (Exception e) {
                 lastException = e;
-                lastException.printStackTrace();
                 Thread.sleep(RETRY_DELAY_MS);
+            } finally {
+                if (sftpChannel != null) {
+                    sftpChannel.disconnect();
+                }
+                if (session != null) {
+                    session.disconnect();
+                }
             }
         }
 
-        throw lastException;
-    }
+        if (lastException != null) {
+            throw lastException;
+        }
 
-    private void archiveProcessingFile(String fileName, String filePath)
-            throws JSchException, IOException, SftpException {
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-
-        sftpChannel.rename(filePath + "/processing/" + fileName, filePath + "/archive/" + fileName);
-
-        sftpChannel.disconnect();
-        session.disconnect();
+        logger.info("PLU processed.");
+        return null;
     }
 }

@@ -120,7 +120,7 @@ public class Tlog {
 
         createSaleRecords(location, tlogEntryPayments, employees, customerPaymentCache);
 
-        if (type.equals("EOD") || createCloseRecords) {
+        if (createCloseRecords) {
             createStoreCloseRecords(location, tlogCloseRecordPayments, processingForDate);
         }
     }
@@ -405,12 +405,6 @@ public class Tlog {
         for (String registerNumber : devicePaymentsList.keySet()) {
             String recordDate = TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "yyyy-MM-dd");
             String closingRecordId = "close-" + location.getId() + "-" + recordDate + "-" + registerNumber;
-
-            // already processed this closing record, don't include in trickle TLOG
-            if (type.equals("SAP") && recordNumberCache.containsKey(closingRecordId)) {
-                logger.debug("Skipping closing records for TLOG " + closingRecordId);
-                continue;
-            }
 
             List<Payment> registerPayments = devicePaymentsList.get(registerNumber);
             LinkedList<Record> newRecordList = new LinkedList<Record>();

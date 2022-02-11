@@ -133,9 +133,7 @@ public class SequentialRecordsApi {
 
             ArrayList<String> updates = new ArrayList<String>();
             for (SequentialRecord record : records) {
-                System.out.println(record.getRecordId() + " " + record.getRecordCreatedAt());
                 String createdDate = record.getRecordCreatedAt().replace("Z", "").split("\\.", 2)[0];
-
                 updates.add(String.format("('%s', '%s', '%s', %d, '%s')", locationId, record.getRecordId(),
                         record.getDeviceId(), record.getRecordNumber(), createdDate));
             }

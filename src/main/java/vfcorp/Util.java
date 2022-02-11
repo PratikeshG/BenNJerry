@@ -141,18 +141,64 @@ public class Util {
         return deployments;
     }
 
-    public static VfcDeployment getMasterAccountDeployment(String host, String user, String password, String brand)
+    public static List<SquarePayload> getMasterAccountsForBrand(String host, String user, String password, String brand)
             throws Exception {
-        String whereFilter = String.format("vfcorp_deployments.deployment LIKE 'vfcorp-%s-%%'", brand);
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(host, user, password);
+        Statement stmt = conn.createStatement();
 
-        ArrayList<VfcDeployment> matchingDeployments = (ArrayList<VfcDeployment>) getVfcDeployments(host, user,
-                password, whereFilter);
+        String query = String.format(
+                "SELECT MAX(encryptedAccessToken) as encryptedAccessToken, merchantId FROM token WHERE deployment LIKE 'vfcorp-%s-%%' GROUP BY merchantId",
+                brand);
 
-        if (matchingDeployments.size() < 1) {
-            throw new Exception(String.format("No deployments for brand '%s' found.", brand));
+        ResultSet result = (ResultSet) stmt.executeQuery(query);
+
+        ArrayList<SquarePayload> accounts = new ArrayList<SquarePayload>();
+        while (result.next()) {
+            SquarePayload sp = new SquarePayload();
+            sp.setEncryptedAccessToken(result.getString("encryptedAccessToken"));
+            sp.setMerchantId(result.getString("merchantId"));
+
+            accounts.add(sp);
         }
 
-        return matchingDeployments.get(0);
+        if (accounts.size() < 1) {
+            throw new Exception(String.format("No accounts for brand '%s' found.", brand));
+        }
+
+        return accounts;
+    }
+
+    public static VfcDeployment getVfcDeploymentById(String host, String user, String password, String deploymentId)
+            throws Exception {
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(host, user, password);
+        Statement stmt = conn.createStatement();
+
+        String query = String.format("SELECT vfcorp_deployments.deployment as deployment, storeId, timeZone, "
+                + "pluPath, pluFiltered, tlogPath, encryptedAccessToken as encryptedAccessToken, merchantId, locationId "
+                + "FROM vfcorp_deployments LEFT JOIN token ON vfcorp_deployments.deployment = token.deployment "
+                + "WHERE vfcorp_deployments.deployment = '%s' LIMIT 1", deploymentId);
+
+        ResultSet result = (ResultSet) stmt.executeQuery(query);
+
+        VfcDeployment deployment = new VfcDeployment();
+        while (result.next()) {
+            deployment.setDeployment(result.getString("deployment"));
+            deployment.setStoreId(result.getString("storeId"));
+            deployment.setTimeZone(result.getString("timeZone"));
+            deployment.setPluPath(result.getString("pluPath"));
+            deployment.setPluFiltered(result.getBoolean("pluFiltered"));
+            deployment.setTlogPath(result.getString("tlogPath"));
+
+            SquarePayload sp = new SquarePayload();
+            sp.setEncryptedAccessToken(result.getString("encryptedAccessToken"));
+            sp.setMerchantId(result.getString("merchantId"));
+            sp.setLocationId(result.getString("locationId"));
+            deployment.setSquarePayload(sp);
+        }
+
+        return deployment;
     }
 
     public static boolean hasPriceOverride(PaymentItemization itemization) {

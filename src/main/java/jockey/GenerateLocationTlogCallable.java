@@ -9,9 +9,13 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -21,17 +25,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Employee;
 import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.GiftCardActivity;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.OrderEntry;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemDiscount;
 import com.squareup.connect.v2.OrderReturn;
 import com.squareup.connect.v2.OrderReturnLineItem;
 import com.squareup.connect.v2.OrderReturnLineItemDiscount;
+import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
 import com.squareup.connect.v2.SearchOrdersFilter;
@@ -50,6 +55,8 @@ public class GenerateLocationTlogCallable implements Callable {
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
 
+    @Value("${jockey.api.url}")
+    private String apiUrl;
     @Value("${jockey.sftp.ip}")
     private String sftpHost;
     @Value("${jockey.sftp.port}")
@@ -81,6 +88,8 @@ public class GenerateLocationTlogCallable implements Callable {
     private static String GIFT_CARD_SKU = "GIFTCARD";
     private static int MAX_TRANSACTION_NUMBER = 99999;
 
+    private static final Set<String> SKIP_LOCATIONS = new HashSet<String>(Arrays.asList(new String[] {}));
+
     private static Logger logger = LoggerFactory.getLogger(GenerateLocationTlogCallable.class);
 
     @Override
@@ -102,17 +111,9 @@ public class GenerateLocationTlogCallable implements Callable {
                 PropertyScope.SESSION);
         int range = Integer.parseInt(message.getProperty(Constants.RANGE, PropertyScope.SESSION));
         int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
-        String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
-        apiUrl = "https://connect.squareup.com";
 
-        Employee[] employees = (Employee[]) message.getProperty(Constants.EMPLOYEES, PropertyScope.SESSION);
-        Map<String, Employee> employeeCache = new HashMap<String, Employee>();
-        for (Employee e : employees) {
-            if (e == null) {
-                continue; // TODO - bug in v1 employee list code -- migrate to V2 teams
-            }
-            employeeCache.put(e.getId(), e);
-        }
+        Map<String, String> employeeCache = (Map<String, String>) message.getProperty(Constants.EMPLOYEES,
+                PropertyScope.SESSION);
 
         String accessToken = squarePayload.getAccessToken(this.encryptionKey);
         String merchantId = squarePayload.getMerchantId();
@@ -157,7 +158,23 @@ public class GenerateLocationTlogCallable implements Callable {
         searchSort.setSortField("CLOSED_AT");
         searchSort.setSortOrder("ASC");
 
-        List<Order> v2Orders = Arrays.asList(clientV2.orders().search(location.getId(), orderQuery));
+        // Get OrderEntries, then batch review all Orders by ID
+        List<OrderEntry> v2OrderEntries = Arrays
+                .asList(clientV2.orders().searchOrderEntries(location.getId(), orderQuery));
+
+        ArrayList<String> orderEntryIds = new ArrayList<String>();
+        for (OrderEntry e : v2OrderEntries) {
+            orderEntryIds.add(e.getOrderId());
+        }
+        List<Order> v2Orders = Arrays.asList(clientV2.orders().batchRetrieve(location.getId(),
+                orderEntryIds.toArray(new String[orderEntryIds.size()])));
+
+        Collections.sort(v2Orders, new Comparator<Order>() {
+            @Override
+            public int compare(Order o1, Order o2) {
+                return o1.getClosedAt().compareTo(o2.getClosedAt());
+            }
+        });
 
         // Establish database connection for Order numbers
         Class.forName("com.mysql.jdbc.Driver");
@@ -228,7 +245,10 @@ public class GenerateLocationTlogCallable implements Callable {
         HashMap<String, String> gcQuery = new HashMap<String, String>();
         gcQuery.put("begin_time", dateParams.getOrDefault("begin_time", ""));
         gcQuery.put("end_time", dateParams.getOrDefault("end_time", ""));
+
+        clientV2 = new SquareClientV2(apiUrl, accessToken);
         clientV2.setVersion("2021-06-16");
+
         GiftCardActivity[] gcActivities = clientV2.giftCards().listActivities(gcQuery);
 
         for (GiftCardActivity gcActivity : gcActivities) {
@@ -236,6 +256,25 @@ public class GenerateLocationTlogCallable implements Callable {
                 giftCardActivityCache.put(gcActivity.getRefundActivityDetails().getPaymentId(), true);
             } else if (gcActivity.getType().equals("UNLINKED_ACTIVITY_REFUND")) {
                 giftCardActivityCache.put(gcActivity.getUnlinkedActivityRefundActivityDetails().getPaymentId(), true);
+            }
+        }
+
+        ArrayList<SalesOrder> salesOrders = new ArrayList<SalesOrder>();
+
+        // HANDLE UNLINKED REFUNDS SEPARATELY FROM ORDERS WHILE IN ALPHA
+        HashMap<String, String> refundParams = new HashMap<String, String>();
+        refundParams.put("begin_time", dateParams.getOrDefault("begin_time", ""));
+        refundParams.put("end_time", dateParams.getOrDefault("end_time", ""));
+        refundParams.put("location_id", location.getId());
+
+        clientV2 = new SquareClientV2(apiUrl, accessToken);
+        clientV2.setVersion("2021-06-16");
+        PaymentRefund[] v2Refunds = clientV2.refunds().listPaymentRefunds(refundParams);
+
+        for (PaymentRefund refund : v2Refunds) {
+            if (refund.isUnlinked()) {
+                orderIds.add(refund.getId()); // for lookup of existing transaction ID cache
+                salesOrders.add(createSalesOrderFromUnlinkedRefund(location, refund));
             }
         }
 
@@ -249,16 +288,22 @@ public class GenerateLocationTlogCallable implements Callable {
             }
         }
 
-        ArrayList<SalesOrder> salesOrders = new ArrayList<SalesOrder>();
-
         for (Order order : v2Orders) {
-            String registerNumber = getRegisterNumberFromOrder(order, v1PaymentCache);
-            int transactionNumber = getTransactionNumber(order, registerNumber, nextDeviceTransactionNumbers,
-                    existingTransactionNumbers);
-
             SalesOrder sOrder = createSalesOrder(location, employeeCache, v1PaymentCache, tenderCache,
-                    giftCardActivityCache, order, transactionNumber);
+                    giftCardActivityCache, order);
             salesOrders.add(sOrder);
+        }
+
+        Collections.sort(salesOrders, new Comparator<SalesOrder>() {
+            @Override
+            public int compare(SalesOrder so1, SalesOrder so2) {
+                return so1.getDateCompleted().compareTo(so2.getDateCompleted());
+            }
+        });
+        for (SalesOrder so : salesOrders) {
+            int transactionNumber = getTransactionNumber(so.getThirdPartyOrderId(), so.getRegisterNumber(),
+                    nextDeviceTransactionNumbers, existingTransactionNumbers);
+            so.setTransactionNumber("" + transactionNumber);
         }
 
         databaseApi.updateOrderNumbersForLocation(salesOrders, location.getId());
@@ -267,10 +312,10 @@ public class GenerateLocationTlogCallable implements Callable {
         return salesOrders;
     }
 
-    private int getTransactionNumber(Order order, String registerNumber,
+    private int getTransactionNumber(String id, String registerNumber,
             Map<String, Integer> nextDeviceTransactionNumbers, Map<String, Integer> existingTransactionNumbers) {
         int nextTransactionNumberForDevice = nextDeviceTransactionNumbers.getOrDefault(registerNumber, 1);
-        int transactionNumber = existingTransactionNumbers.getOrDefault(order.getId(), nextTransactionNumberForDevice);
+        int transactionNumber = existingTransactionNumbers.getOrDefault(id, nextTransactionNumberForDevice);
 
         // increment if we used a new number
         if (transactionNumber == nextTransactionNumberForDevice) {
@@ -326,13 +371,69 @@ public class GenerateLocationTlogCallable implements Callable {
         return discountProperties.toArray(new WeaklyTypedProperty[discountProperties.size()]);
     }
 
-    private SalesOrder createSalesOrder(Location location, Map<String, Employee> employeeCache,
+    private SalesOrder createSalesOrderFromUnlinkedRefund(Location location, PaymentRefund refund) throws Exception {
+
+        SalesOrder so = new SalesOrder();
+
+        so.setThirdPartyOrderId(refund.getId());
+        so.setTransactionNumber("0000");
+        so.setStoreNumber(getStoreNumber(location.getName()));
+        so.setDateCreated(formatDate(location, refund.getCreatedAt().replace(".000Z", "Z")));
+        so.setDateCompleted(formatDate(location, refund.getUpdatedAt().replace(".000Z", "Z")));
+        so.setSalesOrderCode("11"); // standard refund code
+        so.setRegisterNumber(DEFAULT_DEVICE_ID);
+        so.setCashier(DEFAULT_CASHIER_ID);
+        so.setShippingTotal(Util.getAmountAsXmlDecimal(0));
+        so.setTaxTotal(Util.getAmountAsXmlDecimal(0));
+        so.setTotal(Util.getAmountAsXmlDecimal(refund.getAmountMoney().getAmount()));
+
+        ArrayList<SalesOrderPayment> salesOrderPayments = new ArrayList<SalesOrderPayment>();
+        SalesOrderPayment sop = new SalesOrderPayment();
+        sop.setAmount(Util.getAmountAsXmlDecimal(-1 * refund.getAmountMoney().getAmount()));
+        sop.setPaymentCode(getUnlinkedRefundPaymentCode(refund));
+        sop.setPaymentId(refund.getId());
+        salesOrderPayments.add(sop);
+
+        so.setPayments(salesOrderPayments.toArray(new SalesOrderPayment[salesOrderPayments.size()]));
+
+        ArrayList<SalesOrderLineItem> salesOrderLineItems = new ArrayList<SalesOrderLineItem>();
+
+        // Make sure at least one itemization to include
+        // ex: goods{V}TVJ590PFH;86,GLJ778XGS;94,XHN185XSK;79,XXO628EJB;34,MOK907CC2;48,BJP280HJZ;4
+        String itemizationValues = refund.getReason().split("\\}")[1];
+
+        if (itemizationValues.length() > 0 && itemizationValues.contains(";")) {
+            int i = 1;
+            for (String lineItem : itemizationValues.split(",")) {
+                String itemSku = lineItem.split(";")[0];
+                String itemQty = lineItem.split(";")[1];
+
+                SalesOrderLineItem soli = new SalesOrderLineItem();
+
+                soli.setLineNumber("" + i++);
+                soli.setLineCode("11");
+                soli.setSku(itemSku);
+                soli.setUpc(itemSku);
+                soli.setQuantity(itemQty);
+                soli.setDisplayName(itemSku);
+                salesOrderLineItems.add(soli);
+
+                // no data
+                soli.setWeaklyTypedProperties(new WeaklyTypedProperty[0]);
+            }
+        }
+
+        so.setLineItems(salesOrderLineItems.toArray(new SalesOrderLineItem[salesOrderLineItems.size()]));
+
+        return so;
+    }
+
+    private SalesOrder createSalesOrder(Location location, Map<String, String> employeeCache,
             Map<String, Payment> v1PaymentCache, Map<String, Tender> tenderCache,
-            Map<String, Boolean> giftCardActivityCache, Order order, int transactionNumber) throws Exception {
+            Map<String, Boolean> giftCardActivityCache, Order order) throws Exception {
         SalesOrder so = new SalesOrder();
 
         so.setThirdPartyOrderId(order.getId());
-        so.setTransactionNumber("" + transactionNumber);
         so.setStoreNumber(getStoreNumber(location.getName()));
         so.setDateCreated(formatDate(location, order.getCreatedAt().replace(".000Z", "Z")));
         so.setDateCompleted(formatDate(location, order.getClosedAt().replace(".000Z", "Z")));
@@ -669,9 +770,8 @@ public class GenerateLocationTlogCallable implements Callable {
         return "01";
     }
 
-    private String getExternalEmployeeId(Map<String, Employee> employeeCache, String creatorId) {
-        return (employeeCache.get(creatorId) != null) ? employeeCache.get(creatorId).getExternalId()
-                : DEFAULT_CASHIER_ID;
+    private String getExternalEmployeeId(Map<String, String> employeeCache, String creatorId) {
+        return (employeeCache.get(creatorId) != null) ? employeeCache.get(creatorId) : DEFAULT_CASHIER_ID;
     }
 
     // Item Variation name format: 100086878 | 1372 NoPanty Line Micro Hi Br | Toasted Beige | 6
@@ -817,6 +917,44 @@ public class GenerateLocationTlogCallable implements Callable {
         }
     }
 
+    private String getUnlinkedRefundPaymentCode(PaymentRefund refund) {
+        String CASH = "CA";
+        String VISA = "VI";
+        String MASTERCARD = "MA";
+        String DISCOVER = "DI";
+        String AMEX = "AX";
+        String OTHER_BRAND = "OB";
+
+        if (refund == null) {
+            return DEFAULT_OTHER_TENDER_CODE;
+        }
+
+        if (refund.getDestinationType().equals("CASH")) {
+            return CASH;
+        } else if (refund.getDestinationType().equals("CARD")) {
+
+            // get brand code from encoded reason code
+            // ex: Accidental charge{V}12345678;1
+            String reasonCode = refund.getReason().split("\\{")[1];
+            String brandCode = reasonCode.split("\\}")[0];
+
+            switch (brandCode) {
+                case "V":
+                    return VISA;
+                case "M":
+                    return MASTERCARD;
+                case "A":
+                    return AMEX;
+                case "D":
+                    return DISCOVER;
+                default:
+                    return OTHER_BRAND;
+            }
+        } else {
+            return DEFAULT_OTHER_TENDER_CODE;
+        }
+    }
+
     private String getStoreNumber(String storeName) throws Exception {
         String storeNumber = storeName.split(" ", 2)[0];
         try {
@@ -862,7 +1000,11 @@ public class GenerateLocationTlogCallable implements Callable {
 
         // not valid store ID
         try {
-            getStoreNumber(location.getName());
+            String storeNumber = getStoreNumber(location.getName());
+
+            if (SKIP_LOCATIONS.contains(storeNumber)) {
+                return true;
+            }
         } catch (Exception e) {
             return true;
         }

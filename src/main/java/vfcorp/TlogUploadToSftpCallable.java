@@ -94,28 +94,54 @@ public class TlogUploadToSftpCallable implements Callable {
             String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
             String storeforceTrickleDirectory, String sapTrickleDirectory) throws InterruptedException, Exception {
         Exception lastException = null;
+
+        Session session = null;
+        ChannelSftp sftpChannel = null;
+        Object uploadObject = null;
+
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                return uploadVfcTlogsViaSftp(message, tlog, tlogType, archiveTlog, vfcorpStoreNumber, deployment,
-                        storeforceArchiveDirectory, storeforceTrickleDirectory, sapTrickleDirectory);
+                session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+                sftpChannel = (ChannelSftp) session.openChannel("sftp");
 
+                sftpChannel.connect();
+
+                uploadObject = uploadVfcTlogsViaSftp(message, sftpChannel, tlog, tlogType, archiveTlog,
+                        vfcorpStoreNumber, deployment, storeforceArchiveDirectory, storeforceTrickleDirectory,
+                        sapTrickleDirectory);
+                break;
             } catch (Exception e) {
+                if (sftpChannel != null) {
+                    sftpChannel.disconnect();
+                }
+                if (session != null) {
+                    session.disconnect();
+                }
+
                 lastException = e;
-                lastException.printStackTrace();
+                logger.warn(String.format("Error connecting to SFTP for %s TLOG upload - %s",
+                        deployment.getDeployment(), lastException.toString()));
                 Thread.sleep(RETRY_DELAY_MS);
+            } finally {
+                if (sftpChannel != null) {
+                    sftpChannel.disconnect();
+                }
+                if (session != null) {
+                    session.disconnect();
+                }
             }
         }
 
-        throw lastException;
+        if (lastException != null) {
+            throw lastException;
+        }
+        return uploadObject;
     }
 
-    private Object uploadVfcTlogsViaSftp(MuleMessage message, String tlog, String tlogType, boolean archiveTlog,
-            String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
+    private Object uploadVfcTlogsViaSftp(MuleMessage message, ChannelSftp sftpChannel, String tlog, String tlogType,
+            boolean archiveTlog, String vfcorpStoreNumber, VfcDeployment deployment, String storeforceArchiveDirectory,
             String storeforceTrickleDirectory, String sapTrickleDirectory)
             throws JSchException, IOException, UnsupportedEncodingException, SftpException, ParseException {
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
 
         // Only put in main SFTP folder if final end of day TLOG generation flow
         if (tlogType.equals("EOD")) {
@@ -124,12 +150,20 @@ public class TlogUploadToSftpCallable implements Callable {
             sftpChannel.put(tlogUploadStream, getVfcFilename(tlogType, deployment, vfcorpStoreNumber),
                     ChannelSftp.OVERWRITE);
 
+            if (tlogUploadStream != null) {
+                tlogUploadStream.close();
+            }
+
             // Also save a copy to Storeforce for EOD
             if (storeforceArchiveDirectory.length() > 0) {
                 InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
                 sftpChannel.cd(storeforceArchiveDirectory);
                 sftpChannel.put(storeforceUploadStream, getStoreforceFilename(deployment, vfcorpStoreNumber),
                         ChannelSftp.OVERWRITE);
+
+                if (storeforceUploadStream != null) {
+                    storeforceUploadStream.close();
+                }
             }
 
             // Archive copy enabled
@@ -142,35 +176,47 @@ public class TlogUploadToSftpCallable implements Callable {
                 String archiveDirectory = deployment.getTlogPath() + "/Archive";
                 sftpChannel.cd(archiveDirectory);
                 sftpChannel.put(archiveUploadStream, archiveFilename, ChannelSftp.OVERWRITE);
+
+                if (archiveUploadStream != null) {
+                    archiveUploadStream.close();
+                }
             }
         } else if (tlogType.equals("SAP")) {
             // Skip SAP trickle when there is no new transactions
             if (tlog.length() < 1) {
-                logger.debug(deployment + ": tlogType EMPTY - skipping");
+                logger.debug(deployment.getDeployment() + ": tlogType EMPTY - skipping");
                 return tlog;
             }
 
             String sapFilename = getVfcFilename(tlogType, deployment, vfcorpStoreNumber);
-
             InputStream saptrickleUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(sapTrickleDirectory);
             sftpChannel.put(saptrickleUploadStream, sapFilename, ChannelSftp.OVERWRITE);
+
+            if (saptrickleUploadStream != null) {
+                saptrickleUploadStream.close();
+            }
 
             // Archive copy enabled
             if (archiveTlog) {
                 InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
                 sftpChannel.cd(sapTrickleDirectory + "/Archive");
                 sftpChannel.put(archiveUploadStream, sapFilename, ChannelSftp.OVERWRITE);
+
+                if (archiveUploadStream != null) {
+                    archiveUploadStream.close();
+                }
             }
         } else if (tlogType.equals("STOREFORCE")) {
             InputStream storeforceUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(storeforceTrickleDirectory);
             sftpChannel.put(storeforceUploadStream, getStoreforceFilename(deployment, vfcorpStoreNumber),
                     ChannelSftp.OVERWRITE);
-        }
 
-        sftpChannel.disconnect();
-        session.disconnect();
+            if (storeforceUploadStream != null) {
+                storeforceUploadStream.close();
+            }
+        }
 
         return tlog;
     }

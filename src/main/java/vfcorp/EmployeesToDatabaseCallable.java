@@ -2,6 +2,8 @@ package vfcorp;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -13,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.TeamMember;
+
+import util.SquarePayload;
 
 public class EmployeesToDatabaseCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(EmployeesToDatabaseCallable.class);
@@ -35,18 +39,22 @@ public class EmployeesToDatabaseCallable implements Callable {
         String brand = (String) message.getProperty("brand", PropertyScope.SESSION);
         int minEmployees = Integer.parseInt(message.getProperty("minEmployees", PropertyScope.INVOCATION));
 
-        // Retrieve a single deployment for credentials for master account
-        VfcDeployment masterAccount = Util.getMasterAccountDeployment(databaseUrl, databaseUser, databasePassword,
-                brand);
+        // Get employees from all master accounts for this deployment
+        ArrayList<SquarePayload> masterAccounts = (ArrayList<SquarePayload>) Util.getMasterAccountsForBrand(databaseUrl,
+                databaseUser, databasePassword, brand);
 
-        SquareClientV2 client = new SquareClientV2(apiUrl,
-                masterAccount.getSquarePayload().getAccessToken(encryptionKey));
-        client.setLogInfo(masterAccount.getSquarePayload().getMerchantId());
+        ArrayList<TeamMember> teamMembers = new ArrayList<TeamMember>();
 
-        TeamMember[] teamMembers = client.team().search();
+        for (SquarePayload account : masterAccounts) {
+            SquareClientV2 client = new SquareClientV2(apiUrl, account.getAccessToken(encryptionKey));
+            client.setLogInfo(account.getMerchantId());
+            TeamMember[] team = client.team().search();
 
-        logger.info("" + teamMembers.length);
-        if (teamMembers.length < minEmployees) {
+            teamMembers.addAll(Arrays.asList(team));
+        }
+
+        logger.info("" + teamMembers.size());
+        if (teamMembers.size() < minEmployees) {
             logger.info("DO NOTHING - EMPLOYEES NUMBER SEEMS INVALID");
             return null;
         }
@@ -63,8 +71,7 @@ public class EmployeesToDatabaseCallable implements Callable {
 
         String deployment = "vfcorp-" + brand;
         databaseApi.deleteEmployeesForBrand(deployment);
-
-        databaseApi.setEmployeesForBrand(deployment, teamMembers);
+        databaseApi.setEmployeesForBrand(deployment, teamMembers.toArray(new TeamMember[teamMembers.size()]));
 
         return null;
     }
