@@ -63,14 +63,21 @@ public class CloudStorageApi {
 
         List<StorageObject> results = new ArrayList<StorageObject>();
 
-        Objects objects;
+        Objects objects = null;
         do {
             objects = listRequest.execute();
-            results.addAll(objects.getItems());
-            listRequest.setPageToken(objects.getNextPageToken());
+            if (objects != null && objects.getItems() != null) {
+                results.addAll(objects.getItems());
+                listRequest.setPageToken(objects.getNextPageToken());
+            }
         } while (null != objects.getNextPageToken());
 
         return results;
+    }
+
+    public StorageObject uploadObject(String bucketName, String objectName, InputStream data)
+            throws UnsupportedEncodingException, IOException {
+        return uploadObject(bucketName, objectName, data, ENCODING_TEXT_PLAIN);
     }
 
     public StorageObject uploadObject(String bucketName, String objectName, String data)
@@ -120,6 +127,16 @@ public class CloudStorageApi {
         Storage.Objects.Insert insertObject = storage.objects().insert(object.getBucket(), object, mediaContent);
         insertObject.getMediaHttpUploader().setDisableGZipContent(true);
         return insertObject.execute();
+    }
+
+    public StorageObject renameObject(String bucketName, String objectName, String destBucket, String deskObjectName)
+            throws IOException {
+        Storage.Objects.Copy copyObject = storage.objects().copy(bucketName, objectName, destBucket, deskObjectName,
+                null);
+        StorageObject copiedObj = copyObject.execute();
+        Storage.Objects.Delete deleteObject = storage.objects().delete(bucketName, objectName);
+        deleteObject.execute();
+        return copiedObj;
     }
 
     public InputStream downloadObject(String bucketName, String objectName) throws IOException {
