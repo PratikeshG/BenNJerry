@@ -77,36 +77,36 @@ public class PluPollSyncToDatabaseCallable implements Callable {
 
         // SFTP RETRY BLOCK
         Exception lastException = null;
+        Session session = null;
+        ChannelSftp sftpChannel = null;
+        Object returnObject = null;
+
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-                return getVfcPluSyncToDatabaseRequestsFromSftp(deployments);
+                session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
+                sftpChannel = (ChannelSftp) session.openChannel("sftp");
+
+                sftpChannel.connect();
+
+                returnObject = getSyncRequests(sftpChannel, deployments);
+                break;
             } catch (Exception e) {
                 lastException = e;
-                lastException.printStackTrace();
                 Thread.sleep(RETRY_DELAY_MS);
+            } finally {
+                if (sftpChannel != null) {
+                    sftpChannel.disconnect();
+                }
+                if (session != null) {
+                    session.disconnect();
+                }
             }
         }
 
-        throw lastException;
-    }
-
-    private Object getVfcPluSyncToDatabaseRequestsFromSftp(ArrayList<VfcDeployment> deployments) throws Exception {
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        logger.info("VFC: SFTP session created");
-
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        logger.info("VFC: SFTP channel created");
-
-        List<PluSyncToDatabaseRequest> syncRequests = getSyncRequests(sftpChannel, deployments);
-
-        sftpChannel.disconnect();
-        logger.info("VFC: SFTP channel disconnected");
-
-        session.disconnect();
-        logger.info("VFC: SFTP session disconnected");
-
-        return syncRequests;
+        if (lastException != null) {
+            throw lastException;
+        }
+        return returnObject;
     }
 
     private List<PluSyncToDatabaseRequest> getSyncRequests(ChannelSftp channel, List<VfcDeployment> deployments)

@@ -40,9 +40,9 @@ public class PluCatalogBuilder {
             Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
 
     private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
-            Arrays.asList(new String[] { "706420993945" }));
+            Arrays.asList(new String[] { "706420993945", "196245794955" }));
 
-    private static int BATCH_UPSERT_SIZE = 10;
+    private static int BATCH_UPSERT_SIZE = 1;
 
     private SquareClientV2 client;
     private String databaseUrl;
@@ -91,7 +91,7 @@ public class PluCatalogBuilder {
         workingCatalog.clearItemLocations();
         workingCatalog.clearItemTaxes();
 
-        logCatalogStats(workingCatalog);
+        logCatalogStats(brand, workingCatalog);
 
         // For each location, add unique item to catalog and set price (sale) overrides
         Location[] locations = client.locations().list();
@@ -116,10 +116,10 @@ public class PluCatalogBuilder {
         prepareForUpsert(workingCatalog);
         removeUnassignedLocationOverrides(workingCatalog);
 
-        logger.info("TOTAL ITEMS IN ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
-        logger.info("TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
+        logInfoForBrand(brand, "TOTAL ITEMS IN ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
+        logInfoForBrand(brand, "TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
         CatalogObject[] modifiedItems = workingCatalog.getModifiedItems();
-        logger.info("TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
+        logInfoForBrand(brand, "TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
 
         upsertObjectsToSquare(modifiedItems, "item");
 
@@ -239,12 +239,12 @@ public class PluCatalogBuilder {
         }
     }
 
-    private static void logCatalogStats(Catalog catalog) {
-        logger.info("CATEGORIES: " + catalog.getCategories().size());
-        logger.info("ITEMS: " + catalog.getItems().size());
-        logger.info("TAXES: " + catalog.getTaxes().size());
-        logger.info("DISCOUNTS: " + catalog.getDiscounts().size());
-        logger.info("MODIFIER LISTS: " + catalog.getModifierLists().size());
+    private static void logCatalogStats(String brand, Catalog catalog) {
+        logInfoForBrand(brand, "CATEGORIES: " + catalog.getCategories().size());
+        logInfoForBrand(brand, "ITEMS: " + catalog.getItems().size());
+        logInfoForBrand(brand, "TAXES: " + catalog.getTaxes().size());
+        logInfoForBrand(brand, "DISCOUNTS: " + catalog.getDiscounts().size());
+        logInfoForBrand(brand, "MODIFIER LISTS: " + catalog.getModifierLists().size());
     }
 
     /* VFC Catalogs are a 1:1 mapping between a CatalogItem and a CatalogItemVariation
@@ -398,7 +398,7 @@ public class PluCatalogBuilder {
     }
 
     private void deleteObjectsFromSquare(String[] objectIds) {
-        logger.info(String.format("Deleteing %d objects from catalog...", objectIds.length));
+        logger.info(String.format("Deleting %d objects from catalog...", objectIds.length));
         try {
             client.catalog().batchDeleteObjects(objectIds);
         } catch (Exception e) {
@@ -655,5 +655,9 @@ public class PluCatalogBuilder {
 
     private boolean isVansDeployment() {
         return brand.equals(DEPLOYMENT_BRAND_VANS) || brand.equals(DEPLOYMENT_BRAND_VANS_TEST);
+    }
+
+    private static void logInfoForBrand(String brand, String message) {
+        logger.info(String.format("[%s] :: %s", brand, message));
     }
 }

@@ -1,20 +1,16 @@
 package vfcorp;
 
 import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Scanner;
-import java.util.Vector;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -24,11 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
+import com.google.api.services.storage.model.StorageObject;
 
 import util.CloudStorageApi;
 
@@ -56,107 +48,42 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final int MINIMUM_STORES_PROVIDED = 100;
-    private static final String WHIETLIST_FILE_PREFIX = "UPC.DTA";
     private static final String PROCESSING_PREFIX = "processing_";
-    private static final String ARCHIVE_PATH = "Archive";
+    private static final String WHITELIST_DIRECTORY_FORMAT = "whitelist/%s/";
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
         String brand = (String) message.getProperty("brand", PropertyScope.INVOCATION);
-        String sftpPath = (String) message.getProperty("sftpPath", PropertyScope.INVOCATION);
-        boolean enabled = message.getProperty("enabled", PropertyScope.INVOCATION).equals("true") ? true : false;
-
         String deployment = "vfcorp-" + brand;
 
-        if (!enabled) {
-            logger.info("Skipping whitelist - " + brand + " - disabled");
+        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
+
+        if (isProcessingFile(cloudStorage, brand)) {
             return 0;
         }
 
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        logger.info(brand + ": SFTP session created");
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-        logger.info(brand + ": SFTP channel created");
-
-        sftpChannel.cd(sftpPath);
-
-        if (isProcessingFile(sftpChannel)) {
-            return 0;
-        }
-
-        Vector<LsEntry> whitelistFiles = sftpChannel.ls(WHIETLIST_FILE_PREFIX + "*");
-        Thread.sleep(8000); // wait to verify if file ready for processing
-
+        List<StorageObject> objects = cloudStorage.listObjects(archiveBucket,
+                String.format(WHITELIST_DIRECTORY_FORMAT + "UPC.DTA", brand));
         ArrayList<String> filesToProcess = new ArrayList<String>();
-        for (LsEntry f : whitelistFiles) {
-            String fileName = f.getFilename();
-
-            int oldSize = (int) f.getAttrs().getSize();
-            int currentSize = (int) sftpChannel.lstat(fileName).getSize();
-
-            if (oldSize != currentSize) {
-                logger.info(String.format("%s not ready for processing", fileName));
-            } else {
-                filesToProcess.add(fileName);
-            }
+        for (StorageObject o : objects) {
+            filesToProcess.add(o.getName());
         }
-
         Collections.sort(filesToProcess);
 
-        String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
-        String archiveFolder = message.getProperty("archiveFolder", PropertyScope.INVOCATION);
-        CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-        String fileToProcess = null;
-        String fileKey = null;
-        boolean newWhitelistProcessed = false;
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
 
-        if (filesToProcess.size() > 0) {
-            for (int i = 0; i < filesToProcess.size(); i++) {
-                String file = filesToProcess.get(i);
+        String folderKey = String.format(WHITELIST_DIRECTORY_FORMAT, brand);
 
-                // validate file; only process properly formed files
-                if (!isWhitelistValid(sftpChannel, file)) {
-                    sftpChannel.rename(file, String.format("%s/invalid_%s", ARCHIVE_PATH, file));
-                    continue;
-                }
+        for (String fileKey : filesToProcess) {
+            String fileName = fileKey.split(folderKey)[1];
+            String processingFileKey = folderKey + PROCESSING_PREFIX + fileName;
+            cloudStorage.renameObject(archiveBucket, fileKey, archiveBucket, processingFileKey);
 
-                fileToProcess = String.format("%s%s", PROCESSING_PREFIX, file);
-                sftpChannel.rename(file, fileToProcess);
-
-                // Archive to Google Cloud Storage
-                logger.info(String.format("Saving %s -- %s archive to GCP cloud...", deployment, fileToProcess));
-                InputStream is = sftpChannel.get(fileToProcess);
-                fileKey = String.format("%s/%s.secure", archiveFolder, fileToProcess);
-
-                try {
-                    cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, is);
-                } catch (RuntimeException e) {
-                    logger.error("VFC whitelist error trying to upload to CloudStorage: " + e.getMessage());
-                }
-
-                // don't process any more files in this job
-                break;
-            }
-        }
-
-        sftpChannel.disconnect();
-        logger.info("VFC: SFTP channel disconnected");
-
-        session.disconnect();
-        logger.info("VFC: SFTP session disconnected");
-
-        if (fileToProcess != null) {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-            VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
-
-            // Establish new input stream from archived file
-            InputStream whitelistInputStream = cloudStorage.downloadAndDecryptObject(encryptionKey, archiveBucket,
-                    fileKey);
+            InputStream whitelistInputStream = cloudStorage.downloadObject(archiveBucket, processingFileKey);
             BufferedInputStream bis = new BufferedInputStream(whitelistInputStream);
 
             HashMap<String, HashSet<String>> allStoreWhitelists = new HashMap<String, HashSet<String>>();
@@ -201,72 +128,20 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
                 }
             }
 
-            archiveProcessingFile(sftpPath, fileToProcess, String.format("%s/done_%s", ARCHIVE_PATH, fileToProcess));
-            newWhitelistProcessed = true;
+            cloudStorage.renameObject(archiveBucket, processingFileKey, archiveBucket,
+                    folderKey + "archive/" + fileName);
         }
 
-        message.setProperty("newWhitelistProcessed", newWhitelistProcessed, PropertyScope.INVOCATION);
+        System.out.println("done");
         return 1;
     }
 
-    private void archiveProcessingFile(String sftpPath, String srcFile, String destFile)
-            throws JSchException, IOException, SftpException {
-        Session session = Util.createSSHSession(sftpHost, sftpUser, sftpPassword, sftpPort);
-        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-        sftpChannel.connect();
-
-        sftpChannel.cd(sftpPath);
-        sftpChannel.rename(srcFile, destFile);
-
-        sftpChannel.disconnect();
-        session.disconnect();
-    }
-
-    private boolean isWhitelistValid(ChannelSftp sftpChannel, String filename)
-            throws FileNotFoundException, IOException, SftpException {
-        InputStream is = null;
-        BufferedInputStream bis = null;
-        Reader reader = null;
-
-        try {
-            is = sftpChannel.get(filename);
-            bis = new BufferedInputStream(is);
-            reader = new InputStreamReader(bis, StandardCharsets.UTF_8);
-
-            int count = 0;
-
-            int c;
-            while ((c = reader.read()) >= 0) {
-                // 0 as char = 48
-                // 9 as char = 57
-                if (c < 48 || c > 57) {
-                    return false;
-                }
-
-                count++;
-                if (count > 15) {
-                    break;
-                }
-            }
-        } finally {
-            if (is != null) {
-                is.close();
-            }
-            if (bis != null) {
-                bis.close();
-            }
-            if (reader != null) {
-                reader.close();
-            }
-        }
-        return true;
-    }
-
-    private boolean isProcessingFile(ChannelSftp channel) throws SftpException {
-        Vector<LsEntry> processingFiles = channel.ls(String.format("processing_%s*", WHIETLIST_FILE_PREFIX));
+    private boolean isProcessingFile(CloudStorageApi cloudStorage, String brand) throws IOException {
+        List<StorageObject> processingFiles = cloudStorage.listObjects(archiveBucket,
+                String.format(WHITELIST_DIRECTORY_FORMAT + "processing_", brand));
         if (processingFiles.size() > 0) {
-            logger.info(String.format("Can't begin processing Vans whitelists. Already processing another file: %s",
-                    processingFiles.firstElement().getFilename()));
+            logger.info(String.format("Can't begin processing %s whitelists. Already processing another file: %s",
+                    brand, processingFiles.get(0).getName()));
             return true;
         }
         return false;
