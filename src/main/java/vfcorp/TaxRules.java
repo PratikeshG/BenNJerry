@@ -39,6 +39,9 @@ public class TaxRules {
     private static final Set<String> VANS_BAG_SKUS_TAX_FREE = new HashSet<String>(
             Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
 
+    private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
+            Arrays.asList(new String[] { "196245794955" }));
+
     // Canada deployments
     public static final String TNF_CANADA_DEPLOYMENT = "vfcorp-tnfca-";
     public static final String TNF_CANADA_YOUTH_SKUS_PATH = "/vfc-plu-filters/vfcorp-tnfca-youth-skus.txt";
@@ -399,13 +402,13 @@ public class TaxRules {
     private static final List<String> VANS_MINNESOTA_STORES = new ArrayList<String>(
             Arrays.asList(new String[] { "vfcorp-vans-00082", "vfcorp-vans-00507" }));
     private static final List<String> VANS_VERMONT_STORES = new ArrayList<String>(Arrays.asList(new String[] {}));
-    private static final List<String> VANS_NEW_JERSEY_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00119", "vfcorp-vans-00247", "vfcorp-vans-00331",
-                    "vfcorp-vans-00334", "vfcorp-vans-00382", "vfcorp-vans-00383", "vfcorp-vans-00411",
-                    "vfcorp-vans-00418", "vfcorp-vans-00527", "vfcorp-vans-00542", "vfcorp-vans-00549" }));
-    private static final List<String> VANS_PENNSYLVANIA_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00120", "vfcorp-vans-00384", "vfcorp-vans-00390",
-                    "vfcorp-vans-00402", "vfcorp-vans-00421", "vfcorp-vans-00480", "vfcorp-vans-00481" }));
+    private static final List<String> VANS_NEW_JERSEY_STORES = new ArrayList<String>(Arrays.asList(new String[] {
+            "vfcorp-vans-00119", "vfcorp-vans-00247", "vfcorp-vans-00331", "vfcorp-vans-00332", "vfcorp-vans-00334",
+            "vfcorp-vans-00381", "vfcorp-vans-00382", "vfcorp-vans-00383", "vfcorp-vans-00411", "vfcorp-vans-00418",
+            "vfcorp-vans-00485", "vfcorp-vans-00527", "vfcorp-vans-00535", "vfcorp-vans-00542", "vfcorp-vans-00549" }));
+    private static final List<String> VANS_PENNSYLVANIA_STORES = new ArrayList<String>(Arrays.asList(new String[] {
+            "vfcorp-vans-00120", "vfcorp-vans-00384", "vfcorp-vans-00390", "vfcorp-vans-00395", "vfcorp-vans-00402",
+            "vfcorp-vans-00421", "vfcorp-vans-00442", "vfcorp-vans-00480", "vfcorp-vans-00481" }));
 
     // VANS - New York - exemption is limited to clothing costing less than $110 per item or pair.
     private static final List<String> VANS_NEW_YORK_STORES = new ArrayList<String>(Arrays.asList(new String[] {
@@ -414,19 +417,19 @@ public class TaxRules {
             "vfcorp-vans-00479", "vfcorp-vans-00493", "vfcorp-vans-00550", "vfcorp-vans-00572", "vfcorp-vans-00429",
             "vfcorp-vans-00325", "vfcorp-vans-00329", "vfcorp-vans-00456", "vfcorp-vans-00566", "vfcorp-vans-00498",
             "vfcorp-vans-00512", "vfcorp-vans-00528", "vfcorp-vans-00533", "vfcorp-vans-00539", "vfcorp-vans-00540",
-            "vfcorp-vans-00566", "vfcorp-test-00528", "vfcorp-test-00990" }));
+            "vfcorp-vans-00574", "vfcorp-test-00528", "vfcorp-test-00990" }));
 
     // VANS - New York - no county exemption on clothing
     private static final List<String> VANS_NEW_YORK_STORES_NON_EXEMPT = new ArrayList<String>(
             Arrays.asList(new String[] { "vfcorp-vans-00321", "vfcorp-vans-00322", "vfcorp-vans-00330",
                     "vfcorp-vans-00358", "vfcorp-vans-00365", "vfcorp-vans-00425", "vfcorp-vans-00458",
                     "vfcorp-vans-00459", "vfcorp-vans-00460", "vfcorp-vans-00464", "vfcorp-vans-00479",
-                    "vfcorp-vans-00493", "vfcorp-vans-00550", "vfcorp-vans-00572" }));
+                    "vfcorp-vans-00493", "vfcorp-vans-00550", "vfcorp-vans-00572", "vfcorp-vans-00574" }));
 
     // VANS - Massachusetts - clothing exemption is limited to the first $175 of an article of clothing. Anything over $175 per item is taxable.
-    private static final List<String> VANS_MASSACHUSETTS_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00377", "vfcorp-vans-00378", "vfcorp-vans-00389",
-                    "vfcorp-vans-00451", "vfcorp-vans-00517", "vfcorp-vans-00552" }));
+    private static final List<String> VANS_MASSACHUSETTS_STORES = new ArrayList<String>(Arrays
+            .asList(new String[] { "vfcorp-vans-00170", "vfcorp-vans-00377", "vfcorp-vans-00378", "vfcorp-vans-00389",
+                    "vfcorp-vans-00451", "vfcorp-vans-00517", "vfcorp-vans-00552", "vfcorp-vans-00575" }));
 
     // VANS - Rhode Island – exemption applies to first $250 of sales price per item of clothing. Anything over $250 is taxable per item.
     private static final List<String> VANS_RHODE_ISLAND_STORES = new ArrayList<String>(
@@ -434,51 +437,61 @@ public class TaxRules {
 
     private static final List<String> VANS_FLORIDA_STORES = new ArrayList<String>(Arrays.asList(new String[] {
             "vfcorp-vans-00003", "vfcorp-vans-00016", "vfcorp-vans-00114", "vfcorp-vans-00183", "vfcorp-vans-00185",
-            "vfcorp-vans-00222", "vfcorp-vans-00296", "vfcorp-vans-00320", "vfcorp-vans-00350", "vfcorp-vans-00354",
-            "vfcorp-vans-00355", "vfcorp-vans-00366", "vfcorp-vans-00419", "vfcorp-vans-00433", "vfcorp-vans-00467",
-            "vfcorp-vans-00523", "vfcorp-vans-00551", "vfcorp-vans-00557", "vfcorp-vans-00514" }));
+            "vfcorp-vans-00187", "vfcorp-vans-00188", "vfcorp-vans-00199", "vfcorp-vans-00222", "vfcorp-vans-00296",
+            "vfcorp-vans-00320", "vfcorp-vans-00350", "vfcorp-vans-00354", "vfcorp-vans-00355", "vfcorp-vans-00366",
+            "vfcorp-vans-00367", "vfcorp-vans-00372", "vfcorp-vans-00413", "vfcorp-vans-00419", "vfcorp-vans-00422",
+            "vfcorp-vans-00423", "vfcorp-vans-00432", "vfcorp-vans-00433", "vfcorp-vans-00436", "vfcorp-vans-00437",
+            "vfcorp-vans-00452", "vfcorp-vans-00462", "vfcorp-vans-00467", "vfcorp-vans-00475", "vfcorp-vans-00514",
+            "vfcorp-vans-00522", "vfcorp-vans-00523", "vfcorp-vans-00546", "vfcorp-vans-00551", "vfcorp-vans-00557",
+            "vfcorp-vans-00562" }));
 
     private static final String VANS_MO_495 = "vfcorp-vans-00495";
 
     private static final List<String> VANS_MISSOURI_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { VANS_MO_495, "vfcorp-vans-00555" }));
+            Arrays.asList(new String[] { VANS_MO_495, "vfcorp-vans-00486", "vfcorp-vans-00518", "vfcorp-vans-00555" }));
 
     private static final List<String> VANS_NEW_MEXICO_STORES = new ArrayList<String>(
             Arrays.asList(new String[] { "vfcorp-vans-00193", "vfcorp-vans-00194" }));
 
-    private static final List<String> VANS_OHIO_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00155", "vfcorp-vans-00496", "vfcorp-vans-00497",
-                    "vfcorp-vans-00504", "vfcorp-vans-00525", "vfcorp-vans-00553" }));
+    private static final List<String> VANS_OHIO_STORES = new ArrayList<String>(Arrays
+            .asList(new String[] { "vfcorp-vans-00155", "vfcorp-vans-00496", "vfcorp-vans-00497", "vfcorp-vans-00504",
+                    "vfcorp-vans-00525", "vfcorp-vans-00553", "vfcorp-vans-00547", "vfcorp-vans-00577" }));
 
     private static final List<String> VANS_OKLAHOMA_STORES = new ArrayList<String>(Arrays.asList(
             new String[] { "vfcorp-vans-00297", "vfcorp-vans-00328", "vfcorp-vans-00345", "vfcorp-vans-00374" }));
 
     private static final List<String> VANS_TEXAS_STORES = new ArrayList<String>(Arrays.asList(new String[] {
             "vfcorp-vans-00123", "vfcorp-vans-00160", "vfcorp-vans-00196", "vfcorp-vans-00197", "vfcorp-vans-00200",
-            "vfcorp-vans-00212", "vfcorp-vans-00213", "vfcorp-vans-00214", "vfcorp-vans-00218", "vfcorp-vans-00228",
-            "vfcorp-vans-00229", "vfcorp-vans-00244", "vfcorp-vans-00246", "vfcorp-vans-00248", "vfcorp-vans-00250",
-            "vfcorp-vans-00251", "vfcorp-vans-00258", "vfcorp-vans-00262", "vfcorp-vans-00272", "vfcorp-vans-00277",
-            "vfcorp-vans-00282", "vfcorp-vans-00292", "vfcorp-vans-00299", "vfcorp-vans-00327", "vfcorp-vans-00339",
-            "vfcorp-vans-00340", "vfcorp-vans-00352", "vfcorp-vans-00353", "vfcorp-vans-00373", "vfcorp-vans-00453",
-            "vfcorp-vans-00509", "vfcorp-vans-00521" }));
+            "vfcorp-vans-00212", "vfcorp-vans-00213", "vfcorp-vans-00214", "vfcorp-vans-00215", "vfcorp-vans-00218",
+            "vfcorp-vans-00228", "vfcorp-vans-00229", "vfcorp-vans-00236", "vfcorp-vans-00244", "vfcorp-vans-00246",
+            "vfcorp-vans-00248", "vfcorp-vans-00250", "vfcorp-vans-00251", "vfcorp-vans-00258", "vfcorp-vans-00259",
+            "vfcorp-vans-00262", "vfcorp-vans-00272", "vfcorp-vans-00277", "vfcorp-vans-00281", "vfcorp-vans-00282",
+            "vfcorp-vans-00285", "vfcorp-vans-00286", "vfcorp-vans-00292", "vfcorp-vans-00299", "vfcorp-vans-00317",
+            "vfcorp-vans-00327", "vfcorp-vans-00338", "vfcorp-vans-00339", "vfcorp-vans-00340", "vfcorp-vans-00352",
+            "vfcorp-vans-00353", "vfcorp-vans-00356", "vfcorp-vans-00357", "vfcorp-vans-00373", "vfcorp-vans-00453",
+            "vfcorp-vans-00509", "vfcorp-vans-00521", "vfcorp-vans-00713" }));
 
-    private static final List<String> VANS_VIRGINIA_STORES = new ArrayList<String>(Arrays
-            .asList(new String[] { "vfcorp-vans-00080", "vfcorp-vans-00115", "vfcorp-vans-00245", "vfcorp-vans-00289",
-                    "vfcorp-vans-00291", "vfcorp-vans-00406", "vfcorp-vans-00500", "vfcorp-vans-00554" }));
+    private static final List<String> VANS_VIRGINIA_STORES = new ArrayList<String>(Arrays.asList(new String[] {
+            "vfcorp-vans-00080", "vfcorp-vans-00115", "vfcorp-vans-00235", "vfcorp-vans-00245", "vfcorp-vans-00283",
+            "vfcorp-vans-00289", "vfcorp-vans-00291", "vfcorp-vans-00403", "vfcorp-vans-00406", "vfcorp-vans-00424",
+            "vfcorp-vans-00465", "vfcorp-vans-00500", "vfcorp-vans-00554" }));
 
-    private static final List<String> VANS_SOUTH_CAROLINA_STORES = new ArrayList<String>(Arrays.asList(
-            new String[] { "vfcorp-vans-00083", "vfcorp-vans-00398", "vfcorp-vans-00463", "vfcorp-vans-00543" }));
+    private static final List<String> VANS_SOUTH_CAROLINA_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00083", "vfcorp-vans-00398", "vfcorp-vans-00409",
+                    "vfcorp-vans-00463", "vfcorp-vans-00476", "vfcorp-vans-00543" }));
 
     private static final List<String> VANS_IOWA_STORES = new ArrayList<String>(
             Arrays.asList(new String[] { "vfcorp-vans-00537" }));
 
-    private static final List<String> VANS_ARKANSAS_STORES = new ArrayList<String>(Arrays.asList(new String[] {}));
+    private static final List<String> VANS_ARKANSAS_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00469" }));
 
     private static final List<String> VANS_MARYLAND_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00140", "vfcorp-vans-00165", "vfcorp-vans-00274" }));
+            Arrays.asList(new String[] { "vfcorp-vans-00140", "vfcorp-vans-00165", "vfcorp-vans-00207",
+                    "vfcorp-vans-00238", "vfcorp-vans-00271", "vfcorp-vans-00274", "vfcorp-vans-00400" }));
 
-    private static final List<String> VANS_CONNECTICUT_STORES = new ArrayList<String>(
-            Arrays.asList(new String[] { "vfcorp-vans-00397", "vfcorp-vans-00434", "vfcorp-vans-00505" }));
+    private static final List<String> VANS_CONNECTICUT_STORES = new ArrayList<String>(Arrays.asList(new String[] {
+            "vfcorp-vans-00397", "vfcorp-vans-00434", "vfcorp-vans-00443", "vfcorp-vans-00482", "vfcorp-vans-00505" }));
 
     private static final Set<String> VANS_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
             "390 3970", "390 3965", "390 3960", "390 3955", "380 3820", "370 3775", "390 3935", "390 3930", "390 3945",
@@ -1008,7 +1021,7 @@ public class TaxRules {
                 }
             }
         } else if (taxes.length != 1) {
-            //throw new Exception("Reguar taxed deployment/location with incorrect number of taxes: " + deployment);
+            //throw new Exception("Regular taxed deployment/location with incorrect number of taxes: " + deployment);
         }
 
         return new String[] { taxes[0].getId() };
