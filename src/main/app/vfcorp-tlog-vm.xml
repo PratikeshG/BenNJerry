@@ -313,7 +313,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-storeforce-1543018975" cronExpression="0 */30 * ? * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-storeforce-1543018555" cronExpression="0 */30 6-22 ? * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
@@ -325,7 +325,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNFCA:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-storeforce-1543099999" cronExpression="0 */30 * ? * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-storeforce-1543099555" cronExpression="0 */30 6-22 ? * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
@@ -337,7 +337,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Vans:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-storeforce-1543099799" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-storeforce-1543099555" cronExpression="0 15/30 6-22 ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
@@ -349,7 +349,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Test:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-test-storeforce-1543099888" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-test-storeforce-1543099555" cronExpression="0 15/30 6-22 ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
@@ -361,7 +361,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:EB:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-eb-storeforce-1543099999" cronExpression="0 15/30 * ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-eb-storeforce-1543099555" cronExpression="0 15/30 6-22 ? * * *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 30 minutes (on 15/45)" connector-ref="Quartz-VFC-storeforce" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
