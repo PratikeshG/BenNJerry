@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
         <set-payload value="Jockey TLOG job triggered with offset: #[sessionVars.offset]; range: #[sessionVars.range]; locationOverride: #[sessionVars.locationOverride]" doc:name="Response message"/>
     </flow>
     <flow name="Jockey-daily-tlog-cron" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-jockey-PST-1574969999" cronExpression="0 05 0 * * ? *" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-Jockey" responseTimeout="10000" doc:name="Run every day at 12:05pm PST">
+        <quartz:inbound-endpoint jobName="quartz-jockey-PST-1574969999" cronExpression="0 05 0 * * ? *" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-Jockey" responseTimeout="10000" doc:name="Run every day at 12:05am PST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <choice doc:name="Choice">
@@ -47,7 +47,6 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
     </flow>
     <flow name="Jockey-generate-tlog">
         <logger message="Begin generating Jockey TLOG Reporting" level="INFO" doc:name="Logger"/>
-        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars"/>
         <set-variable variableName="deployment" value="${jockey.deployment}" doc:name="Deployment ID"/>
         <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken"/>
         <flow-ref name="Jockey-process-locations" doc:name="Jockey-process-locations"/>
@@ -77,7 +76,7 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
                     <dw:input-payload doc:sample="sample_data/list_ArrayList.dwl"/>
                     <dw:set-payload><![CDATA[%dw 2.0
 %input payload application/java
-%output application/xml skipNullOn="everywhere",inlineCloseOn="empty" 
+%output application/xml skipNullOn="everywhere",inlineCloseOn="empty"
 %namespace ns0 http://Square.CustomSchemas.TransactionCollection
 ---
 {
