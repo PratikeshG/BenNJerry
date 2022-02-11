@@ -1,7 +1,5 @@
 package vfcorp;
 
-import java.util.ArrayList;
-
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
@@ -20,16 +18,14 @@ public class TlogQueryDatabaseDeploymentCallable implements Callable {
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
-        String deployment = message.getProperty("deployment", PropertyScope.INVOCATION);
-        String whereFilter = String.format("vfcorp_deployments.deployment = '%s'", deployment);
+        String deploymentId = message.getProperty("deployment", PropertyScope.INVOCATION);
 
-        ArrayList<VfcDeployment> deployments = (ArrayList<VfcDeployment>) Util.getVfcDeployments(databaseUrl,
-                databaseUser, databasePassword, whereFilter);
+        VfcDeployment deployment = Util.getVfcDeploymentById(databaseUrl, databaseUser, databasePassword, deploymentId);
 
-        if (deployments.size() != 1) {
+        if (deployment.getDeployment().length() < 1) {
             throw new Exception(String.format("Deployment '%s' not found.", deployment));
         }
 
-        return deployments.get(0);
+        return deployment;
     }
 }

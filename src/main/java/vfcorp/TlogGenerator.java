@@ -2,7 +2,6 @@ package vfcorp;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ import com.squareup.connect.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
-import com.squareup.connect.v2.DeviceCode;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
@@ -69,7 +67,6 @@ public class TlogGenerator implements Callable {
 
         String deployment = (String) message.getProperty("deploymentId", PropertyScope.SESSION);
         String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
-
         String tlogType = message.getProperty("tlogType", PropertyScope.SESSION);
 
         boolean allowCashTransactions = message.getProperty("allowCashTransactions", PropertyScope.INVOCATION)
@@ -85,19 +82,6 @@ public class TlogGenerator implements Callable {
 
         boolean createCloseRecords = message.getProperty("createCloseRecords", PropertyScope.SESSION).equals("true")
                 ? true : false;
-        if (tlogType.equals("SAP")) {
-            LocalTime closeRecordsCutoff = LocalTime.parse("23:00:00");
-
-            String currentTlogTime = TimeManager
-                    .toSimpleDateTimeInTimeZone(tlogGeneratorPayload.getParams().get("end_time"), timeZone, "HH:mm:ss");
-            LocalTime currentTlogLocalTime = LocalTime.parse(currentTlogTime);
-
-            if (currentTlogLocalTime.isAfter(closeRecordsCutoff)) {
-                logger.debug("createCloseRecords TRUE -- Overriding and creating closing records for TLOG eod time "
-                        + currentTlogTime + " - " + deployment);
-                createCloseRecords = true;
-            }
-        }
 
         SquareClient squareV1Client = new SquareClient(
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
@@ -127,13 +111,15 @@ public class TlogGenerator implements Callable {
         // Sequential Order Numbers
         Map<String, Integer> nextDeviceRecordNumbers = new HashMap<String, Integer>();
         ArrayList<Map<String, String>> records = sequentialRecordsApi.queryRecordNumbersForLocation(location.getId());
-        System.out.println("LOCATION: " + location.getId());
         for (Map<String, String> record : records) {
             nextDeviceRecordNumbers.put(record.get("deviceId"), Integer.parseInt(record.get("lastRecordNumber")) + 1);
         }
 
         // How many device codes are configured for this business?
         int totalConfiguredDevices = 2;
+        /*
+         * Locations are not disabling old device codes when new codes are created, which is creating more device IDs than expected in their system
+         *
         if (deployment.contains("vans") || deployment.contains("test")) {
             int pairedDevices = 0;
             DeviceCode[] devices = squareV2Client.devices().list(locationId);
@@ -146,6 +132,7 @@ public class TlogGenerator implements Callable {
 
             totalConfiguredDevices = pairedDevices;
         }
+        */
 
         // Employees
         tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
