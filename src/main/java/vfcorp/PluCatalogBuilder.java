@@ -42,7 +42,10 @@ public class PluCatalogBuilder {
     private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
             Arrays.asList(new String[] { "706420993945", "196245794955" }));
 
-    private static int BATCH_UPSERT_SIZE = 1;
+    private static final Set<String> VANS_SKUS_ALWAYS_AVAILABLE = new HashSet<String>(
+            Arrays.asList(new String[] { "400007022584", "400007022331", "400007022416" }));
+
+    private static int BATCH_UPSERT_SIZE = 30;
 
     private SquareClientV2 client;
     private String databaseUrl;
@@ -491,7 +494,8 @@ public class PluCatalogBuilder {
 
             String sku = variation.getSku();
 
-            if (VANS_BAG_SKUS_TAX_FREE.contains(sku) || VANS_BAG_SKUS_TAXABLE.contains(sku)) {
+            if (VANS_BAG_SKUS_TAX_FREE.contains(sku) || VANS_BAG_SKUS_TAXABLE.contains(sku)
+                    || VANS_SKUS_ALWAYS_AVAILABLE.contains(sku)) {
                 setPresentAtAllLocations(item, true);
             } else {
                 setPresentAtAllLocations(item, false);
