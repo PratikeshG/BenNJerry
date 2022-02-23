@@ -1,6 +1,13 @@
 package vfcorp;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.security.GeneralSecurityException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -8,13 +15,19 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.CatalogObject;
 
+import util.CloudStorageApi;
 import util.SquarePayload;
+import vfcorp.plu.ItemDbRecord;
+import vfcorp.plu.ItemSaleDbRecord;
 
 public class Util {
 
@@ -223,5 +236,109 @@ public class Util {
             return true;
         }
         return false;
+    }
+
+    public static void saveTmpFile(String filename, List<?> records) throws IOException {
+        Gson gson = new Gson();
+        String filePath = "/tmp/" + filename;
+
+        FileOutputStream fos = new FileOutputStream(filePath);
+        OutputStreamWriter ow = new OutputStreamWriter(fos);
+        ow.write("[");
+
+        for (int i = 0; i < records.size(); i++) {
+            if (i != 0) {
+                ow.write(",");
+            }
+            ow.write(gson.toJson(records.get(i)));
+        }
+        ow.write("]");
+        ow.flush();
+        ow.close();
+        fos.close();
+    }
+
+    public static void uploadBrandPluFileFromTmpToGCP(CloudStorageApi cloudStorage, String storageBucket, String brand,
+            String tmpFilename) throws Exception {
+        String filePath = "/tmp/" + tmpFilename;
+
+        FileInputStream fis = new FileInputStream(filePath);
+        String fileKey = String.format("%s/%s/%s", "plu", brand, tmpFilename);
+        try {
+            cloudStorage.uploadObject(storageBucket, fileKey, fis);
+        } catch (RuntimeException e) {
+            throw new Exception("ERROR: trying to upload to CloudStorage: " + e.getMessage());
+        } finally {
+            fis.close();
+        }
+    }
+
+    public static ArrayList<CatalogObject> downloadBrandCatalogFileFromGCP(CloudStorageApi cloudStorage,
+            String storageBucket, String brand, String filename) throws GeneralSecurityException, IOException {
+        List<CatalogObject> cachedType = new ArrayList<CatalogObject>();
+        String fileKey = String.format("%s/%s/%s", "plu", brand, filename);
+        int count = 0;
+        try (InputStream cis = cloudStorage.downloadObject(storageBucket, fileKey);
+                BufferedInputStream bis = new BufferedInputStream(cis);
+                JsonReader reader = new JsonReader(new InputStreamReader(cis));) {
+            reader.beginArray();
+            while (reader.hasNext()) {
+                CatalogObject obj = new Gson().fromJson(reader, CatalogObject.class);
+                cachedType.add(obj);
+                if (count++ % 2500 == 0) {
+                    System.out.print(".");
+                }
+            }
+            reader.endArray();
+        }
+        return (ArrayList<CatalogObject>) cachedType;
+    }
+
+    public static Boolean brandPluFileExists(CloudStorageApi cloudStorage, String storageBucket, String brand,
+            String filename) throws GeneralSecurityException, IOException {
+        String fileKey = String.format("%s/%s/%s", "plu", brand, filename);
+        return cloudStorage.listObjects(storageBucket, fileKey).size() > 0;
+    }
+
+    public static ArrayList<ItemDbRecord> downloadBrandItemFileFromGCP(CloudStorageApi cloudStorage,
+            String storageBucket, String brand, String filename) throws GeneralSecurityException, IOException {
+        List<ItemDbRecord> cachedType = new ArrayList<ItemDbRecord>();
+        String fileKey = String.format("%s/%s/%s", "plu", brand, filename);
+        int count = 0;
+        try (InputStream cis = cloudStorage.downloadObject(storageBucket, fileKey);
+                BufferedInputStream bis = new BufferedInputStream(cis);
+                JsonReader reader = new JsonReader(new InputStreamReader(cis));) {
+            reader.beginArray();
+            while (reader.hasNext()) {
+                ItemDbRecord obj = new Gson().fromJson(reader, ItemDbRecord.class);
+                cachedType.add(obj);
+                if (count++ % 2500 == 0) {
+                    System.out.print(".");
+                }
+            }
+            reader.endArray();
+        }
+        return (ArrayList<ItemDbRecord>) cachedType;
+    }
+
+    public static ArrayList<ItemSaleDbRecord> downloadBrandItemSaleFileFromGCP(CloudStorageApi cloudStorage,
+            String storageBucket, String brand, String filename) throws GeneralSecurityException, IOException {
+        List<ItemSaleDbRecord> cachedType = new ArrayList<ItemSaleDbRecord>();
+        String fileKey = String.format("%s/%s/%s", "plu", brand, filename);
+        int count = 0;
+        try (InputStream cis = cloudStorage.downloadObject(storageBucket, fileKey);
+                BufferedInputStream bis = new BufferedInputStream(cis);
+                JsonReader reader = new JsonReader(new InputStreamReader(cis));) {
+            reader.beginArray();
+            while (reader.hasNext()) {
+                ItemSaleDbRecord obj = new Gson().fromJson(reader, ItemSaleDbRecord.class);
+                cachedType.add(obj);
+                if (count++ % 2500 == 0) {
+                    System.out.print(".");
+                }
+            }
+            reader.endArray();
+        }
+        return (ArrayList<ItemSaleDbRecord>) cachedType;
     }
 }

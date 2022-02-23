@@ -36,11 +36,9 @@ public class TaxRules {
     private static String BRAND_VANS = "VANS";
 
     // VANS bag fees
-    private static final Set<String> VANS_BAG_SKUS_TAX_FREE = new HashSet<String>(
-            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
-
-    private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
-            Arrays.asList(new String[] { "196245794955" }));
+    private static final Set<String> VANS_SKUS_TAX_FREE = new HashSet<String>(
+            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444", "400007022584",
+                    "400007022331", "400007022416" }));
 
     // Canada deployments
     public static final String TNF_CANADA_DEPLOYMENT = "vfcorp-tnfca-";
@@ -568,7 +566,7 @@ public class TaxRules {
         if (itemVariation.getSku() != null && (itemVariation.getSku().equals(BAG_4508)
                 || itemVariation.getSku().equals(BAG_4909) || itemVariation.getSku().equals(BAG_3039)
                 || itemVariation.getSku().equals(BAG_4632) || itemVariation.getSku().equals(BAG_8465)
-                || VANS_BAG_SKUS_TAX_FREE.contains(itemVariation.getSku()))) {
+                || VANS_SKUS_TAX_FREE.contains(itemVariation.getSku()))) {
             return new String[0];
         } else if (deployment.equals(TNF_NYC_BROADWAY) || deployment.equals(TNF_NYC_WOOSTER)
                 || deployment.equals(TNF_NYC_FIFTH) || deployment.equals(TNF_NYC_SOHO)) {

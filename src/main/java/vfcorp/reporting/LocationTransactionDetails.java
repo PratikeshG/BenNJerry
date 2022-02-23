@@ -12,7 +12,6 @@ public class LocationTransactionDetails {
     private Location location;
     private Transaction[] transactions;
     private Payment[] payments;
-    private Payment[] yearToDatePayments;
     private Map<String, Customer> customers;
 
     public LocationTransactionDetails(Location location) {
@@ -58,14 +57,6 @@ public class LocationTransactionDetails {
 
     public void setPayments(Payment[] payments) {
         this.payments = payments;
-    }
-
-    public Payment[] getYearToDatePayments() {
-        return yearToDatePayments;
-    }
-
-    public void setYearToDatePayments(Payment[] yearToDatePayments) {
-        this.yearToDatePayments = yearToDatePayments;
     }
 
     public Map<String, Customer> getCustomers() {

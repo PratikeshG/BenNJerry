@@ -55,9 +55,6 @@ public class DetailsByDeploymentCallable implements Callable {
         int range = Integer.parseInt(message.getProperty("range", PropertyScope.SESSION));
         Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
-        boolean retrieveAnnualData = message.getProperty("sendDailyEmails", PropertyScope.SESSION).equals("true") ? true
-                : false;
-
         // V1 Payments - ignore no-sale and cash-only payments
         Payment[] allPayments = squareV1Client.payments().list(params);
         List<Payment> validPayments = new ArrayList<Payment>();
@@ -116,31 +113,6 @@ public class DetailsByDeploymentCallable implements Callable {
 
         LocationTransactionDetails details = new LocationTransactionDetails(location,
                 validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), customers);
-
-        // V1 YTD Payments - ignore no-sale and cash-only payments
-        if (retrieveAnnualData) {
-            Map<String, String> yearToDateParams = TimeManager.getYearToDateInterval(location.getTimezone());
-            Payment[] allYearToDatePayments = squareV1Client.payments().list(yearToDateParams);
-            List<Payment> validYearToDatePayments = new ArrayList<Payment>();
-            for (Payment payment : allYearToDatePayments) {
-                boolean hasValidPaymentTender = false;
-                for (com.squareup.connect.Tender tender : payment.getTender()) {
-                    if (allowCashTransactions) {
-                        if (!tender.getType().equals("NO_SALE")) {
-                            hasValidPaymentTender = true;
-                        }
-                    } else {
-                        if (!tender.getType().equals("CASH") && !tender.getType().equals("NO_SALE")) {
-                            hasValidPaymentTender = true;
-                        }
-                    }
-                }
-                if (hasValidPaymentTender) {
-                    validYearToDatePayments.add(payment);
-                }
-            }
-            details.setYearToDatePayments(validYearToDatePayments.toArray(new Payment[0]));
-        }
 
         return details;
     }

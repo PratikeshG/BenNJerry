@@ -14,8 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.SquareClientV2;
 
-public class ItemsDbLocationsCallable implements Callable {
-    private static Logger logger = LoggerFactory.getLogger(ItemsDbLocationsCallable.class);
+public class DatabaseItemsLocationsCallable implements Callable {
+    private static Logger logger = LoggerFactory.getLogger(DatabaseItemsLocationsCallable.class);
 
     @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
     private String databaseUrl;
@@ -41,6 +41,8 @@ public class ItemsDbLocationsCallable implements Callable {
         SquareClientV2 client = new SquareClientV2(apiUrl,
                 masterAccount.getSquarePayload().getAccessToken(encryptionKey));
         client.setLogInfo(masterAccount.getSquarePayload().getMerchantId());
+
+        message.setProperty("pluFiltered", masterAccount.isPluFiltered(), PropertyScope.SESSION);
 
         List<Location> locations = Arrays.asList(client.locations().list());
         return locations;
