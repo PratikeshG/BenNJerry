@@ -153,10 +153,12 @@ public class PluCatalogBuilder {
         logInfoForBrand(brand, "TOTAL ITEMS IN SQUARE ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
         logInfoForBrand(brand, "TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
         CatalogObject[] modifiedItems = workingCatalog.getModifiedItems();
-        //CatalogObject[] modifiedItemsAssignedLocations = itemsWithLocationAssignments(modifiedItems);
+        CatalogObject[] modifiedItemsAssignedLocations = itemsWithLocationAssignments(modifiedItems);
         logInfoForBrand(brand, "TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
+        logInfoForBrand(brand,
+                "TOTAL MODIFIED ITEMS ASSIGNED LOCATIONS IN CATALOG: " + modifiedItemsAssignedLocations.length);
 
-        upsertObjectsToSquare(modifiedItems, "item");
+        upsertObjectsToSquare(modifiedItemsAssignedLocations, "item");
 
         removeInvalidItems(workingCatalog);
     }
