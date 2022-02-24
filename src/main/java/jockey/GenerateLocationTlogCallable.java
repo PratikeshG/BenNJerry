@@ -979,8 +979,8 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getRegisterNumberFromPayment(Payment payment) {
         try {
-            Integer.parseInt(payment.getDevice().getName());
-        } catch (NumberFormatException nfe) {
+            Integer.parseInt(payment.getDevice().getName().split("-", 2)[0].trim());
+        } catch (Exception e) {
             return DEFAULT_DEVICE_ID;
         }
 
