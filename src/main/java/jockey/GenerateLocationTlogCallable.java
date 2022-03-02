@@ -979,12 +979,12 @@ public class GenerateLocationTlogCallable implements Callable {
 
     private String getRegisterNumberFromPayment(Payment payment) {
         try {
-            Integer.parseInt(payment.getDevice().getName());
-        } catch (NumberFormatException nfe) {
+            String parsedDeviceId = payment.getDevice().getName().split("-", 2)[0].trim();
+            Integer.parseInt(parsedDeviceId);
+            return parsedDeviceId;
+        } catch (Exception e) {
             return DEFAULT_DEVICE_ID;
         }
-
-        return payment.getDevice().getName();
     }
 
     private boolean isLocationSkipped(Location location, String locationOverride) {

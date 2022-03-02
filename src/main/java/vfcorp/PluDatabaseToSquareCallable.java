@@ -24,6 +24,11 @@ public class PluDatabaseToSquareCallable implements Callable {
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
 
+    @Value("${google.storage.bucket.archive}")
+    private String storageBucket;
+    @Value("${google.storage.account.credentials}")
+    private String storageCredentials;
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
@@ -45,9 +50,8 @@ public class PluDatabaseToSquareCallable implements Callable {
         client.setLogInfo(masterAccount.getSquarePayload().getMerchantId());
 
         PluCatalogBuilder catalogBuilder = new PluCatalogBuilder(client, databaseUrl, databaseUser, databasePassword,
-                brand);
+                storageBucket, storageCredentials, brand, deploymentId);
         catalogBuilder.setItemNumberLookupLength(itemNumberLookupLength);
-        catalogBuilder.setPluFiltered(masterAccount.isPluFiltered());
         catalogBuilder.setIgnoresSkuCheckDigit(ignoresSkuCheckDigit);
 
         catalogBuilder.syncCategoriesFromDatabaseToSquare();

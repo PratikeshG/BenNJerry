@@ -27,7 +27,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <when expression="#[sessionVars.brand.equals(&quot;kipling&quot;)]">
                 <set-session-variable variableName="displayBrand" value="Kipling" doc:name="displayBrand: Kipling"/>
 		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.kipling.loyalty}" doc:name="sftpLoyaltyPath"/>
-		        <set-session-variable variableName="sendDailyEmails" value="false" doc:name="sendDailyEmails"/>
 		        <set-session-variable variableName="customerGroupEmail" value="${vfcorp.tlog.kipling.loyalty.group.email}" doc:name="customerGroupEmail"/>
 		        <set-session-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
 		        <set-session-variable variableName="encryptionKey" value="${vfcorp.kipling.encryption.key}" doc:name="encryptionKey"/>
@@ -37,7 +36,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <when expression="#[sessionVars.brand.equals(&quot;vans&quot;)]">
                 <set-session-variable variableName="displayBrand" value="Vans" doc:name="displayBrand: Vans"/>
 		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.vans.loyalty}" doc:name="sftpLoyaltyPath"/>
-		        <set-session-variable variableName="sendDailyEmails" value="false" doc:name="sendDailyEmails"/>
 		        <set-session-variable variableName="customerGroupEmail" value="${vfcorp.tlog.vans.loyalty.group.email}" doc:name="customerGroupEmail"/>
 		        <set-session-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
 		        <set-session-variable variableName="encryptionKey" value="${vfcorp.vans.encryption.key}" doc:name="encryptionKey"/>
@@ -47,7 +45,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <when expression="#[sessionVars.brand.equals(&quot;test&quot;)]">
                 <set-session-variable variableName="displayBrand" value="TEST" doc:name="displayBrand: TEST"/>
 		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.test.loyalty}" doc:name="sftpLoyaltyPath"/>
-		        <set-session-variable variableName="sendDailyEmails" value="false" doc:name="sendDailyEmails"/>
 		        <set-session-variable variableName="customerGroupEmail" value="${vfcorp.tlog.test.loyalty.group.email}" doc:name="customerGroupEmail"/>
 		        <set-session-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
 		        <set-session-variable variableName="encryptionKey" value="${vfcorp.test.encryption.key}" doc:name="encryptionKey"/>
@@ -57,7 +54,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <otherwise>
                 <set-session-variable variableName="displayBrand" value="TNF" doc:name="displayBrand: TNF"/>
 		        <set-session-variable variableName="sftpLoyaltyPath" value="${vfcorp.sftp.path.tnf.loyalty}" doc:name="sftpLoyaltyPath"/>
-		        <set-session-variable variableName="sendDailyEmails" value="true" doc:name="sendDailyEmails"/>
 		        <set-session-variable variableName="customerGroupEmail" value="${vfcorp.tlog.tnf.loyalty.group.email}" doc:name="customerGroupEmail"/>
 		        <set-session-variable variableName="filenameDateStamp" value="#['SQ_CUST_' +server.dateTime.plusDays(-1).format('yyyyMMdd') + '.DAT']" doc:name="filenameDateStamp"/>
 		        <set-session-variable variableName="encryptionKey" value="${vfcorp.tnf.encryption.key}" doc:name="encryptionKey"/>
@@ -72,15 +68,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <prototype-object class="vfcorp.reporting.LoyaltyAggregationCallable"/>
         </component>
         <sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-reporting" outputPattern="#[sessionVars.filenameDateStamp]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[sessionVars.sftpLoyaltyPath]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" duplicateHandling="overwrite" doc:name="SFTP"/>
-        <choice doc:name="Choice">
-            <when expression="#[sessionVars.sendDailyEmails == true]">
-                <flow-ref name="VFC:LOYALTY:generate-daily-summary-email" doc:name="VFC:LOYALTY:generate-daily-summary-email"/>
-                <flow-ref name="VFC:LOYALTY:generate-daily-category-summary-email" doc:name="VFC:LOYALTY:generate-daily-category-summary-email"/>
-            </when>
-            <otherwise>
-                <logger message="#['Skipping generation of daily emails for ' + sessionVars.displayBrand]" level="INFO" doc:name="Logger"/>
-            </otherwise>
-        </choice>
         <set-payload value="#['Done processing ' + sessionVars.filenameDateStamp + ' for ' + sessionVars.displayBrand]" doc:name="Set Payload"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
     </sub-flow>
@@ -124,24 +111,11 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <prototype-object class="vfcorp.reporting.DetailsByDeploymentCallable"/>
         </component>
     </flow>
-    <sub-flow name="VFC:LOYALTY:generate-daily-summary-email">
-        <component doc:name="Daily Summary Logic">
-            <prototype-object class="vfcorp.reporting.DailySummaryCallable"/>
-        </component>
-        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML"  from="${email.info.sending.from.reports}" subject="#['Square Daily ' + sessionVars.displayBrand + ' Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]" responseTimeout="10000" doc:name="Email Summary" mimeType="text/html" to="#[sessionVars.emailRecipients]"/>
-    </sub-flow>
-    <sub-flow name="VFC:LOYALTY:generate-daily-category-summary-email">
-        <component doc:name="Daily Category Summary Logic">
-            <prototype-object class="vfcorp.reporting.DailyCategoriesSummaryCallable"/>
-        </component>
-        <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" from="${email.info.sending.from.reports}" subject="#['Square Daily ' + sessionVars.displayBrand + ' Categories Summary - ' + server.dateTime.plusDays(-1).format('EEE, d MMM yyyy')]"  responseTimeout="10000" mimeType="text/html" doc:name="Email Category Summary" to="#[sessionVars.emailRecipients]"/>
-    </sub-flow>
     <flow name="VFC:LOYALTY:trigger-generate-loyalty-file">
         <http:listener config-ref="${default.http.config}" path="/vfc/loyalty/${urlKey}" doc:name="/vfc/loyalty/urlKey"/>
         <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.query.params'.brand]" doc:name="brand"/>
         <set-session-variable variableName="range" value="#[message.inboundProperties.'http.query.params'.range]" doc:name="range"/>
         <set-session-variable variableName="offset" value="#[message.inboundProperties.'http.query.params'.offset]" doc:name="offset"/>
-        <set-session-variable variableName="emailRecipients" value="#[message.inboundProperties.'http.query.params'.email]" doc:name="emailRecipients"/>
         <flow-ref name="VFC:LOYALTY:generate-loyalty-file" doc:name="VFC:LOYALTY:generate-loyalty-file"/>
     </flow>
     <flow name="VFC:TNF:generate-loyalty-file-cron" processingStrategy="synchronous">
@@ -151,7 +125,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="tnf" doc:name="brand: tnf"/>
         <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
         <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
-        <set-session-variable variableName="emailRecipients" value="${vfcorp.tnf.summary.email}" doc:name="emailRecipients: defaults"/>
         <logger message="#['Running ' + sessionVars.brand + ' loyalty cron...']" level="INFO" doc:name="debug Logger"/>
         <choice doc:name="Loyalty Enabled?">
             <when expression="#['${vfcorp.tlog.tnf.loyalty.enabled}' == false]">
@@ -169,7 +142,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="vans" doc:name="brand: vans"/>
         <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
         <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
-        <set-session-variable variableName="emailRecipients" value="${vfcorp.vans.summary.email}" doc:name="emailRecipients: defaults"/>
         <logger message="#['Running ' + sessionVars.brand + ' loyalty cron...']" level="INFO" doc:name="debug Logger"/>
         <choice doc:name="Loyalty Enabled?">
             <when expression="#['${vfcorp.tlog.vans.loyalty.enabled}' == false]">
@@ -187,7 +159,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <set-session-variable variableName="brand" value="kipling" doc:name="brand: kipling"/>
         <set-session-variable variableName="offset" value="1" doc:name="offset: 1"/>
         <set-session-variable variableName="range" value="1" doc:name="range: 1"/>
-        <set-session-variable variableName="emailRecipients" value="${vfcorp.kipling.summary.email}" doc:name="emailRecipients: defaults"/>
         <logger message="#['Running ' + sessionVars.brand + ' loyalty cron...']" level="INFO" doc:name="debug Logger"/>
         <choice doc:name="Loyalty Enabled?">
             <when expression="#['${vfcorp.tlog.kipling.loyalty.enabled}' == false]">

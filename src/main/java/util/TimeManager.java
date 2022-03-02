@@ -161,6 +161,14 @@ public class TimeManager {
         return m;
     }
 
+    public static String getIso8601HoursAgo(int hours, String timeZoneId) {
+        // timeZoneId is expected to be "GMT-08:00", or something similar, as
+        // outlined at https://docs.oracle.com/javase/7/docs/api/java/util/TimeZone.html.
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZoneId));
+        c.add(Calendar.HOUR, -hours);
+        return toIso8601(c, timeZoneId);
+    }
+
     public static String toIso8601(Calendar c, String timeZoneId) {
         String year = String.format("%04d", c.get(Calendar.YEAR));
         String month = String.format("%02d", c.get(Calendar.MONTH) + 1);

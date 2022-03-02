@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd">
+	<vm:connector name="VFC_VM_PLU_ITEMSDB"
+		validateConnections="true" doc:name="VM" />
+	<queued-asynchronous-processing-strategy
+		name="VFC_PLU_ItemsDb_Async_Processing_Strategy" maxThreads="${vfcorp.plu.itemsDb.maxThreads}"
+		minThreads="1" doc:name="Queued Asynchronous Processing Strategy"
+		poolExhaustedAction="WAIT" threadWaitTimeout="43200000" />
+    <quartz:connector name="Quartz-VFC-gcp" validateConnections="true" doc:name="Quartz"/>
+	<flow name="VFC:plu-database-to-square-for-brand"
+		processingStrategy="synchronous">
+		<logger
+			message="Initiating PLU Database to Square update for VFC brand (#[sessionVars.brand])  deployment  (#[sessionVars.deploymentId])"
+			level="INFO" doc:name="Logger" />
+		<choice doc:name="Set brand-specific variables">
+			<when expression="#[sessionVars.brand.equals(&quot;nautica&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.nautica.itemNumberLookupLength}" doc:name="Nautica itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.nautica.ignoresSkuCheckDigit}" doc:name="Nautica ignoresSkuCheckDigit" />
+			</when>
+			<when expression="#[sessionVars.brand.equals(&quot;kipling&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.kipling.itemNumberLookupLength}" doc:name="Kipling itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.kipling.ignoresSkuCheckDigit}" doc:name="Kipling ignoresSkuCheckDigit" />
+			</when>
+			<when expression="#[sessionVars.brand.equals(&quot;vfo&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.vfo.itemNumberLookupLength}" doc:name="VFO itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.vfo.ignoresSkuCheckDigit}" doc:name="VFO ignoresSkuCheckDigit" />
+			</when>
+			<when expression="#[sessionVars.brand.equals(&quot;tnfca&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.tnfca.itemNumberLookupLength}" doc:name="TNFCA itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.tnfca.ignoresSkuCheckDigit}" doc:name="TNFCA ignoresSkuCheckDigit" />
+			</when>
+			<when expression="#[sessionVars.brand.equals(&quot;vans&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.vans.itemNumberLookupLength}" doc:name="Vans itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.vans.ignoresSkuCheckDigit}" doc:name="Vans ignoresSkuCheckDigit" />
+			</when>
+			<when expression="#[sessionVars.brand.equals(&quot;test&quot;)]">
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.test.itemNumberLookupLength}" doc:name="Test itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.test.ignoresSkuCheckDigit}" doc:name="Test ignoresSkuCheckDigit" />
+			</when>
+			<otherwise>
+				<set-variable variableName="itemNumberLookupLength"
+					value="${vfcorp.tnf.itemNumberLookupLength}" doc:name="TNF itemNumberLookupLength" />
+				<set-variable variableName="ignoresSkuCheckDigit"
+					value="${vfcorp.tnf.ignoresSkuCheckDigit}" doc:name="TNF ignoresSkuCheckDigit" />
+			</otherwise>
+		</choice>
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+		<choice doc:name="Choice">
+			<when
+				expression="#[sessionVars.retrieveUpdatesFromDatabase.equals(&quot;true&quot;)]">
+				<logger
+					message="#[sessionVars.deploymentId]: Generating new GCP item updates cache from Database"
+					level="INFO" doc:name="Retrive fresh updates from Database" />
+				<flow-ref name="VFC:items-updates-from-database-to-gcp-for-deployment"
+					doc:name="VFC:items-updates-from-database-to-gcp-for-deployment" />
+			</when>
+			<otherwise>
+				<logger
+					message="#[sessionVars.deploymentId]: Retrieve catalog updates from existing cached GCP files"
+					level="INFO" doc:name="Retrieve updates from existing GCP files" />
+			</otherwise>
+		</choice>
+		<component doc:name="Database to Square Catalog Update">
+			<prototype-object class="vfcorp.PluDatabaseToSquareCallable" />
+		</component>
+		<set-payload
+			value="Completed Database to Square updates for VFC brand: #[sessionVars.brand] :: #[sessionVars.deploymentId]"
+			doc:name="Set Payload" />
+		<smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="bhartard@squareup.com" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.deploymentId]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+		<logger message="#[payload]" level="INFO" doc:name="Logger: done" />
+	</flow>
+	<flow name="VFC:trigger-plu-database-to-square-for-brand">
+		<http:listener config-ref="${default.http.config}"
+			path="/vfc/plu/square/${urlKey}/{brand}/{deployment}" doc:name="/vfc/plu/square/KEY/BRAND/DEPLOYMENT" />
+		<set-session-variable variableName="brand"
+			value="#[message.inboundProperties.'http.uri.params'.brand]"
+			doc:name="Set brand" />
+		<set-session-variable variableName="deploymentId"
+			value="#[message.inboundProperties.'http.uri.params'.deployment]"
+			doc:name="Set deploymentId" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="#[message.inboundProperties.'http.query.params'.retrieveCatalogLastModifiedHoursAgo != null ? message.inboundProperties.'http.query.params'.retrieveCatalogLastModifiedHoursAgo : &quot;24&quot;]"
+			doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="#[message.inboundProperties.'http.query.params'.retrieveUpdatesFromDatabase != null ? message.inboundProperties.'http.query.params'.retrieveUpdatesFromDatabase : &quot;true&quot;]"
+			doc:name="Set retrieveUpdatesFromDatabase" />
+		<logger message="HTTP Trigger: PLU Database to Square: #[sessionVars.brand]"
+			level="INFO" doc:name="Logger" />
+		<async doc:name="Async">
+			<flow-ref name="VFC:plu-database-to-square-for-brand"
+				doc:name="VFC:plu-database-to-square-for-brand" />
+		</async>
+		<set-payload
+			value="Running PLU Database to Square for VFC brand: #[sessionVars.brand]"
+			doc:name="Set Payload" />
+	</flow>
+	<flow name="VFC:TNF:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1531330499"
+			cronExpression="0 30 2 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu"
+			responseTimeout="10000" doc:name="Run every day at 2:30am EST"
+			cronTimeZone="America/New_York">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for TNF" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="tnf"
+			doc:name="Set brand: tnf" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-tnf-00001" doc:name="Set deployment: vfcorp-tnf-00001" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:TNF-CA:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-tnfca-PLU-daily-1571074299"
+			cronExpression="0 0 2 * * ? *" cronTimeZone="America/New_York"
+			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
+			doc:name="Run every day at 2:00am EST">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for TNF Canada"
+			level="INFO" doc:name="Logger" />
+		<set-session-variable variableName="brand" value="tnfca"
+			doc:name="Set brand: tnfca" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-tnfca-01212" doc:name="Set deployment: vfcorp-tnfca-01212" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:Vans1:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-vans1-PLU-daily-1571074498"
+			cronExpression="0 20 1 * * ? *" cronTimeZone="America/New_York"
+			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
+			doc:name="Run every day at 1:20am EST">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for Vans" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vans"
+			doc:name="Set brand: vans" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vans-00003" doc:name="Set deployment: vfcorp-vans-00003" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:Vans2:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-vans2-PLU-daily-1571074498"
+			cronExpression="0 40 1 * * ? *" cronTimeZone="America/New_York"
+			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
+			doc:name="Run every day at 1:40am EST">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for Vans" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vans"
+			doc:name="Set brand: vans" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vans-00018" doc:name="Set deployment: vfcorp-vans-00018" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:Test:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-test-PLU-daily-1571074898"
+			cronExpression="0 30 11 * * ? *" cronTimeZone="America/New_York"
+			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
+			doc:name="Run every day at 11:30am EST">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for Test (Vans)"
+			level="INFO" doc:name="Logger" />
+		<set-session-variable variableName="brand" value="test"
+			doc:name="Set brand: test" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-test-00999" doc:name="Set deployment: vfcorp-test-00999" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:Kipling:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-kipling-PLU-daily-1509908198"
+			cronExpression="0 0 4 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu"
+			responseTimeout="10000" doc:name="Run every day at 4:00am EST"
+			cronTimeZone="America/New_York">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for Kipling"
+			level="INFO" doc:name="Logger" />
+		<set-session-variable variableName="brand" value="kipling"
+			doc:name="Set brand: kipling" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-kipling-05019" doc:name="Set deployment: vfcorp-kipling-05019" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:Nautica:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<logger message="CRON: PLU Database to Square for Nautica"
+			level="INFO" doc:name="Logger" />
+		<set-session-variable variableName="brand" value="nautica"
+			doc:name="Set brand: nautica" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-nautica-00088" doc:name="Set deployment: vfcorp-nautica-00088" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:VFO:plu-trigger-database-to-square"
+		processingStrategy="synchronous">
+		<quartz:inbound-endpoint jobName="quartz-vfc-vfo-PLU-daily-1509908998"
+			cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York"
+			repeatInterval="0" connector-ref="Quartz-VFO-plu" responseTimeout="10000"
+			doc:name="Run every day at 4:00am EST">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+		<logger message="CRON: PLU Database to Square for VF Outlet"
+			level="INFO" doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vfo"
+			doc:name="Set brand: vfo" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vfo-00999" doc:name="Set deployment: vfcorp-vfo-00999" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="4" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<set-session-variable variableName="retrieveUpdatesFromDatabase"
+			value="true" doc:name="Set retrieveUpdatesFromDatabase" />
+		<flow-ref name="VFC:plu-database-to-square-for-brand"
+			doc:name="VFC:plu-database-to-square-for-brand" />
+	</flow>
+	<flow name="VFC:TNF-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-gcp-daily-111" cronExpression="0 0 21 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 9:00pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for TNF" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="tnf"
+			doc:name="Set brand: tnf" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-tnf-00001" doc:name="Set deployment: vfcorp-tnf-00001" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:TNFCA-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnfca-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for TNFCA" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="tnfca"
+			doc:name="Set brand: tnfca" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-tnfca-01212" doc:name="Set deployment: vfcorp-tnfca-01212" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:Vans1-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans1-gcp-daily-111" cronExpression="0 30 21 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 9:30pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for Vans (1)" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vans"
+			doc:name="Set brand: vans (1)" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vans-00003" doc:name="Set deployment: vfcorp-vans-00003" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:Vans2-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans2-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for Vans (2)" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vans"
+			doc:name="Set brand: vans (2)" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vans-00018" doc:name="Set deployment: vfcorp-vans-00018" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:Test-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-test-gcp-daily-111" cronExpression="0 0 23 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 11:00pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for Test" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="test"
+			doc:name="Set brand: test" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-test-00999" doc:name="Set deployment: vfcorp-test-00999" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:Kipling-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-kipling-gcp-daily-111" cronExpression="0 0 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:00pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for Kipling" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="kipling"
+			doc:name="Set brand: kipling" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-kipling-05019" doc:name="Set deployment: vfcorp-kipling-05019" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:Nautica-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <logger message="CRON: Items from Square Connect to GCP for Nautica" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="nautica"
+			doc:name="Set brand: nautica" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-nautica-00088" doc:name="Set deployment: vfcorp-nautica-00088" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+    <flow name="VFC:VFO-catalog-cron-square-to-gcp" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vfo-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger message="CRON: Items from Square Connect to GCP for VFO" level="INFO"
+			doc:name="Logger" />
+		<set-session-variable variableName="brand" value="vfo"
+			doc:name="Set brand: vfo" />
+		<set-session-variable variableName="deploymentId"
+			value="vfcorp-vfo-00999" doc:name="Set deployment: vfcorp-vfo-00999" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="-1" doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<flow-ref name="VFC:catalog-from-connect-to-gcp-for-deployment"
+			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
+    </flow>
+	<flow name="VFC:catalog-from-connect-to-gcp-for-deployment"
+		processingStrategy="synchronous">
+		<http:listener config-ref="${default.http.config}"
+			path="/vfc/plu/catalog-to-gcp/${urlKey}/{brand}/{deployment}"
+			doc:name="/vfc/plu/catalog-to-gcp/KEY/BRAND/DEPLOYMENT" />
+		<set-session-variable variableName="brand"
+			value="#[sessionVars.brand != null ? sessionVars.brand : message.inboundProperties.'http.uri.params'.brand]"
+			doc:name="Set brand" />
+		<set-session-variable variableName="deploymentId"
+			value="#[sessionVars.deploymentId != null ? sessionVars.deploymentId : message.inboundProperties.'http.uri.params'.deployment]"
+			doc:name="Set deploymentId" />
+		<set-session-variable variableName="retrieveCatalogLastModifiedHoursAgo"
+			value="#[sessionVars.retrieveCatalogLastModifiedHoursAgo != null ? sessionVars.retrieveCatalogLastModifiedHoursAgo : message.inboundProperties.'http.query.params'.retrieveCatalogLastModifiedHoursAgo]"
+			doc:name="Set retrieveCatalogLastModifiedHoursAgo" />
+		<logger
+			message="Running flow to generate catalog file from Connect to GCP for VFC brand (#[sessionVars.brand]) deployment (#[sessionVars.deploymentId]) -- pull catalog from Connect last modified #[sessionVars.retrieveCatalogLastModifiedHoursAgo] hours ago."
+			level="INFO" doc:name="Logger" />
+		<component doc:name="Save catalog to GCP">
+			<prototype-object class="vfcorp.DatabaseCatalogProcessingCallable" />
+		</component>
+		<set-payload
+			value="Completed flow (VFC:catalog-from-connect-to-gcp-for-deployment) to save catalog file from Connect API to GCP for VFC brand (#[sessionVars.brand]) deployment (#[sessionVars.deploymentId])"
+			doc:name="Set Payload" />
+		<logger message="#[payload]" level="INFO" doc:name="Logger" />
+	</flow>
+	<flow name="VFC:items-updates-from-database-to-gcp-for-deployment">
+		<http:listener config-ref="${default.http.config}"
+			path="/vfc/plu/items-to-gcp/${urlKey}/{brand}/{deployment}" doc:name="/vfc/plu/items-to-gcp/KEY/BRAND/DEPLOYMENT" />
+		<set-session-variable variableName="brand"
+			value="#[sessionVars.brand != null ? sessionVars.brand : message.inboundProperties.'http.uri.params'.brand]"
+			doc:name="Set brand" />
+		<set-session-variable variableName="deploymentId"
+			value="#[sessionVars.deploymentId != null ? sessionVars.deploymentId : message.inboundProperties.'http.uri.params'.deployment]"
+			doc:name="Set deploymentId" />
+		<logger
+			message="Running flow to generate item updates files from Database to GCP for VFC brand (#[sessionVars.brand]) deployment (#[sessionVars.deploymentId])"
+			level="INFO" doc:name="Logger" />
+		<component doc:name="Get all deployment locations for processing">
+			<prototype-object class="vfcorp.DatabaseItemsLocationsCallable" />
+		</component>
+		<request-reply doc:name="Request-Reply">
+			<vm:outbound-endpoint exchange-pattern="one-way"
+				path="VFC-process-itemsdb-queue-async-worker" connector-ref="VFC_VM_PLU_ITEMSDB"
+				doc:name="VFC-process-itemsdb-queue-async-worker">
+				<collection-splitter doc:name="Collection Splitter"
+					enableCorrelation="ALWAYS" />
+			</vm:outbound-endpoint>
+			<vm:inbound-endpoint exchange-pattern="one-way"
+				path="VFC-process-itemsdb-queue-async-reply" connector-ref="VFC_VM_PLU_ITEMSDB"
+				doc:name="VFC-process-itemsdb-queue-async-reply">
+				<collection-aggregator failOnTimeout="true"
+					doc:name="Collection Aggregator" />
+			</vm:inbound-endpoint>
+		</request-reply>
+		<set-payload
+			value="Completed flow (VFC:items-updates-from-database-to-gcp-for-deployment) to generate item updates files from Database to GCP for VFC brand (#[sessionVars.brand]) deployment (#[sessionVars.deploymentId])"
+			doc:name="Set Payload" />
+		<logger message="#[payload]" level="INFO" doc:name="Logger" />
+	</flow>
+	<flow name="VFC-process-itemsdb-queue-async-worker"
+		processingStrategy="VFC_PLU_ItemsDb_Async_Processing_Strategy">
+		<vm:inbound-endpoint exchange-pattern="one-way"
+			path="VFC-process-itemsdb-queue-async-worker" connector-ref="VFC_VM_PLU_ITEMSDB"
+			doc:name="VFC-process-itemsdb-queue-async-worker" />
+		<component doc:name="Gather async item updates from database">
+			<prototype-object class="vfcorp.DatabaseItemsProcessingCallable" />
+		</component>
+	</flow>
+</mule>

@@ -23,6 +23,10 @@ import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.SquareClientV2;
 
+import util.CloudStorageApi;
+import vfcorp.plu.ItemDbRecord;
+import vfcorp.plu.ItemSaleDbRecord;
+
 public class PluCatalogBuilder {
     private static Logger logger = LoggerFactory.getLogger(PluCatalogBuilder.class);
 
@@ -36,23 +40,24 @@ public class PluCatalogBuilder {
     private static String DEPLOYMENT_PREFIX = "vfcorp";
     private static String INVALID_STORE_ID = "00000";
 
-    private static final Set<String> VANS_BAG_SKUS_TAX_FREE = new HashSet<String>(
-            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444" }));
+    private static final Set<String> VANS_SKUS_TAX_FREE = new HashSet<String>(
+            Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444", "400007022584",
+                    "400007022331", "400007022416" }));
 
-    private static final Set<String> VANS_BAG_SKUS_TAXABLE = new HashSet<String>(
+    private static final Set<String> VANS_SKUS_TAXABLE = new HashSet<String>(
             Arrays.asList(new String[] { "706420993945", "196245794955" }));
 
-    private static final Set<String> VANS_SKUS_ALWAYS_AVAILABLE = new HashSet<String>(
-            Arrays.asList(new String[] { "400007022584", "400007022331", "400007022416" }));
-
-    private static int BATCH_UPSERT_SIZE = 30;
+    private static int BATCH_UPSERT_SIZE = 50;
+    private static int BATCH_DELETE_SIZE = 50;
 
     private SquareClientV2 client;
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+    private String storageBucket;
+    private String storageCredentials;
     private String brand;
-    private boolean pluFiltered;
+    private String deployment;
     private boolean ignoresSkuCheckDigit;
     private int itemNumberLookupLength;
 
@@ -68,25 +73,49 @@ public class PluCatalogBuilder {
         this.itemNumberLookupLength = itemNumberLookupLength;
     }
 
-    public void setPluFiltered(boolean pluFiltered) {
-        this.pluFiltered = pluFiltered;
-    }
-
     public PluCatalogBuilder(SquareClientV2 client, String databaseUrl, String databaseUser, String databasePassword,
-            String brand) {
+            String storageBucket, String storageCredentials, String brand, String deployment) {
         this.client = client;
         this.databaseUrl = databaseUrl;
         this.databaseUser = databaseUser;
         this.databasePassword = databasePassword;
+        this.storageBucket = storageBucket;
+        this.storageCredentials = storageCredentials;
         this.brand = brand;
-        this.pluFiltered = true;
+        this.deployment = deployment;
         this.ignoresSkuCheckDigit = false;
         this.itemNumberLookupLength = 14;
     }
 
     public void syncItemsFromDatabaseToSquare() throws Exception {
-        Catalog sourceCatalog = client.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
-                Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+        // Construct current catalog from mix of API requests (taxes, etc.) and cached items (GCP)
+        Catalog sourceCatalog = new Catalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.ID,
+                Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
+        Map<String, CatalogObject> originalObjectCache = new HashMap<String, CatalogObject>();
+        sourceCatalog.setOriginalObjectCache(originalObjectCache);
+
+        CloudStorageApi storageApi = new CloudStorageApi(storageCredentials);
+
+        // Read item catalog from pre-downloaded GCP cache
+        String fileName = deployment + "-catalog.json";
+        ArrayList<CatalogObject> gcpCatalog = Util.downloadBrandCatalogFileFromGCP(storageApi, storageBucket, brand,
+                fileName);
+        for (CatalogObject o : gcpCatalog) {
+            originalObjectCache.put(o.getId(), o);
+            sourceCatalog.addItem(o);
+        }
+
+        // Download categories and taxes from API
+        CatalogObject[] categories = client.catalog().listCategories();
+        for (CatalogObject c : categories) {
+            originalObjectCache.put(c.getId(), c);
+            sourceCatalog.addCategory(c);
+        }
+        CatalogObject[] taxes = client.catalog().listTaxes();
+        for (CatalogObject t : taxes) {
+            originalObjectCache.put(t.getId(), t);
+            sourceCatalog.addTax(t);
+        }
 
         Catalog workingCatalog = new Catalog(sourceCatalog, Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                 Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
@@ -94,7 +123,7 @@ public class PluCatalogBuilder {
         workingCatalog.clearItemLocations();
         workingCatalog.clearItemTaxes();
 
-        logCatalogStats(brand, workingCatalog);
+        logCatalogStats(brand, workingCatalog, "STARTING CATALOG :: ");
 
         // For each location, add unique item to catalog and set price (sale) overrides
         Location[] locations = client.locations().list();
@@ -105,7 +134,7 @@ public class PluCatalogBuilder {
         VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
 
         for (Location location : locations) {
-            syncCatalogForLocation(databaseApi, workingCatalog, location);
+            syncCatalogForLocation(databaseApi, storageApi, workingCatalog, location);
         }
 
         databaseApi.close();
@@ -119,12 +148,17 @@ public class PluCatalogBuilder {
         prepareForUpsert(workingCatalog);
         removeUnassignedLocationOverrides(workingCatalog);
 
-        logInfoForBrand(brand, "TOTAL ITEMS IN ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
+        logCatalogStats(brand, workingCatalog, "CALCULATED CATALOG :: ");
+
+        logInfoForBrand(brand, "TOTAL ITEMS IN SQUARE ACCOUNT: " + workingCatalog.getOriginalItems().values().size());
         logInfoForBrand(brand, "TOTAL ITEMS IN CATALOG: " + workingCatalog.getItems().values().size());
         CatalogObject[] modifiedItems = workingCatalog.getModifiedItems();
+        CatalogObject[] modifiedItemsAssignedLocations = itemsWithLocationAssignments(modifiedItems);
         logInfoForBrand(brand, "TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length);
+        logInfoForBrand(brand,
+                "TOTAL MODIFIED ITEMS ASSIGNED LOCATIONS IN CATALOG: " + modifiedItemsAssignedLocations.length);
 
-        upsertObjectsToSquare(modifiedItems, "item");
+        upsertObjectsToSquare(modifiedItemsAssignedLocations, "item");
 
         removeInvalidItems(workingCatalog);
     }
@@ -133,6 +167,19 @@ public class PluCatalogBuilder {
         for (CatalogObject catalogObject : catalog.getItems().values()) {
             catalogObject.minimizePriceOverrides();
         }
+    }
+
+    private CatalogObject[] itemsWithLocationAssignments(CatalogObject[] items) {
+        ArrayList<CatalogObject> availableObjects = new ArrayList<CatalogObject>();
+
+        for (CatalogObject item : items) {
+            if (isObjectPresentAtAnyLocation(item)) {
+                availableObjects.add(item);
+            }
+        }
+
+        CatalogObject[] result = new CatalogObject[availableObjects.size()];
+        return result = availableObjects.toArray(result);
     }
 
     private void removeUnassignedLocationOverrides(Catalog catalog) {
@@ -176,16 +223,16 @@ public class PluCatalogBuilder {
         return String.format("%s-%s-%s", DEPLOYMENT_PREFIX, brand, locationId);
     }
 
-    private void syncCatalogForLocation(VfcDatabaseApi databaseApi, Catalog catalog, Location location)
-            throws Exception {
+    private void syncCatalogForLocation(VfcDatabaseApi databaseApi, CloudStorageApi storageApi, Catalog catalog,
+            Location location) throws Exception {
         String deploymentId = getDeploymentIdForLocation(location);
         if (deploymentId == null) {
             System.out.println("INVALID LOCATION: " + location.getName());
             return; // Skip invalid location
         }
 
-        syncLocationDbItems(databaseApi, catalog, location, deploymentId);
-        syncLocationDbSalePrices(databaseApi, catalog, location);
+        syncLocationDbItems(storageApi, catalog, location, deploymentId);
+        syncLocationDbSalePrices(storageApi, catalog, location);
 
         if (isVansDeployment()) {
             syncWhitelistForLocation(databaseApi, catalog, location, deploymentId);
@@ -222,32 +269,36 @@ public class PluCatalogBuilder {
         whitelistItemsForLocation(catalog, location, whitelistedSkus);
     }
 
-    private void syncLocationDbItems(VfcDatabaseApi databaseApi, Catalog catalog, Location location,
+    private void syncLocationDbItems(CloudStorageApi storageApi, Catalog catalog, Location location,
             String deploymentId) throws Exception {
-
-        ArrayList<Map<String, String>> records = databaseApi.queryDbItems(location.getId(), pluFiltered, brand);
-
-        for (Map<String, String> itemRecord : records) {
-            updateCatalogLocationWithItem(catalog, location, itemRecord, deploymentId);
+        String fileKey = location.getId() + "-items.json";
+        if (Util.brandPluFileExists(storageApi, storageBucket, brand, fileKey)) {
+            ArrayList<ItemDbRecord> gcpItems = Util.downloadBrandItemFileFromGCP(storageApi, storageBucket, brand,
+                    fileKey);
+            for (ItemDbRecord itemRecord : gcpItems) {
+                updateCatalogLocationWithItem(catalog, location, itemRecord, deploymentId);
+            }
+        } else {
+            logInfoForBrand(brand, "PLU SYNC - No item records in database for location: " + location.getId());
         }
     }
 
-    private void syncLocationDbSalePrices(VfcDatabaseApi databaseApi, Catalog catalog, Location location)
+    private void syncLocationDbSalePrices(CloudStorageApi storageApi, Catalog catalog, Location location)
             throws Exception {
-        ArrayList<Map<String, String>> records = databaseApi.queryDbItemSaleEvents(location.getId(),
-                location.getTimezone());
-
-        for (Map<String, String> itemSaleRecord : records) {
-            applySalePrice(catalog, location.getId(), itemSaleRecord);
+        String fileKey = location.getId() + "-sales.json";
+        if (Util.brandPluFileExists(storageApi, storageBucket, brand, fileKey)) {
+            ArrayList<ItemSaleDbRecord> gcpItemSales = Util.downloadBrandItemSaleFileFromGCP(storageApi, storageBucket,
+                    brand, fileKey);
+            for (ItemSaleDbRecord itemSaleRecord : gcpItemSales) {
+                applySalePrice(catalog, location.getId(), itemSaleRecord);
+            }
         }
     }
 
-    private static void logCatalogStats(String brand, Catalog catalog) {
-        logInfoForBrand(brand, "CATEGORIES: " + catalog.getCategories().size());
-        logInfoForBrand(brand, "ITEMS: " + catalog.getItems().size());
-        logInfoForBrand(brand, "TAXES: " + catalog.getTaxes().size());
-        logInfoForBrand(brand, "DISCOUNTS: " + catalog.getDiscounts().size());
-        logInfoForBrand(brand, "MODIFIER LISTS: " + catalog.getModifierLists().size());
+    private static void logCatalogStats(String brand, Catalog catalog, String state) {
+        logInfoForBrand(brand, state + "CATEGORIES: " + catalog.getCategories().size());
+        logInfoForBrand(brand, state + "ITEMS: " + catalog.getItems().size());
+        logInfoForBrand(brand, state + "TAXES: " + catalog.getTaxes().size());
     }
 
     /* VFC Catalogs are a 1:1 mapping between a CatalogItem and a CatalogItemVariation
@@ -275,7 +326,6 @@ public class PluCatalogBuilder {
                 for (CatalogObject duplicateObject : duplicateItemsBySku) {
                     idsToDelete.add(duplicateObject.getId());
                 }
-
                 totalDuplicateSkus += duplicateItemsBySku.length;
             }
         }
@@ -403,7 +453,7 @@ public class PluCatalogBuilder {
     private void deleteObjectsFromSquare(String[] objectIds) {
         logger.info(String.format("Deleting %d objects from catalog...", objectIds.length));
         try {
-            client.catalog().batchDeleteObjects(objectIds);
+            client.catalog().setBatchDeleteSize(BATCH_DELETE_SIZE).batchDeleteObjects(objectIds);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure deleting objects");
@@ -411,13 +461,13 @@ public class PluCatalogBuilder {
     }
 
     private void upsertObjectsToSquare(CatalogObject[] objects, String type) {
-        logger.info(String.format("Upserting %s objects from catalog...", type));
+        logger.info(String.format("Upserting %s %s objects from catalog...", objects.length, type));
         try {
             client.catalog().setBatchUpsertSize(BATCH_UPSERT_SIZE).batchUpsertObjects(objects);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(
-                    String.format("Failure upserting %s objects into catalog: %s", type, e.getMessage()));
+            throw new RuntimeException(String.format("Failure upserting %s %s objects into catalog: %s", objects.length,
+                    type, e.getMessage()));
         }
     }
 
@@ -460,8 +510,8 @@ public class PluCatalogBuilder {
         }
     }
 
-    private void applySalePrice(Catalog catalog, String locationId, Map<String, String> record) throws Exception {
-        String sku = convertItemNumberToScannableSku(record.get("itemNumber"));
+    private void applySalePrice(Catalog catalog, String locationId, ItemSaleDbRecord record) throws Exception {
+        String sku = convertItemNumberToScannableSku(record.getItemNumber());
 
         CatalogObject item = catalog.getItem(sku);
         if (item == null) {
@@ -471,7 +521,7 @@ public class PluCatalogBuilder {
         CatalogItemVariation variation = getFirstItemVariation(item);
 
         if (variation != null && variation.getSku().equals(sku)) {
-            int price = Integer.parseInt(record.get("salePrice"));
+            int price = Integer.parseInt(record.getSalePrice());
             if (price > 0) {
                 item.setLocationPriceOverride(new String[] { locationId }, new Money(price, getAccountCurrency()),
                         FIXED_PRICING);
@@ -494,8 +544,7 @@ public class PluCatalogBuilder {
 
             String sku = variation.getSku();
 
-            if (VANS_BAG_SKUS_TAX_FREE.contains(sku) || VANS_BAG_SKUS_TAXABLE.contains(sku)
-                    || VANS_SKUS_ALWAYS_AVAILABLE.contains(sku)) {
+            if (VANS_SKUS_TAX_FREE.contains(sku) || VANS_SKUS_TAXABLE.contains(sku)) {
                 setPresentAtAllLocations(item, true);
             } else {
                 setPresentAtAllLocations(item, false);
@@ -507,17 +556,22 @@ public class PluCatalogBuilder {
         }
     }
 
-    private void updateCatalogLocationWithItem(Catalog catalog, Location location, Map<String, String> record,
+    private void updateCatalogLocationWithItem(Catalog catalog, Location location, ItemDbRecord record,
             String deploymentId) throws Exception {
-        String sku = convertItemNumberToScannableSku(record.get("itemNumber"));
+        if (record.getItemNumber().length() < itemNumberLookupLength) {
+            // ignore, invalid sku length from database
+            return;
+        }
+
+        String sku = convertItemNumberToScannableSku(record.getItemNumber());
 
         CatalogObject updatedItem = getMatchingOrNewItem(catalog, sku);
         CatalogItemVariation updatedVariation = getFirstItemVariation(updatedItem);
 
         // Item Name
-        String description = record.get("description").replaceFirst("\\s+$", "");
-        String altDescription = (record.get("alternateDescription") != null) ? record.get("alternateDescription").trim()
-                : "";
+        String description = record.getDescription().replaceFirst("\\s+$", "");
+        String altDescription = (record.getAlternateDescription() != null) ? record.getAlternateDescription().trim()
+                : sku;
         String itemName = (altDescription.length() > description.length()) ? altDescription : description;
         updatedItem.getItemData().setName(itemName);
 
@@ -526,8 +580,8 @@ public class PluCatalogBuilder {
         updatedVariation.setSku(sku);
 
         // Variation Price
-        String rawPrice = (record.get("retailPrice") != null && !record.get("retailPrice").isEmpty())
-                ? record.get("retailPrice") : "0";
+        String rawPrice = (record.getRetailPrice() != null && !record.getRetailPrice().isEmpty())
+                ? record.getRetailPrice() : "0";
         int price = Integer.parseInt(rawPrice);
         Money locationPriceMoney = new Money(price, getAccountCurrency());
         if (price > 0 || updatedVariation.getPriceMoney() == null) {
@@ -542,8 +596,8 @@ public class PluCatalogBuilder {
         }
 
         // Variation Name
-        String deptCodeClass = String.format("%-4s", record.get("deptNumber"))
-                + String.format("%-4s", record.get("classNumber"));
+        String deptCodeClass = String.format("%-4s", record.getDeptNumber())
+                + String.format("%-4s", record.getClassNumber());
         String variationName = String.format("%s (%s)", sku, deptCodeClass);
         updatedVariation.setName(variationName);
 
