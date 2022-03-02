@@ -47,8 +47,8 @@ public class PluCatalogBuilder {
     private static final Set<String> VANS_SKUS_TAXABLE = new HashSet<String>(
             Arrays.asList(new String[] { "706420993945", "196245794955" }));
 
-    private static int BATCH_UPSERT_SIZE = 5;
-    private static int BATCH_DELETE_SIZE = 1;
+    private static int BATCH_UPSERT_SIZE = 50;
+    private static int BATCH_DELETE_SIZE = 50;
 
     private SquareClientV2 client;
     private String databaseUrl;

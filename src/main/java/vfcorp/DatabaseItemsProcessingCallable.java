@@ -97,7 +97,7 @@ public class DatabaseItemsProcessingCallable implements Callable {
                 break;
             } catch (Exception e) {
                 lastException = e;
-                logger.info(String.format("ERROR trying to save items DB for location %s for brand %s: %ws",
+                logger.info(String.format("ERROR trying to save items DB for location %s for brand %s: %s",
                         location.getId(), brand, e.toString()));
                 Thread.sleep(RETRY_DELAY_MS);
             }
