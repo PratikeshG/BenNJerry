@@ -1,7 +1,7 @@
 package urbanspace;
 
 public class AggregateLocationResult {
-    private String merchantId;
+    private String locationId;
     private String merchantName;
     private int grossSales;
     private int grossSalesRefunds;
@@ -46,12 +46,12 @@ public class AggregateLocationResult {
     private int netTotalMoneyRefunds;
     private int netTotalMoneyNet;
 
-    public String getMerchantId() {
-        return merchantId;
+    public String getLocationId() {
+        return locationId;
     }
 
-    public void setMerchantId(String merchantId) {
-        this.merchantId = merchantId;
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 
     public String getMerchantName() {

@@ -52,7 +52,7 @@ public class AggregateReportGenerator {
 
             AggregateLocationResult locationResult = new AggregateLocationResult();
 
-            locationResult.setMerchantId(reportGeneratorPayload.getSquarePayload().getMerchantId());
+            locationResult.setLocationId(reportGeneratorPayload.getSquarePayload().getLocationId());
             locationResult.setMerchantName(reportGeneratorPayload.getSquarePayload().getMerchantAlias());
 
             locationResult.setGiftCardSales(reportCalculator.totalMoneyCollectedForGiftCards(payments));
@@ -166,7 +166,7 @@ public class AggregateReportGenerator {
                 "Merchant Name,SUID,Gross Sales,Gross Sales (Refunds),Gross Sales (Net),Discounts,Discounts (Refunds),Discounts (Net),Net Sales,Net Sales (Refunds),Net Sales (Net),Gift Card Sales,Gift Card Sales (Refunds),Gift Card Sales (Net),Tax,Tax (Refunds),Tax (Net),Tips,Tips (Refunds),Tips (Net),Partial Refunds,Partial Refunds (Refunds),Partial Refunds (Net),Total Collected,Total Collected (Refunds),Total Collected (Net),Cash,Cash (Refunds),Cash (Net),Card,Card (Refunds),Card (Net),Gift Card,Gift Card (Refunds),Gift Card (Net),Other,Other (Refunds),Other (Net),Fees,Fees (Refunds),Fees (Net),Net Total,Net Total (Refunds),Net Total (Net)\n");
         for (AggregateLocationResult locationResult : locationResults) {
             sb.append(locationResult.getMerchantName() + ",");
-            sb.append(locationResult.getMerchantId() + ",");
+            sb.append(locationResult.getLocationId() + ",");
             sb.append(centsToDollars(locationResult.getGrossSales()) + ",");
             sb.append(centsToDollars(locationResult.getGrossSalesRefunds()) + ",");
             sb.append(centsToDollars(locationResult.getGrossSalesNet()) + ",");

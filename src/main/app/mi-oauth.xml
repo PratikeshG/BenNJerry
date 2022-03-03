@@ -22,8 +22,11 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
             <when expression="#[message.inboundProperties.'http.query.params'.deployment == null]">
                 <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter"/>
             </when>
-            <when expression="#[message.inboundProperties.'http.query.params'.client_id == null]">
-                <set-payload value="You must provide a URI parameter, &quot;client_id&quot;, which denotes the Connect client ID." doc:name="Inform user of missing Connect client ID"/>
+            <when expression="#[message.inboundProperties.'http.query.params'.scope == null]">
+                <set-payload value="You must provide a URI parameter, &quot;scope&quot;, which denotes the requested Connect permission scopes." doc:name="Inform user of missing Connect permissions scope"/>
+            </when>
+            <when expression="#[message.inboundProperties.'http.query.params'.alias == null]">
+                <set-payload value="You must provide a URI parameter, &quot;alias&quot;, which denotes the Nickname/Alias for this integration." doc:name="Inform user of missing account Nickname parameter"/>
             </when>
             <otherwise>
                 <component doc:name="Generate state variable">
@@ -42,8 +45,8 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
 					<prototype-object class="util.oauth.CodeToTokenConverter"/>
                 </component>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
-                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, encryptedAccessToken, merchantId, legacy, expiryDate)
-VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAccessToken], #[flowVars.merchantId], #[flowVars.legacy], #[flowVars.expiresAt]);]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[INSERT INTO `token` (deployment, connectApp, encryptedAccessToken, encryptedRefreshToken, merchantId, locationId, expiryDate, merchantAlias)
+VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAccessToken], #[flowVars.encryptedRefreshToken], #[flowVars.merchantId], #[flowVars.locationId], #[flowVars.expiresAt], #[flowVars.alias]);]]></db:parameterized-query>
                 </db:insert>
                 <set-payload value="Token written to database." doc:name="Inform user of successful operation"/>
             </when>
@@ -63,7 +66,6 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAc
 ---
 {
 	encryptedAccessToken: payload[0].encryptedAccessToken as :string,
-	legacySingleLocationSquareAccount: true when payload[0].legacy == 1 otherwise false,
 	locationId: payload[0].locationId,
 	merchantAlias: payload[0].merchantAlias,
 	merchantId: payload[0].merchantId

@@ -49,7 +49,7 @@ public class IndividualReportGenerator {
 
         IndividualLocationResult locationResult = new IndividualLocationResult();
 
-        locationResult.setMerchantId(reportGeneratorPayload.getSquarePayload().getMerchantId());
+        locationResult.setLocationId(reportGeneratorPayload.getSquarePayload().getLocationId());
         locationResult.setMerchantName(reportGeneratorPayload.getSquarePayload().getMerchantAlias());
 
         locationResult.setGiftCardSales(totalMoneyCollectedForGiftCardsByTime(payments));

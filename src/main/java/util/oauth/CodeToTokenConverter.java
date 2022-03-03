@@ -5,58 +5,49 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.OAuthCode;
-import com.squareup.connect.OAuthToken;
-import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.ObtainTokenRequest;
+import com.squareup.connect.v2.ObtainTokenResponse;
+import com.squareup.connect.v2.SquareClientV2;
 
 import util.SquarePayload;
 
 public class CodeToTokenConverter implements Callable {
     @Value("${api.url}")
     private String apiUrl;
-    @Value("${connect.multiunit.id}")
-    private String multiUnitAppId;
-    @Value("${connect.multiunit.secret}")
-    private String multiUnitAppSecret;
-    @Value("${connect.legacy.id}")
-    private String legacyAppId;
-    @Value("${connect.legacy.secret}")
-    private String legacyAppSecret;
+    @Value("${connect.app.id}")
+    private String connectAppId;
+    @Value("${connect.app.secret}")
+    private String connectAppSecret;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
 
+    private static final String GRANT_TYPE = "authorization_code";
+    private static final String API_VERSION = "2022-02-16";
+
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        // Information that needs to be passed:
-        // deployment, connectApp, token, merchantId, legacy, expiryDate
+        ObtainTokenRequest codeRequest = new ObtainTokenRequest();
+        codeRequest.setClientId(connectAppId);
+        codeRequest.setClientSecret(connectAppSecret);
+        codeRequest.setCode(eventContext.getMessage().getProperty("code", PropertyScope.INVOCATION));
+        codeRequest.setGrantType(GRANT_TYPE);
 
-        OAuthCode code = new OAuthCode();
+        SquareClientV2 client = new SquareClientV2(apiUrl);
+        client.setVersion(API_VERSION);
 
-        String connectAppId = eventContext.getMessage().getProperty("connectAppId", PropertyScope.INVOCATION);
-
-        if (connectAppId.equals(legacyAppId)) {
-            code.setClientId(legacyAppId);
-            code.setClientSecret(legacyAppSecret);
-            eventContext.getMessage().setProperty("legacy", true, PropertyScope.INVOCATION);
-        } else if (connectAppId.equals(multiUnitAppId)) {
-            code.setClientId(multiUnitAppId);
-            code.setClientSecret(multiUnitAppSecret);
-            eventContext.getMessage().setProperty("legacy", false, PropertyScope.INVOCATION);
-        }
-
-        code.setCode(eventContext.getMessage().getProperty("code", PropertyScope.INVOCATION));
-
-        SquareClient client = new SquareClient(apiUrl);
-
-        OAuthToken token = client.oauth().obtainToken(code);
+        ObtainTokenResponse tokenResponse = client.oauth().obtainToken(codeRequest);
 
         SquarePayload tokenEncryption = new SquarePayload();
-        tokenEncryption.encryptAccessToken(token.getAccessToken(), encryptionKey);
+        tokenEncryption.encryptAccessToken(tokenResponse.getAccessToken(), encryptionKey);
+        tokenEncryption.encryptRefreshToken(tokenResponse.getRefreshToken(), encryptionKey);
 
+        eventContext.getMessage().setProperty("connectAppId", connectAppId, PropertyScope.INVOCATION);
         eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
                 PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("merchantId", token.getMerchantId(), PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("expiresAt", token.getExpiresAt(), PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("encryptedRefreshToken", tokenEncryption.getEncryptedRefreshToken(),
+                PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("merchantId", tokenResponse.getMerchantId(), PropertyScope.INVOCATION);
+        eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(), PropertyScope.INVOCATION);
 
         return true;
     }

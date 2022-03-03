@@ -9,9 +9,9 @@ public class SquarePayload implements Serializable {
     private String merchantId;
     private String locationId;
     private String encryptedAccessToken;
+    private String encryptedRefreshToken;
     private String merchantAlias;
-    private String startOfSeason;
-    private boolean legacySingleLocationSquareAccount;
+    private String startOfSeason; // TODO: TNT specific - this should not be here
 
     public String getMerchantId() {
         return merchantId;
@@ -37,6 +37,14 @@ public class SquarePayload implements Serializable {
         this.encryptedAccessToken = encryptedAccessToken;
     }
 
+    public String getEncryptedRefreshToken() {
+        return encryptedRefreshToken;
+    }
+
+    public void setEncryptedRefreshToken(String encryptedRefreshToken) {
+        this.encryptedRefreshToken = encryptedRefreshToken;
+    }
+
     public String getMerchantAlias() {
         return merchantAlias;
     }
@@ -46,30 +54,39 @@ public class SquarePayload implements Serializable {
     }
 
     public String getStartOfSeason() {
-    	return startOfSeason;
+        return startOfSeason;
     }
 
     public void setStartOfSeason(String startOfSeason) {
-    	this.startOfSeason = startOfSeason;
+        this.startOfSeason = startOfSeason;
     }
 
-    public boolean isLegacySingleLocationSquareAccount() {
-        return legacySingleLocationSquareAccount;
+    public String encryptToken(String token, String encryptionKey) {
+        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+        textEncryptor.setPassword(encryptionKey);
+        return textEncryptor.encrypt(token);
     }
 
-    public void setLegacySingleLocationSquareAccount(boolean legacy) {
-        this.legacySingleLocationSquareAccount = legacy;
+    public String decryptToken(String encryptedToken, String encryptionKey) {
+        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+        textEncryptor.setPassword(encryptionKey);
+        return textEncryptor.decrypt(encryptedToken);
     }
 
     public void encryptAccessToken(String accessToken, String encryptionKey) {
-        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
-        textEncryptor.setPassword(encryptionKey);
-        this.encryptedAccessToken = textEncryptor.encrypt(accessToken);
+        this.encryptedAccessToken = encryptToken(accessToken, encryptionKey);
+    }
+
+    public void encryptRefreshToken(String refreshToken, String encryptionKey) {
+        this.encryptedRefreshToken = encryptToken(refreshToken, encryptionKey);
     }
 
     public String getAccessToken(String encryptionKey) {
-        BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
-        textEncryptor.setPassword(encryptionKey);
-        return textEncryptor.decrypt(this.encryptedAccessToken);
+        return decryptToken(this.encryptedAccessToken, encryptionKey);
     }
+
+    public String getRefreshToken(String encryptionKey) {
+        return decryptToken(this.encryptedRefreshToken, encryptionKey);
+    }
+
 }
