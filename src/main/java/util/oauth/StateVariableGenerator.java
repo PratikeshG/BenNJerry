@@ -9,14 +9,14 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.OAuthURIParams;
-import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.OAuthUriParams;
+import com.squareup.connect.v2.SquareClientV2;
 
 public class StateVariableGenerator implements Callable {
     @Value("${api.url}")
     private String apiUrl;
-    @Value("${connect.legacy.id}")
-    private String legacyAppId;
+    @Value("${connect.app.id}")
+    private String connectAppId;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -25,24 +25,17 @@ public class StateVariableGenerator implements Callable {
 
         Map<String, String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
         String deployment = m.get("deployment");
-        String connectAppId = m.get("client_id");
+        String[] scope = m.get("scope").split(" ");
+        String alias = m.get("alias");
+        String locationId = m.get("locationId");
 
-        OAuthURIParams params = new OAuthURIParams();
+        OAuthUriParams params = new OAuthUriParams();
         params.setClientId(connectAppId);
-        params.setResponseType("code");
-        params.setState(deployment + "," + session + "," + connectAppId);
+        params.setState(deployment + "," + alias + "," + locationId + "," + session);
         params.setSession(false);
+        params.setScope(scope);
 
-        if (connectAppId.equals(legacyAppId)) {
-            params.setScope(new String[] { "MERCHANT_PROFILE_READ", "SETTLEMENTS_READ", "PAYMENTS_READ", "ITEMS_READ",
-                    "ITEMS_WRITE" });
-        } else {
-            params.setScope(new String[] { "MERCHANT_PROFILE_READ", "SETTLEMENTS_READ", "PAYMENTS_READ", "ITEMS_READ",
-                    "ITEMS_WRITE", "INVENTORY_READ", "INVENTORY_WRITE", "EMPLOYEES_READ", "TIMECARDS_READ",
-                    "CUSTOMERS_READ", "CUSTOMERS_WRITE", "ORDERS_READ", "DEVICE_CREDENTIAL_MANAGEMENT" });
-        }
-
-        SquareClient client = new SquareClient(apiUrl);
+        SquareClientV2 client = new SquareClientV2(apiUrl);
         String link = client.oauth().authorizeUrl(params);
 
         eventContext.getMessage().setProperty("session", session, PropertyScope.INVOCATION);

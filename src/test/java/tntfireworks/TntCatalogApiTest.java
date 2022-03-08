@@ -33,7 +33,7 @@ public class TntCatalogApiTest extends TestCase {
     private static final String apiUrl = "https://connect.squareupstaging.com";
 
     // deployment to test
-    private static final String deploymentJson = "{\"merchantId\":\"3M4YT8JKYHAVJ\",\"encryptedAccessToken\":\"NNE4+Mx5ymxloCSGW4Uba1hC3LU+KrQLjf0pMcUeSLExFj6unMQSjg==\",\"merchantAlias\":\"Tnt Fireworks 1\",\"legacySingleLocationSquareAccount\":false}";
+    private static final String deploymentJson = "{\"merchantId\":\"3M4YT8JKYHAVJ\",\"encryptedAccessToken\":\"NNE4+Mx5ymxloCSGW4Uba1hC3LU+KrQLjf0pMcUeSLExFj6unMQSjg==\",\"merchantAlias\":\"Tnt Fireworks 1\"}";
 
     // first run - input
     private static final String locationMarketingPlanCache1stRunJson = "{\"FAL0004\":\"2TNTC\",\"FAL0002\":\"2TNTC\",\"AZP0002\":\"2TNTC\",\"TX 0489\":\"6LAR\",\"AZP0001\":\"6LAR\"}";

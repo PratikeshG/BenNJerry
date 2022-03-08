@@ -29,7 +29,6 @@ public class ReportGeneratorPayloadCallable implements Callable {
             squarePayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
             squarePayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
             squarePayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
-            squarePayload.setLegacySingleLocationSquareAccount((Boolean) merchantDatabaseEntry.get("legacy"));
             reportGeneratorPayload.setSquarePayload(squarePayload);
 
             int offset = message.getProperty("offset", PropertyScope.SESSION);

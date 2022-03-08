@@ -23,14 +23,16 @@ public class StateVariableParser implements Callable {
 
         Map<String, String> m = eventContext.getMessage().getProperty("http.query.params", PropertyScope.INBOUND);
         String deployment = m.get("state").split(",")[0];
-        String session = m.get("state").split(",")[1];
-        String connectAppId = m.get("state").split(",")[2];
+        String alias = m.get("state").split(",")[1];
+        String locationId = m.get("state").split(",")[2];
+        String session = m.get("state").split(",")[3];
         String code = m.get("code");
 
         if (sessionCookie != null && sessionCookie.equals(session)) {
             eventContext.getMessage().setProperty("deployment", deployment, PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("locationId", locationId, PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("alias", alias, PropertyScope.INVOCATION);
             eventContext.getMessage().setProperty("code", code, PropertyScope.INVOCATION);
-            eventContext.getMessage().setProperty("connectAppId", connectAppId, PropertyScope.INVOCATION);
         }
 
         return null;

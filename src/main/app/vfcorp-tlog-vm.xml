@@ -147,7 +147,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-variable variableName="trackPriceOverrides" value="${vfcorp.vfo.trackPriceOverrides}" doc:name="trackPriceOverrides"/>
     </sub-flow>
     <sub-flow name="VFC:generate-tlog-for-location">
-        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="DEBUG" doc:name="Logger"/>
         <set-session-variable variableName="deploymentId" value="#[flowVars.deployment]" doc:name="deploymentId (VM safe)"/>
         <db:select config-ref="MySQL_Configuration" doc:name="Query preferredCustomerCounters">
             <db:parameterized-query><![CDATA[SELECT * FROM vfcorp_preferred_customer_counter WHERE deployment = #[flowVars.deployment] AND storeId = #[flowVars.storeId];]]></db:parameterized-query>
@@ -160,7 +160,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </sub-flow>
     <flow name="VFC:tlog-vm-process-eod" processingStrategy="VFC_TLOG_EOD_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-queue"/>
-        <logger level="INFO" doc:name="Logger" message="[QUEUE: vfc-tlog-queue] Initiating #[sessionVars.tlogType] TLOG (VM) for deployment #[payload.getDeployment()]"/>
+        <logger level="DEBUG" doc:name="Logger" message="[QUEUE: vfc-tlog-queue] Initiating #[sessionVars.tlogType] TLOG (VM) for deployment #[payload.getDeployment()]"/>
         <set-variable variableName="tlogVfcDeployment" value="#[payload]" doc:name="Set tlogVfcDeployment"/>
         <set-variable variableName="storeId" value="#[payload.getStoreId()]" doc:name="Set storeId"/>
         <set-variable variableName="deployment" value="#[payload.getDeployment()]" doc:name="Set deployment"/>
@@ -199,30 +199,30 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </component>
         <choice doc:name="Update PCM">
             <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
-                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
+                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="DEBUG" doc:name="Logger"/>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
                     <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
                 </db:insert>
             </when>
             <otherwise>
-                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
+                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="DEBUG" doc:name="Logger"/>
             </otherwise>
         </choice>
         <choice doc:name="Process followup SAP trickle">
             <when expression="#[sessionVars.tlogType == &quot;EOD&quot; &amp;&amp; sessionVars.runSAPTrickle == &quot;true&quot;]">
-                <logger message="[QUEUE: vfc-tlog-queue] RUN SAP TRICKLE!" level="INFO" doc:name="Logger"/>
+                <logger message="[QUEUE: vfc-tlog-queue] RUN SAP TRICKLE!" level="DEBUG" doc:name="Logger"/>
                 <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
                 <flow-ref name="VFC:tlog-generate-for-single-deployment" doc:name="VFC:tlog-generate-for-single-deployment"/>
             </when>
             <otherwise>
-                <logger message="[QUEUE: vfc-tlog-queue] #[flowVars.deployment + &quot;: Don't run SAPTrickle from EOD TLOG&quot;]" level="INFO" doc:name="Logger"/>
+                <logger message="[QUEUE: vfc-tlog-queue] #[flowVars.deployment + &quot;: Don't run SAPTrickle from EOD TLOG&quot;]" level="DEBUG" doc:name="Logger"/>
             </otherwise>
         </choice>
-        <logger message="[QUEUE: vfc-tlog-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
+        <logger message="[QUEUE: vfc-tlog-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="DEBUG" doc:name="Logger"/>
     </flow>
         <flow name="VFC:tlog-vm-process-trickle" processingStrategy="VFC_TLOG_Trickle_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="vfc-tlog-trickle-queue" connector-ref="VFC_VM_TLOG" doc:name="vm://vfc-tlog-trickle-queue"/>
-        <logger level="INFO" doc:name="Logger" message="[QUEUE: vfc-tlog-trickle-queue] Initiating #[sessionVars.tlogType] TLOG (VM) for deployment #[payload.getDeployment()]"/>
+        <logger level="DEBUG" doc:name="Logger" message="[QUEUE: vfc-tlog-trickle-queue] Initiating #[sessionVars.tlogType] TLOG (VM) for deployment #[payload.getDeployment()]"/>
         <set-variable variableName="tlogVfcDeployment" value="#[payload]" doc:name="Set tlogVfcDeployment"/>
         <set-variable variableName="storeId" value="#[payload.getStoreId()]" doc:name="Set storeId"/>
         <set-variable variableName="deployment" value="#[payload.getDeployment()]" doc:name="Set deployment"/>
@@ -261,19 +261,19 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </component>
         <choice doc:name="Update PCM">
             <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
-                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="INFO" doc:name="Logger"/>
+                <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="DEBUG" doc:name="Logger"/>
                 <db:insert config-ref="MySQL_Configuration" doc:name="Update preferredCustomerCounters">
                     <db:dynamic-query><![CDATA[#[flowVars.preferredCustomerSQLStatement]]]></db:dynamic-query>
                 </db:insert>
             </when>
             <otherwise>
-                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="INFO" doc:name="Logger"/>
+                <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="DEBUG" doc:name="Logger"/>
             </otherwise>
         </choice>
-        <logger message="[QUEUE: vfc-tlog-trickle-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="INFO" doc:name="Logger"/>
+        <logger message="[QUEUE: vfc-tlog-trickle-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="DEBUG" doc:name="Logger"/>
     </flow>
     <sub-flow name="VFC:tlog-generate-for-deploymentGroup">
-        <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="DEBUG" doc:name="Logger"/>
         <component doc:name="Get deployments for deploymentGroup">
             <prototype-object class="vfcorp.TlogQueryDatabaseDeploymentGroupCallable"/>
         </component>
@@ -282,7 +282,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </foreach>
     </sub-flow>
     <sub-flow name="VFC:tlog-generate-for-single-deployment">
-        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for deployment #[flowVars.deployment]" level="DEBUG" doc:name="Logger"/>
         <component doc:name="Get deployment">
             <prototype-object class="vfcorp.TlogQueryDatabaseDeploymentCallable"/>
         </component>
@@ -297,7 +297,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for SAP trickle - Vans" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for SAP trickle - Vans" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Test:tlog-trigger-sap-trickle" processingStrategy="synchronous">
@@ -309,7 +309,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for SAP trickle - Test" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for SAP trickle - Test" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
@@ -321,7 +321,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="STOREFORCE" doc:name="Set TLOG type: STOREFORCE"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for STOREFORCE trickle - TNF" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for STOREFORCE trickle - TNF" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNFCA:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
@@ -333,7 +333,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="STOREFORCE" doc:name="Set TLOG type: STOREFORCE"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for STOREFORCE trickle - TNFCA" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for STOREFORCE trickle - TNFCA" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Vans:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
@@ -345,7 +345,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="STOREFORCE" doc:name="Set TLOG type: STOREFORCE"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for STOREFORCE trickle - Vans" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for STOREFORCE trickle - Vans" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Test:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
@@ -357,7 +357,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="STOREFORCE" doc:name="Set TLOG type: STOREFORCE"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for STOREFORCE trickle - Test" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for STOREFORCE trickle - Test" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:EB:tlog-trigger-storeforce-trickle" processingStrategy="synchronous">
@@ -369,7 +369,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="tlogType" value="STOREFORCE" doc:name="Set TLOG type: STOREFORCE"/>
         <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
-        <logger message="Initiating TLOG generation for STOREFORCE trickle - EB" level="INFO" doc:name="Logger"/>
+        <logger message="Initiating TLOG generation for STOREFORCE trickle - EB" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
@@ -388,7 +388,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-HAWAII" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-hawaii" doc:name="Set deploymentGroup: vans-hawaii"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -422,7 +421,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-ALASKA" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-alaska" doc:name="Set deploymentGroup: vans-alaska"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -445,7 +443,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-WEST" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-west" doc:name="Set deploymentGroup: vans-west"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -490,7 +487,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-MOUNTAIN" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-mountain" doc:name="Set deploymentGroup: vans-mountain"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -535,7 +531,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-ARIZONA" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-arizona" doc:name="Set deploymentGroup: vans-arizona"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -558,7 +553,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-CENTRAL" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-central" doc:name="Set deploymentGroup: vans-central"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
@@ -625,7 +619,6 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
-        <logger message="Triggering EOD CRON for VFC:Vans:tlog-trigger-EAST" level="INFO" doc:name="Logger"/>
         <set-variable variableName="deploymentGroup" value="vans-east" doc:name="Set deploymentGroup: vans-east"/>
         <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>

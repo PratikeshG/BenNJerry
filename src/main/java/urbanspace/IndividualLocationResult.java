@@ -3,7 +3,7 @@ package urbanspace;
 import java.util.LinkedHashMap;
 
 public class IndividualLocationResult {
-    private String merchantId;
+    private String locationId;
     private String merchantName;
     private LinkedHashMap<String, Integer> grossSales;
     private LinkedHashMap<String, Integer> grossSalesRefunds;
@@ -83,12 +83,12 @@ public class IndividualLocationResult {
     private LinkedHashMap<String, Integer> totalOtherCardMoneyRefunds;
     private LinkedHashMap<String, Integer> totalOtherCardMoneyNet;
 
-    public String getMerchantId() {
-        return merchantId;
+    public String getLocationId() {
+        return locationId;
     }
 
-    public void setMerchantId(String merchantId) {
-        this.merchantId = merchantId;
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
     }
 
     public String getMerchantName() {

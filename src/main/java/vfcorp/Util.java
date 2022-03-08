@@ -112,10 +112,7 @@ public class Util {
         Session session = jsch.getSession(username, host, port);
         session.setPassword(password);
         session.setConfig("StrictHostKeyChecking", "no");
-
-        System.out.println("Establishing Connection...");
         session.connect();
-        System.out.println("Connection established.");
 
         return session;
     }

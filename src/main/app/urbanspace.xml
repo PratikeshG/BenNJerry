@@ -81,16 +81,4 @@ http://www.mulesoft.org/schema/mule/ssl http://www.mulesoft.org/schema/mule/ssl/
         </foreach>
         <logger message="Finished running Urbanspace daily report generation for active deployments" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="Urbanspace:generate-daily-reports-mb" processingStrategy="synchronous">
-        <logger message="Starting Urbanspace daily for Max Brenner" level="INFO" doc:name="Logger"/>
-        <set-variable variableName="deployment" value="urbanspace-bryant-park-mb" doc:name="Deployment ID: urbanspace-bryant-park-mb"/>
-        <set-session-variable variableName="deploymentName" value="Max Brenner" doc:name="Deployment Name"/>
-        <set-session-variable variableName="range" value="#[new java.lang.Integer(1)]" doc:name="Time range"/>
-        <set-session-variable variableName="offset" value="#[new java.lang.Integer(1)]" doc:name="Time offset"/>
-        <set-session-variable variableName="timeZone" value="America/New_York" doc:name="Timezone"/>
-        <set-session-variable variableName="emails" value="dropbox_daily_sales_reports@urbanspacenyc.com,alulaj@urbanspacenyc.com,jasonh@squareup.com" doc:name="Emails"/>
-        <set-property propertyName="MULE_CORRELATION_ID" value="#[java.util.UUID.randomUUID()] " doc:name="Set new correlation ID"/>
-        <flow-ref name="Urbanspace:generate-individual-and-aggregate-reports" doc:name="Urbanspace:generate-individual-and-aggregate-reports"/>
-        <logger message="Finished running Urbanspace daily for Max Brenner" level="INFO" doc:name="Logger"/>
-    </flow>
 </mule>

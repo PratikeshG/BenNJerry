@@ -27,8 +27,6 @@ public class DeploymentsCallable implements Callable {
             deploymentPayload.setMerchantId((String) merchantDatabaseEntry.get("merchantId"));
             deploymentPayload.setLocationId((String) merchantDatabaseEntry.get("locationId"));
             deploymentPayload.setMerchantAlias((String) merchantDatabaseEntry.get("merchantAlias"));
-            deploymentPayload.setLegacySingleLocationSquareAccount(false);
-
             deploymentPayloads.add(deploymentPayload);
         }
 

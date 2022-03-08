@@ -7,24 +7,24 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.OAuthToken;
-import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.ObtainTokenRequest;
+import com.squareup.connect.v2.ObtainTokenResponse;
+import com.squareup.connect.v2.SquareClientV2;
 
 import util.SquarePayload;
 
 public class TokenRenewer implements Callable {
     @Value("${api.url}")
     private String apiUrl;
-    @Value("${connect.multiunit.id}")
-    private String multiunitId;
-    @Value("${connect.multiunit.secret}")
-    private String multiunitSecret;
-    @Value("${connect.legacy.id}")
-    private String legacyId;
-    @Value("${connect.legacy.secret}")
-    private String legacySecret;
+    @Value("${connect.app.id}")
+    private String connectAppId;
+    @Value("${connect.app.secret}")
+    private String connectAppSecret;
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
+
+    private static final String GRANT_TYPE = "refresh_token";
+    private static final String API_VERSION = "2022-02-16";
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -32,35 +32,29 @@ public class TokenRenewer implements Callable {
         Map<String, Object> m = (Map<String, Object>) eventContext.getMessage().getPayload();
 
         Integer id = (Integer) m.get("id");
-        String encryptedAccessToken = (String) m.get("encryptedAccessToken");
-        String connectApp = (String) m.get("connectApp");
-
-        String secret = "";
-        if (connectApp != null && connectApp.equals(multiunitId)) {
-            secret = multiunitSecret;
-        } else if (connectApp != null && connectApp.equals(legacyId)) {
-            secret = legacySecret;
-        } else {
-            String error = "connect app '" + connectApp
-                    + "' associated with this token is not an official Managed Integrations application";
-
-            eventContext.getMessage().setProperty("error", error, PropertyScope.INVOCATION);
-            return false;
-        }
+        String encryptedRefreshToken = (String) m.get("encryptedRefreshToken");
 
         SquarePayload tokenEncryption = new SquarePayload();
-        tokenEncryption.setEncryptedAccessToken(encryptedAccessToken);
+        tokenEncryption.setEncryptedRefreshToken(encryptedRefreshToken);
 
-        SquareClient client = new SquareClient(tokenEncryption.getAccessToken(encryptionKey), apiUrl);
+        SquareClientV2 client = new SquareClientV2(apiUrl);
+        client.setVersion(API_VERSION);
 
         try {
-            OAuthToken newToken = client.oauth().renewToken(connectApp, secret);
-            tokenEncryption.encryptAccessToken(newToken.getAccessToken(), encryptionKey);
+            ObtainTokenRequest codeRequest = new ObtainTokenRequest();
+            codeRequest.setClientId(connectAppId);
+            codeRequest.setClientSecret(connectAppSecret);
+            codeRequest.setGrantType(GRANT_TYPE);
+            codeRequest.setRefreshToken(tokenEncryption.getRefreshToken(encryptionKey));
+
+            ObtainTokenResponse tokenResponse = client.oauth().obtainToken(codeRequest);
+
+            tokenEncryption.encryptAccessToken(tokenResponse.getAccessToken(), encryptionKey);
 
             eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
             eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
                     PropertyScope.INVOCATION);
-            eventContext.getMessage().setProperty("expiresAt", newToken.getExpiresAt(), PropertyScope.INVOCATION);
+            eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(), PropertyScope.INVOCATION);
 
             return true;
         } catch (Exception e) {
