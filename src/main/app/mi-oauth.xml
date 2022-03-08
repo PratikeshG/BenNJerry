@@ -60,7 +60,7 @@ VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAc
             <db:parameterized-query><![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment] LIMIT 1;]]></db:parameterized-query>
         </db:select>
         <dw:transform-message metadata:id="4c4f26e2-147b-4d27-848f-efeb8db63fc2" doc:name="Transform Message">
-            <dw:input-payload doc:sample="SquareToken.dwl"/>
+            <dw:input-payload doc:sample="SquareToken.dwl" mimeType="application/java"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
