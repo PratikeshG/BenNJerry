@@ -1,6 +1,7 @@
 package vfcorp.eb;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,8 +9,6 @@ import java.util.Map;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TenderCardDetails;
 import com.squareup.connect.v2.Transaction;
-
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class DashboardCsvTenderSummary {
 	private static final String TENDER_TYPE_CASH = "CASH";
@@ -25,23 +24,27 @@ public class DashboardCsvTenderSummary {
     private static final String ONFILE_LABEL = "On File";
     private static final String NA_LABEL 	  = "N/A";
 
-    private static Map<String, String> entryMethodLabelMap = ImmutableMap.<String, String>builder()
-    		.put(TenderCardDetails.ENTRY_METHOD_SWIPED, SWIPED_LABEL)
-    		.put(TenderCardDetails.ENTRY_METHOD_KEYED, KEYED_LABEL)
-    		.put(TenderCardDetails.ENTRY_METHOD_EMV, DIPPED_LABEL)
-    		.put(TenderCardDetails.ENTRY_METHOD_ON_FILE, ONFILE_LABEL)
-    		.put(TenderCardDetails.ENTRY_METHOD_CONTACTLESS, TAPPED_LABEL)
-    		.build();
+    private static Map<String, String> entryMethodLabelMap;
+    static {
+        entryMethodLabelMap = new HashMap<>();
+        entryMethodLabelMap.put(TenderCardDetails.ENTRY_METHOD_SWIPED, SWIPED_LABEL);
+        entryMethodLabelMap.put(TenderCardDetails.ENTRY_METHOD_KEYED, KEYED_LABEL);
+        entryMethodLabelMap.put(TenderCardDetails.ENTRY_METHOD_EMV, DIPPED_LABEL);
+        entryMethodLabelMap.put(TenderCardDetails.ENTRY_METHOD_ON_FILE, ONFILE_LABEL);
+        entryMethodLabelMap.put(TenderCardDetails.ENTRY_METHOD_CONTACTLESS, TAPPED_LABEL);
+    }
 
-    private static Map<String, String> cardBrandLabelMap = ImmutableMap.<String, String>builder()
-    		.put("AMERICAN_EXPRESS", "American Express")
-    		.put("VISA", "Visa")
-    		.put("MASTERCARD", "MasterCard")
-    		.put("DISCOVER", "Discover")
-    		.put("DISCOVER_DINERS", "Discover Diners")
-    		.put("SQUARE_GIFT_CARD", "Square Gift Card")
-    		.put("OTHER_BRAND", "Other")
-    		.build();
+    private static Map<String, String> cardBrandLabelMap;
+    static {
+        cardBrandLabelMap = new HashMap<>();
+        cardBrandLabelMap.put("AMERICAN_EXPRESS", "American Express");
+        cardBrandLabelMap.put("VISA", "Visa");
+        cardBrandLabelMap.put("MASTERCARD", "MasterCard");
+        cardBrandLabelMap.put("DISCOVER", "Discover");
+        cardBrandLabelMap.put("DISCOVER_DINERS", "Discover Diners");
+        cardBrandLabelMap.put("SQUARE_GIFT_CARD", "Square Gift Card");
+        cardBrandLabelMap.put("OTHER_BRAND", "Other");
+    }
 
 	private int cash = 0;
 	private int giftCard = 0;
