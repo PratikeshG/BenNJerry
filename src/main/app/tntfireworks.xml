@@ -23,13 +23,11 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <http:listener config-ref="${default.http.config}" path="/tntfireworks/sftptodatabase/${urlKey}" doc:name="HTTPS"/>
         <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
         <set-payload value="Sync of CSV files on SFTP server to database complete" doc:name="Set Payload"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:trigger-database-to-square">
         <http:listener config-ref="${default.http.config}" path="/tntfireworks/databasetosquare/${urlKey}" doc:name="HTTPS"/>
         <flow-ref name="TNTFireworks:sync-database-to-square" doc:name="TNTFireworks:sync-database-to-square"/>
         <set-payload value="Sync of database to Square complete" doc:name="Set Payload"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:generate-location-tokens-for-bank-account-linking">
         <http:listener config-ref="${default.http.config}" path="/tntfireworks/generate-location-tokens/${urlKey}" doc:name="HTTPS"/>
@@ -40,7 +38,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         </component>
         <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Source / Destination Location Tokens for Bank Account Linking']" responseTimeout="10000" doc:name="Email source/destination location tokens"/>
         <set-payload value="Finished generating source/destination location ids for bank account linking (in SqWeb)" doc:name="Set Payload"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:sftp-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tntfireworks-csv-sftp-cron-1480949912" cronExpression="0 0/20 * 1/1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every 20 minutes" connector-ref="Quartz-TNT">
@@ -55,7 +52,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <flow-ref name="TNTFireworks:sync-sftp-to-database" doc:name="TNTFireworks:sync-sftp-to-database"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:sync-sftp-to-database">
         <component doc:name="Check SFTP folders for CSV files">
@@ -79,7 +75,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <vm:outbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:sftp-to-db-queue-worker" processingStrategy="TNTFireworks_SyncToDatabase_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="TNTFireworks:sftp-to-db-queue-worker" connector-ref="TNTFIREWORKS_SFTP_TO_DB_VM" path="TNTFireworks:sftp-to-db-queue-worker"/>
@@ -88,7 +83,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
             <prototype-object class="tntfireworks.SyncToDatabaseCallable"/>
         </component>
         <logger message="Finished CSV update for: #[payload.getOriginalFilename()] to database" level="INFO" doc:name="Logger"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:sync-database-to-square" >
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:kickoff-db-to-square-sync" doc:name="Kickoff Sync to Square" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM"/>
@@ -120,7 +114,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
                 <smtp:outbound-endpoint host="${email.info.sending.server}"  user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${tntfireworks.saleseng.recipients}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - Catalog API UPDATES COMPLETE']" responseTimeout="10000" doc:name="Email DB to SQ Completed"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks:db-sync-queue-worker" processingStrategy="TNTFireworks_DatabaseToSquareWorker_Async_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks:db-sync-queue-worker" connector-ref="TNTFIREWORKS_DB_TO_SQ_VM" doc:name="TNTFireworks:db-sync-queue-worker"/>
@@ -128,7 +121,6 @@ http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/sm
         <component doc:name="Database to Square API Updates">
             <prototype-object class="tntfireworks.DatabaseToSquareCallable"/>
         </component>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
 </mule>
 

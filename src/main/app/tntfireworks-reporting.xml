@@ -26,7 +26,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <set-session-variable variableName="adhoc" value="#[message.inboundProperties.'http.query.params'.adhoc]" doc:name="adhoc"/>
         <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
         <set-payload value="Report '#[sessionVars.reportType]' generated." doc:name="Set Payload"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-credit-debit-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-credit-debit-batch-report-1498546244" cronExpression="0 05 0 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -45,7 +44,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-settlements-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-settlements-batch-report-1529973612" cronExpression="0 35 0 1 * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 12:35 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -64,7 +62,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-abnormal-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-abnormal-transactions-batch-report-1529973647" cronExpression="0 05 1 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 01:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -83,7 +80,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-transactions-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-transactions-batch-report-1529973682" cronExpression="0 35 1 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 01:35 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -102,7 +98,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-location-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-location-sales-batch-report-1529973708" cronExpression="0 05 2 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 02:05 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -121,7 +116,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-item-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-item-sales-batch-report-1529973742" cronExpression="0 35 2 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 02:35 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -140,7 +134,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-gross-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-gross-sales-batch-report-1558399168" cronExpression="0 55 2 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 02:55 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -159,7 +152,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-yoy-gross-sales-batch-report-cron" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-tnt-yoy-gross-sales-batch-report-1576640175" cronExpression="0 30 3 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Quartz (run at 03:30 am PST)" connector-ref="Quartz-TNT-reporting" cronTimeZone="${tntfireworks.reporting.cron.timezone}">
@@ -178,7 +170,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <flow-ref name="TNTFireworks-generate-report" doc:name="TNTFireworks-generate-report"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-generate-report">
         <logger message="Begin generating '#[sessionVars.reportType]'" level="INFO" doc:name="Logger"/>
@@ -237,7 +228,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <logger message="Invalid Report Type" level="INFO" doc:name="Logger"/>
             </otherwise>
         </choice>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads">
         <component doc:name="Get Deployments">
@@ -252,7 +242,6 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
             </vm:inbound-endpoint>
         </request-reply>
         <logger message="Successfully aggregated deployment transaction data" level="INFO" doc:name="Logger"/>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
     <flow name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" processingStrategy="TNT_Reporting_Async_Processing_Strategy">
         <vm:inbound-endpoint exchange-pattern="one-way" path="TNTFireworks-aggregate-deployment-payloads-queue-async-worker" connector-ref="TNTFIREWORKS_REPORTING_VM" doc:name="TNTFireworks-aggregate-deployment-payloads-queue-async-worker"/>
@@ -260,6 +249,5 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <component doc:name="Retrieve merchant payload">
         	<prototype-object class="tntfireworks.reporting.RetrieveMerchantPayloadCallable"/>
         </component>
-        <exception-strategy ref="partnerEngExceptionCatchingStrategy" doc:name="Partner Eng Exception"/>
     </flow>
 </mule>
