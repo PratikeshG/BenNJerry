@@ -86,6 +86,7 @@ public class TntReportAggregator {
 
     protected String storeReport(String reportName, String generatedReport, String directory) throws Exception {
         String reportFullPath = sftpBasePath + sftpReportPath + directory;
+        logger.info(String.format("Storing report at %s", reportFullPath));
 
         // store file in defined sftp location
         ChannelSftp sftpChannel = SshUtil.createConnection(sftpHost, sftpPort, sftpUser, sftpPassword);
