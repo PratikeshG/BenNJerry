@@ -46,7 +46,9 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // add file rows
         for (List<CreditDebitPayload> masterPayload : payloadAggregate) {
             for (CreditDebitPayload locationPayload : masterPayload) {
-                reportBuilder.append(locationPayload.getRow());
+            	if (locationPayload.getNetDepositAmt() != 0) {
+            		reportBuilder.append(locationPayload.getRow());	
+            	}
             }
         }
 

@@ -23,7 +23,7 @@ public class CreditDebitPayload extends TntReportLocationPayload {
 
     // constant payload fields
     private static final String CREDIT_DEBIT_FILE_HEADER = String.format(
-            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", "Source Type", "Load Number", "File Date",
+            "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", "Source Type", "Load Number", "File Date",
             "Net Deposit Amt", "Total Tickets", "Number of Debits", "Debit Amt", "Number of Credits", "Credit Amt",
             "Hold Amt", "Terminal ID", "ACH Amt", "ACH Date", "Merchant ID");
     private static final String SOURCE_TYPE = "SQUARE";
@@ -91,13 +91,17 @@ public class CreditDebitPayload extends TntReportLocationPayload {
     public boolean isTenderRefundedMoneyValid(Tender tender) {
         return tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0;
     }
+    
+    public int getNetDepositAmt() {
+    	return netDepositAmt;
+    }
 
     public String getRow() {
-        String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", SOURCE_TYPE,
-                Integer.toString(loadNumber), this.getPayloadDate(), formatCurrencyTotal(netDepositAmt),
-                Integer.toString(ticketCount), Integer.toString(debitCount), formatCurrencyTotal(debitAmt),
-                Integer.toString(creditCount), formatCurrencyTotal(creditAmt), formatCurrencyTotal(holdAmt),
-                locationDetails.locationName, formatCurrencyTotal(achAmt), achDate, locationDetails.locationName);
+        String row = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", SOURCE_TYPE,
+                Integer.toString(loadNumber), this.getPayloadDate(), formatDecimalTotal(netDepositAmt),
+                Integer.toString(ticketCount), Integer.toString(debitCount), formatDecimalTotal(debitAmt),
+                Integer.toString(creditCount), formatDecimalTotal(creditAmt), formatDecimalTotal(holdAmt),
+                locationDetails.locationName, formatDecimalTotal(achAmt), achDate, locationDetails.locationName);
         return row;
     }
 }
