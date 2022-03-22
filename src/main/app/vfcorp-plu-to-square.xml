@@ -95,7 +95,7 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 		<set-payload
 			value="Completed Database to Square updates for VFC brand: #[sessionVars.brand] :: #[sessionVars.deploymentId]"
 			doc:name="Set Payload" />
-		<smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="bhartard@squareup.com" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.deploymentId]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
+		<smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="${vfcorp.plu.email}" from="${email.info.sending.from.bridge}" subject="#['${mule.env}'.toUpperCase() + ' - COMPLETED Catalog updates - ' + sessionVars.deploymentId]" responseTimeout="10000" doc:name="Email to Sales Eng"/>
 		<logger message="#[payload]" level="INFO" doc:name="Logger: done" />
 	</flow>
 	<flow name="VFC:trigger-plu-database-to-square-for-brand">
