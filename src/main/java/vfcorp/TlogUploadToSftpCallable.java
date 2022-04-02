@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -21,7 +22,6 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
-import util.CloudStorageApi;
 import util.TimeManager;
 
 public class TlogUploadToSftpCallable implements Callable {
@@ -34,9 +34,12 @@ public class TlogUploadToSftpCallable implements Callable {
     private static final String VANS_EOD_TLOG_SUFFIX = "HHmm";
     private static final String VANS_STOREFORCE_TLOG_PREFIX = "sas";
     private static final String VANS_STOREFORCE_TLOG_SUFFIX = ".new";
-    private static final String VANS_SAP_TLOG_PREFIX = "SA";
-    private static final String VANS_SAP_TLOG_DATE = "MMddyyyyHHmmss";
-    private static final String VANS_SAP_TLOG_SUFFIX = ".vans_us.Processed";
+    private static final String SAP_TLOG_PREFIX = "SA";
+    private static final String SAP_TLOG_DATE = "MMddyyyyHHmmss";
+    private static final String SAP_TLOG_SUFFIX = ".Processed";
+    private static final String VANS_SAP_TLOG_SUFFIX = ".vans_us";
+    private static final String TNF_SAP_TLOG_SUFFIX = ".tnf_us";
+    private static final String TNFCA_SAP_TLOG_SUFFIX = ".tnf_ca";
 
     private static Logger logger = LoggerFactory.getLogger(TlogUploadToSftpCallable.class);
 
@@ -54,8 +57,8 @@ public class TlogUploadToSftpCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final int RETRY_COUNT = 10;
-    private static final int RETRY_DELAY_MS = 60000; // 1 minute
+    private static final int RETRY_COUNT = 20;
+    private static final int RETRY_DELAY_MAX_SECONDS = 80;
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -74,16 +77,10 @@ public class TlogUploadToSftpCallable implements Callable {
         String storeforceTrickleDirectory = message.getProperty("storeforceTrickleDirectory", PropertyScope.INVOCATION);
         String sapTrickleDirectory = message.getProperty("sapTrickleDirectory", PropertyScope.INVOCATION);
 
-        String fileName = getVfcFilename(tlogType, deployment, vfcorpStoreNumber);
-
-        // Archive complete TLOGs to Google Cloud Storage
-        if (tlogType.equals("EOD")) {
-            String encryptionKey = message.getProperty("encryptionKey", PropertyScope.INVOCATION);
-            String cloudArchiveFolder = message.getProperty("cloudArchiveFolder", PropertyScope.INVOCATION);
-            String fileKey = String.format("%s%s.secure", cloudArchiveFolder, fileName);
-
-            CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
-            cloudStorage.encryptAndUploadObject(encryptionKey, archiveBucket, fileKey, tlog);
+        // Skip file upload when there is no data
+        if (tlog.length() < 1) {
+            logger.info(deployment.getDeployment() + ": EMPTY tlog - skipping " + tlogType);
+            return tlog;
         }
 
         return uploadTlogsWithRetries(message, tlog, tlogType, archiveTlog, vfcorpStoreNumber, deployment,
@@ -121,7 +118,9 @@ public class TlogUploadToSftpCallable implements Callable {
                 lastException = e;
                 logger.warn(String.format("Error connecting to SFTP for %s TLOG upload - %s",
                         deployment.getDeployment(), lastException.toString()));
-                Thread.sleep(RETRY_DELAY_MS);
+
+                int randomSeconds = ThreadLocalRandom.current().nextInt(1, RETRY_DELAY_MAX_SECONDS + 1);
+                Thread.sleep(randomSeconds * 1000); // sleep() accepts milliseconds
             } finally {
                 if (sftpChannel != null) {
                     sftpChannel.disconnect();
@@ -147,8 +146,7 @@ public class TlogUploadToSftpCallable implements Callable {
         if (tlogType.equals("EOD")) {
             InputStream tlogUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(deployment.getTlogPath());
-            sftpChannel.put(tlogUploadStream, getVfcFilename(tlogType, deployment, vfcorpStoreNumber),
-                    ChannelSftp.OVERWRITE);
+            sftpChannel.put(tlogUploadStream, getVfcFilename(deployment, vfcorpStoreNumber), ChannelSftp.OVERWRITE);
 
             if (tlogUploadStream != null) {
                 tlogUploadStream.close();
@@ -171,7 +169,7 @@ public class TlogUploadToSftpCallable implements Callable {
                 InputStream archiveUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
                 String timeZone = message.getProperty("timeZone", PropertyScope.INVOCATION);
 
-                String archiveFilename = getVfcArchiveFilename(tlogType, deployment, vfcorpStoreNumber, timeZone);
+                String archiveFilename = getVfcArchiveFilename(deployment, vfcorpStoreNumber, timeZone);
 
                 String archiveDirectory = deployment.getTlogPath() + "/Archive";
                 sftpChannel.cd(archiveDirectory);
@@ -182,13 +180,7 @@ public class TlogUploadToSftpCallable implements Callable {
                 }
             }
         } else if (tlogType.equals("SAP")) {
-            // Skip SAP trickle when there is no new transactions
-            if (tlog.length() < 1) {
-                logger.debug(deployment.getDeployment() + ": tlogType EMPTY - skipping");
-                return tlog;
-            }
-
-            String sapFilename = getVfcFilename(tlogType, deployment, vfcorpStoreNumber);
+            String sapFilename = getSAPFilename(deployment, vfcorpStoreNumber);
             InputStream saptrickleUploadStream = new ByteArrayInputStream(tlog.getBytes("UTF-8"));
             sftpChannel.cd(sapTrickleDirectory);
             sftpChannel.put(saptrickleUploadStream, sapFilename, ChannelSftp.OVERWRITE);
@@ -225,6 +217,19 @@ public class TlogUploadToSftpCallable implements Callable {
         return deployment.getDeployment().contains(BRAND_VANS) || deployment.getDeployment().contains(BRAND_TEST);
     }
 
+    private String getSAPFilename(VfcDeployment deployment, String vfcorpStoreNumber) throws ParseException {
+        Calendar c = Calendar.getInstance(TimeZone.getTimeZone(DEFAULT_TIMEZONE));
+
+        // Brand specific SAP trickle format
+        String dateSuffix = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, DEFAULT_TIMEZONE),
+                DEFAULT_TIMEZONE, SAP_TLOG_DATE);
+
+        String brandSuffix = getBrandSAPSuffix(deployment);
+
+        return String.format("%s%s%s%s%s", SAP_TLOG_PREFIX, vfcorpStoreNumber, dateSuffix, brandSuffix,
+                SAP_TLOG_SUFFIX);
+    }
+
     private String getStoreforceFilename(VfcDeployment deployment, String vfcorpStoreNumber) {
         if (isVansDeployment(deployment)) {
             return String.format("%s%s%s", VANS_STOREFORCE_TLOG_PREFIX, fourDigitStoreNumber(vfcorpStoreNumber),
@@ -233,32 +238,42 @@ public class TlogUploadToSftpCallable implements Callable {
         return String.format("%s%s%s", VFC_TLOG_PREFIX, vfcorpStoreNumber, VFC_TLOG_SUFFIX);
     }
 
-    private String getVfcFilename(String tlogType, VfcDeployment deployment, String vfcorpStoreNumber)
-            throws ParseException {
+    private String getVfcFilename(VfcDeployment deployment, String vfcorpStoreNumber) throws ParseException {
         if (isVansDeployment(deployment)) {
+            // Vans unique EOD tlog format
             Calendar c = Calendar.getInstance(TimeZone.getTimeZone(DEFAULT_TIMEZONE));
 
-            if (tlogType.equals("SAP")) {
-                String dateSuffix = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, DEFAULT_TIMEZONE),
-                        DEFAULT_TIMEZONE, VANS_SAP_TLOG_DATE);
-                return String.format("%s%s%s%s", VANS_SAP_TLOG_PREFIX, vfcorpStoreNumber, dateSuffix,
-                        VANS_SAP_TLOG_SUFFIX);
-            } else { // EOD
-                String dateSuffix = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, DEFAULT_TIMEZONE),
-                        DEFAULT_TIMEZONE, VANS_EOD_TLOG_SUFFIX);
-                return String.format("%s%s%s", VANS_EOD_TLOG_PREFIX, vfcorpStoreNumber, dateSuffix);
-            }
+            String dateSuffix = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, DEFAULT_TIMEZONE),
+                    DEFAULT_TIMEZONE, VANS_EOD_TLOG_SUFFIX);
+            return String.format("%s%s%s", VANS_EOD_TLOG_PREFIX, vfcorpStoreNumber, dateSuffix);
+
         }
+
+        // default EOD format
         return String.format("%s%s%s", VFC_TLOG_PREFIX, vfcorpStoreNumber, VFC_TLOG_SUFFIX);
     }
 
-    private String getVfcArchiveFilename(String tlogType, VfcDeployment deployment, String vfcorpStoreNumber,
-            String timeZone) throws ParseException {
+    private String getBrandSAPSuffix(VfcDeployment deployment) {
+        String suffix = "";
+
+        if (deployment.getDeployment().startsWith("vfcorp-tnf-")) {
+            suffix = TNF_SAP_TLOG_SUFFIX;
+        } else if (deployment.getDeployment().startsWith("vfcorp-tnfca-")) {
+            suffix = TNFCA_SAP_TLOG_SUFFIX;
+        } else if (isVansDeployment(deployment)) {
+            suffix = VANS_SAP_TLOG_SUFFIX;
+        }
+
+        return suffix;
+    }
+
+    private String getVfcArchiveFilename(VfcDeployment deployment, String vfcorpStoreNumber, String timeZone)
+            throws ParseException {
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone(timeZone));
         String currentDate = TimeManager.toSimpleDateTimeInTimeZone(TimeManager.toIso8601(c, timeZone), timeZone,
                 "yyyy-MM-dd-HH-mm-ss");
 
-        return String.format("%s_%s", currentDate, getVfcFilename(tlogType, deployment, vfcorpStoreNumber));
+        return String.format("%s_%s", currentDate, getVfcFilename(deployment, vfcorpStoreNumber));
     }
 
     private String fourDigitStoreNumber(String storeNumber) {
