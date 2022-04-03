@@ -79,7 +79,7 @@ public class TlogUploadToSftpCallable implements Callable {
 
         // Skip file upload when there is no data
         if (tlog.length() < 1) {
-            logger.info(deployment.getDeployment() + ": EMPTY tlog - skipping " + tlogType);
+            logger.debug(deployment.getDeployment() + ": EMPTY tlog - skipping " + tlogType);
             return tlog;
         }
 
