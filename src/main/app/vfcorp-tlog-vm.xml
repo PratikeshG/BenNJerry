@@ -26,6 +26,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     </quartz:connector>
     <quartz:connector name="Quartz-VFO-tlog" validateConnections="true" doc:name="Quartz"/>
     <quartz:connector name="Quartz-VFC-Kipling-tlog" validateConnections="true" doc:name="Quartz"/>
+	<quartz:connector name="Quartz-VFC-TNF-SAP" validateConnections="true" doc:name="Quartz"/>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.tnf.archive.enabled}" doc:name="enableTlogArchive"/>
@@ -270,7 +271,7 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
                 <logger message="#[flowVars.storeId + &quot;: No new customers added to transactions. MySQL update not required.&quot;]" level="DEBUG" doc:name="Logger"/>
             </otherwise>
         </choice>
-        <logger message="[QUEUE: vfc-tlog-trickle-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="DEBUG" doc:name="Logger"/>
+		<logger message="[QUEUE: vfc-tlog-trickle-queue] #['Finished generating TLOG for VF Corporation, location ' + flowVars.vfcorpStoreNumber + ' (' + flowVars.deployment + ')']" level="DEBUG" doc:name="Logger"/>
     </flow>
     <sub-flow name="VFC:tlog-generate-for-deploymentGroup">
         <logger message="Initiating TLOG generation for deploymentGroup #[flowVars.deploymentGroup]" level="DEBUG" doc:name="Logger"/>
@@ -288,7 +289,31 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         </component>
         <vm:outbound-endpoint exchange-pattern="one-way" path="#[sessionVars.'vm-queue']" connector-ref="VFC_VM_TLOG" doc:name="sessionVars.vm-queue"/>
     </sub-flow>
-        <flow name="VFC:Vans:tlog-trigger-sap-trickle" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-sap-trickle" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-sap-1543099999" cronExpression="0 5/10 6-22 ? * * *" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-VFC-TNF-SAP" responseTimeout="10000" doc:name="Run every 10 minutes">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
+        <set-variable variableName="deploymentGroup" value="tnf-%" doc:name="Set deploymentGroup: tnf-%"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
+        <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
+        <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
+        <logger message="Initiating TLOG generation for SAP trickle - TNF" level="DEBUG" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:TNFCA:tlog-trigger-sap-trickle" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-sap-1543099777" cronExpression="0 5/10 6-22 ? * * *" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-VFC-TNF-SAP" responseTimeout="10000" doc:name="Run every 10 minutes">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-session-variable variableName="vm-queue" value="vfc-tlog-trickle-queue" doc:name="vm: vfc-tlog-trickle-queue"/>
+        <set-variable variableName="deploymentGroup" value="tnfca-%" doc:name="Set deploymentGroup: tnfca-%"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
+        <set-session-variable variableName="createCloseRecords" value="false" doc:name="createCloseRecords: false"/>
+        <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
+        <logger message="Initiating TLOG generation for SAP trickle - TNF" level="DEBUG" doc:name="Logger"/>
+        <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
+    </flow>
+    <flow name="VFC:Vans:tlog-trigger-sap-trickle" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-vans-sap-1543099888" cronExpression="0 5/10 6-22 ? * * *" cronTimeZone="America/Los_Angeles" repeatInterval="0" connector-ref="Quartz-VFC-storeforce" responseTimeout="10000" doc:name="Run every 10 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
@@ -372,13 +397,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <logger message="Initiating TLOG generation for STOREFORCE trickle - EB" level="DEBUG" doc:name="Logger"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-HAWAII" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-HAWAII" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-hawaii-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="Pacific/Honolulu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-hawaii" doc:name="Set deploymentGroup: tnf-hawaii"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -405,13 +430,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-ALASKA" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-ALASKA" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-alaska-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm AKDT / 12:30am PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Anchorage">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-alaska" doc:name="Set deploymentGroup: tnf-alaska"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -427,13 +452,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="true" doc:name="runSAPTrickle: true"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-WEST" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-WEST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-west-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-west" doc:name="Set deploymentGroup: tnf-west"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -460,24 +485,24 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNFCA:tlog-trigger-WEST" processingStrategy="synchronous">
+    <flow name="VFC:TNFCA:tlog-trigger-SAP-EOD-WEST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-west-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Los_Angeles">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnfca-west" doc:name="Set deploymentGroup: tnfca-west"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-MOUNTAIN" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-MOUNTAIN" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-mountain-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MDT " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Denver">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-mountain" doc:name="Set deploymentGroup: tnf-mountain"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -493,13 +518,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="true" doc:name="runSAPTrickle: true"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNFCA:tlog-trigger-MOUNTAIN" processingStrategy="synchronous">
+    <flow name="VFC:TNFCA:tlog-trigger-SAP-EOD-MOUNTAIN" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-mountain-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MDT" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Denver">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnfca-mountain" doc:name="Set deploymentGroup: tnfca-mountain"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -515,13 +540,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-ARIZONA" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-ARIZONA" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-arizona-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm MST (NO DST)" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Phoenix">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-arizona" doc:name="Set deploymentGroup: tnf-arizona"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -537,13 +562,13 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="true" doc:name="runSAPTrickle: true"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-CENTRAL" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-CENTRAL" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-central-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm CST / 9:30pm PST" connector-ref="Quartz-VFC-tlog" cronTimeZone="America/Chicago">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-central" doc:name="Set deploymentGroup: tnf-central"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
@@ -570,24 +595,24 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNF:tlog-trigger-EAST" processingStrategy="synchronous">
+    <flow name="VFC:TNF:tlog-trigger-SAP-EOD-EAST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnf-east-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnf-east" doc:name="Set deploymentGroup: tnf-east"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
-    <flow name="VFC:TNFCA:tlog-trigger-EAST" processingStrategy="synchronous">
+    <flow name="VFC:TNFCA:tlog-trigger-SAP-EOD-EAST" processingStrategy="synchronous">
         <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-tnfca-east-1574969669" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm EST / 8:30pm PST " connector-ref="Quartz-VFC-tlog" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>
         <set-variable variableName="deploymentGroup" value="tnfca-east" doc:name="Set deploymentGroup: tnfca-east"/>
-        <set-session-variable variableName="tlogType" value="EOD" doc:name="Set TLOG type: EOD"/>
+        <set-session-variable variableName="tlogType" value="SAP" doc:name="Set TLOG type: SAP"/>
         <set-session-variable variableName="createCloseRecords" value="true" doc:name="createCloseRecords: true"/>
         <set-session-variable variableName="runSAPTrickle" value="false" doc:name="runSAPTrickle: false"/>
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>

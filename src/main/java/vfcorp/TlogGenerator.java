@@ -81,7 +81,8 @@ public class TlogGenerator implements Callable {
         tlogGeneratorPayload.setParams(TimeManager.getPastDayInterval(range, offset, timeZone));
 
         boolean createCloseRecords = message.getProperty("createCloseRecords", PropertyScope.SESSION).equals("true")
-                ? true : false;
+                ? true
+                : false;
 
         SquareClient squareV1Client = new SquareClient(
                 tlogGeneratorPayload.getSquarePayload().getAccessToken(encryptionKey), apiUrl, "v1",
@@ -117,22 +118,6 @@ public class TlogGenerator implements Callable {
 
         // How many device codes are configured for this business?
         int totalConfiguredDevices = 2;
-        /*
-         * Locations are not disabling old device codes when new codes are created, which is creating more device IDs than expected in their system
-         *
-        if (deployment.contains("vans") || deployment.contains("test")) {
-            int pairedDevices = 0;
-            DeviceCode[] devices = squareV2Client.devices().list(locationId);
-
-            for (DeviceCode d : devices) {
-                if (d.getStatus().equals("PAIRED") && d.getLocationId().equals(locationId)) {
-                    pairedDevices++;
-                }
-            }
-
-            totalConfiguredDevices = pairedDevices;
-        }
-        */
 
         // Employees
         tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
@@ -335,7 +320,8 @@ public class TlogGenerator implements Callable {
             Payment customerPayment, String storeId) {
 
         String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
-                ? customerPayment.getDevice().getName() : null;
+                ? customerPayment.getDevice().getName()
+                : null;
         String registerNumber = Util.getRegisterNumber(deviceName);
 
         int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);
