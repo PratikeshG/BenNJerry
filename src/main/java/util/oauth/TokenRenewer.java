@@ -49,17 +49,21 @@ public class TokenRenewer implements Callable {
 
             ObtainTokenResponse tokenResponse = client.oauth().obtainToken(codeRequest);
 
-            tokenEncryption.encryptAccessToken(tokenResponse.getAccessToken(), encryptionKey);
+            if (tokenResponse.getAccessToken() != null && tokenResponse.getAccessToken().length() > 0) {
+                tokenEncryption.encryptAccessToken(tokenResponse.getAccessToken(), encryptionKey);
 
-            eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
-            eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
-                    PropertyScope.INVOCATION);
-            eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(), PropertyScope.INVOCATION);
+                eventContext.getMessage().setProperty("tokenId", id, PropertyScope.INVOCATION);
+                eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
+                        PropertyScope.INVOCATION);
+                eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(),
+                        PropertyScope.INVOCATION);
 
-            return true;
+                return true;
+            }
         } catch (Exception e) {
             eventContext.getMessage().setProperty("error", e.getMessage(), PropertyScope.INVOCATION);
-            return false;
         }
+
+        return false;
     }
 }
