@@ -472,7 +472,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
         <flow-ref name="VFC:tlog-generate-for-deploymentGroup" doc:name="VFC:tlog-generate-for-deploymentGroup"/>
     </flow>
     <flow name="VFC:Kipling:tlog-trigger-HAWAII" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-hawaii-157496000" cronExpression="0 30 23 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 11:30pm HST / 2:30am PST" connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="Pacific/Honolulu">
+        <quartz:inbound-endpoint jobName="quartz-vfc-TLOG-kipling-hawaii-157496111" cronExpression="0 30 22 * * ? *" repeatInterval="0" responseTimeout="10000" doc:name="Run every day at 10:30pm HST / 1:30am PST" connector-ref="Quartz-VFC-Kipling-tlog" cronTimeZone="Pacific/Honolulu">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-session-variable variableName="vm-queue" value="vfc-tlog-queue" doc:name="vm: vfc-tlog-queue"/>

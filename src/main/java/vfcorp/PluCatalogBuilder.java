@@ -48,7 +48,6 @@ public class PluCatalogBuilder {
             Arrays.asList(new String[] { "706420993945", "196245794955" }));
 
     private static int BATCH_UPSERT_SIZE = 25;
-    private static int BATCH_DELETE_SIZE = 10;
 
     private SquareClientV2 client;
     private String databaseUrl;
@@ -453,7 +452,15 @@ public class PluCatalogBuilder {
     private void deleteObjectsFromSquare(String[] objectIds) {
         logger.info(String.format("Deleting %d objects from catalog...", objectIds.length));
         try {
-            client.catalog().setBatchDeleteSize(BATCH_DELETE_SIZE).batchDeleteObjects(objectIds);
+            int count = 0;
+            for (String idToDelete : objectIds) {
+                client.catalog().deleteObject(idToDelete);
+
+                if (count % 250 == 0) {
+                    logger.info("250 objects deleted...");
+                }
+                count++;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Failure deleting objects");
@@ -581,7 +588,8 @@ public class PluCatalogBuilder {
 
         // Variation Price
         String rawPrice = (record.getRetailPrice() != null && !record.getRetailPrice().isEmpty())
-                ? record.getRetailPrice() : "0";
+                ? record.getRetailPrice()
+                : "0";
         int price = Integer.parseInt(rawPrice);
         Money locationPriceMoney = new Money(price, getAccountCurrency());
         if (price > 0 || updatedVariation.getPriceMoney() == null) {
