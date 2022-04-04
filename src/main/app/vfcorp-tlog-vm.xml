@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -11,7 +11,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
     <vm:connector name="VFC_VM_TLOG" validateConnections="true" doc:name="VM"/>
     <queued-asynchronous-processing-strategy name="VFC_TLOG_EOD_Async_Processing_Strategy" maxThreads="${vfcorp.tlog.eod.maxThreads}" doc:name="EOD Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="${vfcorp.tlog.eod.threadWaitTimeout}"/>
     <queued-asynchronous-processing-strategy name="VFC_TLOG_Trickle_Async_Processing_Strategy" maxThreads="${vfcorp.tlog.trickle.maxThreads}" doc:name="Trickle Queued Asynchronous Processing Strategy" minThreads="1" poolExhaustedAction="WAIT" threadWaitTimeout="${vfcorp.tlog.trickle.threadWaitTimeout}"/>
@@ -27,6 +28,9 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
     <quartz:connector name="Quartz-VFO-tlog" validateConnections="true" doc:name="Quartz"/>
     <quartz:connector name="Quartz-VFC-Kipling-tlog" validateConnections="true" doc:name="Quartz"/>
 	<quartz:connector name="Quartz-VFC-TNF-SAP" validateConnections="true" doc:name="Quartz"/>
+	<sftp:connector name="SFTP-VFC-Server-Config" validateConnections="true" maxConnectionPoolSize="30" duplicateHandling="overwrite" doc:name="SFTP">
+		<reconnect-forever frequency="5000"/>
+	</sftp:connector>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
         <set-variable variableName="cloudArchiveFolder" value="#['TNF/' + flowVars.storeId + '/TLOG/' + server.dateTime.format('YYYYMMddhhmmss_')]" doc:name="cloudArchiveFolder"/>
         <set-variable variableName="enableTlogArchive" value="${vfcorp.tlog.tnf.archive.enabled}" doc:name="enableTlogArchive"/>
@@ -195,9 +199,33 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </otherwise>
         </choice>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <component doc:name="Upload TLOG to archive and SFTP">
+        <component doc:name="Generate SFTP variable for connector">
             <prototype-object class="vfcorp.TlogUploadToSftpCallable"/>
         </component>
+        <choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" outputPattern="#[flowVars.tlogFilename]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - tlog"/>
+			</when>
+			<otherwise>
+				<logger message="#[&quot;EMPTY tlog - skipping &quot; + sessionVars.tlogType + &quot; - Store # &quot; + flowVars.vfcorpStoreNumber]" level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true &amp;&amp; flowVars.tlogArchiveProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" outputPattern="#[flowVars.tlogArchiveFilename]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogArchiveDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - tlogArchive"/>
+			</when>
+			<otherwise>
+				<logger message="Archive not enabled for #[flowVars.tlogArchiveDirectory + &quot;/&quot; + flowVars.tlogArchiveFilename] " level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true &amp;&amp; flowVars.storeforceTlogArchiveProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogStoreforceArchiveDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - StoreforceArchive" outputPattern="#[flowVars.tlogStoreforceArchiveFilename]"/>
+			</when>
+			<otherwise>
+				<logger message="StorefoceArchive not enabled for #[flowVars.tlogArchiveDirectory + &quot;/&quot; + flowVars.tlogArchiveFilename] " level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
         <choice doc:name="Update PCM">
             <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
                 <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="DEBUG" doc:name="Logger"/>
@@ -257,9 +285,33 @@ http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/cu
             </otherwise>
         </choice>
         <flow-ref name="VFC:generate-tlog-for-location" doc:name="VFC:generate-tlog-for-location"/>
-        <component doc:name="Upload TLOG to archive and SFTP">
+        <component doc:name="Generate SFTP variable for connector">
             <prototype-object class="vfcorp.TlogUploadToSftpCallable"/>
         </component>
+        <choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" outputPattern="#[flowVars.tlogFilename]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - tlog"/>
+			</when>
+			<otherwise>
+				<logger message="#[&quot;EMPTY tlog - skipping &quot; + sessionVars.tlogType + &quot; - Store # &quot; + flowVars.vfcorpStoreNumber]" level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true &amp;&amp; flowVars.tlogArchiveProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" outputPattern="#[flowVars.tlogArchiveFilename]" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogArchiveDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - tlogArchive"/>
+			</when>
+			<otherwise>
+				<logger message="Archive not enabled for #[flowVars.tlogArchiveDirectory + &quot;/&quot; + flowVars.tlogArchiveFilename] " level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.tlogProcessed == true &amp;&amp; flowVars.storeforceTlogArchiveProcessed == true]">
+				<sftp:outbound-endpoint exchange-pattern="one-way" connector-ref="SFTP-VFC-Server-Config" host="${vfcorp.sftp.host}" port="${vfcorp.sftp.port}" path="#[flowVars.tlogStoreforceArchiveDirectory]" user="${vfcorp.sftp.username}" password="${vfcorp.sftp.password}" responseTimeout="10000" doc:name="SFTP - StoreforceArchive" outputPattern="#[flowVars.tlogStoreforceArchiveFilename]"/>
+			</when>
+			<otherwise>
+				<logger message="StorefoceArchive not enabled for #[flowVars.tlogArchiveDirectory + &quot;/&quot; + flowVars.tlogArchiveFilename] " level="DEBUG" doc:name="Logger"/>
+			</otherwise>
+		</choice>
         <choice doc:name="Update PCM">
             <when expression="#[flowVars.preferredCustomerSQLUpdate == true]">
                 <logger message="#[flowVars.storeId + &quot;: Updating MySQL for customers transactions&quot;]" level="DEBUG" doc:name="Logger"/>
