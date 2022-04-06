@@ -317,13 +317,15 @@ public class PluCatalogBuilder {
             CatalogObject[] duplicateItemsBySku = getDuplicateItemsBySku(duplicateSkuObjectCache, item);
 
             // removeItemsNotPresentAtAnyLocations
-            if (!isObjectPresentAtAnyLocation(item)) {
+            if (!isObjectPresentAtAnyLocation(item) && !item.getId().startsWith("#")) {
                 idsToDelete.add(item.getId());
             }
             // removeItemsWithDuplicateSkus
             else if (duplicateItemsBySku.length > 0) {
                 for (CatalogObject duplicateObject : duplicateItemsBySku) {
-                    idsToDelete.add(duplicateObject.getId());
+                    if (!duplicateObject.getId().startsWith("#")) {
+                        idsToDelete.add(duplicateObject.getId());
+                    }
                 }
                 totalDuplicateSkus += duplicateItemsBySku.length;
             }
@@ -463,6 +465,7 @@ public class PluCatalogBuilder {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            logger.info("IDs to delete: " + String.join(",", objectIds));
             throw new RuntimeException("Failure deleting objects");
         }
     }
