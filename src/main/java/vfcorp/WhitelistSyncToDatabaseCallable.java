@@ -6,11 +6,13 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -48,15 +50,24 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final String PROCESSING_PREFIX = "processing_";
-    private static final String WHITELIST_DIRECTORY_FORMAT = "whitelist/%s/";
+    @Value("${vfcorp.tnfca.storeIds}")
+    private String tnfcaIds;
+    private Set<String> tnfcaStoreIds;
+
+    private static final String GCP_PROCESSING_PREFIX = "processing_";
+    private static final String GCP_WHITELIST_DIRECTORY_FORMAT = "whitelist/%s/";
+    private static final String VFC_DEPLOYMENT_FORMAT = "vfcorp-%s";
+    private static final String VFC_BRAND_TNF = "tnf";
+    private static final String VFC_BRAND_TNF_CA = "tnfca";
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
+        tnfcaStoreIds = new HashSet<String>(Arrays.asList(tnfcaIds.split(",")));
+
         String brand = (String) message.getProperty("brand", PropertyScope.INVOCATION);
-        String deployment = "vfcorp-" + brand;
+        String whitelistFilePrefix = (String) message.getProperty("whitelistFilePrefix", PropertyScope.INVOCATION);
 
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
 
@@ -65,7 +76,7 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
         }
 
         List<StorageObject> objects = cloudStorage.listObjects(archiveBucket,
-                String.format(WHITELIST_DIRECTORY_FORMAT + "UPC.DTA", brand));
+                String.format(GCP_WHITELIST_DIRECTORY_FORMAT + whitelistFilePrefix, brand));
         ArrayList<String> filesToProcess = new ArrayList<String>();
         for (StorageObject o : objects) {
             filesToProcess.add(o.getName());
@@ -76,11 +87,11 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
         Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
         VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
 
-        String folderKey = String.format(WHITELIST_DIRECTORY_FORMAT, brand);
+        String folderKey = String.format(GCP_WHITELIST_DIRECTORY_FORMAT, brand);
 
         for (String fileKey : filesToProcess) {
             String fileName = fileKey.split(folderKey)[1];
-            String processingFileKey = folderKey + PROCESSING_PREFIX + fileName;
+            String processingFileKey = folderKey + GCP_PROCESSING_PREFIX + fileName;
             cloudStorage.renameObject(archiveBucket, fileKey, archiveBucket, processingFileKey);
 
             InputStream whitelistInputStream = cloudStorage.downloadObject(archiveBucket, processingFileKey);
@@ -117,13 +128,15 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
             }
 
             for (String storeId : allStoreWhitelists.keySet()) {
-                databaseApi.deleteWhitelistForBrandStore(deployment, storeId);
+                String deploymentForStoreId = getDeploymentForStoreId(brand, storeId);
+
+                databaseApi.deleteWhitelistForBrandStore(deploymentForStoreId, storeId);
 
                 ArrayList<String> wl = new ArrayList<String>(allStoreWhitelists.get(storeId));
 
                 int batchSize = 1000;
                 for (int b = 0; b < wl.size(); b += batchSize) {
-                    databaseApi.setWhitelistForBrandStore(deployment, storeId,
+                    databaseApi.setWhitelistForBrandStore(deploymentForStoreId, storeId,
                             wl.subList(b, Math.min(wl.size(), b + batchSize)));
                 }
             }
@@ -132,13 +145,27 @@ public class WhitelistSyncToDatabaseCallable implements Callable {
                     folderKey + "archive/" + fileName);
         }
 
-        System.out.println("done");
+        logger.info(String.format("Completed processing whitelist GCP to DB sync for brand: %s", brand));
+
         return 1;
+    }
+
+    private String getDeploymentForStoreId(String brand, String storeId) {
+        if (isTnfBrand(brand)) {
+            if (tnfcaStoreIds.contains(storeId)) {
+                return String.format(VFC_DEPLOYMENT_FORMAT, VFC_BRAND_TNF_CA);
+            }
+        }
+        return String.format(VFC_DEPLOYMENT_FORMAT, brand);
+    }
+
+    private boolean isTnfBrand(String brand) {
+        return brand.equals(VFC_BRAND_TNF);
     }
 
     private boolean isProcessingFile(CloudStorageApi cloudStorage, String brand) throws IOException {
         List<StorageObject> processingFiles = cloudStorage.listObjects(archiveBucket,
-                String.format(WHITELIST_DIRECTORY_FORMAT + "processing_", brand));
+                String.format(GCP_WHITELIST_DIRECTORY_FORMAT + "processing_", brand));
         if (processingFiles.size() > 0) {
             logger.info(String.format("Can't begin processing %s whitelists. Already processing another file: %s",
                     brand, processingFiles.get(0).getName()));

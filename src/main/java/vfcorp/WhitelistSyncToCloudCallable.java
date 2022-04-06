@@ -50,7 +50,9 @@ public class WhitelistSyncToCloudCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final String WHIETLIST_FILE_PREFIX = "UPC.DTA";
+    @Value("${vfcorp.whitelist.wait}")
+    private int processingWait;
+
     private static final String ARCHIVE_PATH = "Archive";
 
     @Override
@@ -59,6 +61,7 @@ public class WhitelistSyncToCloudCallable implements Callable {
 
         String brand = (String) message.getProperty("brand", PropertyScope.INVOCATION);
         String sftpPath = (String) message.getProperty("sftpPath", PropertyScope.INVOCATION);
+        String whitelistFilePrefix = (String) message.getProperty("whitelistFilePrefix", PropertyScope.INVOCATION);
         boolean enabled = message.getProperty("enabled", PropertyScope.INVOCATION).equals("true") ? true : false;
 
         String deployment = "vfcorp-" + brand;
@@ -76,8 +79,8 @@ public class WhitelistSyncToCloudCallable implements Callable {
 
         sftpChannel.cd(sftpPath);
 
-        Vector<LsEntry> whitelistFiles = sftpChannel.ls(WHIETLIST_FILE_PREFIX + "*");
-        Thread.sleep(120000); // wait 2mins to verify if file ready for processing
+        Vector<LsEntry> whitelistFiles = sftpChannel.ls(whitelistFilePrefix + "*");
+        Thread.sleep(processingWait); // wait to verify if file ready for processing
 
         ArrayList<String> filesToProcess = new ArrayList<String>();
         for (LsEntry f : whitelistFiles) {

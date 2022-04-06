@@ -105,21 +105,33 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 		</component>
         <set-payload value="Running PLU processing reset for VFC brand: #[flowVars.brand]" doc:name="Set Payload"/>
     </flow>
+    <flow name="VFC:TNF-sync-whitelist" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-wl-1490699999" cronExpression="0 0/30 0-3,22-23 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 30 minutes at EOD" cronTimeZone="America/New_York">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="tnf" doc:name="brand: tnf"/>
+        <set-variable variableName="enabled" value="${vfcorp.tnf.plu.whitelist.enabled}" doc:name="enabled: tnf"/>
+        <set-variable variableName="whitelistFilePrefix" value="${vfcorp.tnf.plu.whitelist.prefix}" doc:name="prefix UPC_NF.DTA"/>
+        <set-variable variableName="sftpPath" value="${vfcorp.tnf.sftp.path.whitelist}" doc:name="sftpPath: tnf"/>
+        <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
+    </flow>
     <flow name="VFC:Vans-sync-whitelist" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-1490699999" cronExpression="0 0/30 0-3,22-23 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 30 minutes at EOD" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans-wl-1490699999" cronExpression="0 0/30 0-3,22-23 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 30 minutes at EOD" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="brand" value="vans" doc:name="brand: vans"/>
         <set-variable variableName="enabled" value="${vfcorp.vans.plu.whitelist.enabled}" doc:name="enabled: vans"/>
+        <set-variable variableName="whitelistFilePrefix" value="${vfcorp.vans.plu.whitelist.prefix}" doc:name="prefix UPC.DTA"/>
         <set-variable variableName="sftpPath" value="${vfcorp.vans.sftp.path.whitelist}" doc:name="sftpPath: vans"/>
         <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
     </flow>
     <flow name="VFC:Test-sync-whitelist" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-plu-sftp-14906399999" cronExpression="0 0/50 0-3,22-23 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every :50 minute" cronTimeZone="America/New_York">
+        <quartz:inbound-endpoint jobName="quartz-vfc-test-wl-14906399999" cronExpression="0 0/50 0-3,22-23 1/1 * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every :50 minute" cronTimeZone="America/New_York">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="brand" value="test" doc:name="brand: test"/>
         <set-variable variableName="enabled" value="${vfcorp.test.plu.whitelist.enabled}" doc:name="enabled: test"/>
+        <set-variable variableName="whitelistFilePrefix" value="${vfcorp.test.plu.whitelist.prefix}" doc:name="prefix UPC.DTA"/>
         <set-variable variableName="sftpPath" value="${vfcorp.test.sftp.path.whitelist}" doc:name="sftpPath: test"/>
         <flow-ref name="VFC:sync-whitelist-for-brand" doc:name="VFC:sync-whitelist-for-brand"/>
     </flow>
@@ -132,8 +144,18 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
             <prototype-object class="vfcorp.WhitelistSyncToDatabaseCallable"/>
         </component>
     </sub-flow>
+    <flow name="VFC:TNF-sync-whitelist-gcp-to-db" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-wl-db-1490699777" cronExpression="0 30 * 1/1 * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 60 minutes">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="tnf" doc:name="brand: tnf"/>
+        <set-variable variableName="enabled" value="${vfcorp.tnf.plu.whitelist.enabled}" doc:name="enabled: tnf"/>
+        <component doc:name="Check GCP to process whitelist file(s)">
+            <prototype-object class="vfcorp.WhitelistSyncToDatabaseCallable"/>
+        </component>
+    </flow>
     <flow name="VFC:Vans-sync-whitelist-gcp-to-db" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-plu-db-1490699888" cronExpression="0 30 * 1/1 * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 60 minutes">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans-wl-db-1490699777" cronExpression="0 30 * 1/1 * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu-whitelist" responseTimeout="10000" doc:name="Run every 60 minutes">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="brand" value="vans" doc:name="brand: vans"/>
@@ -142,11 +164,15 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
             <prototype-object class="vfcorp.WhitelistSyncToDatabaseCallable"/>
         </component>
     </flow>
-    <flow name="VFC:vans-trigger-whitelist">
+    <flow name="VFC:trigger-plu-whitelist">
         <http:listener config-ref="${default.http.config}" path="/vfc/whitelist/${urlKey}" doc:name="/vfc/whitelist"/>
         <set-session-variable variableName="brand" value="#[message.inboundProperties.'http.query.params'.brand]" doc:name="Set brand to session"/>
         <async doc:name="Async">
-            <choice doc:name="test / vans">
+            <choice doc:name="what brand">
+                <when expression="#[sessionVars.brand.equals(&quot;tnf&quot;)]">
+                    <logger message="Intiiating whitelist sync for TNF..." level="INFO" doc:name="Logger"/>
+                    <flow-ref name="VFC:TNF-sync-whitelist" doc:name="VFC:TNF-sync-whitelist"/>
+                </when>
                 <when expression="#[sessionVars.brand.equals(&quot;test&quot;)]">
                     <logger message="Intiiating whitelist sync for Test..." level="INFO" doc:name="Logger"/>
                     <flow-ref name="VFC:Test-sync-whitelist" doc:name="VFC:Test-sync-whitelist"/>
@@ -159,11 +185,20 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         </async>
         <set-payload value="Ran whitelist sync for brand: #[sessionVars.brand]" doc:name="Set Payload"/>
     </flow>
-    <flow name="VFC:daily-plu-whitelist-reset" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-PLU-whitelist-reset-1509907888" cronExpression="0 30 11 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 11:30am EST">
+    <flow name="VFC:vans-daily-plu-whitelist-reset" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-vans-PLU-whitelist-reset-1509907888" cronExpression="0 30 11 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 11:30am EST">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="brand" value="vans" doc:name="Set brand: vans"/>
+        <component doc:name="Check GCP for stale whitelist file(s)">
+            <prototype-object class="vfcorp.WhitelistProcessingResetCallable"/>
+        </component>
+    </flow>
+    <flow name="VFC:tnf-daily-plu-whitelist-reset" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-whitelist-reset-1509907888" cronExpression="0 30 11 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000" doc:name="Run every day at 11:30am EST">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <set-variable variableName="brand" value="tnf" doc:name="Set brand: tnf"/>
         <component doc:name="Check GCP for stale whitelist file(s)">
             <prototype-object class="vfcorp.WhitelistProcessingResetCallable"/>
         </component>

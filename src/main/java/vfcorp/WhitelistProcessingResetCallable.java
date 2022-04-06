@@ -22,31 +22,33 @@ public class WhitelistProcessingResetCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final String PROCESSING_PREFIX = "processing_";
-    private static final String WHITELIST_DIRECTORY_FORMAT = "whitelist/%s/";
+    private static final String GCP_PROCESSING_PREFIX = "processing_";
+    private static final String GCP_WHITELIST_DIRECTORY_FORMAT = "whitelist/%s/";
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
         MuleMessage message = eventContext.getMessage();
 
         String brand = (String) message.getProperty("brand", PropertyScope.INVOCATION);
-        String directoryKey = String.format(WHITELIST_DIRECTORY_FORMAT, brand);
+        String directoryKey = String.format(GCP_WHITELIST_DIRECTORY_FORMAT, brand);
 
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
 
-        List<StorageObject> processingFiles = cloudStorage.listObjects(archiveBucket, directoryKey + PROCESSING_PREFIX);
+        List<StorageObject> processingFiles = cloudStorage.listObjects(archiveBucket,
+                directoryKey + GCP_PROCESSING_PREFIX);
         if (processingFiles.size() > 0) {
             for (StorageObject processingFile : processingFiles) {
                 String processingFilename = processingFile.getName();
                 logger.info(String.format("Found and re-queuing stale whitelist %s...", processingFilename));
 
-                String resetFilename = processingFilename.split(PROCESSING_PREFIX)[1];
+                String resetFilename = processingFilename.split(GCP_PROCESSING_PREFIX)[1];
 
                 cloudStorage.renameObject(archiveBucket, processingFilename, archiveBucket,
                         directoryKey + resetFilename);
             }
         }
 
+        logger.info(String.format("Done running whitelist reset for brand: %s.", brand));
         return 1;
     }
 }
