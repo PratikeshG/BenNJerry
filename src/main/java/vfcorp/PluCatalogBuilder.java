@@ -239,7 +239,7 @@ public class PluCatalogBuilder {
         syncLocationDbItems(storageApi, catalog, location, deploymentId);
         syncLocationDbSalePrices(storageApi, catalog, location);
 
-        if (isPluWhitelistDeployment()) {
+        if (Util.isPluWhitelistDeployment(brand)) {
             syncWhitelistForLocation(databaseApi, catalog, location, deploymentId);
         }
     }
@@ -724,11 +724,6 @@ public class PluCatalogBuilder {
 
     private boolean isCanadaDeployment() {
         return brand.equals(DEPLOYMENT_BRAND_TNF_CA);
-    }
-
-    private boolean isPluWhitelistDeployment() {
-        return brand.equals(DEPLOYMENT_BRAND_TNF) || brand.equals(DEPLOYMENT_BRAND_TNF_CA)
-                || brand.equals(DEPLOYMENT_BRAND_VANS) || brand.equals(DEPLOYMENT_BRAND_VANS_TEST);
     }
 
     private static void logInfoForBrand(String brand, String message) {
