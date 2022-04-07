@@ -340,6 +340,8 @@ public class VfcDatabaseApi {
     }
 
     public void close() throws SQLException {
-        connection.close();
+        if (connection != null) {
+            connection.close();
+        }
     }
 }

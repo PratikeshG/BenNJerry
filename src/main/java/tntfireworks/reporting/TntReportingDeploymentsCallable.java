@@ -20,7 +20,7 @@ import util.SquarePayload;
 public class TntReportingDeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TntReportingDeploymentsCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -43,13 +43,14 @@ public class TntReportingDeploymentsCallable implements Callable {
         return deploymentPayloads;
     }
 
-    private List<SquarePayload> getReportingDeploymentsFromDb(TntDatabaseApi tntDatabaseApi, String adhoc) throws SQLException {
+    private List<SquarePayload> getReportingDeploymentsFromDb(TntDatabaseApi tntDatabaseApi, String adhoc)
+            throws SQLException {
         // default: retrieve deployments where reporting is enabled
         String whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN);
 
         // if adhoc run, run reports for deployments where adhoc = 1 regardless of enableReporting setting in DB
         if (adhoc.equals("TRUE")) {
-        	whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_ADHOC_COLUMN);
+            whereFilter = String.format("%s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_ADHOC_COLUMN);
         }
 
         ArrayList<Map<String, String>> dbRows = tntDatabaseApi

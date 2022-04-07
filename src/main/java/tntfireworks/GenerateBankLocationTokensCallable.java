@@ -1,6 +1,5 @@
 package tntfireworks;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -31,7 +30,7 @@ import util.TimeManager;
  *
  */
 public class GenerateBankLocationTokensCallable implements Callable {
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -125,7 +124,7 @@ public class GenerateBankLocationTokensCallable implements Callable {
         return sourceToDestinations;
     }
 
-    private ArrayList<Map<String, String>> getDeploymentsFromDb() throws SQLException, ClassNotFoundException {
+    private ArrayList<Map<String, String>> getDeploymentsFromDb() throws Exception {
         // get all access tokens for tnt merchant accounts (catalog and reporting)
         String whereFilter = String.format("%s = 1 OR %s = 1", TntDatabaseApi.DB_DEPLOYMENT_ENABLE_CATALOG_SYNC_COLUMN,
                 TntDatabaseApi.DB_DEPLOYMENT_ENABLE_REPORTING_COLUMN);

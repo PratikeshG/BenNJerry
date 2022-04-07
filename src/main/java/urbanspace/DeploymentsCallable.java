@@ -15,7 +15,7 @@ import util.DatabaseApi;
 public class DeploymentsCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DeploymentsCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;

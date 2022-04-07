@@ -25,7 +25,7 @@ public class TntCatalogSyncDeploymentsCallable implements Callable {
     static final String SYNC_TYPE_CATALOG = "CATALOG";
     static final String SYNC_TYPE_INVENTORY = "INVENTORY";
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;

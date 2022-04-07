@@ -28,7 +28,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
     <quartz:connector name="Quartz-VFO-tlog" validateConnections="true" doc:name="Quartz"/>
     <quartz:connector name="Quartz-VFC-Kipling-tlog" validateConnections="true" doc:name="Quartz"/>
 	<quartz:connector name="Quartz-VFC-TNF-SAP" validateConnections="true" doc:name="Quartz"/>
-	<sftp:connector name="SFTP-VFC-Server-Config" validateConnections="true" maxConnectionPoolSize="30" duplicateHandling="overwrite" doc:name="SFTP">
+	<sftp:connector name="SFTP-VFC-Server-Config" validateConnections="true" maxConnectionPoolSize="15" duplicateHandling="overwrite" doc:name="SFTP">
 		<reconnect-forever frequency="5000"/>
 	</sftp:connector>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">

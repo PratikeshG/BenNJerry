@@ -16,7 +16,7 @@ import util.DbConnection;
 public class CreditDebitReportAggregatorCallable extends TntReportAggregator implements Callable {
     private static Logger logger = LoggerFactory.getLogger(CreditDebitReportAggregatorCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -46,9 +46,9 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
         // add file rows
         for (List<CreditDebitPayload> masterPayload : payloadAggregate) {
             for (CreditDebitPayload locationPayload : masterPayload) {
-            	if (locationPayload.getNetDepositAmt() != 0) {
-            		reportBuilder.append(locationPayload.getRow());	
-            	}
+                if (locationPayload.getNetDepositAmt() != 0) {
+                    reportBuilder.append(locationPayload.getRow());
+                }
             }
         }
 
@@ -68,7 +68,7 @@ public class CreditDebitReportAggregatorCallable extends TntReportAggregator imp
 
         // if ad-hoc run, store report on SFTP in adhoc directory
         if (adhoc.equals("TRUE")) {
-        	return storeReport(reportName, generatedReport,TntReportAggregator.ADHOC_DIRECTORY);
+            return storeReport(reportName, generatedReport, TntReportAggregator.ADHOC_DIRECTORY);
         }
 
         // report 8 is SFTP only

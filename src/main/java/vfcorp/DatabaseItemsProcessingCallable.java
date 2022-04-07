@@ -1,8 +1,6 @@
 package vfcorp;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -20,13 +18,14 @@ import com.google.gson.Gson;
 import com.squareup.connect.v2.Location;
 
 import util.CloudStorageApi;
+import util.DbConnection;
 import vfcorp.plu.ItemDbRecord;
 import vfcorp.plu.ItemSaleDbRecord;
 
 public class DatabaseItemsProcessingCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(DatabaseItemsProcessingCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -44,8 +43,8 @@ public class DatabaseItemsProcessingCallable implements Callable {
 
     private Gson gson = new Gson();
 
-    private static final int RETRY_COUNT = 6;
-    private static final int RETRY_DELAY_MS = 15000; // 15 seconds
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 7000; // 7 seconds
 
     /* We want to calculate all sales records for the same sale date -- most often "today".
      * We should always calculate for first time zone that has store locations open (EST).
@@ -63,9 +62,8 @@ public class DatabaseItemsProcessingCallable implements Callable {
         String brand = (String) message.getProperty("brand", PropertyScope.SESSION);
         boolean isPluFiltered = message.getProperty("pluFiltered", PropertyScope.SESSION);
 
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+        DbConnection conn = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn.getConnection());
 
         CloudStorageApi cloudStorage = new CloudStorageApi(storageCredentials);
 
@@ -103,6 +101,10 @@ public class DatabaseItemsProcessingCallable implements Callable {
             }
         }
 
+        if (databaseApi != null) {
+            databaseApi.close();
+        }
+
         if (lastException != null) {
             throw lastException;
         }
@@ -119,10 +121,12 @@ public class DatabaseItemsProcessingCallable implements Callable {
         for (Map<String, String> itemRecord : itemRecords) {
             ItemDbRecord ir = new ItemDbRecord();
             ir.setItemNumber(itemRecord.get("itemNumber"));
-            ir.setDescription(itemRecord.get("description") != null
-                    ? itemRecord.get("description").replaceFirst("\\s+$", "") : "");
-            ir.setAlternateDescription(itemRecord.get("alternateDescription") != null
-                    ? itemRecord.get("alternateDescription").trim() : "");
+            ir.setDescription(
+                    itemRecord.get("description") != null ? itemRecord.get("description").replaceFirst("\\s+$", "")
+                            : "");
+            ir.setAlternateDescription(
+                    itemRecord.get("alternateDescription") != null ? itemRecord.get("alternateDescription").trim()
+                            : "");
             ir.setRetailPrice(itemRecord.get("retailPrice"));
             ir.setDeptNumber(itemRecord.get("deptNumber"));
             ir.setClassNumber(itemRecord.get("classNumber"));

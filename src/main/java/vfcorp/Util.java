@@ -8,28 +8,26 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.CatalogObject;
 
 import util.CloudStorageApi;
+import util.DbConnection;
 import util.SquarePayload;
 import vfcorp.plu.ItemDbRecord;
 import vfcorp.plu.ItemSaleDbRecord;
 
 public class Util {
+    private static final int RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MS = 5000; // 5 seconds
 
     public static String getValueBetweenChars(String input, char c, char d) {
         String value = "";
@@ -105,29 +103,39 @@ public class Util {
         return results;
     }
 
-    public static Session createSSHSession(String host, String username, String password, int port)
-            throws JSchException, IOException {
+    public static Session createSSHSession(String host, String username, String password, int port) throws Exception {
         JSch jsch = new JSch();
 
-        Session session = jsch.getSession(username, host, port);
-        session.setPassword(password);
-        session.setConfig("StrictHostKeyChecking", "no");
-        session.connect();
+        Session session = null;
+        for (int i = 0;; i++) {
+            try {
+                session = jsch.getSession(username, host, port);
+                session.setPassword(password);
+                session.setConfig("StrictHostKeyChecking", "no");
+                session.connect();
+                break;
+            } catch (Exception e) {
+                String err = String.format("ERROR trying to connect to SFTP: %s", e.toString());
+                if (i < RETRY_COUNT) {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } else {
+                    throw new Exception(err);
+                }
+            }
+        }
 
         return session;
     }
 
     public static List<VfcDeployment> getVfcDeployments(String host, String user, String password, String whereFilter)
-            throws SQLException, ClassNotFoundException {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(host, user, password);
-        Statement stmt = conn.createStatement();
+            throws Exception {
+        DbConnection conn = new DbConnection(host, user, password);
 
         String query = "SELECT vfcorp_deployments.deployment as deployment, storeId, timeZone, "
                 + "pluPath, pluFiltered, tlogPath, encryptedAccessToken, merchantId, locationId FROM vfcorp_deployments "
                 + "LEFT JOIN token ON vfcorp_deployments.deployment = token.deployment WHERE " + whereFilter + ";";
 
-        ResultSet result = (ResultSet) stmt.executeQuery(query);
+        ResultSet result = (ResultSet) conn.submitQuery(query);
 
         ArrayList<VfcDeployment> deployments = new ArrayList<VfcDeployment>();
         while (result.next()) {
@@ -153,15 +161,13 @@ public class Util {
 
     public static List<SquarePayload> getMasterAccountsForBrand(String host, String user, String password, String brand)
             throws Exception {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(host, user, password);
-        Statement stmt = conn.createStatement();
+        DbConnection conn = new DbConnection(host, user, password);
 
         String query = String.format(
                 "SELECT MAX(encryptedAccessToken) as encryptedAccessToken, merchantId FROM token WHERE deployment LIKE 'vfcorp-%s-%%' GROUP BY merchantId",
                 brand);
 
-        ResultSet result = (ResultSet) stmt.executeQuery(query);
+        ResultSet result = (ResultSet) conn.submitQuery(query);
 
         ArrayList<SquarePayload> accounts = new ArrayList<SquarePayload>();
         while (result.next()) {
@@ -181,16 +187,14 @@ public class Util {
 
     public static VfcDeployment getVfcDeploymentById(String host, String user, String password, String deploymentId)
             throws Exception {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(host, user, password);
-        Statement stmt = conn.createStatement();
+        DbConnection conn = new DbConnection(host, user, password);
 
         String query = String.format("SELECT vfcorp_deployments.deployment as deployment, storeId, timeZone, "
                 + "pluPath, pluFiltered, tlogPath, encryptedAccessToken as encryptedAccessToken, merchantId, locationId "
                 + "FROM vfcorp_deployments LEFT JOIN token ON vfcorp_deployments.deployment = token.deployment "
                 + "WHERE vfcorp_deployments.deployment = '%s' LIMIT 1", deploymentId);
 
-        ResultSet result = (ResultSet) stmt.executeQuery(query);
+        ResultSet result = (ResultSet) conn.submitQuery(query);
 
         VfcDeployment deployment = new VfcDeployment();
         while (result.next()) {

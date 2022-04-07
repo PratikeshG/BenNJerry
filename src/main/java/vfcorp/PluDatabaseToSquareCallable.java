@@ -13,7 +13,7 @@ import com.squareup.connect.v2.SquareClientV2;
 public class PluDatabaseToSquareCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(PluDatabaseToSquareCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;

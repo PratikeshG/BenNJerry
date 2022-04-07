@@ -1,6 +1,5 @@
 package tntfireworks.reporting;
 
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -48,7 +47,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     private static final String TNT_DEFAULT_LOCATION_NAME_PREFIX = "DEFAULT";
     private String startOfSeason;
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -266,7 +265,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private SettlementsPayload generateSettlementsPayload(SquareClient squareClientV1,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
+            throws Exception {
         SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, offset, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
 
@@ -278,7 +278,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private TransactionsPayload generateTransactionsPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
+            throws Exception {
         // - each TransactionsPayload includes transaction data from a single location
         // - while the payload object name may imply V2Transactions data, the payload
         // mainly consists of V1 Payments data and is called a TransactionsPayload because
@@ -309,7 +310,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(SquareClientV2 squareClientV2,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset) throws Exception {
+            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
+            throws Exception {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone, offset,
                 locationDetails);
@@ -376,7 +378,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
     }
 
     private GrossSalesPayload generateGrossSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
-            Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval, int offset) throws Exception {
+            Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval, int offset)
+            throws Exception {
         // get transaction data for gross sales payload
         GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
@@ -391,7 +394,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             Map<String, String> dayTimeInterval, int offset) throws Exception {
         // get transaction data for gross sales payload
-        GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
+        GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval,
+                locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
             currentGrossSalesPayload.addPayment(payment);
@@ -403,7 +407,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Map<String, String> prevAggregateIntervalParams = getPreviousTimeInterval(aggregateIntervalParams,
                 locationDetails.sqLocationTimeZone);
         // generate gross sales payload from prior year
-        GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, offset, prevDayTimeInterval, locationDetails);
+        GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, offset, prevDayTimeInterval,
+                locationDetails);
         prevAggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         for (Payment payment : TntLocationDetails.getPayments(squareClientV1, prevAggregateIntervalParams)) {
             prevGrossSalesPayload.addPayment(payment);
