@@ -15,8 +15,7 @@ public class DatabaseApi {
         dbConnection = conn;
     }
 
-    public DatabaseApi(String databaseUrl, String databaseUser, String databasePassword)
-            throws ClassNotFoundException, SQLException {
+    public DatabaseApi(String databaseUrl, String databaseUser, String databasePassword) throws Exception {
         try {
             dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
         } catch (ClassNotFoundException e) {

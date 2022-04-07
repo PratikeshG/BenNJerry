@@ -17,7 +17,7 @@ import util.CloudStorageApi;
 import util.DbConnection;
 
 public class SyncToDatabaseCallable implements Callable {
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;

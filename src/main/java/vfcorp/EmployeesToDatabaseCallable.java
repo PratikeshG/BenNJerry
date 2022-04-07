@@ -21,7 +21,7 @@ import util.SquarePayload;
 public class EmployeesToDatabaseCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(EmployeesToDatabaseCallable.class);
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;

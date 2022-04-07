@@ -19,7 +19,8 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
         </tls:context>
     </http:listener-config>
     <db:mysql-config name="MySQL_Configuration" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration">
-        <reconnect frequency="5000" count="10"/>
+		<db:pooling-profile maxPoolSize="40" minPoolSize="10"/>
+        <reconnect-forever frequency="5000" />
     </db:mysql-config>
     <configuration defaultExceptionStrategy-ref="globalExceptionCatchingStrategy" doc:name="Configuration">
         <http:config useTransportForUris="false"/>

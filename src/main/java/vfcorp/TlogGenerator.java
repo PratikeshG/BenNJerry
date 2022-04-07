@@ -1,7 +1,5 @@
 package vfcorp;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +30,7 @@ import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TimeRange;
 
+import util.DbConnection;
 import util.SequentialRecord;
 import util.SequentialRecordsApi;
 import util.SquarePayload;
@@ -45,7 +44,7 @@ public class TlogGenerator implements Callable {
     @Value("${encryption.key.tokens}")
     private String encryptionKey;
 
-    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}")
+    @Value("jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?autoReconnect=true")
     private String databaseUrl;
     @Value("${mysql.user}")
     private String databaseUser;
@@ -104,10 +103,9 @@ public class TlogGenerator implements Callable {
                 PropertyScope.INVOCATION);
 
         // Establish DB connection
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        SequentialRecordsApi sequentialRecordsApi = new SequentialRecordsApi(conn);
-        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn);
+        DbConnection conn = new DbConnection(databaseUrl, databaseUser, databasePassword);
+        SequentialRecordsApi sequentialRecordsApi = new SequentialRecordsApi(conn.getConnection());
+        VfcDatabaseApi databaseApi = new VfcDatabaseApi(conn.getConnection());
 
         // Sequential Order Numbers
         Map<String, Integer> nextDeviceRecordNumbers = new HashMap<String, Integer>();
