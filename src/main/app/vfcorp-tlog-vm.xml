@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -28,7 +28,7 @@ http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sft
     <quartz:connector name="Quartz-VFO-tlog" validateConnections="true" doc:name="Quartz"/>
     <quartz:connector name="Quartz-VFC-Kipling-tlog" validateConnections="true" doc:name="Quartz"/>
 	<quartz:connector name="Quartz-VFC-TNF-SAP" validateConnections="true" doc:name="Quartz"/>
-	<sftp:connector name="SFTP-VFC-Server-Config" validateConnections="true" maxConnectionPoolSize="15" duplicateHandling="overwrite" doc:name="SFTP">
+	<sftp:connector name="SFTP-VFC-Server-Config" validateConnections="true" maxConnectionPoolSize="2" duplicateHandling="overwrite" doc:name="SFTP">
 		<reconnect-forever frequency="5000"/>
 	</sftp:connector>
     <sub-flow name="VFC:TNF:generate-tlog-for-location-settings">
