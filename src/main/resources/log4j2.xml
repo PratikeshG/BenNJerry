@@ -29,6 +29,10 @@
         <!-- Connect SDK classes -->
         <AsyncLogger name="com.squareup.connect" level="DEBUG"/>
         
+        <!-- SFTP Logger -->
+        <AsyncLogger name="org.mule.transport.sftp" level="DEBUG"/>
+		<AsyncLogger name="com.jcraft" level="DEBUG"/>
+        
         <!-- HTTP loggers -->
         <AsyncLogger name="org.mule.module.http.internal.HttpMessageLogger" level="DEBUG" />
         <AsyncLogger name="com.ning.http" level="DEBUG" />
