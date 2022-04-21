@@ -64,7 +64,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
     @Value("${google.storage.account.credentials}")
     private String storageCredentials;
 
-    private static final int MAX_REQUESTS = 100;
+    private static final int MAX_REQUESTS = 50;
     private static final int RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MS = 60000; // 1 minute
 
@@ -116,8 +116,11 @@ public class PluPollSyncToDatabaseCallable implements Callable {
         for (VfcDeployment deployment : deployments) {
             channel.cd(deployment.getPluPath());
 
+            // default PLU pattern for store-based PLUs (separate folders)
             String pluPattern = "plu.chg*";
-            if (Util.isVansDeployment(deployment.getDeployment())) {
+
+            // automated whitelist PLU pattern (unified folder)
+            if (Util.isPluWhitelistDeployment(getBrand(deployment.getDeployment()))) {
                 pluPattern = "PLU" + deployment.getStoreId() + ".CHG*";
             }
 
@@ -292,7 +295,7 @@ public class PluPollSyncToDatabaseCallable implements Callable {
                 currentFileDate = sdf.parse(currentFileName.substring(currentFileName.length() - 14));
             }
 
-            // pluSSSSS.chg.xMMDDHHMMSSmmm (vans PLU format)
+            // pluSSSSS.chg.xMMDDHHMMSSmmm (whitelist PLU format)
             if (currentFileName.length() == 27) {
                 SimpleDateFormat sdf = new SimpleDateFormat("MMddHHmmssSSS");
                 currentFileDate = sdf.parse(currentFileName.substring(currentFileName.length() - 13));

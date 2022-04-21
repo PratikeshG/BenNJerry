@@ -29,6 +29,11 @@ public class Util {
     private static final int RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MS = 5000; // 5 seconds
 
+    private static String DEPLOYMENT_BRAND_TNF = "tnf";
+    private static String DEPLOYMENT_BRAND_TNF_CA = "tnfca";
+    private static String DEPLOYMENT_BRAND_VANS = "vans";
+    private static String DEPLOYMENT_BRAND_VANS_TEST = "test";
+
     public static String getValueBetweenChars(String input, char c, char d) {
         String value = "";
 
@@ -233,10 +238,16 @@ public class Util {
     }
 
     public static boolean isVansDeployment(String deployment) {
-        if (deployment.contains("vans") || deployment.contains("test")) {
+        if (deployment.contains(DEPLOYMENT_BRAND_VANS) || deployment.contains(DEPLOYMENT_BRAND_VANS_TEST)) {
             return true;
         }
         return false;
+    }
+
+    public static boolean isPluWhitelistDeployment(String brand) {
+        String b = brand.toLowerCase();
+        return b.equals(DEPLOYMENT_BRAND_TNF) || b.equals(DEPLOYMENT_BRAND_TNF_CA) || b.equals(DEPLOYMENT_BRAND_VANS)
+                || b.equals(DEPLOYMENT_BRAND_VANS_TEST);
     }
 
     public static void saveTmpFile(String filename, List<?> records) throws IOException {

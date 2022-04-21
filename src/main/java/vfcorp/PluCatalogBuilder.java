@@ -34,6 +34,7 @@ public class PluCatalogBuilder {
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
 
+    private static String DEPLOYMENT_BRAND_TNF = "tnf";
     private static String DEPLOYMENT_BRAND_TNF_CA = "tnfca";
     private static String DEPLOYMENT_BRAND_VANS = "vans";
     private static String DEPLOYMENT_BRAND_VANS_TEST = "test";
@@ -43,6 +44,11 @@ public class PluCatalogBuilder {
     private static final Set<String> VANS_SKUS_TAX_FREE = new HashSet<String>(
             Arrays.asList(new String[] { "195436643935", "887040993765", "757969465981", "191476107444", "400007022584",
                     "400007022331", "400007022416" }));
+
+    private static final Set<String> TNF_SKUS_TAX_FREE = new HashSet<String>(Arrays
+            .asList(new String[] { "040005164508", "040004834909", "040008783039", "040007174632", "040009948465" }));
+
+    private static final Set<String> TNF_SKUS_TAXABLE = new HashSet<String>(Arrays.asList(new String[] {}));
 
     private static final Set<String> VANS_SKUS_TAXABLE = new HashSet<String>(
             Arrays.asList(new String[] { "706420993945", "196245794955" }));
@@ -233,7 +239,7 @@ public class PluCatalogBuilder {
         syncLocationDbItems(storageApi, catalog, location, deploymentId);
         syncLocationDbSalePrices(storageApi, catalog, location);
 
-        if (isVansDeployment()) {
+        if (Util.isPluWhitelistDeployment(brand)) {
             syncWhitelistForLocation(databaseApi, catalog, location, deploymentId);
         }
     }
@@ -554,7 +560,8 @@ public class PluCatalogBuilder {
 
             String sku = variation.getSku();
 
-            if (VANS_SKUS_TAX_FREE.contains(sku) || VANS_SKUS_TAXABLE.contains(sku)) {
+            if (TNF_SKUS_TAX_FREE.contains(sku) || TNF_SKUS_TAXABLE.contains(sku) || VANS_SKUS_TAX_FREE.contains(sku)
+                    || VANS_SKUS_TAXABLE.contains(sku)) {
                 setPresentAtAllLocations(item, true);
             } else {
                 setPresentAtAllLocations(item, false);
@@ -720,10 +727,6 @@ public class PluCatalogBuilder {
 
     private boolean isCanadaDeployment() {
         return brand.equals(DEPLOYMENT_BRAND_TNF_CA);
-    }
-
-    private boolean isVansDeployment() {
-        return brand.equals(DEPLOYMENT_BRAND_VANS) || brand.equals(DEPLOYMENT_BRAND_VANS_TEST);
     }
 
     private static void logInfoForBrand(String brand, String message) {
