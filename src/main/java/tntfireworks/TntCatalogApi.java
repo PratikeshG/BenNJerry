@@ -25,6 +25,7 @@ public class TntCatalogApi {
     private static final String FIXED_PRICING = "FIXED_PRICING";
     private static final String CATEGORY = "CATEGORY";
     private static final String ITEM = "ITEM";
+    static final String CATALOG_API_VERSION = "2022-05-12";
 
     // merchant location names to ignore when checking for valid names
     //     - Default master location that is created to store bank account information but not take payments
