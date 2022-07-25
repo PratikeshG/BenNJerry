@@ -19,7 +19,7 @@ public class TaxRules {
     private static boolean ENABLE_AL_TAX_HOLIDAY = false;
     private static boolean ENABLE_AR_TAX_HOLIDAY = false;
     private static boolean ENABLE_CT_TAX_HOLIDAY = false;
-    private static boolean ENABLE_FL_TAX_HOLIDAY = false;
+    private static boolean ENABLE_FL_TAX_HOLIDAY = true;
     private static boolean ENABLE_IA_TAX_HOLIDAY = false;
     private static boolean ENABLE_MA_TAX_HOLIDAY = false;
     private static boolean ENABLE_MD_TAX_HOLIDAY = false;
