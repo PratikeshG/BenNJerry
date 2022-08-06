@@ -17,19 +17,20 @@ import com.squareup.connect.v2.ItemVariationLocationOverride;
 
 public class TaxRules {
     private static boolean ENABLE_AL_TAX_HOLIDAY = false;
-    private static boolean ENABLE_AR_TAX_HOLIDAY = false;
+    private static boolean ENABLE_AR_TAX_HOLIDAY = true;
     private static boolean ENABLE_CT_TAX_HOLIDAY = false;
+    private static boolean ENABLE_IL_TAX_HOLIDAY = false;
     private static boolean ENABLE_FL_TAX_HOLIDAY = true;
-    private static boolean ENABLE_IA_TAX_HOLIDAY = false;
+    private static boolean ENABLE_IA_TAX_HOLIDAY = true;
     private static boolean ENABLE_MA_TAX_HOLIDAY = false;
     private static boolean ENABLE_MD_TAX_HOLIDAY = false;
-    private static boolean ENABLE_MO_TAX_HOLIDAY = false;
-    private static boolean ENABLE_NM_TAX_HOLIDAY = false;
-    private static boolean ENABLE_OH_TAX_HOLIDAY = false;
-    private static boolean ENABLE_OK_TAX_HOLIDAY = false;
-    private static boolean ENABLE_SC_TAX_HOLIDAY = false;
+    private static boolean ENABLE_MO_TAX_HOLIDAY = true;
+    private static boolean ENABLE_NM_TAX_HOLIDAY = true;
+    private static boolean ENABLE_OH_TAX_HOLIDAY = true;
+    private static boolean ENABLE_OK_TAX_HOLIDAY = true;
+    private static boolean ENABLE_SC_TAX_HOLIDAY = true;
     private static boolean ENABLE_TN_TAX_HOLIDAY = false;
-    private static boolean ENABLE_TX_TAX_HOLIDAY = false;
+    private static boolean ENABLE_TX_TAX_HOLIDAY = true;
     private static boolean ENABLE_VA_TAX_HOLIDAY = false;
 
     private static String BRAND_TNF = "TNF";
@@ -81,6 +82,10 @@ public class TaxRules {
     // CT
     private static final String TNF_CT_509 = "vfcorp-tnf-00509";
     private static final int CT_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+
+    // IL
+    private static final int IL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING = 10000;
+    private static final int IL_TAX_HOLIDAY_EXEMPT_THRESHOLD_SUPPLIES = 0; //TODO: rramankutty@ to set up Percentage tax rule for school supplies
 
     // TN
     private static final String TNF_TN_306 = "vfcorp-tnf-00306";
@@ -490,6 +495,10 @@ public class TaxRules {
 
     private static final List<String> VANS_CONNECTICUT_STORES = new ArrayList<String>(Arrays.asList(new String[] {
             "vfcorp-vans-00397", "vfcorp-vans-00434", "vfcorp-vans-00443", "vfcorp-vans-00482", "vfcorp-vans-00505" }));
+
+    private static final List<String> VANS_ILLINOIS_STORES = new ArrayList<String>(
+            Arrays.asList(new String[] { "vfcorp-vans-00112", "vfcorp-vans-00341", "vfcorp-vans-00416",
+                    "vfcorp-vans-00447", "vfcorp-vans-00534", "vfcorp-vans-00578" }));
 
     private static final Set<String> VANS_CLOTHING_DEPT_CLASS = new HashSet<String>(Arrays.asList(new String[] {
             "390 3970", "390 3965", "390 3960", "390 3955", "380 3820", "370 3775", "390 3935", "390 3930", "390 3945",
@@ -970,6 +979,16 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
+        } else if (VANS_ILLINOIS_STORES.contains(deployment)) {
+            if (taxes.length != 1) {
+                throw new Exception("VANS IL with incorrect number of taxes: " + deployment);
+            }
+
+            if (isTaxHolidayItemIL(BRAND_VANS, itemPrice, itemDeptClass)) {
+                return new String[0]; //Most likely will have to convert to a low tax vs high tax amount for illinois - awaiting confirmation from bhartard@
+            } else {
+                return new String[] { taxes[0].getId() };
+            }
         } else if (VANS_RHODE_ISLAND_STORES.contains(deployment)) {
             if (taxes.length != 1) {
                 throw new Exception("VANS RI location with incorrect number of taxes: " + deployment);
@@ -1350,6 +1369,25 @@ public class TaxRules {
             }
         } else {
             if (price < CT_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategoryVans(deptClass)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isTaxHolidayItemIL(String brand, int price, String deptClass) {
+        if (!ENABLE_IL_TAX_HOLIDAY) {
+            return false;
+        }
+
+        if (brand.equals(BRAND_TNF)) {
+            // Clothing and footwear <= $100
+            if (price < IL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategoryTnf(deptClass)) {
+                return true;
+            }
+        } else {
+            if (price < IL_TAX_HOLIDAY_EXEMPT_THRESHOLD_CLOTHING && deptClassIsClothingTaxCategoryVans(deptClass)) {
                 return true;
             }
         }
