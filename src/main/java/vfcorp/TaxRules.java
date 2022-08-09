@@ -17,20 +17,20 @@ import com.squareup.connect.v2.ItemVariationLocationOverride;
 
 public class TaxRules {
     private static boolean ENABLE_AL_TAX_HOLIDAY = false;
-    private static boolean ENABLE_AR_TAX_HOLIDAY = true;
+    private static boolean ENABLE_AR_TAX_HOLIDAY = false;
     private static boolean ENABLE_CT_TAX_HOLIDAY = false;
     private static boolean ENABLE_IL_TAX_HOLIDAY = false;
-    private static boolean ENABLE_FL_TAX_HOLIDAY = true;
-    private static boolean ENABLE_IA_TAX_HOLIDAY = true;
+    private static boolean ENABLE_FL_TAX_HOLIDAY = false;
+    private static boolean ENABLE_IA_TAX_HOLIDAY = false;
     private static boolean ENABLE_MA_TAX_HOLIDAY = false;
     private static boolean ENABLE_MD_TAX_HOLIDAY = false;
-    private static boolean ENABLE_MO_TAX_HOLIDAY = true;
-    private static boolean ENABLE_NM_TAX_HOLIDAY = true;
-    private static boolean ENABLE_OH_TAX_HOLIDAY = true;
-    private static boolean ENABLE_OK_TAX_HOLIDAY = true;
-    private static boolean ENABLE_SC_TAX_HOLIDAY = true;
+    private static boolean ENABLE_MO_TAX_HOLIDAY = false;
+    private static boolean ENABLE_NM_TAX_HOLIDAY = false;
+    private static boolean ENABLE_OH_TAX_HOLIDAY = false;
+    private static boolean ENABLE_OK_TAX_HOLIDAY = false;
+    private static boolean ENABLE_SC_TAX_HOLIDAY = false;
     private static boolean ENABLE_TN_TAX_HOLIDAY = false;
-    private static boolean ENABLE_TX_TAX_HOLIDAY = true;
+    private static boolean ENABLE_TX_TAX_HOLIDAY = false;
     private static boolean ENABLE_VA_TAX_HOLIDAY = false;
 
     private static String BRAND_TNF = "TNF";
@@ -846,6 +846,20 @@ public class TaxRules {
                     return new String[] { taxes[0].getId() };
                 }
             }
+        } else if (VANS_ILLINOIS_STORES.contains(deployment)) {
+            if (taxes.length != 2) {
+                //throw new Exception("VANS IL with incorrect number of taxes: " + deployment); //unsure why this is commented out
+            }
+
+            CatalogObject lowTax = getLowerTax(taxes[0], taxes[1]);
+            CatalogObject highTax = getHigherTax(taxes[0], taxes[1]);
+
+            if (isTaxHolidayItemIL(BRAND_VANS, itemPrice, itemDeptClass)) {
+                return new String[] { lowTax.getId() };
+            } else {
+                return new String[] { highTax.getId() };
+            }
+
         } else if (VANS_MASSACHUSETTS_STORES.contains(deployment)) {
             if (taxes.length != 1) {
                 throw new Exception("VANS MA location with incorrect number of taxes: " + deployment);
@@ -979,16 +993,7 @@ public class TaxRules {
             } else {
                 return new String[] { taxes[0].getId() };
             }
-        } else if (VANS_ILLINOIS_STORES.contains(deployment)) {
-            if (taxes.length != 1) {
-                throw new Exception("VANS IL with incorrect number of taxes: " + deployment);
-            }
 
-            if (isTaxHolidayItemIL(BRAND_VANS, itemPrice, itemDeptClass)) {
-                return new String[0]; //Most likely will have to convert to a low tax vs high tax amount for illinois - awaiting confirmation from bhartard@
-            } else {
-                return new String[] { taxes[0].getId() };
-            }
         } else if (VANS_RHODE_ISLAND_STORES.contains(deployment)) {
             if (taxes.length != 1) {
                 throw new Exception("VANS RI location with incorrect number of taxes: " + deployment);
