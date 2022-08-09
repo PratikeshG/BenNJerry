@@ -848,7 +848,7 @@ public class TaxRules {
             }
         } else if (VANS_ILLINOIS_STORES.contains(deployment)) {
             if (taxes.length != 2) {
-                //throw new Exception("VANS IL with incorrect number of taxes: " + deployment); //unsure why this is commented out
+                throw new Exception("VANS IL with incorrect number of taxes: " + deployment);
             }
 
             CatalogObject lowTax = getLowerTax(taxes[0], taxes[1]);
