@@ -127,11 +127,11 @@ public class CategoryData {
     }
 
     public void increaseDiscountsTotal(int total) {
-        discountsTotal += total;
+        discountsTotal -= total;
     }
 
     public void decreaseDiscountsTotal(int total) {
-        discountsTotal -= total;
+        discountsTotal += total;
     }
 
     public int getNetSalesTotal() {

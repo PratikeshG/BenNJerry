@@ -8,11 +8,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.PaymentItemization;
-import com.squareup.connect.PaymentTax;
-import com.squareup.connect.Refund;
-import com.squareup.connect.Tender;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.Money;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.PaymentRefund;
+import com.squareup.connect.v2.Tender;
 
 import util.TimeManager;
 
@@ -61,7 +63,7 @@ public class MonthlyReportBuilder {
     private static String CATEGORY_UNCATEGORIZED = "UNCATEGORIZED SALES";
     private static String CATEGORY_UNASSIGNED_REFUNDS = "UNASSIGNED REFUNDS";
 
-    private static String CATEGORY_GIFT_CARD = "GIFT CARD";
+    private static String CATEGORY_GIFT_CARD = "GIFT_CARD";
     private static String CATEGORY_SERVICE_CHARGE = "SERVICE CHARGE";
 
     private static List<String> IC_TO_MERGED_CONES = new ArrayList<String>();
@@ -138,8 +140,12 @@ public class MonthlyReportBuilder {
     private String dateMonthYear;
     private String beginTime;
     private String endTime;
-    private Payment[] payments;
-    private Payment[] refundedPayments;
+    private PaymentRefund[] paymentRefunds;
+    private Map<String, Payment> payments;
+    private Map<String, Order> orders;
+    private Map<String, CatalogObject> itemVariations;
+    private Map<String, CatalogObject> items;
+    private Map<String, CatalogObject> categories;
 
     Map<String, CategoryData> categoryTotals;
 
@@ -150,20 +156,52 @@ public class MonthlyReportBuilder {
         this.endTime = endTime;
     }
 
-    public Payment[] getPayments() {
+    public Map<String, Payment> getPayments() {
         return payments;
     }
 
-    public void setPayments(Payment[] payments) {
+    public void setPayments(Map<String, Payment> payments) {
         this.payments = payments;
     }
 
-    public Payment[] getRefundPayments() {
-        return refundedPayments;
+    public PaymentRefund[] getPaymentRefunds() {
+        return paymentRefunds;
     }
 
-    public void setRefundedPayments(Payment[] refundedPayments) {
-        this.refundedPayments = refundedPayments;
+    public void setPaymentRefunds(PaymentRefund[] paymentRefunds) {
+        this.paymentRefunds = paymentRefunds;
+    }
+
+    public Map<String, Order> getOrders() {
+    	return orders;
+    }
+
+    public void setOrders(Map<String, Order> orders) {
+    	this.orders = orders;
+    }
+
+    public Map<String, CatalogObject> getItemVariations() {
+    	return itemVariations;
+    }
+
+    public void setItemVariations(Map<String, CatalogObject> itemVariations) {
+    	this.itemVariations = itemVariations;
+    }
+
+    public Map<String, CatalogObject> getItems() {
+    	return items;
+    }
+
+    public void setItems(Map<String, CatalogObject> items) {
+    	this.items = items;
+    }
+
+    public Map<String, CatalogObject> getCategories() {
+    	return categories;
+    }
+
+    public void setCategories(Map<String, CatalogObject> categories) {
+    	this.categories = categories;
     }
 
     private void initCategoryTotals() {
@@ -176,92 +214,129 @@ public class MonthlyReportBuilder {
 
     public void buildReports() throws ParseException {
         initCategoryTotals();
-
         // Process gross totals
-        for (Payment payment : payments) {
-            for (PaymentItemization paymentItemization : payment.getItemizations()) {
-                CategoryData categoryData = getCalculationCategory(paymentItemization);
-                addSaleCategoryTotals(categoryData, paymentItemization);
-            }
+
+        for (Order order : orders.values()) {
+        	if(order != null && order.getLineItems() != null) {
+        		for(OrderLineItem orderLineItem : order.getLineItems()) {
+            		if(orderLineItem != null) {
+            			CategoryData categoryData = getCalculationCategory(orderLineItem);
+                		addSaleCategoryTotals(categoryData, orderLineItem);
+            		}
+            	}
+        	}
         }
 
         // Process refunds
         Calendar beginTimeCalendar = TimeManager.toCalendar(this.beginTime);
         Calendar endTimeCalendar = TimeManager.toCalendar(this.endTime);
 
-        if (refundedPayments != null) {
-            for (Payment refundedPayment : refundedPayments) {
-                List<Refund> refundsInRange = getRefundsInReportDateRange(beginTimeCalendar, endTimeCalendar,
-                        refundedPayment);
+        if (paymentRefunds != null) {
+            List<PaymentRefund> refundsInRange = getRefundsInReportDateRange(beginTimeCalendar, endTimeCalendar);
+            for(PaymentRefund paymentRefund : refundsInRange) {
+            	if(paymentRefund != null) {
+            		String orderId = paymentRefund.getOrderId();
+                	Order order = orders.get(orderId);
+                	if(order != null) {
+                		Money moneyFromPaymentRefund = paymentRefund.getAmountMoney();
+                		Payment originalPayment = payments.get(paymentRefund.getPaymentId());
+                		Order originalOrder = orders.get(originalPayment.getOrderId());
+                		Money moneyFromOrder = originalOrder.getTotalMoney();
 
-                if (refundsInRange.size() == 1 && refundsInRange.get(0).getType().equals("FULL")) {
-                    // This is a full refund, so process refund as itemized data
-
-                    for (PaymentItemization paymentItemization : refundedPayment.getItemizations()) {
-                        CategoryData categoryData = getCalculationCategory(paymentItemization);
-                        refundFullCategoryTotals(categoryData, paymentItemization);
-                    }
-                } else {
-                    // These are partial refund(s), so process partial refund(s) as uncategorized refunds
-                    for (Refund refund : refundsInRange) {
-                        refundPartialCategoryTotals(refund);
-                    }
-                }
+                    	if (moneyFromPaymentRefund != null && moneyFromOrder != null && moneyFromPaymentRefund.getAmount() == moneyFromOrder.getAmount()) {
+                    		// This is a full refund, so process refund as itemized data
+                    		if(originalOrder.getLineItems() != null) {
+                    			for (OrderLineItem orderLineItem : originalOrder.getLineItems()) {
+                            		CategoryData categoryData = getCalculationCategory(orderLineItem);
+                            		refundFullCategoryTotals(categoryData, orderLineItem);
+                        		}
+                    		}
+                    	} else {
+                    		// These are partial refund(s), so process partial refund(s) as uncategorized refunds
+                    		refundPartialCategoryTotals(paymentRefund);
+                    	}
+                	}
+            	}
             }
         }
     }
 
-    private CategoryData getCalculationCategory(PaymentItemization paymentItemization) {
+    private CategoryData getCalculationCategory(OrderLineItem orderLineItem) {
         String itemCategory = CATEGORY_UNCATEGORIZED;
-        if (paymentItemization.getItemDetail() != null
-                && paymentItemization.getItemDetail().getCategoryName() != null) {
-            itemCategory = paymentItemization.getItemDetail().getCategoryName().toUpperCase();
+        String catalogObjectId = orderLineItem.getCatalogObjectId();
+        if(catalogObjectId != null) {
+        	CatalogObject itemVariation = itemVariations.get(catalogObjectId);
+        	if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
+        		CatalogObject item = items.get(itemVariation.getItemVariationData().getItemId());
+        		if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
+        			CatalogObject category = categories.get(item.getItemData().getCategoryId());
+        	        if (category != null
+		            		&& category.getCategoryData() != null
+		            		&& category.getCategoryData().getName() != null) {
+		            	itemCategory = category.getCategoryData().getName().toUpperCase();
+		            }
+        		}
+        	}
+        }
+        else if(orderLineItem.getItemType().equals(CATEGORY_GIFT_CARD)) {
+        	itemCategory = CATEGORY_GIFT_CARD;
         }
 
         return categoryTotals.getOrDefault(itemCategory, categoryTotals.get(CATEGORY_UNCATEGORIZED));
     }
 
-    private List<Refund> getRefundsInReportDateRange(Calendar beginTime, Calendar endTime, Payment refundedPayment)
+    private List<PaymentRefund> getRefundsInReportDateRange(Calendar beginTime, Calendar endTime)
             throws ParseException {
-        ArrayList<Refund> refundsInDateRange = new ArrayList<Refund>();
+        ArrayList<PaymentRefund> refundsInDateRange = new ArrayList<PaymentRefund>();
 
-        for (Refund refund : refundedPayment.getRefunds()) {
-            Calendar refundTime = TimeManager.toCalendar(refund.getCreatedAt());
+        for (PaymentRefund paymentRefund : paymentRefunds) {
+            Calendar refundTime = TimeManager.toCalendar(paymentRefund.getCreatedAt());
             if (beginTime.compareTo(refundTime) <= 0 && endTime.compareTo(refundTime) >= 0) {
-                refundsInDateRange.add(refund);
+                refundsInDateRange.add(paymentRefund);
             }
         }
 
         return refundsInDateRange;
     }
 
-    private void addSaleCategoryTotals(CategoryData category, PaymentItemization paymentItemization) {
-        category.increaseItemsSoldQty(paymentItemization.getQuantity().intValue());
-        category.increaseGrossSalesTotal(paymentItemization.getGrossSalesMoney().getAmount());
-        category.increaseDiscountsTotal(paymentItemization.getDiscountMoney().getAmount());
-
-        for (PaymentTax tax : paymentItemization.getTaxes()) {
-            category.increaseTaxesTotal(tax.getAppliedMoney().getAmount());
+    private void addSaleCategoryTotals(CategoryData category, OrderLineItem orderLineItem) {
+    	if(orderLineItem.getQuantity() != null) {
+            category.increaseItemsSoldQty(Integer.parseInt(orderLineItem.getQuantity()));
+    	}
+        if(orderLineItem.getGrossSalesMoney() != null) {
+            category.increaseGrossSalesTotal(orderLineItem.getGrossSalesMoney().getAmount());
+        }
+        if(orderLineItem.getTotalDiscountMoney() != null) {
+            category.increaseDiscountsTotal(orderLineItem.getTotalDiscountMoney().getAmount());
+        }
+        if(orderLineItem.getTotalTaxMoney() != null) {
+        	category.increaseTaxesTotal(orderLineItem.getTotalTaxMoney().getAmount());
         }
     }
 
-    private void refundFullCategoryTotals(CategoryData category, PaymentItemization paymentItemization) {
-        category.increaseItemsRefundedQty(paymentItemization.getQuantity().intValue());
-        category.increaseRefundedTotal(paymentItemization.getGrossSalesMoney().getAmount());
-        category.decreaseDiscountsTotal(paymentItemization.getDiscountMoney().getAmount());
-
-        for (PaymentTax tax : paymentItemization.getTaxes()) {
-            category.decreaseTaxesTotal(tax.getAppliedMoney().getAmount());
+    private void refundFullCategoryTotals(CategoryData category, OrderLineItem orderLineItem) {
+    	if(orderLineItem.getQuantity() != null) {
+            category.increaseItemsRefundedQty(Integer.parseInt(orderLineItem.getQuantity()));
+    	}
+        if(orderLineItem.getGrossSalesMoney() != null) {
+            category.increaseRefundedTotal(orderLineItem.getGrossSalesMoney().getAmount());
+        }
+        if(orderLineItem.getTotalDiscountMoney() != null) {
+            category.decreaseDiscountsTotal(orderLineItem.getTotalDiscountMoney().getAmount());
+        }
+        if(orderLineItem.getTotalTaxMoney() != null) {
+        	category.decreaseTaxesTotal(orderLineItem.getTotalTaxMoney().getAmount());
         }
     }
 
-    private void refundPartialCategoryTotals(Refund refund) {
+    private void refundPartialCategoryTotals(PaymentRefund paymentRefund) {
         CategoryData category = categoryTotals.get(CATEGORY_UNASSIGNED_REFUNDS);
 
-        int positiveTotal = refund.getRefundedMoney().getAmount();
-        positiveTotal = -positiveTotal;
-        category.increaseRefundedTotal(positiveTotal);
-        category.increaseItemsRefundedQty(1);
+        if(paymentRefund.getAmountMoney() != null) {
+        	int positiveTotal = paymentRefund.getAmountMoney().getAmount();
+            category.increaseRefundedTotal(positiveTotal);
+            category.increaseItemsRefundedQty(1);
+        }
     }
 
     private int sumCategoryGroupReportableSales(List<String> group) {
@@ -356,18 +431,20 @@ public class MonthlyReportBuilder {
     public int getTotalTransactions() {
         int total = 0;
 
-        for (Payment payment : payments) {
-            boolean hasValidPaymentTender = false;
-            for (Tender tender : payment.getTender()) {
-                if (!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
-                    hasValidPaymentTender = true;
-                }
-            }
-            if (hasValidPaymentTender) {
-                total += 1;
-            }
+        for(Payment payment : payments.values()) {
+        	boolean hasValidPaymentTender = false;
+        	Order order = orders.get(payment.getOrderId());
+        	if(order != null) {
+        		for(Tender tender : order.getTenders()) {
+        			if(!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
+        				hasValidPaymentTender = true;
+        			}
+        		}
+        	}
+        	if(hasValidPaymentTender) {
+        		total += 1;
+        	}
         }
-
         return total;
     }
 
