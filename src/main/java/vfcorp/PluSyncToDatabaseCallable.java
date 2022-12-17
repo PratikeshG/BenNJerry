@@ -2,6 +2,7 @@ package vfcorp;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.util.Optional;
 
 import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
 import util.CloudStorageApi;
 
@@ -42,6 +44,7 @@ public class PluSyncToDatabaseCallable implements Callable {
 
     private static final int RETRY_COUNT = 5;
     private static final int RETRY_DELAY_MS = 60000; // 1 minute
+    private static final String FILE_NOT_FOUND_EXCEPTION_MESSAGE = "File not found:";
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
@@ -104,7 +107,17 @@ public class PluSyncToDatabaseCallable implements Callable {
         }
 
         if (lastException != null) {
-            throw lastException;
+        	if (lastException instanceof SftpException
+        		&& lastException.getMessage() != null
+        		&& lastException.getMessage().startsWith(FILE_NOT_FOUND_EXCEPTION_MESSAGE)) {
+        		/**
+        		 * This happens when the PluProcessingResetCallable runs during processing and requeues the processing file.
+        		 * Don't throw here to prevent noisy alerts in PagerDuty (A better long-term solution is needed).
+        		 */
+        		logger.warn("Exception due to processing file not found, ignoring.", lastException);
+        	} else {
+        		throw lastException;
+        	}
         }
 
         logger.info("PLU processed.");
