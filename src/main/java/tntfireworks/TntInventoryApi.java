@@ -22,7 +22,7 @@ public class TntInventoryApi {
     private static final int BATCH_UPSERT_SIZE = 5;
     private static final String INACTIVE_LOCATION = "DEACTIVATED";
     private static final String DEFAULT_LOCATION = "DEFAULT";
-    static final String INVENTORY_API_VERSION = "2018-09-18";
+    static final String INVENTORY_API_VERSION = "2022-05-12";
 
     private Catalog catalog;
     private SquareClientV2 clientV2;
@@ -37,6 +37,7 @@ public class TntInventoryApi {
 
         logger.info(logString("Retrieving catalog..."));
         try {
+
             Catalog sourceCatalog = clientV2.catalog().retrieveCatalog(Catalog.PrimaryKey.SKU, Catalog.PrimaryKey.NAME,
                     Catalog.PrimaryKey.ID, Catalog.PrimaryKey.NAME, Catalog.PrimaryKey.NAME);
 
@@ -58,6 +59,7 @@ public class TntInventoryApi {
         Preconditions.checkNotNull(catalog);
         Preconditions.checkNotNull(clientV2);
 
+        logger.info(logString("Beginning Inventory call of Batch Upsert Items into Catalog"));
         logger.info(logString("TOTAL ITEMS IN CATALOG: " + catalog.getItems().values().size()));
         CatalogObject[] modifiedItems = catalog.getModifiedItems();
         logger.info(logString("TOTAL MODIFIED ITEMS IN CATALOG: " + modifiedItems.length));
