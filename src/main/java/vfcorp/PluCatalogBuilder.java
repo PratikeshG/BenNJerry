@@ -590,6 +590,11 @@ public class PluCatalogBuilder {
         String altDescription = (record.getAlternateDescription() != null) ? record.getAlternateDescription().trim()
                 : sku;
         String itemName = (altDescription.length() > description.length()) ? altDescription : description;
+        if (itemName.isEmpty()) {
+            //Do not add any item that has no item name - nameless items are blocked by the Catalog and will fail upsert.
+            logger.info("Ignoring item with SKU " + sku + " due to missing name.");
+            return;
+        }
         updatedItem.getItemData().setName(itemName);
 
         // Variation SKU
