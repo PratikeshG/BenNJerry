@@ -190,18 +190,16 @@ public class GenerateLocationReportCallable implements Callable {
         MonthlyReportBuilder reportBuilder = new MonthlyReportBuilder(location.getName(), dateMonthYear,
                 dateParams.get(Constants.BEGIN_TIME), dateParams.get(Constants.END_TIME));
 
-        // Payments map
+        // Get Payments
         Payment[] paymentsArray = clientV2.payments().list(dateParams);
         Map<String, Payment> paymentsMap = new HashMap<>();
         Arrays.stream(paymentsArray).forEach(payment -> paymentsMap.put(payment.getId(), payment));
         reportBuilder.setPayments(paymentsMap);
 
-        // PaymentRefunds
+        // Get PaymentRefunds
         reportBuilder.setPaymentRefunds(clientV2.refunds().listPaymentRefunds(dateParams));
 
-        // build the Orders map
         Map<String, Order> orders = new HashMap<String, Order>();
-
         HashSet<String> orderIdSet = new HashSet<String>();
 
         // get OrderIds from both payments and refunds
@@ -212,13 +210,13 @@ public class GenerateLocationReportCallable implements Callable {
         	orderIdSet.add(refund.getOrderId());
         }
 
+        // call BatchRetrieve on orders
         String[] orderIds = new String[orderIdSet.size()];
         orderIdSet.toArray(orderIds);
         Order[] ordersArray = clientV2.orders().batchRetrieve(locationId, orderIds);
 
-        // call the catalog API three times to get the categoryData
+        // go through orders and extract ItemVariationIds
         List<String> itemVariationIdList = new ArrayList<String>();
-
         for(Order order : ordersArray) {
         	if(order != null && order.getId() != null) {
             	orders.put(order.getId(), order);
@@ -228,7 +226,7 @@ public class GenerateLocationReportCallable implements Callable {
             			if(orderLineItem != null) {
             				String catalogObjectId = orderLineItem.getCatalogObjectId();
                     		if(catalogObjectId != null) {
-                    			// add the catalogObjectId to a list for a batchRetrieve of itemVariations
+                    			// the catalogObjectId from an orderLineItem translates to the itemVariationId
                     			itemVariationIdList.add(catalogObjectId);
                     		}
             			}
@@ -242,38 +240,16 @@ public class GenerateLocationReportCallable implements Callable {
         String[] itemVariationIds = new String[itemVariationIdList.size()];
         itemVariationIdList.toArray(itemVariationIds);
 
-        // retrieve item variations
-        CatalogObject[] itemVariations = clientV2.catalog().batchRetrieve(itemVariationIds);
+        // retrieve item variations and related item data by setting "includeRelatedObjects" to true
+        CatalogObject[] relatedItems = clientV2.catalog().batchRetrieve(itemVariationIds, true);
 
-        // set item variations map
-        Map<String, CatalogObject> itemVariationsMap = new HashMap<>();
-        Arrays.stream(itemVariations).forEach(itemVariation -> itemVariationsMap.put(itemVariation.getId(), itemVariation));
-        reportBuilder.setItemVariations(itemVariationsMap);
+        // initialize catalogMap and put both itemVariationData and itemData in it
+        Map<String, CatalogObject> catalogMap = new HashMap<>();
+        Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
 
-        // retrieve catalog items from the item variations
-        List<String> itemIdList = new ArrayList<String>();
-        for(CatalogObject itemVariation : itemVariations) {
-        	if(itemVariation.getItemVariationData() != null) {
-        		String itemId = itemVariation.getItemVariationData().getItemId();
-            	if(itemId != null) {
-            		itemIdList.add(itemId);
-            	}
-        	}
-        }
-        String[] itemIds = new String[itemIdList.size()];
-        itemIdList.toArray(itemIds);
-
-        //retrieve items
-        CatalogObject[] items = clientV2.catalog().batchRetrieve(itemIds);
-
-        // set items map
-        Map<String, CatalogObject> itemsMap = new HashMap<>();
-        Arrays.stream(items).forEach(item -> itemsMap.put(item.getId(), item));
-        reportBuilder.setItems(itemsMap);
-
-        // finally, retrieve categories from the catalog items
         List<String> categoryIdList = new ArrayList<String>();
-        for(CatalogObject item : items) {
+        for(CatalogObject item : relatedItems) {
+        	// store a list of categoryIds to call batchRetrieve one more time to retrieve categoryData
         	if(item.getItemData() != null) {
         		String categoryId = item.getItemData().getCategoryId();
         		if(categoryId != null) {
@@ -281,17 +257,31 @@ public class GenerateLocationReportCallable implements Callable {
         		}
         	}
         }
+
         String[] categoryIds = new String[categoryIdList.size()];
         categoryIdList.toArray(categoryIds);
 
         // retrieve categoryData
-        CatalogObject[] categories = clientV2.catalog().batchRetrieve(categoryIds);
+        CatalogObject[] categories = clientV2.catalog().batchRetrieve(categoryIds, false);
 
-        // set categories map
+        // set catalogMap with categoryData
+        Arrays.stream(categories).forEach(category -> catalogMap.put(category.getId(), category));
+
         Map<String, CatalogObject> categoriesMap = new HashMap<>();
-        Arrays.stream(categories).forEach(category -> categoriesMap.put(category.getId(), category));
-        reportBuilder.setCategories(categoriesMap);
 
+        // map the itemVariationId (which is the ID stored in an order) to its respective categoryData
+        for(String itemVariationId : itemVariationIdList) {
+        	CatalogObject itemVariation = catalogMap.get(itemVariationId);
+        	if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
+        		CatalogObject item = catalogMap.get(itemVariation.getItemVariationData().getItemId());
+        		if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
+        			CatalogObject category = catalogMap.get(item.getItemData().getCategoryId());
+        	        categoriesMap.put(itemVariationId, category);
+        		}
+        	}
+        }
+
+        reportBuilder.setCategories(categoriesMap);
         return reportBuilder;
     }
 

@@ -143,8 +143,6 @@ public class MonthlyReportBuilder {
     private PaymentRefund[] paymentRefunds;
     private Map<String, Payment> payments;
     private Map<String, Order> orders;
-    private Map<String, CatalogObject> itemVariations;
-    private Map<String, CatalogObject> items;
     private Map<String, CatalogObject> categories;
 
     Map<String, CategoryData> categoryTotals;
@@ -180,22 +178,6 @@ public class MonthlyReportBuilder {
     	this.orders = orders;
     }
 
-    public Map<String, CatalogObject> getItemVariations() {
-    	return itemVariations;
-    }
-
-    public void setItemVariations(Map<String, CatalogObject> itemVariations) {
-    	this.itemVariations = itemVariations;
-    }
-
-    public Map<String, CatalogObject> getItems() {
-    	return items;
-    }
-
-    public void setItems(Map<String, CatalogObject> items) {
-    	this.items = items;
-    }
-
     public Map<String, CatalogObject> getCategories() {
     	return categories;
     }
@@ -214,8 +196,8 @@ public class MonthlyReportBuilder {
 
     public void buildReports() throws ParseException {
         initCategoryTotals();
-        // Process gross totals
 
+        // Process gross totals
         for (Order order : orders.values()) {
         	if(order != null && order.getLineItems() != null) {
         		for(OrderLineItem orderLineItem : order.getLineItems()) {
@@ -265,18 +247,12 @@ public class MonthlyReportBuilder {
         String itemCategory = CATEGORY_UNCATEGORIZED;
         String catalogObjectId = orderLineItem.getCatalogObjectId();
         if(catalogObjectId != null) {
-        	CatalogObject itemVariation = itemVariations.get(catalogObjectId);
-        	if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
-        		CatalogObject item = items.get(itemVariation.getItemVariationData().getItemId());
-        		if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
-        			CatalogObject category = categories.get(item.getItemData().getCategoryId());
-        	        if (category != null
-		            		&& category.getCategoryData() != null
-		            		&& category.getCategoryData().getName() != null) {
-		            	itemCategory = category.getCategoryData().getName().toUpperCase();
-		            }
-        		}
-        	}
+			CatalogObject category = categories.get(catalogObjectId);
+	        if (category != null
+            		&& category.getCategoryData() != null
+            		&& category.getCategoryData().getName() != null) {
+            	itemCategory = category.getCategoryData().getName().toUpperCase();
+            }
         }
         else if(orderLineItem.getItemType().equals(CATEGORY_GIFT_CARD)) {
         	itemCategory = CATEGORY_GIFT_CARD;
@@ -431,12 +407,11 @@ public class MonthlyReportBuilder {
     public int getTotalTransactions() {
         int total = 0;
 
-        for(Payment payment : payments.values()) {
+        for(Order order : orders.values()) {
         	boolean hasValidPaymentTender = false;
-        	Order order = orders.get(payment.getOrderId());
-        	if(order != null) {
+        	if(order != null && order.getTenders() != null) {
         		for(Tender tender : order.getTenders()) {
-        			if(!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
+        			if(tender != null && !tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
         				hasValidPaymentTender = true;
         			}
         		}
