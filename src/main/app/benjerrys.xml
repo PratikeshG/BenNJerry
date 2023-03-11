@@ -83,6 +83,5 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <logger message="Skipping. Location not processed." level="INFO" doc:name="Location not processed"/>
             </otherwise>
         </choice>
-        
     </flow>
 </mule>

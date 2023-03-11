@@ -193,7 +193,12 @@ public class TimeManager {
     public static Calendar toCalendar(final String iso8601string) throws ParseException {
         Calendar calendar = GregorianCalendar.getInstance();
         String s = iso8601string.replace("Z", "+00:00");
-
+        int idx = s.indexOf(".");
+        // check for milliseconds and drop
+        if(idx != -1) {
+        	int timezoneIdx = s.indexOf("+") != -1 ? s.indexOf("+") : s.indexOf("-");
+        	s = s.substring(0, idx) + s.substring(timezoneIdx);
+        }
         try {
             s = s.substring(0, 22) + s.substring(23); // to get rid of the ":"
         } catch (IndexOutOfBoundsException e) {
