@@ -266,12 +266,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 	</flow>
 	<flow name="VFC:VFO:plu-trigger-database-to-square"
 		processingStrategy="synchronous">
-		<quartz:inbound-endpoint jobName="quartz-vfc-vfo-PLU-daily-1509908998"
-			cronExpression="0 0 4 * * ? *" cronTimeZone="America/New_York"
-			repeatInterval="0" connector-ref="Quartz-VFO-plu" responseTimeout="10000"
-			doc:name="Run every day at 4:00am EST">
-			<quartz:event-generator-job />
-		</quartz:inbound-endpoint>
 		<logger message="CRON: PLU Database to Square for VF Outlet"
 			level="INFO" doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vfo"
@@ -388,9 +382,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
     </flow>
     <flow name="VFC:VFO-catalog-cron-square-to-gcp" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-vfo-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: Items from Square Connect to GCP for VFO" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vfo"
