@@ -43,7 +43,7 @@ public class TransactionsReportAggregatorCallable extends TntReportAggregator im
         String reportName = fileDate + "-report-2.csv";
         String generatedReport = reportBuilder.toString();
 
-//        // archive to Google Cloud Storage
+        // archive to Google Cloud Storage
         archiveReportToGcp(reportName, generatedReport);
 
         // if ad-hoc run, store report on SFTP in adhoc directory

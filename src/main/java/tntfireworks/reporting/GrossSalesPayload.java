@@ -136,7 +136,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
     }
 
     private void addTotalCollectedMoney(Order order, Calendar transactionTime) {
-    	//if net amount is negative, don't add it to total collected money
+    	//if net amount is negative, don't add it to total collected money, because it is a refund order
         if (order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null && order.getNetAmounts().getTotalMoney().getAmount() > 0) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
                 dailyTotalCollected += order.getNetAmounts().getTotalMoney().getAmount();
@@ -219,9 +219,6 @@ public class GrossSalesPayload extends TntReportLocationPayload {
             }
     	}
     }
-
-
-
 
     public String getRow() {
         String row = String.format(

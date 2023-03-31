@@ -1,20 +1,15 @@
 package tntfireworks.reporting;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.v2.Refund;
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
-import com.squareup.connect.v2.PaymentRefund;
 
 import util.TimeManager;
 
@@ -42,11 +37,6 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     private int cashDailySales;
     private int creditTotalSales;
     private int cashTotalSales;
-    private List<String> ids = new ArrayList<>();
-
-    public List<String> getIds() {
-    	return ids;
-    }
 
     public LocationSalesPayload(String timeZone, int offset, Map<String, String> dayTimeInterval,
             TntLocationDetails locationDetails) {
@@ -56,26 +46,6 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         this.creditTotalSales = 0;
         this.cashDailySales = 0;
         this.cashTotalSales = 0;
-    }
-
-    public void addEntry(Transaction transaction) {
-        try {
-            // use calendar objects to daily interval
-            Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
-            Calendar endTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.END_TIME));
-            Calendar transactionTime = TimeManager.toCalendar(transaction.getCreatedAt());
-
-            // loop through tenders and add tender amounts to payload
-            for (Tender tender : transaction.getTenders()) {
-                if (isValidTender(tender)) {
-                    addTenderAmountToPayload(isDailyOrder(beginTime, endTime, transactionTime), tender,
-                            getTenderToRefundMap(transaction));
-                }
-            }
-
-        } catch (Exception e) {
-            logger.error("Calendar Exception from aggregating sales/payload data for LocationSales: " + e);
-        }
     }
 
     public void addEntry(Order order, Map<String, Payment> tenderToPayment) {
@@ -119,7 +89,7 @@ public class LocationSalesPayload extends TntReportLocationPayload {
             Map<String, Integer> tenderToRefund) {
 
         // add cash tender amounts
-        if (tender.getType().equals(tender.TENDER_TYPE_CASH)) {
+        if (tender.getType().equals(Tender.TENDER_TYPE_CASH)) {
             if (isDailyOrder) {
                 cashDailySales += tender.getAmountMoney().getAmount();
                 if (tenderToRefund.containsKey(tender.getId())) {
@@ -133,7 +103,7 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         }
 
         // add card tender amounts
-        if (tender.getType().equals(tender.TENDER_TYPE_CARD)) {
+        if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
             if (isDailyOrder) {
                 creditDailySales += tender.getAmountMoney().getAmount();
                 if (tenderToRefund.containsKey(tender.getId())) {
@@ -151,31 +121,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         return beginTime.compareTo(orderTime) <= 0 && endTime.compareTo(orderTime) > 0;
     }
 
-
-    private Map<String, Integer> getTenderToRefundMap(Transaction transaction) {
-        Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
-
-        if (transaction.getRefunds() != null) {
-            for (Refund refund : transaction.getRefunds()) {
-                if (isValidRefund(refund)) {
-                    tenderToRefund.put(refund.getTenderId(), refund.getAmountMoney().getAmount());
-                }
-            }
-        }
-
-        return tenderToRefund;
-    }
-
     private Map<String, Integer> getTenderToRefundMap(Order order, Map<String, Payment> tenderToPayment) {
         Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
 
-//        if (order.getRefunds() != null) {
-//            for (Refund refund : order.getRefunds()) {
-//                if (isValidRefund(refund)) {
-//                    tenderToRefund.put(refund.getTenderId(), refund.getAmountMoney().getAmount());
-//                }
-//            }
-//        }
         if(order.getTenders() != null) {
         	for(Tender tender : order.getTenders()) {
         		Payment payment = tenderToPayment.get(tender.getId());
@@ -186,10 +134,6 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         }
 
         return tenderToRefund;
-    }
-
-    private boolean isValidRefund(Refund refund) {
-        return refund != null && refund.getAmountMoney() != null;
     }
 
     private boolean isValidTender(Tender tender) {

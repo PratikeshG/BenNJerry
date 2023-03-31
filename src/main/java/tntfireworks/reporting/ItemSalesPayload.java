@@ -97,36 +97,38 @@ public class ItemSalesPayload extends TntReportLocationPayload {
      */
     private void addItemizationEntries(Order order, Map<String, CatalogObject> catalogObjects, List<Map<String, String>> dbItemRows) throws ParseException {
         // loop through payment itemizations and add to itemSalesPayloadEntries
-        for (OrderLineItem lineItem : order.getLineItems()) {
-            // add or update sale entries
-            String itemNumber = DEFAULT_ITEM_NUMBER;
-            String itemDesc = DEFAULT_ITEM_DESCRIPTION;
-            String itemSku = DEFAULT_ITEM_SKU;
+    	if(order != null && order.getLineItems() != null) {
+    		for (OrderLineItem lineItem : order.getLineItems()) {
+                // add or update sale entries
+                String itemNumber = DEFAULT_ITEM_NUMBER;
+                String itemDesc = DEFAULT_ITEM_DESCRIPTION;
+                String itemSku = DEFAULT_ITEM_SKU;
 
-            // assign square item sku if it exists
-            if (lineItem.getCatalogObjectId() != null
-            		&& catalogObjects.containsKey(lineItem.getCatalogObjectId())) {
-            	CatalogObject catalogObject = catalogObjects.get(lineItem.getCatalogObjectId());
-            	if (catalogObject.getItemVariationData() != null
-            		&& catalogObject.getItemVariationData().getSku() != null) {
-            		itemSku = catalogObject.getItemVariationData().getSku();
-            	}
-            }
-
-            // lookup tnt-specific item number and description based on matching sku
-            for (Map<String, String> row : dbItemRows) {
-                if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
-                    itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
-                    itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
-                    break;
+                // assign square item sku if it exists
+                if (lineItem.getCatalogObjectId() != null
+                		&& catalogObjects.containsKey(lineItem.getCatalogObjectId())) {
+                	CatalogObject catalogObject = catalogObjects.get(lineItem.getCatalogObjectId());
+                	if (catalogObject.getItemVariationData() != null
+                		&& catalogObject.getItemVariationData().getSku() != null) {
+                		itemSku = catalogObject.getItemVariationData().getSku();
+                	}
                 }
+
+                // lookup tnt-specific item number and description based on matching sku
+                for (Map<String, String> row : dbItemRows) {
+                    if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
+                        itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
+                        itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
+                        break;
+                    }
+                }
+
+                double quantity = Double.parseDouble(lineItem.getQuantity());
+
+                addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney().getAmount(),
+                		quantity, itemNumber, itemDesc, itemSku);
             }
-
-            double quantity = Double.parseDouble(lineItem.getQuantity());
-
-            addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney().getAmount(),
-            		quantity, itemNumber, itemDesc, itemSku);
-        }
+    	}
     }
 
     // Partial refund on order is if the refund doesn't equal the order's amount
