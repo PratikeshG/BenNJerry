@@ -17,16 +17,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.Refund;
-import com.squareup.connect.Settlement;
-import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.PaymentRefund;
+import com.squareup.connect.v2.Payout;
+import com.squareup.connect.v2.PayoutEntry;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
+
 
 import tntfireworks.TntDatabaseApi;
+import util.ConnectV2MigrationHelper;
 import util.DbConnection;
 import util.SquarePayload;
 import util.TimeManager;
@@ -90,15 +93,13 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             range = computeSeasonInterval(startOfSeason, offset, TimeZone.getTimeZone(timeZone));
         }
 
-        // initialize connect v1/v2 api clients
-        SquareClient squareClientV1 = new SquareClient(deployment.getAccessToken(encryptionKey), apiUrl, apiVersion,
-                deployment.getMerchantId());
-        SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey));
+        // initialize connect v2 api clients
+        SquareClientV2 squareClientV2 = new SquareClientV2(apiUrl, deployment.getAccessToken(encryptionKey), "2023-03-15");
 
         // retrieve location details according to reportType and store into
         // abstracted object (reportPayload)
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
-        return getMerchantPayload(reportType, squareClientV1, squareClientV2, offset, range);
+        return getMerchantPayload(reportType, squareClientV2, offset, range);
     }
 
     public static int computeSeasonInterval(String startOfSeason, int offset, TimeZone tz) {
@@ -145,9 +146,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return range;
     }
 
-    private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClient squareClientV1,
-            SquareClientV2 squareClientV2, int offset, int range) throws Exception {
-
+    private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClientV2 squareClientV2, int offset, int range)
+    		throws Exception {
         // initialize dbConnection
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
 
@@ -179,59 +179,56 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             // iterate through each location in merchant and aggregate account
             // data
             for (Location location : squareClientV2.locations().list()) {
-                if (isValidLocation(location, dbLocationRows)) {
-                    // initialize TntLocationDetails with DB data
-                    TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location);
+	            if (isValidLocation(location, dbLocationRows)) {
+	                // initialize TntLocationDetails with DB data
+	                TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location);
 
-                    // define time intervals to pull payment data
-                    // - dayTimeInterval is currently only used for 5/6, report 7, report 9
-                    // - aggregateInterval is used by all flows
-                    Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
-                            locationDetails.sqLocationTimeZone);
-                    Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
-                            locationDetails.sqLocationTimeZone);
+	                // define time intervals to pull payment data
+	                // - dayTimeInterval is currently only used for 5/6, report 7, report 9
+	                // - aggregateInterval is used by all flows
+	                Map<String, String> dayTimeInterval = TimeManager.getPastDayInterval(DAY_RANGE, offset,
+	                        locationDetails.sqLocationTimeZone);
+	                Map<String, String> aggregateIntervalParams = TimeManager.getPastDayInterval(range, offset,
+	                        locationDetails.sqLocationTimeZone);
 
-                    // set V1 squareClient to specific location
-                    squareClientV1.setLocation(locationDetails.sqLocationId);
+	                switch (reportType) {
+	                    case SETTLEMENTS_REPORT_TYPE:
+	                        merchantPayload.add(generatePayoutsPayload(squareClientV2, locationDetails,
+	                    			aggregateIntervalParams, offset));
+	                        break;
+	                    case TRANSACTIONS_REPORT_TYPE:
+	                        merchantPayload.add(generateOrdersPayload(squareClientV2,locationDetails, aggregateIntervalParams, offset));
+	                        break;
+	                    case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
 
-                    switch (reportType) {
-                        case SETTLEMENTS_REPORT_TYPE:
-                            merchantPayload.add(generateSettlementsPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, offset));
-                            break;
-                        case TRANSACTIONS_REPORT_TYPE:
-                            merchantPayload.add(generateTransactionsPayload(squareClientV2, squareClientV1,
-                                    locationDetails, aggregateIntervalParams, offset));
-                            break;
-                        case ABNORMAL_TRANSACTIONS_REPORT_TYPE:
-                            merchantPayload.add(generateAbnormalTransactionsPayload(squareClientV2, locationDetails,
-                                    aggregateIntervalParams, offset));
-                            break;
-                        case CHARGEBACK_REPORT_TYPE:
-                            // report 4 is currently generated from a different source
-                            break;
-                        case LOCATION_SALES_REPORT_TYPE:
-                            merchantPayload.add(generateLocationSalesPayload(squareClientV2, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval, offset));
-                            break;
-                        case ITEM_SALES_REPORT_TYPE:
-                            merchantPayload.add(generateItemSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval, dbItemRows, offset));
-                            break;
-                        case CREDIT_DEBIT_REPORT_TYPE:
-                            merchantPayload.add(generateCreditDebitPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dbLoadNumbers, offset));
-                            break;
-                        case GROSS_SALES_REPORT_TYPE:
-                            merchantPayload.add(generateGrossSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval, offset));
-                            break;
-                        case YOY_GROSS_SALES_REPORT_TYPE:
-                            merchantPayload.add(generateYoyGrossSalesPayload(squareClientV1, locationDetails,
-                                    aggregateIntervalParams, dayTimeInterval, offset));
-                            break;
-                    }
-                }
+	                        merchantPayload.add(generateAbnormalOrdersPayload(squareClientV2, locationDetails,
+	                                aggregateIntervalParams, offset));
+	                        break;
+	                    case CHARGEBACK_REPORT_TYPE:
+	                        // report 4 is currently generated from a different source
+	                        break;
+	                    case LOCATION_SALES_REPORT_TYPE:
+	                        merchantPayload.add(generateLocationSalesPayload(squareClientV2, locationDetails,
+	                                aggregateIntervalParams, dayTimeInterval, offset));
+	                        break;
+	                    case ITEM_SALES_REPORT_TYPE:
+	                    	merchantPayload.add(generateItemSalesPayload(squareClientV2, locationDetails,
+	                                aggregateIntervalParams, dayTimeInterval, dbItemRows, offset));
+	                        break;
+	                    case CREDIT_DEBIT_REPORT_TYPE:
+	                        merchantPayload.add(generateCreditDebitPayload(squareClientV2, locationDetails,
+	                                aggregateIntervalParams, dbLoadNumbers, offset));
+	                        break;
+	                    case GROSS_SALES_REPORT_TYPE:
+	   	                        merchantPayload.add(generateGrossSalesPayload(squareClientV2, locationDetails,
+		                                aggregateIntervalParams, dayTimeInterval, offset));
+	                        break;
+	                    case YOY_GROSS_SALES_REPORT_TYPE:
+	                        merchantPayload.add(generateYoyGrossSalesPayload(squareClientV2, locationDetails,
+	                                aggregateIntervalParams, dayTimeInterval, offset));
+	                        break;
+	                }
+	            }
             }
         } catch (Exception e) {
             logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause());
@@ -247,114 +244,115 @@ public class RetrieveMerchantPayloadCallable implements Callable {
                 && !location.getName().contains(TNT_DEFAULT_LOCATION_NAME_PREFIX);
     }
 
-    private boolean hasFullRefund(Payment payment) {
-        // check for existence of type FULL refund
-        for (Refund refund : payment.getRefunds()) {
-            if (refund.getType().equals(Refund.TYPE_FULL)) {
-                return true;
-            }
-        }
-
-        // full refund also occurs if total refunded = total collected
-        if (payment.getRefunds() != null && payment.getRefunds().length > 0) {
-            return (Math.abs(payment.getRefundedMoney().getAmount()) == Math
-                    .abs(payment.getTotalCollectedMoney().getAmount()));
-        }
-
-        return false;
-    }
-
-    private SettlementsPayload generateSettlementsPayload(SquareClient squareClientV1,
+    private PayoutsPayload generatePayoutsPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
             throws Exception {
-        SettlementsPayload settlementsPayload = new SettlementsPayload(timeZone, offset, locationDetails);
-        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-
-        for (Settlement settlement : TntLocationDetails.getSettlements(squareClientV1, aggregateIntervalParams)) {
-            settlementsPayload.addEntry(settlement);
+        PayoutsPayload payoutsPayload = new PayoutsPayload(timeZone, offset, locationDetails);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        Payout[] payouts = TntLocationDetails.getPayouts(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, String> payoutEntryParams = new HashMap<String, String>();
+        payoutEntryParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        for (Payout payout : payouts) {
+        	PayoutEntry[] payoutEntries = TntLocationDetails.getPayoutEntries(squareClientV2, payout.getId(), payoutEntryParams);
+            payoutsPayload.addEntry(payout, payoutEntries);
         }
 
-        return settlementsPayload;
+        return payoutsPayload;
     }
 
-    private TransactionsPayload generateTransactionsPayload(SquareClientV2 squareClientV2, SquareClient squareClientV1,
-            TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
+    private OrdersPayload generateOrdersPayload(SquareClientV2 squareClientV2, TntLocationDetails locationDetails,
+    		Map<String, String> aggregateIntervalParams, int offset)
             throws Exception {
-        // - each TransactionsPayload includes transaction data from a single location
-        // - while the payload object name may imply V2Transactions data, the payload
-        // mainly consists of V1 Payments data and is called a TransactionsPayload because
-        // the report name is defined by TNT as 'Transactions Report'
-        TransactionsPayload transactionsPayload = new TransactionsPayload(timeZone, offset, locationDetails);
+        // - each OrdersPayload includes order data from a single location
+        // - while the payload object name may imply V2Orders data, the payload
+        // mainly consists of V1 Payments data and is called a OrdersPayload because
+        // the report name is defined by TNT as 'Orders Report'
+        OrdersPayload ordersPayload = new OrdersPayload(timeZone, offset, locationDetails);
 
         // need to obtain Connect V2 Tender Fees and V2
         // Tender Entry Methods to map to V1 Tenders
         Map<String, Integer> tenderToFee = new HashMap<String, Integer>();
         Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
-                aggregateIntervalParams)) {
-            for (Tender tender : transaction.getTenders()) {
-                tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
-                if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
-                    tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        for (Order order : orders) {
+        	if(order != null && order.getTenders() != null) {
+        		for (Tender tender : order.getTenders()) {
+                    tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
+                    if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
+                        tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
+                    }
                 }
-            }
+        	}
+        }
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        for (Order order : orders) {
+            ordersPayload.addEntry(order, tenderToFee, tenderToEntryMethod, tenderToPayment);
         }
 
-        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            transactionsPayload.addEntry(payment, tenderToFee, tenderToEntryMethod);
-        }
-
-        return transactionsPayload;
+        return ordersPayload;
     }
 
-    private AbnormalTransactionsPayload generateAbnormalTransactionsPayload(SquareClientV2 squareClientV2,
+    private AbnormalOrdersPayload generateAbnormalOrdersPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams, int offset)
             throws Exception {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        AbnormalTransactionsPayload abnormalTransactionsPayload = new AbnormalTransactionsPayload(timeZone, offset,
-                locationDetails);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
-                aggregateIntervalParams)) {
-            abnormalTransactionsPayload.addEntry(transaction);
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        AbnormalOrdersPayload abnormalOrdersPayload = new AbnormalOrdersPayload(timeZone, offset,
+                locationDetails, tenderToPayment);
+        for (Order order : orders) {
+            abnormalOrdersPayload.addEntry(order);
         }
 
-        return abnormalTransactionsPayload;
+        return abnormalOrdersPayload;
     }
 
     private LocationSalesPayload generateLocationSalesPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             Map<String, String> dayTimeInterval, int offset) throws Exception {
-        // get transaction data for location payload
+        // get order data for location payload
         LocationSalesPayload locationSalesPayload = new LocationSalesPayload(timeZone, offset, dayTimeInterval,
                 locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Transaction transaction : TntLocationDetails.getTransactions(locationDetails.sqLocationId, squareClientV2,
-                aggregateIntervalParams)) {
-            locationSalesPayload.addEntry(transaction);
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        for (Order order : orders) {
+            locationSalesPayload.addEntry(order, tenderToPayment);
         }
 
         return locationSalesPayload;
     }
 
-    private ItemSalesPayload generateItemSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
+    private ItemSalesPayload generateItemSalesPayload(SquareClientV2 squareClientV2, TntLocationDetails locationDetails,
             Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval,
             List<Map<String, String>> dbItemRows, int offset) throws Exception {
         // get item sales payload for single location
         ItemSalesPayload itemSalesPayload = new ItemSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
-        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            // only include payments that were not fully refunded (returned)
-            if (!hasFullRefund(payment)) {
-                itemSalesPayload.addPayment(payment, dbItemRows);
-            }
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+
+        // Get orders and payments for just one location, over the entire range
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+
+        // Get refunds for orders
+        Map<String, List<PaymentRefund>> ordersToRefundsMap = ConnectV2MigrationHelper.getRefundsForOrders(squareClientV2, orders, payments);
+
+        // Get catalog objects referenced by orders
+        Map<String, CatalogObject> catalogObjects = ConnectV2MigrationHelper.getCatalogObjectsForOrder(squareClientV2, orders);
+
+        // Process each order for report
+        for (Order order : orders) {
+            itemSalesPayload.addOrder(order, catalogObjects, ordersToRefundsMap, dbItemRows);
         }
 
         return itemSalesPayload;
     }
 
-    private CreditDebitPayload generateCreditDebitPayload(SquareClient squareClientV1,
+    private CreditDebitPayload generateCreditDebitPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             List<Map<String, String>> dbLoadNumbers, int offset) throws Exception {
         // "credit debit" report, payload is per location
@@ -369,36 +367,46 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         }
 
         CreditDebitPayload creditDebitPayload = new CreditDebitPayload(timeZone, offset, loadNumber, locationDetails);
-        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V1, util.Constants.SORT_ORDER_ASC_V1);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            creditDebitPayload.addEntry(payment);
+        aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+
+        for (Order order : orders) {
+            creditDebitPayload.addEntry(order, tenderToPayment);
         }
 
         return creditDebitPayload;
     }
 
-    private GrossSalesPayload generateGrossSalesPayload(SquareClient squareClientV1, TntLocationDetails locationDetails,
+    private GrossSalesPayload generateGrossSalesPayload(SquareClientV2 squareClientV2, TntLocationDetails locationDetails,
             Map<String, String> aggregateIntervalParams, Map<String, String> dayTimeInterval, int offset)
             throws Exception {
-        // get transaction data for gross sales payload
+        // get order data for gross sales payload
         GrossSalesPayload grossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            grossSalesPayload.addPayment(payment);
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        for (Order order : orders) {
+            grossSalesPayload.addOrder(order, tenderToPayment);
         }
 
         return grossSalesPayload;
     }
 
-    private YoyGrossSalesPayload generateYoyGrossSalesPayload(SquareClient squareClientV1,
+    private YoyGrossSalesPayload generateYoyGrossSalesPayload(SquareClientV2 squareClientV2,
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             Map<String, String> dayTimeInterval, int offset) throws Exception {
-        // get transaction data for gross sales payload
+        // get order data for gross sales payload
         GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval,
                 locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, aggregateIntervalParams)) {
-            currentGrossSalesPayload.addPayment(payment);
+        Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        for (Order order : orders) {
+            currentGrossSalesPayload.addOrder(order, tenderToPayment);;
         }
 
         // get prior year time intervals
@@ -410,8 +418,11 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         GrossSalesPayload prevGrossSalesPayload = new GrossSalesPayload(timeZone, offset, prevDayTimeInterval,
                 locationDetails);
         prevAggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
-        for (Payment payment : TntLocationDetails.getPayments(squareClientV1, prevAggregateIntervalParams)) {
-            prevGrossSalesPayload.addPayment(payment);
+        Order[] prevOrders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, prevAggregateIntervalParams);
+        Payment[] prevPayments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, prevAggregateIntervalParams);
+        Map<String, Payment> prevTenderToPayment = TntLocationDetails.getTenderToPayment(prevOrders, prevPayments, squareClientV2, prevAggregateIntervalParams);
+        for (Order order : prevOrders) {
+            prevGrossSalesPayload.addOrder(order, prevTenderToPayment);
         }
 
         return new YoyGrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails, currentGrossSalesPayload,
