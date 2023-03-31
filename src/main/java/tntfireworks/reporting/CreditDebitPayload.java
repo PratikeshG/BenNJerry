@@ -68,7 +68,7 @@ public class CreditDebitPayload extends TntReportLocationPayload {
     	if(order != null && order.getTenders() != null) {
     		for (Tender tender : order.getTenders()) {
                 if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
-                	com.squareup.connect.v2.Payment payment = tenderToPayment.get(tender.getId());
+                	Payment payment = tenderToPayment.get(tender.getId());
                     // debits = total collected money without SQ fees but including
                     // tax
                     if (isPaymentTotalMoneyValid(payment)) {
@@ -90,11 +90,11 @@ public class CreditDebitPayload extends TntReportLocationPayload {
     	}
     }
 
-    public boolean isPaymentTotalMoneyValid(com.squareup.connect.v2.Payment payment) {
+    public boolean isPaymentTotalMoneyValid(Payment payment) {
     	return payment.getTotalMoney() != null && payment.getTotalMoney().getAmount() > 0;
     }
 
-    public boolean isPaymentRefundedMoneyValid(com.squareup.connect.v2.Payment payment) {
+    public boolean isPaymentRefundedMoneyValid(Payment payment) {
         return payment.getRefundedMoney() != null && payment.getRefundedMoney().getAmount() > 0;
     }
 
