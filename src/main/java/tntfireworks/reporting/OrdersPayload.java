@@ -56,17 +56,19 @@ public class OrdersPayload extends TntReportLocationPayload {
         if(order != null && order.getTenders() != null) {
 	    	 for (Tender tender : order.getTenders()) {
 	             // get fee from tenderToFee mapping
-	             if (tenderToFee.containsKey(tender.getId())) {
-	                 tenderFee = formatCurrencyTotal(tenderToFee.get(tender.getId()));
-	             }
+	    		 if(tender != null && tender.getType() != null && !tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {  // do not include 0 dollar payments
+	    			 if (tenderToFee.containsKey(tender.getId())) {
+		                 tenderFee = formatCurrencyTotal(tenderToFee.get(tender.getId()));
+		             }
 
-	             // retrieve entry method, if null (for cash), set to NA
-	             if (tenderToEntryMethod.containsKey(tender.getId())) {
-	                 tenderEntryMethod = tenderToEntryMethod.get(tender.getId());
-	             }
-	             Payment payment = tenderToPayment.get(tender.getId());
+		             // retrieve entry method, if null (for cash), set to NA
+		             if (tenderToEntryMethod.containsKey(tender.getId())) {
+		                 tenderEntryMethod = tenderToEntryMethod.get(tender.getId());
+		             }
+		             Payment payment = tenderToPayment.get(tender.getId());
 
-	             ordersPayloadEntries.add(new OrdersPayloadEntry(order, tender, tenderFee, tenderEntryMethod, payment));
+		             ordersPayloadEntries.add(new OrdersPayloadEntry(order, tender, tenderFee, tenderEntryMethod, payment));
+	    		 }
 	         }
         }
     }
@@ -116,24 +118,17 @@ public class OrdersPayload extends TntReportLocationPayload {
 
         private OrdersPayloadEntry(Order order, Tender tender, String tenderFee, String tenderEntryMethod, Payment payment) {
             // initialize payment data
-        	int totalMoney = 0;
-        	if(order.getLineItems() != null) {
-        		totalMoney = Arrays.stream(order.getLineItems())
-            			.map(OrderLineItem::getGrossSalesMoney)
-                		.filter(Objects::nonNull)
-            			.mapToInt(Money::getAmount)
-            			.sum();
-        	}
+        	int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
         	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
-        	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? -order.getTotalDiscountMoney().getAmount() : 0;
+        	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? order.getTotalDiscountMoney().getAmount() : 0;
         	int totalTipMoney = payment.getTipMoney() != null ? payment.getTipMoney().getAmount() : 0;
         	int netAmounts = order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
 
         	orderId = order.getId();
             createdAt = order.getCreatedAt();
-            grossSales = totalMoney;
-            discounts = totalDiscountMoney;
-            netSales = totalMoney + totalDiscountMoney;
+            grossSales = totalMoney - totalTaxMoney + totalDiscountMoney - totalTipMoney;
+            discounts = -totalDiscountMoney;
+            netSales = totalMoney - totalTaxMoney - totalTipMoney;
             tax = totalTaxMoney;
             tip = totalTipMoney;
             int totalProcessingFee = 0;
