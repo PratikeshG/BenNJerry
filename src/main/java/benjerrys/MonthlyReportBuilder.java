@@ -216,30 +216,35 @@ public class MonthlyReportBuilder {
         if (paymentRefunds != null) {
             List<PaymentRefund> refundsInRange = getRefundsInReportDateRange(beginTimeCalendar, endTimeCalendar);
             for(PaymentRefund paymentRefund : refundsInRange) {
-            	if(paymentRefund != null) {
-            		String orderId = paymentRefund.getOrderId();
-                	Order order = orders.get(orderId);
-                	if(order != null && payments.get(paymentRefund.getPaymentId()) != null) {
-                		Money moneyFromPaymentRefund = paymentRefund.getAmountMoney();
-                		Payment originalPayment = payments.get(paymentRefund.getPaymentId());
-                		if(originalPayment != null && originalPayment.getOrderId() != null && orders.get(originalPayment.getOrderId()) != null) {
-                			Order originalOrder = orders.get(originalPayment.getOrderId());
-                    		Money moneyFromOrder = originalOrder.getTotalMoney();
+            	if(paymentRefund != null && paymentRefund.getPaymentId() != null) {
+            		Money moneyFromPaymentRefund = paymentRefund.getAmountMoney();
+            		Payment originalPayment = payments.get(paymentRefund.getPaymentId());
+            		if(originalPayment != null && originalPayment.getOrderId() != null) {
+            			Order originalOrder;
+	            		try {
+	            			originalOrder = orders.get(originalPayment.getOrderId());
+	        			} catch(Exception e) {
+	        				System.out.println("paymentRefundId: " + paymentRefund.getId());
+	        				System.out.println("refund paymentId: " + originalPayment.getId());
+	        				System.out.println("refund orderId: " + originalPayment.getOrderId());
+	        				System.out.print("failed to get order from orders map: " + e.getMessage());
+	        				throw e;
+	        			}
+                		Money moneyFromOrder = originalOrder.getTotalMoney();
 
-                        	if (moneyFromPaymentRefund != null && moneyFromOrder != null && moneyFromPaymentRefund.getAmount() == moneyFromOrder.getAmount()) {
-                        		// This is a full refund, so process refund as itemized data
-                        		if(originalOrder.getLineItems() != null) {
-                        			for (OrderLineItem orderLineItem : originalOrder.getLineItems()) {
-                                		CategoryData categoryData = getCalculationCategory(orderLineItem);
-                                		refundFullCategoryTotals(categoryData, orderLineItem);
-                            		}
+                    	if (moneyFromPaymentRefund != null && moneyFromOrder != null && moneyFromPaymentRefund.getAmount() == moneyFromOrder.getAmount()) {
+                    		// This is a full refund, so process refund as itemized data
+                    		if(originalOrder.getLineItems() != null) {
+                    			for (OrderLineItem orderLineItem : originalOrder.getLineItems()) {
+                            		CategoryData categoryData = getCalculationCategory(orderLineItem);
+                            		refundFullCategoryTotals(categoryData, orderLineItem);
                         		}
-                        	} else {
-                        		// These are partial refund(s), so process partial refund(s) as uncategorized refunds
-                        		refundPartialCategoryTotals(paymentRefund);
-                        	}
-                		}
-                	}
+                    		}
+                    	} else {
+                    		// These are partial refund(s), so process partial refund(s) as uncategorized refunds
+                    		refundPartialCategoryTotals(paymentRefund);
+                    	}
+            		}
             	}
             }
         }
