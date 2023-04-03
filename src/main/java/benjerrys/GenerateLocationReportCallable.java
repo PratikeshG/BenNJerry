@@ -131,7 +131,7 @@ public class GenerateLocationReportCallable implements Callable {
     private List<String> setLocationEmailRecipients(MuleMessage message, Location location, Employee[] employees) {
         //List<String> emailRecipients = reportRecipients(location, employees);
     	List<String> emailRecipients =  new ArrayList<>();
-    	emailRecipients.add("junik@squareup.com");
+    	emailRecipients.add("benjerrys+debug@squareup.com");
         message.setProperty("locationRecipients", String.join(",", emailRecipients), PropertyScope.INVOCATION);
 
         return emailRecipients;
