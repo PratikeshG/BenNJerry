@@ -190,14 +190,29 @@ public class GenerateLocationReportCallable implements Callable {
         MonthlyReportBuilder reportBuilder = new MonthlyReportBuilder(location.getName(), dateMonthYear,
                 dateParams.get(Constants.BEGIN_TIME), dateParams.get(Constants.END_TIME));
 
-        // Get Payments
+        // Get payments
         Payment[] paymentsArray = clientV2.payments().list(dateParams);
         Map<String, Payment> paymentsMap = new HashMap<>();
         Arrays.stream(paymentsArray).forEach(payment -> paymentsMap.put(payment.getId(), payment));
-        reportBuilder.setPayments(paymentsMap);
 
-        // Get PaymentRefunds
-        reportBuilder.setPaymentRefunds(clientV2.refunds().listPaymentRefunds(dateParams));
+        // Get payment refunds
+        PaymentRefund[] refunds = clientV2.refunds().listPaymentRefunds(dateParams);
+
+        if(refunds != null) {
+            for(PaymentRefund refund : refunds) {
+            	if(refund != null && refund.getPaymentId() != null) {
+            		Payment payment = paymentsMap.get(refund.getPaymentId());
+            		if(payment == null) {
+            			// get payment object from refunds if it doesn't already exist in the payments map
+            			payment = clientV2.payments().get(refund.getPaymentId());
+            			paymentsMap.put(refund.getPaymentId(), payment);
+            		}
+            	}
+            }
+        }
+
+        reportBuilder.setPayments(paymentsMap);
+        reportBuilder.setPaymentRefunds(refunds);
 
         Map<String, Order> orders = new HashMap<String, Order>();
         HashSet<String> orderIdSet = new HashSet<String>();

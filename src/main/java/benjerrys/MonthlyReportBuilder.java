@@ -216,13 +216,20 @@ public class MonthlyReportBuilder {
         if (paymentRefunds != null) {
             List<PaymentRefund> refundsInRange = getRefundsInReportDateRange(beginTimeCalendar, endTimeCalendar);
             for(PaymentRefund paymentRefund : refundsInRange) {
-            	if(paymentRefund != null) {
-            		String orderId = paymentRefund.getOrderId();
-                	Order order = orders.get(orderId);
-                	if(order != null) {
-                		Money moneyFromPaymentRefund = paymentRefund.getAmountMoney();
-                		Payment originalPayment = payments.get(paymentRefund.getPaymentId());
-                		Order originalOrder = orders.get(originalPayment.getOrderId());
+            	if(paymentRefund != null && paymentRefund.getPaymentId() != null) {
+            		Money moneyFromPaymentRefund = paymentRefund.getAmountMoney();
+            		Payment originalPayment = payments.get(paymentRefund.getPaymentId());
+            		if(originalPayment != null && originalPayment.getOrderId() != null) {
+            			Order originalOrder;
+	            		try {
+	            			originalOrder = orders.get(originalPayment.getOrderId());
+	        			} catch(Exception e) {
+	        				System.out.println("paymentRefundId: " + paymentRefund.getId());
+	        				System.out.println("refund paymentId: " + originalPayment.getId());
+	        				System.out.println("refund orderId: " + originalPayment.getOrderId());
+	        				System.out.print("failed to get order from orders map: " + e.getMessage());
+	        				throw e;
+	        			}
                 		Money moneyFromOrder = originalOrder.getTotalMoney();
 
                     	if (moneyFromPaymentRefund != null && moneyFromOrder != null && moneyFromPaymentRefund.getAmount() == moneyFromOrder.getAmount()) {
@@ -237,7 +244,7 @@ public class MonthlyReportBuilder {
                     		// These are partial refund(s), so process partial refund(s) as uncategorized refunds
                     		refundPartialCategoryTotals(paymentRefund);
                     	}
-                	}
+            		}
             	}
             }
         }
