@@ -121,7 +121,7 @@ public class OrdersPayload extends TntReportLocationPayload {
         	int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
         	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
         	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? order.getTotalDiscountMoney().getAmount() : 0;
-        	int totalTipMoney = payment.getTipMoney() != null ? payment.getTipMoney().getAmount() : 0;
+        	int totalTipMoney = order.getTotalTipMoney() != null ? order.getTotalTipMoney().getAmount() : 0;
         	int netAmounts = order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
 
         	orderId = order.getId();
