@@ -39,7 +39,7 @@ public class LocationsCallable implements Callable {
 
         // Get shared employees list
         SquareClient clientV1 = new SquareClient(accessToken, apiUrl, "v1", merchantId);
-        message.setProperty(Constants.EMPLOYEES, clientV1.employees().list(), PropertyScope.SESSION);
+        //message.setProperty(Constants.EMPLOYEES, clientV1.employees().list(), PropertyScope.SESSION);
 
         return locations;
     }
