@@ -86,7 +86,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
      */
     private void addDiscountEntry(Order order) throws ParseException {
         // quantity of 1 is used to track total number of discounted payments
-        if (order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() > 0) {
+        if (order != null && order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() > 0) {
             addEntry(order.getCreatedAt(), DISCOUNT_ITEM_NUMBER, -order.getTotalDiscountMoney().getAmount(),
                     DEFAULT_ITEM_QTY, DISCOUNT_ITEM_NUMBER, DISCOUNT_ITEM_DESCRIPTION, DISCOUNT_ITEM_SKU);
         }
@@ -125,7 +125,9 @@ public class ItemSalesPayload extends TntReportLocationPayload {
 
                 double quantity = Double.parseDouble(lineItem.getQuantity());
 
-                addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney().getAmount(),
+                addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney() != null ?
+                		lineItem.getGrossSalesMoney().getAmount()
+                		: 0,
                 		quantity, itemNumber, itemDesc, itemSku);
             }
     	}
@@ -135,7 +137,8 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     private void addPartialRefundEntries(List<PaymentRefund> refunds, Order order) throws ParseException {
     	// TODO implement
         for (PaymentRefund refund : refunds) {
-            if (refund.getAmountMoney().getAmount() != order.getTotalMoney().getAmount()) {
+            if (refund.getAmountMoney()!= null && order.getTotalMoney() != null &&
+            		refund.getAmountMoney().getAmount() != order.getTotalMoney().getAmount()) {
                 addEntry(refund.getCreatedAt(), PARTIAL_REFUND_ITEM_NUMBER, -refund.getAmountMoney().getAmount(),
                         DEFAULT_ITEM_QTY, PARTIAL_REFUND_ITEM_NUMBER, PARTIAL_REFUND_ITEM_DESCRIPTION,
                         PARTIAL_REFUND_ITEM_SKU);

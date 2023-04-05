@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +56,7 @@ public class ConnectV2MigrationHelper {
             					if (result.containsKey(order.getId())) {
                 					result.get(order.getId()).add(refund);
                 				} else {
-                					result.put(order.getId(), Arrays.asList(refund));
+                					result.put(order.getId(), new ArrayList<>(Arrays.asList(refund)));
                 				}
             				}
             			}
@@ -85,16 +86,6 @@ public class ConnectV2MigrationHelper {
     		.filter(Objects::nonNull)
     		.collect(Collectors.toSet())
     		.toArray(new String[0]);
-
-    	for(Order order : orders) {
-    		if(order.getLineItems() != null) {
-    			for(OrderLineItem lineItem : order.getLineItems()) {
-    				if(lineItem.getCatalogObjectId() == null) {
-    					System.out.println(order.getId());
-    				}
-    			}
-    		}
-    	}
 
     	CatalogObject[] catalogObjects = squareClientV2.catalog().batchRetrieve(catalogObjectIds, false);
     	Map<String, CatalogObject> catalogObjectsMap = new HashMap<>();

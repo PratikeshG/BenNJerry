@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.ProcessingFee;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.Order;
@@ -104,7 +105,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
             Calendar transactionTime = TimeManager.toCalendar(order.getCreatedAt());
 
             // add payment details to totals
-            addTotalCollectedMoney(order, transactionTime);
+            addTotalCollectedMoney(order, transactionTime, tenderToPayment);
             addDiscountMoney(order, transactionTime);
             addRefundedMoney(order, transactionTime);
             addTaxMoney(order, transactionTime);
@@ -135,7 +136,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
         return result.setScale(resultPrecision, RoundingMode.HALF_UP).intValue();
     }
 
-    private void addTotalCollectedMoney(Order order, Calendar transactionTime) {
+    private void addTotalCollectedMoney(Order order, Calendar transactionTime, Map<String, Payment> tenderToPayment) {
     	//if net amount is negative, don't add it to total collected money, because it is a refund order
         if (order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null && order.getNetAmounts().getTotalMoney().getAmount() > 0) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
@@ -178,18 +179,15 @@ public class GrossSalesPayload extends TntReportLocationPayload {
     private void addGrossSalesMoney(Order order, Calendar transactionTime) {
         // NOTE: TNT defines "Gross Sales" as sales amount before taxes and discounts, refunds
         // V1 Payment.gross_sales_money is total sales before taxes, discounts, and refunds
-    	int totalMoney = 0;
-    	if(order.getLineItems() != null) {
-    		totalMoney = Arrays.stream(order.getLineItems())
-        			.map(OrderLineItem::getGrossSalesMoney)
-            		.filter(Objects::nonNull)
-        			.mapToInt(Money::getAmount)
-        			.sum();
-    	}
+    	int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
+    	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
+    	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? order.getTotalDiscountMoney().getAmount() : 0;
+    	int totalTipMoney = order.getTotalTipMoney() != null ? order.getTotalTipMoney().getAmount() : 0;
+        int grossSales = totalMoney - totalTaxMoney + totalDiscountMoney - totalTipMoney;
         if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-            dailyGrossSales += totalMoney;
+            dailyGrossSales += grossSales;
         }
-        seasonGrossSales += totalMoney;
+        seasonGrossSales += grossSales;
     }
 
     private void addTenderTotals(Order order, Calendar transactionTime, Map<String, Payment> tenderToPayment) {
