@@ -1,7 +1,10 @@
 package tntfireworks.reporting;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.Tender;
+import java.util.Map;
+
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.Tender;
+import com.squareup.connect.v2.Order;
 
 /*
  * Report 8 - "Credit Debit Report" - Placed on SFTP daily
@@ -59,39 +62,42 @@ public class CreditDebitPayload extends TntReportLocationPayload {
         this.loadNumber = loadNumber;
     }
 
-    public void addEntry(Payment payment) {
+    public void addEntry(Order order, Map<String, Payment> tenderToPayment) {
         // compute debit/credit data based on interval specified in
         // RetrieveMerchantPayloadCallable
-        for (Tender tender : payment.getTender()) {
-            if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
-                // debits = total collected money without SQ fees but including
-                // tax
-                if (isTenderTotalMoneyValid(tender)) {
-                    debitCount++;
-                    debitAmt += tender.getTotalMoney().getAmount();
-                }
+    	if(order != null && order.getTenders() != null) {
+    		for (Tender tender : order.getTenders()) {
+                if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+                	Payment payment = tenderToPayment.get(tender.getId());
+                    // debits = total collected money without SQ fees but including
+                    // tax
+                    if (isPaymentTotalMoneyValid(payment)) {
+                        debitCount++;
+                        debitAmt += payment.getTotalMoney().getAmount();
+                    }
 
-                // credits = refunds without discounts (credits are negative
-                // values)
-                if (isTenderRefundedMoneyValid(tender)) {
-                    creditCount++;
-                    creditAmt += tender.getRefundedMoney().getAmount();
+                    // credits = refunds without discounts (credits are negative
+                    // values)
+                    if (isPaymentRefundedMoneyValid(payment)) {
+                        creditCount++;
+                        creditAmt -= payment.getRefundedMoney().getAmount();
+                    }
                 }
             }
-        }
 
-        ticketCount = debitCount + creditCount;
-        netDepositAmt = debitAmt + creditAmt;
+            ticketCount = debitCount + creditCount;
+            netDepositAmt = debitAmt + creditAmt;
+    	}
     }
 
-    public boolean isTenderTotalMoneyValid(Tender tender) {
-        return tender.getTotalMoney() != null && tender.getTotalMoney().getAmount() > 0;
+    public boolean isPaymentTotalMoneyValid(Payment payment) {
+    	return payment.getTotalMoney() != null && payment.getTotalMoney().getAmount() > 0;
     }
 
-    public boolean isTenderRefundedMoneyValid(Tender tender) {
-        return tender.getRefundedMoney() != null && tender.getRefundedMoney().getAmount() < 0;
+    public boolean isPaymentRefundedMoneyValid(Payment payment) {
+        return payment.getRefundedMoney() != null && payment.getRefundedMoney().getAmount() > 0;
     }
-    
+
     public int getNetDepositAmt() {
     	return netDepositAmt;
     }

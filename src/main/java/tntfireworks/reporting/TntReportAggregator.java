@@ -1,24 +1,17 @@
 package tntfireworks.reporting;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Calendar;
-import java.util.TimeZone;
-
 import javax.activation.DataHandler;
-
 import org.mule.api.MuleMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSchException;
 
 import tntfireworks.SshUtil;
 import util.CloudStorageApi;
-import util.TimeManager;
 
 public class TntReportAggregator {
     private static Logger logger = LoggerFactory.getLogger(TntReportAggregator.class);

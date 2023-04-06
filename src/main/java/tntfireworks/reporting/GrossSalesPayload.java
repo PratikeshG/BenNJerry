@@ -3,14 +3,20 @@ package tntfireworks.reporting;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.Tender;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.ProcessingFee;
+import com.squareup.connect.v2.Tender;
+import com.squareup.connect.v2.Money;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.OrderLineItem;
 
 import util.TimeManager;
 
@@ -93,18 +99,18 @@ public class GrossSalesPayload extends TntReportLocationPayload {
 
     }
 
-    public void addPayment(Payment payment) {
+    public void addOrder(Order order, Map<String, Payment> tenderToPayment) {
         try {
             // use calendar objects to daily interval
-            Calendar transactionTime = TimeManager.toCalendar(payment.getCreatedAt());
+            Calendar transactionTime = TimeManager.toCalendar(order.getCreatedAt());
 
             // add payment details to totals
-            addTotalCollectedMoney(payment, transactionTime);
-            addDiscountMoney(payment, transactionTime);
-            addRefundedMoney(payment, transactionTime);
-            addTaxMoney(payment, transactionTime);
-            addGrossSalesMoney(payment, transactionTime);
-            addTenderTotals(payment, transactionTime);
+            addTotalCollectedMoney(order, transactionTime, tenderToPayment);
+            addDiscountMoney(order, transactionTime);
+            addRefundedMoney(order, transactionTime);
+            addTaxMoney(order, transactionTime);
+            addGrossSalesMoney(order, transactionTime);
+            addTenderTotals(order, transactionTime, tenderToPayment);
 
             // calculate daily and seasonal averages as defined by TNT
             // avg gross = gross sales / transaction count
@@ -130,78 +136,86 @@ public class GrossSalesPayload extends TntReportLocationPayload {
         return result.setScale(resultPrecision, RoundingMode.HALF_UP).intValue();
     }
 
-    private void addTotalCollectedMoney(Payment payment, Calendar transactionTime) {
-        if (payment.getTotalCollectedMoney() != null) {
+    private void addTotalCollectedMoney(Order order, Calendar transactionTime, Map<String, Payment> tenderToPayment) {
+    	//if net amount is negative, don't add it to total collected money, because it is a refund order
+        if (order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null && order.getNetAmounts().getTotalMoney().getAmount() > 0) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyTotalCollected += payment.getTotalCollectedMoney().getAmount();
+                dailyTotalCollected += order.getNetAmounts().getTotalMoney().getAmount();
                 dailyTransactionCount++;
             }
-            seasonTotalCollected += payment.getTotalCollectedMoney().getAmount();
+
+            seasonTotalCollected += order.getNetAmounts().getTotalMoney().getAmount();
             seasonTransactionCount++;
         }
     }
 
-    private void addDiscountMoney(Payment payment, Calendar transactionTime) {
-        if (payment.getDiscountMoney() != null) {
+    private void addDiscountMoney(Order order, Calendar transactionTime) {
+        if (order.getTotalDiscountMoney() != null) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyDiscountTotals += payment.getDiscountMoney().getAmount();
+                dailyDiscountTotals -= order.getTotalDiscountMoney().getAmount();
             }
-            seasonDiscountTotals += payment.getDiscountMoney().getAmount();
+            seasonDiscountTotals -= order.getTotalDiscountMoney().getAmount();
         }
     }
 
-    private void addRefundedMoney(Payment payment, Calendar transactionTime) {
-        if (payment.getRefundedMoney() != null) {
+    private void addRefundedMoney(Order order, Calendar transactionTime) {
+        if (order.getReturnAmounts() != null && order.getReturnAmounts().getTotalMoney() != null) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyRefundTotals += payment.getRefundedMoney().getAmount();
+                dailyRefundTotals -= order.getReturnAmounts().getTotalMoney().getAmount();
             }
-            seasonRefundTotals += payment.getRefundedMoney().getAmount();
+            seasonRefundTotals -= order.getReturnAmounts().getTotalMoney().getAmount();
         }
     }
 
-    private void addTaxMoney(Payment payment, Calendar transactionTime) {
-        if (payment.getTaxMoney() != null) {
+    private void addTaxMoney(Order order, Calendar transactionTime) {
+        if (order.getTotalTaxMoney() != null) {
             if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyTaxTotals += payment.getTaxMoney().getAmount();
+                dailyTaxTotals += order.getTotalTaxMoney().getAmount();
             }
-            seasonTaxTotals += payment.getTaxMoney().getAmount();
+            seasonTaxTotals += order.getTotalTaxMoney().getAmount();
         }
     }
 
-    private void addGrossSalesMoney(Payment payment, Calendar transactionTime) {
+    private void addGrossSalesMoney(Order order, Calendar transactionTime) {
         // NOTE: TNT defines "Gross Sales" as sales amount before taxes and discounts, refunds
         // V1 Payment.gross_sales_money is total sales before taxes, discounts, and refunds
-        if (payment.getGrossSalesMoney() != null) {
-            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyGrossSales += payment.getGrossSalesMoney().getAmount();
-            }
-            seasonGrossSales += payment.getGrossSalesMoney().getAmount();
+    	int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
+    	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
+    	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? order.getTotalDiscountMoney().getAmount() : 0;
+    	int totalTipMoney = order.getTotalTipMoney() != null ? order.getTotalTipMoney().getAmount() : 0;
+        int grossSales = totalMoney - totalTaxMoney + totalDiscountMoney - totalTipMoney;
+        if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+            dailyGrossSales += grossSales;
         }
+        seasonGrossSales += grossSales;
     }
 
-    private void addTenderTotals(Payment payment, Calendar transactionTime) {
+    private void addTenderTotals(Order order, Calendar transactionTime, Map<String, Payment> tenderToPayment) {
         // loop through payment tenders for cash / credit totals
-        for (Tender tender : payment.getTender()) {
-            if (tender.getTotalMoney() != null) {
-                if (tender.getType().equals(tender.TENDER_TYPE_CARD)) {
-                    if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                        dailyCreditTotals += tender.getTotalMoney().getAmount();
-                        dailyCreditCount++;
+    	if(order.getTenders() != null) {
+    		for (Tender tender : order.getTenders()) {
+    			Payment payment = tenderToPayment.get(tender.getId());
+                if (payment.getTotalMoney() != null) {
+                    if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+                        if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                            dailyCreditTotals += payment.getTotalMoney().getAmount();
+                            dailyCreditCount++;
+                        }
+                        seasonCreditTotals += payment.getTotalMoney().getAmount();
+                        seasonCreditCount++;
                     }
-                    seasonCreditTotals += tender.getTotalMoney().getAmount();
-                    seasonCreditCount++;
-                }
 
-                if (tender.getType().equals(tender.TENDER_TYPE_CASH)) {
-                    if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                        dailyCashTotals += tender.getTotalMoney().getAmount();
-                        dailyCashCount++;
+                    if (tender.getType().equals(Tender.TENDER_TYPE_CASH)) {
+                        if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                            dailyCashTotals += payment.getTotalMoney().getAmount();
+                            dailyCashCount++;
+                        }
+                        seasonCashTotals += payment.getTotalMoney().getAmount();
+                        seasonCashCount++;
                     }
-                    seasonCashTotals += tender.getTotalMoney().getAmount();
-                    seasonCashCount++;
                 }
             }
-        }
+    	}
     }
 
     public String getRow() {

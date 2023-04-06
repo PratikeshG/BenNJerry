@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.squareup.connect.Settlement;
-import com.squareup.connect.SettlementEntry;
+import com.squareup.connect.v2.Payout;
+import com.squareup.connect.v2.PayoutEntry;
 
 /*
  * "Settlements Report" - Emailed first of each month
@@ -16,35 +16,35 @@ import com.squareup.connect.SettlementEntry;
  * only source of information for this report.
  *
  */
-public class SettlementsPayload extends TntReportLocationPayload {
+public class PayoutsPayload extends TntReportLocationPayload {
     // write file header
     private static final String SETTLEMENTS_FILE_HEADER = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n",
-            "Location Number", "Settlement Id", "Initiated At (UTC)", "Settlement Amount", "Settlement Fee", "Type",
+            "Location Number", "Payout Id", "Initiated At (UTC)", "Payout Amount", "Payout Fee", "Type",
             "RBU", "City", "State", "Zip");
-    private List<SettlementsPayloadEntry> payloadEntries;
+    private List<PayoutsPayloadEntry> payloadEntries;
 
     // each SettlementsPayload object represents all settlements within a single
     // location
-    public SettlementsPayload(String timeZone, int offset, TntLocationDetails locationDetails) {
+    public PayoutsPayload(String timeZone, int offset, TntLocationDetails locationDetails) {
         super(timeZone, offset, locationDetails, SETTLEMENTS_FILE_HEADER);
         // initialize payload values
-        payloadEntries = new ArrayList<SettlementsPayloadEntry>();
+        payloadEntries = new ArrayList<PayoutsPayloadEntry>();
     }
 
-    public void addEntry(Settlement settlement) {
-        payloadEntries.add(new SettlementsPayloadEntry(settlement));
+    public void addEntry(Payout payout, PayoutEntry[] payoutEntries) {
+        payloadEntries.add(new PayoutsPayloadEntry(payout, payoutEntries));
     }
 
     public List<String> getRows() {
         ArrayList<String> rows = new ArrayList<String>();
 
-        for (SettlementsPayloadEntry payloadEntry : payloadEntries) {
-            for (SettlementEntry settlementEntry : payloadEntry.settlementEntries) {
+        for (PayoutsPayloadEntry payloadEntry : payloadEntries) {
+            for (PayoutEntry payoutEntry : payloadEntry.payoutEntries) {
                 // write row
                 String row = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n", locationDetails.locationNumber,
-                        payloadEntry.settlementId, payloadEntry.initiatedAt,
-                        formatCurrencyTotal(settlementEntry.getAmountMoney().getAmount()),
-                        formatCurrencyTotal(settlementEntry.getFeeMoney().getAmount()), settlementEntry.getType(),
+                        payloadEntry.payoutId, payloadEntry.initiatedAt,
+                        formatCurrencyTotal(payoutEntry.getNetAmountMoney().getAmount()),
+                        formatCurrencyTotal(-payoutEntry.getFeeAmountMoney().getAmount()), payoutEntry.getType(),
                         locationDetails.rbu, locationDetails.city, locationDetails.state, locationDetails.zip);
                 rows.add(row);
             }
@@ -55,18 +55,18 @@ public class SettlementsPayload extends TntReportLocationPayload {
 
     // each SettlementsPayloadEntry represents a single settlement
     // with multiple settlement entries
-    private class SettlementsPayloadEntry {
-        private String settlementId;
+    private class PayoutsPayloadEntry {
+        private String payoutId;
         private String initiatedAt;
-        private List<SettlementEntry> settlementEntries;
+        private List<PayoutEntry> payoutEntries;
 
-        private SettlementsPayloadEntry(Settlement settlement) {
+        private PayoutsPayloadEntry(Payout payout, PayoutEntry[] payoutEntries) {
             // initialize settlement information
-            settlementId = settlement.getId();
-            initiatedAt = settlement.getInitiatedAt();
+            payoutId = payout.getId();
+            initiatedAt = payout.getCreatedAt();
 
             // initialize settlement entries
-            settlementEntries = Arrays.asList(settlement.getEntries());
+            this.payoutEntries = Arrays.asList(payoutEntries);
         }
     }
 }

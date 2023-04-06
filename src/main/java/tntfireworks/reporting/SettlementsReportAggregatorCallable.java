@@ -20,7 +20,8 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
 
         logger.info("Aggregate settlements report payloads...");
         // build report from payloads
-        List<List<SettlementsPayload>> payloadAggregate = (List<List<SettlementsPayload>>) message.getPayload();
+
+        List<List<PayoutsPayload>> payloadAggregate = (List<List<PayoutsPayload>>) message.getPayload();
 
         StringBuilder reportBuilder = new StringBuilder();
         String fileDate = "";
@@ -32,13 +33,14 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         }
 
         // add file rows
-        for (List<SettlementsPayload> masterPayload : payloadAggregate) {
-            for (SettlementsPayload locationPayload : masterPayload) {
+        for (List<PayoutsPayload> masterPayload : payloadAggregate) {
+            for (PayoutsPayload locationPayload : masterPayload) {
                 for (String fileRow : locationPayload.getRows()) {
                     reportBuilder.append(fileRow);
                 }
             }
         }
+
         logger.info("Finished aggregating settlements report payloads");
 
         String reportName = fileDate + "-report-1.csv";
@@ -55,7 +57,7 @@ public class SettlementsReportAggregatorCallable extends TntReportAggregator imp
         return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 
-    private boolean payloadExists(List<List<SettlementsPayload>> payloadAggregate) {
+    private boolean payloadExists(List<List<PayoutsPayload>> payloadAggregate) {
         return !(payloadAggregate.isEmpty() || payloadAggregate.get(0).isEmpty());
     }
 }

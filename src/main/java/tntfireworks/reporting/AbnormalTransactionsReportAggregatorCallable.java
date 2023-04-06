@@ -13,7 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.Payment;
 
 public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggregator implements Callable {
     private static Logger logger = LoggerFactory.getLogger(AbnormalTransactionsReportAggregatorCallable.class);
@@ -23,10 +24,10 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
         MuleMessage message = eventContext.getMessage();
         String adhoc = message.getProperty("adhoc", PropertyScope.SESSION);
 
-        logger.info("Start abnormal transactions report generation");
+        logger.info("Start abnormal orders report generation");
 
         // build report from payloads
-        List<List<AbnormalTransactionsPayload>> payloadAggregate = (List<List<AbnormalTransactionsPayload>>) message
+        List<List<AbnormalOrdersPayload>> payloadAggregate = (List<List<AbnormalOrdersPayload>>) message
                 .getPayload();
         StringBuilder reportBuilder = new StringBuilder();
         String fileDate = "";
@@ -39,11 +40,11 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
 
         // - payloadAggregate => contains master/merchant account payloads
         // - masterPayload => contains all location payloads
-        for (List<AbnormalTransactionsPayload> masterPayload : payloadAggregate) {
-            addAlert4TransactionsToMasterPayload(masterPayload);
+        for (List<AbnormalOrdersPayload> masterPayload : payloadAggregate) {
+            addAlert4OrdersToMasterPayload(masterPayload);
 
             // add rows to report/file
-            for (AbnormalTransactionsPayload locationPayload : masterPayload) {
+            for (AbnormalOrdersPayload locationPayload : masterPayload) {
                 for (String fileRow : locationPayload.getRows()) {
                     reportBuilder.append(fileRow);
                 }
@@ -65,76 +66,90 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
         return storeOrAttachReport(eventContext.getMessage(), reportName, generatedReport);
     }
 
-    private void addAlert4TransactionsToMasterPayload(List<AbnormalTransactionsPayload> masterPayload)
+    private void addAlert4OrdersToMasterPayload(List<AbnormalOrdersPayload> masterPayload)
             throws Exception {
         // this map is used to find cards used multiple times across an entire merchant account
-        // (k, v) == (fingerprint, List<Transaction>)
-        Map<String, ArrayList<Transaction>> fingerprintToTransactions = new HashMap<String, ArrayList<Transaction>>();
+        // (k, v) == (fingerprint, List<Order>)
+        Map<String, ArrayList<Order>> fingerprintToOrders = new HashMap<String, ArrayList<Order>>();
 
-        // this map of location payloads is used to add alert 4 transactions later
-        // (k, v) == (location_id, AbnormalTransactionsPayload)
-        Map<String, AbnormalTransactionsPayload> locationIdToLocationPayload = new HashMap<String, AbnormalTransactionsPayload>();
+        // this map of location payloads is used to add alert 4 orders later
+        // (k, v) == (location_id, AbnormalOrdersPayload)
+        Map<String, AbnormalOrdersPayload> locationIdToLocationPayload = new HashMap<String, AbnormalOrdersPayload>();
 
         // - map location payloads to location ids
-        // - map card fingerprints to matching transactions
-        for (AbnormalTransactionsPayload locationPayload : masterPayload) {
+        // - map card fingerprints to matching orders
+        for (AbnormalOrdersPayload locationPayload : masterPayload) {
             locationIdToLocationPayload.put(locationPayload.getLocationId(), locationPayload);
-            fingerprintToTransactions = addLocationFingerprints(locationPayload, fingerprintToTransactions);
+            fingerprintToOrders = addLocationFingerprints(locationPayload, fingerprintToOrders);
         }
 
-        // add transactions with fingerprints that qualify as alert 4 into location payloads as
+        // add orders with fingerprints that qualify as alert 4 into location payloads as
         // alert 4 entries
-        for (String fingerprint : fingerprintToTransactions.keySet()) {
-            if (isAlert4Fingerprint(fingerprint, fingerprintToTransactions)) {
-                addAlert4TransactionsToLocationPayload(fingerprint, fingerprintToTransactions,
+        for (String fingerprint : fingerprintToOrders.keySet()) {
+            if (isAlert4Fingerprint(fingerprint, fingerprintToOrders)) {
+                addAlert4OrdersToLocationPayload(fingerprint, fingerprintToOrders,
                         locationIdToLocationPayload);
             }
         }
     }
 
-    private void addAlert4TransactionsToLocationPayload(String fingerprint,
-            Map<String, ArrayList<Transaction>> fingerprintToTransactions,
-            Map<String, AbnormalTransactionsPayload> locationIdToLocationPayload) throws Exception {
-        for (Transaction transaction : fingerprintToTransactions.get(fingerprint)) {
-            if (locationIdToLocationPayload.containsKey(transaction.getLocationId())) {
-                locationIdToLocationPayload.get(transaction.getLocationId()).addAlert4Entry(transaction);
+    private void addAlert4OrdersToLocationPayload(String fingerprint,
+            Map<String, ArrayList<Order>> fingerprintToOrders,
+            Map<String, AbnormalOrdersPayload> locationIdToLocationPayload) throws Exception {
+    	if(fingerprintToOrders.containsKey(fingerprint)) {
+    		for (Order order : fingerprintToOrders.get(fingerprint)) {
+                if (locationIdToLocationPayload.containsKey(order.getLocationId())) {
+                    locationIdToLocationPayload.get(order.getLocationId()).addAlert4Entry(order);
+                }
             }
-        }
+    	}
     }
 
     private boolean isAlert4Fingerprint(String fingerprint,
-            Map<String, ArrayList<Transaction>> fingerprintToTransactions) {
-        return fingerprintToTransactions.get(fingerprint)
-                .size() >= AbnormalTransactionsPayload.SAME_CARD_PER_MERCHANT_LIMIT;
+            Map<String, ArrayList<Order>> fingerprintToOrders) {
+        return fingerprintToOrders.get(fingerprint)
+                .size() >= AbnormalOrdersPayload.SAME_CARD_PER_MERCHANT_LIMIT;
     }
 
-    private Map<String, ArrayList<Transaction>> addLocationFingerprints(AbnormalTransactionsPayload locationPayload,
-            Map<String, ArrayList<Transaction>> fingerprintToTransactions) {
+    private Map<String, ArrayList<Order>> addLocationFingerprints(AbnormalOrdersPayload locationPayload,
+            Map<String, ArrayList<Order>> fingerprintToOrders) {
+    	Map<String, Payment> tenderToPayment = locationPayload.getTenderToPayment();
+    	if(locationPayload.getLocationOrders() != null) {
+    		for (Order order : locationPayload.getLocationOrders()) {
+    			if(order.getTenders() != null) {
+    				for (Tender tender : order.getTenders()) {
+                        if (isRegister(tender, tenderToPayment) && tender.getCardDetails() != null && tender.getCardDetails().getCard() != null) {
+                            String fingerprint = tender.getCardDetails().getCard().getFingerprint();
 
-        for (Transaction transaction : locationPayload.getLocationTransactions()) {
-            for (Tender tender : transaction.getTenders()) {
-                if (tender.getType().equals(Tender.TENDER_TYPE_CARD)
-                        && transaction.getProduct().equals(Transaction.TRANSACTION_PRODUCT_REGISTER)) {
-                    if (tender.getCardDetails() != null && tender.getCardDetails().getCard() != null) {
-                        String fingerprint = tender.getCardDetails().getCard().getFingerprint();
-
-                        ArrayList<Transaction> transactions;
-                        if (fingerprintToTransactions.containsKey(fingerprint)) {
-                            transactions = fingerprintToTransactions.get(fingerprint);
-                        } else {
-                            transactions = new ArrayList<Transaction>();
+                            ArrayList<Order> orders;
+                            if (fingerprintToOrders.containsKey(fingerprint)) {
+                                orders = fingerprintToOrders.get(fingerprint);
+                            } else {
+                                orders = new ArrayList<Order>();
+                            }
+                            orders.add(order);
+                            fingerprintToOrders.put(fingerprint, orders);
                         }
-                        transactions.add(transaction);
-                        fingerprintToTransactions.put(fingerprint, transactions);
-                    }
-                }
+    				}
+    			}
             }
-        }
+    	}
 
-        return fingerprintToTransactions;
+        return fingerprintToOrders;
     }
 
-    private boolean payloadExists(List<List<AbnormalTransactionsPayload>> payloadAggregate) {
+    private boolean payloadExists(List<List<AbnormalOrdersPayload>> payloadAggregate) {
         return !(payloadAggregate.isEmpty() || payloadAggregate.get(0).isEmpty());
+    }
+
+    private boolean isRegister(Tender tender, Map<String, Payment> tenderMap) {
+      	 if (tender != null && tender.getType().equals(Tender.TENDER_TYPE_CARD) && tenderMap != null && tenderMap.get(tender.getId()) != null) {
+      		 Payment payment = tenderMap.get(tender.getId());
+      		 String squareProduct = payment.getApplicationDetails().getSquareProduct();
+      		 if (squareProduct.equals("SQUARE_POS") || squareProduct.equals("VIRTUAL_TERMINAL")) {
+      			 return true;
+      		 }
+      	 }
+      	 return false;
     }
 }

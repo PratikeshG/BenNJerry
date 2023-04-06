@@ -3,6 +3,7 @@ package tntfireworks.reporting;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,9 +11,11 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.PaymentItemization;
-import com.squareup.connect.Refund;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.Money;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.PaymentRefund;
 
 import tntfireworks.TntDatabaseApi;
 import util.TimeManager;
@@ -54,56 +57,89 @@ public class ItemSalesPayload extends TntReportLocationPayload {
         this.dailySalesDate = getDailySalesDate();
     }
 
-    public void addPayment(Payment payment, List<Map<String, String>> dbItemRows) {
-        try {
-            // NOTE: V1 payments does not show item-level discounts for percentages, therefore use discount_money on payment obj
-            addDiscountEntry(payment);
-            addItemizationEntries(payment, dbItemRows);
-            addPartialRefundEntry(payment);
-        } catch (Exception e) {
-            logger.error("ParseException from TimeManager: " + e.getCause());
-        }
-    }
+    // Add Order (used after migration off /v1/payments
+	public void addOrder(Order order, Map<String, CatalogObject> catalogObjects,
+			Map<String, List<PaymentRefund>> orderToRefundsMap, List<Map<String, String>> dbItemRows) {
+		try {
+			List<PaymentRefund> refunds = orderToRefundsMap.getOrDefault(order.getId(), Collections.EMPTY_LIST);
+			// If refunds sum up to full refund, ignore the order
+			int totalRefundAmount = refunds.stream()
+					.map(PaymentRefund::getAmountMoney)
+					.mapToInt(Money::getAmount)
+					.sum();
 
-    private void addDiscountEntry(Payment payment) throws ParseException {
+			if (totalRefundAmount == order.getTotalMoney().getAmount()) {
+				return;
+			}
+
+			addDiscountEntry(order);
+			addItemizationEntries(order, catalogObjects, dbItemRows);
+	        addPartialRefundEntries(refunds, order);
+
+	    } catch (Exception e) {
+	        logger.error("Exception processing order for ItemSalesPayload report: " + e.getCause());
+	    }
+	}
+
+    /**
+     * After /v2/payments/ migration -- discount is contained on Order
+     */
+    private void addDiscountEntry(Order order) throws ParseException {
         // quantity of 1 is used to track total number of discounted payments
-        if (payment.getDiscountMoney() != null && payment.getDiscountMoney().getAmount() < 0) {
-            addEntry(payment.getCreatedAt(), DISCOUNT_ITEM_NUMBER, payment.getDiscountMoney().getAmount(),
+        if (order != null && order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() > 0) {
+            addEntry(order.getCreatedAt(), DISCOUNT_ITEM_NUMBER, -order.getTotalDiscountMoney().getAmount(),
                     DEFAULT_ITEM_QTY, DISCOUNT_ITEM_NUMBER, DISCOUNT_ITEM_DESCRIPTION, DISCOUNT_ITEM_SKU);
         }
     }
 
-    private void addItemizationEntries(Payment payment, List<Map<String, String>> dbItemRows) throws ParseException {
+    /**
+     * After /v2/payments/ migration -- itemization entries are all contained within the order line items
+     */
+    private void addItemizationEntries(Order order, Map<String, CatalogObject> catalogObjects, List<Map<String, String>> dbItemRows) throws ParseException {
         // loop through payment itemizations and add to itemSalesPayloadEntries
-        for (PaymentItemization itemization : payment.getItemizations()) {
-            // add or update sale entries
-            String itemNumber = DEFAULT_ITEM_NUMBER;
-            String itemDesc = DEFAULT_ITEM_DESCRIPTION;
-            String itemSku = DEFAULT_ITEM_SKU;
+    	if(order != null && order.getLineItems() != null) {
+    		for (OrderLineItem lineItem : order.getLineItems()) {
+                // add or update sale entries
+                String itemNumber = DEFAULT_ITEM_NUMBER;
+                String itemDesc = DEFAULT_ITEM_DESCRIPTION;
+                String itemSku = DEFAULT_ITEM_SKU;
 
-            // assign square item sku if it exists
-            if (itemization.getItemDetail() != null && itemization.getItemDetail().getSku() != null) {
-                itemSku = itemization.getItemDetail().getSku();
-            }
-
-            // lookup tnt-specific item number and description based on matching sku
-            for (Map<String, String> row : dbItemRows) {
-                if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
-                    itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
-                    itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
-                    break;
+                // assign square item sku if it exists
+                if (lineItem.getCatalogObjectId() != null
+                		&& catalogObjects.containsKey(lineItem.getCatalogObjectId())) {
+                	CatalogObject catalogObject = catalogObjects.get(lineItem.getCatalogObjectId());
+                	if (catalogObject.getItemVariationData() != null
+                		&& catalogObject.getItemVariationData().getSku() != null) {
+                		itemSku = catalogObject.getItemVariationData().getSku();
+                	}
                 }
-            }
 
-            addEntry(payment.getCreatedAt(), itemNumber, itemization.getGrossSalesMoney().getAmount(),
-                    itemization.getQuantity(), itemNumber, itemDesc, itemSku);
-        }
+                // lookup tnt-specific item number and description based on matching sku
+                for (Map<String, String> row : dbItemRows) {
+                    if (itemSku.equals(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN))) {
+                        itemNumber = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_NUMBER_COLUMN);
+                        itemDesc = row.get(TntDatabaseApi.DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN);
+                        break;
+                    }
+                }
+
+                double quantity = Double.parseDouble(lineItem.getQuantity());
+
+                addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney() != null ?
+                		lineItem.getGrossSalesMoney().getAmount()
+                		: 0,
+                		quantity, itemNumber, itemDesc, itemSku);
+            }
+    	}
     }
 
-    private void addPartialRefundEntry(Payment payment) throws ParseException {
-        for (Refund refund : payment.getRefunds()) {
-            if (refund.getType().equals(Refund.TYPE_PARTIAL) && refund.getRefundedMoney() != null) {
-                addEntry(payment.getCreatedAt(), PARTIAL_REFUND_ITEM_NUMBER, refund.getRefundedMoney().getAmount(),
+    // Partial refund on order is if the refund doesn't equal the order's amount
+    private void addPartialRefundEntries(List<PaymentRefund> refunds, Order order) throws ParseException {
+    	// TODO implement
+        for (PaymentRefund refund : refunds) {
+            if (refund.getAmountMoney()!= null && order.getTotalMoney() != null &&
+            		refund.getAmountMoney().getAmount() != order.getTotalMoney().getAmount()) {
+                addEntry(refund.getCreatedAt(), PARTIAL_REFUND_ITEM_NUMBER, -refund.getAmountMoney().getAmount(),
                         DEFAULT_ITEM_QTY, PARTIAL_REFUND_ITEM_NUMBER, PARTIAL_REFUND_ITEM_DESCRIPTION,
                         PARTIAL_REFUND_ITEM_SKU);
             }
