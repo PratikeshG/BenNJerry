@@ -37,12 +37,12 @@ public class CsvItem extends CsvRow implements Serializable {
     @NotNull
     @Size(min = 1)
     private String marketingPlan;
-    private String bogo;
+    private String discount;
     private String itemNum3;
     @NotNull
     @Size(min = 3)
     private String currency;
-    private String halfOff;
+    private String notUsed;
     @NotNull
     @Size(min = 1)
     private String sellingPrice;
@@ -151,12 +151,12 @@ public class CsvItem extends CsvRow implements Serializable {
         return effectiveDate;
     }
 
-    public void setBOGO(String bogo) {
-        this.bogo = bogo;
+    public void setDiscount(String discount) {
+        this.discount = discount;
     }
 
-    public String getBOGO() {
-        return bogo;
+    public String getDiscount() {
+        return this.discount;
     }
 
     public void setItemNum3(String itemNum3) {
@@ -175,6 +175,14 @@ public class CsvItem extends CsvRow implements Serializable {
         return currency;
     }
 
+    public String getNotUsed() {
+        return this.notUsed;
+    }
+
+    public void setNotUsed(String notUsed) {
+        this.notUsed = notUsed;
+    }
+
     public String getMarketingPlan() {
         return marketingPlan;
     }
@@ -183,17 +191,6 @@ public class CsvItem extends CsvRow implements Serializable {
         this.marketingPlan = marketingPlan;
     }
 
-    public String getHalfOff() {
-        return halfOff;
-    }
-
-    public void setHalfOff(String halfOff) {
-        if (halfOff.equals(BOGO_TRUE) || halfOff.equals(BOGO_FALSE)) {
-            this.halfOff = halfOff;
-        } else {
-            throw new IllegalArgumentException("Invalid half off status");
-        }
-    }
 
     public String getSellingPrice() {
         return sellingPrice;
@@ -205,9 +202,9 @@ public class CsvItem extends CsvRow implements Serializable {
 
     /*
      * Creates a CsvItem object from an ordered array of Strings, and sets the marketing plan
-     * 
+     *
      * Note - trim() is performed on all fields, and dollar signs are stripped from suggestedPrice
-     * 
+     *
      * The item string fields should be in following order:
      * 0 - number
      * 1 - cat
@@ -222,12 +219,12 @@ public class CsvItem extends CsvRow implements Serializable {
      * 10 - netItem
      * 11- expiredDate
      * 12 - effectiveDate
-     * 13 - bogo
+     * 13 - discount
      * 14 - itemNum3
      * 15 - currency
-     * 16 - halfOff
+     * 16 - notUsed
      * 17 - sellingPrice
-     * 
+     *
      * @return the newly created CsvItem
      */
     public static CsvItem fromCsvItemFields(String[] itemFields, String marketingPlan) {
@@ -255,11 +252,11 @@ public class CsvItem extends CsvRow implements Serializable {
         item.setNetItem(itemFields[10]);
         item.setExpiredDate(itemFields[11]);
         item.setEffectiveDate(itemFields[12]);
-        item.setBOGO(itemFields[13]);
+        item.setDiscount(itemFields[13]);
         item.setItemNum3(itemFields[14]);
         item.setCurrency(itemFields[15]);
         item.setMarketingPlan(marketingPlan);
-        item.setHalfOff(itemFields[16]);
+        item.setNotUsed(itemFields[16]);
         item.setSellingPrice(itemFields[17]);
 
         if (!item.isValid()) {
@@ -279,10 +276,10 @@ public class CsvItem extends CsvRow implements Serializable {
 
     /*
      * Performs validation using Hiberante Validation framework
-     * 
+     *
      * First the Annotation validators are applied (e.g. @NonNull
      * Second, we check that the Suggested Price can be converted to the Square money type
-     * 
+     *
      * (non-Javadoc)
      * @see tntfireworks.CsvRow#isValid()
      */
@@ -312,11 +309,11 @@ public class CsvItem extends CsvRow implements Serializable {
 
     /*
      * Converts the CsvItem sellingPrice and currency Strings to a Square Money object (cents)
-     * 
+     *
      * @return Square Money object including int of cents and currency
-     * 
+     *
      * @throws ArithmeticException if this has a nonzero fractional part, or will not fit in an int.
-     * 
+     *
      */
     public Money getPriceAsSquareMoney() {
         Preconditions.checkNotNull(this.getSellingPrice(), "price cannot be null" + this.getUniqueItemString());

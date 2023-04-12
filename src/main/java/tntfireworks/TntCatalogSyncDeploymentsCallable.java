@@ -194,7 +194,7 @@ public class TntCatalogSyncDeploymentsCallable implements Callable {
             item.setUPC(row.get(TntDatabaseApi.DB_MKT_PLAN_UPC_COLUMN));
             item.setMarketingPlan(row.get(TntDatabaseApi.DB_MKT_PLAN_NAME_COLUMN));
             item.setCurrency(row.get(TntDatabaseApi.DB_MKT_PLAN_CURRENCY_COLUMN));
-            item.setHalfOff(row.get(TntDatabaseApi.DB_MKT_PLAN_HALF_OFF_COLUMN));
+            item.setNotUsed(row.get(TntDatabaseApi.DB_MKT_PLAN_NOT_USED_COLUMN));
             item.setSellingPrice(row.get(TntDatabaseApi.DB_MKT_PLAN_SELLING_PRICE_COLUMN));
             itemList.add(item);
         }
