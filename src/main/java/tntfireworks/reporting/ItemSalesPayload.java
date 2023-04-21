@@ -60,25 +60,27 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     // Add Order (used after migration off /v1/payments
 	public void addOrder(Order order, Map<String, CatalogObject> catalogObjects,
 			Map<String, List<PaymentRefund>> orderToRefundsMap, List<Map<String, String>> dbItemRows) {
-		try {
-			List<PaymentRefund> refunds = orderToRefundsMap.getOrDefault(order.getId(), Collections.EMPTY_LIST);
-			// If refunds sum up to full refund, ignore the order
-			int totalRefundAmount = refunds.stream()
-					.map(PaymentRefund::getAmountMoney)
-					.mapToInt(Money::getAmount)
-					.sum();
+		if(order != null) {
+			try {
+				List<PaymentRefund> refunds = orderToRefundsMap.getOrDefault(order.getId(), Collections.EMPTY_LIST);
+				// If refunds sum up to full refund, ignore the order
+				int totalRefundAmount = refunds.stream()
+						.map(PaymentRefund::getAmountMoney)
+						.mapToInt(Money::getAmount)
+						.sum();
 
-			if (totalRefundAmount == order.getTotalMoney().getAmount()) {
-				return;
-			}
+				if (order.getTotalMoney() != null && totalRefundAmount == order.getTotalMoney().getAmount()) {
+					return;
+				}
 
-			addDiscountEntry(order);
-			addItemizationEntries(order, catalogObjects, dbItemRows);
-	        addPartialRefundEntries(refunds, order);
+				addDiscountEntry(order);
+				addItemizationEntries(order, catalogObjects, dbItemRows);
+		        addPartialRefundEntries(refunds, order);
 
-	    } catch (Exception e) {
-	        logger.error("Exception processing order for ItemSalesPayload report: " + e.getCause());
-	    }
+		    } catch (Exception e) {
+		        logger.error("Exception processing order for ItemSalesPayload report. Cause: " + e.getCause() + ", Message: " + e.getMessage());
+		    }
+		}
 	}
 
     /**
@@ -86,7 +88,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
      */
     private void addDiscountEntry(Order order) throws ParseException {
         // quantity of 1 is used to track total number of discounted payments
-        if (order != null && order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() > 0) {
+        if (order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() > 0) {
             addEntry(order.getCreatedAt(), DISCOUNT_ITEM_NUMBER, -order.getTotalDiscountMoney().getAmount(),
                     DEFAULT_ITEM_QTY, DISCOUNT_ITEM_NUMBER, DISCOUNT_ITEM_DESCRIPTION, DISCOUNT_ITEM_SKU);
         }
@@ -97,7 +99,7 @@ public class ItemSalesPayload extends TntReportLocationPayload {
      */
     private void addItemizationEntries(Order order, Map<String, CatalogObject> catalogObjects, List<Map<String, String>> dbItemRows) throws ParseException {
         // loop through payment itemizations and add to itemSalesPayloadEntries
-    	if(order != null && order.getLineItems() != null) {
+    	if(order.getLineItems() != null) {
     		for (OrderLineItem lineItem : order.getLineItems()) {
                 // add or update sale entries
                 String itemNumber = DEFAULT_ITEM_NUMBER;
@@ -136,14 +138,16 @@ public class ItemSalesPayload extends TntReportLocationPayload {
     // Partial refund on order is if the refund doesn't equal the order's amount
     private void addPartialRefundEntries(List<PaymentRefund> refunds, Order order) throws ParseException {
     	// TODO implement
-        for (PaymentRefund refund : refunds) {
-            if (refund.getAmountMoney()!= null && order.getTotalMoney() != null &&
-            		refund.getAmountMoney().getAmount() != order.getTotalMoney().getAmount()) {
-                addEntry(refund.getCreatedAt(), PARTIAL_REFUND_ITEM_NUMBER, -refund.getAmountMoney().getAmount(),
-                        DEFAULT_ITEM_QTY, PARTIAL_REFUND_ITEM_NUMBER, PARTIAL_REFUND_ITEM_DESCRIPTION,
-                        PARTIAL_REFUND_ITEM_SKU);
+    	if(refunds != null) {
+    		for (PaymentRefund refund : refunds) {
+                if (refund.getAmountMoney()!= null && order.getTotalMoney() != null &&
+                		refund.getAmountMoney().getAmount() != order.getTotalMoney().getAmount()) {
+                    addEntry(refund.getCreatedAt(), PARTIAL_REFUND_ITEM_NUMBER, -refund.getAmountMoney().getAmount(),
+                            DEFAULT_ITEM_QTY, PARTIAL_REFUND_ITEM_NUMBER, PARTIAL_REFUND_ITEM_DESCRIPTION,
+                            PARTIAL_REFUND_ITEM_SKU);
+                }
             }
-        }
+    	}
     }
 
     public List<String> getRows() throws ParseException {

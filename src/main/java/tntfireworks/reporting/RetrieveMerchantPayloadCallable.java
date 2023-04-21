@@ -346,7 +346,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
         // Process each order for report
         for (Order order : orders) {
-            itemSalesPayload.addOrder(order, catalogObjects, ordersToRefundsMap, dbItemRows);
+        	itemSalesPayload.addOrder(order, catalogObjects, ordersToRefundsMap, dbItemRows);
         }
 
         return itemSalesPayload;
