@@ -11,6 +11,7 @@ import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
 
+import util.ConnectV2MigrationHelper;
 import util.TimeManager;
 
 /*
@@ -103,7 +104,7 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         }
 
         // add card tender amounts
-        if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+        if (ConnectV2MigrationHelper.isCardPayment(tender)) {
             if (isDailyOrder) {
                 creditDailySales += tender.getAmountMoney().getAmount();
                 if (tenderToRefund.containsKey(tender.getId())) {

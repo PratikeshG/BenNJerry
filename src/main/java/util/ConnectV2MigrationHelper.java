@@ -94,4 +94,11 @@ public class ConnectV2MigrationHelper {
 
     	return catalogObjectsMap;
     }
+
+    public static boolean isCardPayment(Tender tender) {
+    	if(tender != null && (tender.getType().equals(Tender.TENDER_TYPE_CARD) || tender.getType().equals(Tender.TENDER_TYPE_WALLET))) {
+    		return true;
+    	}
+    	return false;
+    }
 }

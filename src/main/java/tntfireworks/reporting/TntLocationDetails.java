@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -93,22 +94,44 @@ public class TntLocationDetails {
         orderQuery.setSort(searchSort);
 
         SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
-        stateFilter.setStates(new String[] { "COMPLETED" });
+        stateFilter.setStates(new String[] { "COMPLETED", "OPEN" });
         searchFilter.setStateFilter(stateFilter);
 
         SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
         TimeRange timeRange = new TimeRange();
         timeRange.setStartAt(params.get(util.Constants.BEGIN_TIME));
         timeRange.setEndAt(params.get(util.Constants.END_TIME));
-        dateFilter.setClosedAt(timeRange);
+        dateFilter.setCreatedAt(timeRange);
         searchFilter.setDateTimeFilter(dateFilter);
 
-        searchSort.setSortField("CLOSED_AT");
+        searchSort.setSortField("CREATED_AT");
         searchSort.setSortOrder(params.get(util.Constants.SORT_ORDER_V2));
 
 
-        return squareClientV2.orders().search(locationId, orderQuery);
+        Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);
+        List<Order> orders = new ArrayList<Order>();
+        for(Order order : allOrders) {
+        	if(hasValidTender(order)) {
+        		orders.add(order);
+        	}
+        }
+        return orders.toArray(new Order[0]);
     }
+
+	private static boolean hasValidTender(Order order) {
+		if(order.getTenders() != null) {
+			for(Tender tender : order.getTenders()) {
+				// check if tender is NO_SALE
+				if(!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
+					//check if tender was a card payment, and if it was not voided or failed
+					if(tender.getCardDetails() == null || (!tender.getCardDetails().getStatus().equals("VOIDED") && !tender.getCardDetails().getStatus().equals("FAILED"))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
 
 	public static Map<String, Payment> getTenderToPayment(Order[] orders, Payment[] payments, SquareClientV2 squareClientV2, Map<String, String> params) throws Exception {
         Map<String, Payment> tenderToPayment = Arrays.stream(payments).collect(Collectors.toMap(Payment::getId, Function.identity()));
