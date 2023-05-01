@@ -86,6 +86,11 @@ public class TntLocationDetails {
 		return squareClientV2.refunds().listPaymentRefunds(params);
 	}
 
+	/*
+	 * Searches orders for a given time period. We include OPEN orders in this search because
+	 * OPEN orders can also have valid tenders. In order to search OPEN orders, sort field must
+	 * be set to CREATED_AT instead of CLOSED_AT because OPEN orders do not have a CLOSED_AT time stamp.
+	 */
 	public static Order[] getOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params) throws Exception {
 		SearchOrdersQuery orderQuery = new SearchOrdersQuery();
 		SearchOrdersFilter searchFilter = new SearchOrdersFilter();

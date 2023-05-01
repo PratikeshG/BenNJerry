@@ -96,9 +96,6 @@ public class ConnectV2MigrationHelper {
     }
 
     public static boolean isCardPayment(Tender tender) {
-    	if(tender != null && (tender.getType().equals(Tender.TENDER_TYPE_CARD) || tender.getType().equals(Tender.TENDER_TYPE_WALLET))) {
-    		return true;
-    	}
-    	return false;
+    	return (tender != null && (Tender.TENDER_TYPE_CARD.equals(tender.getType()) || Tender.TENDER_TYPE_WALLET.equals(tender.getType())));
     }
 }
