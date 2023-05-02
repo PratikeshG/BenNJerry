@@ -50,7 +50,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
         <component doc:name="Generate aggregate summary report">
             <singleton-object class="benjerrys.AggregateSummaryCallable"/>
         </component>
-        <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${benjerrys.email.summary.to}" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Job Summary"/>
+        <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS_HTML" to="${benjerrys.email.summary.to}" bcc="benjerrys+debug@squareup.com" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Job Summary"/>
         <logger message="Finished BJs generate-monthly-report flow." level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="BJs-aggregate-location-payloads">
@@ -76,7 +76,7 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
                 <set-variable variableName="emailRecipients" value="#[(sessionVars.emailOverride != null &amp;&amp; sessionVars.emailOverride.length() &gt; 0 ) ?  sessionVars.emailOverride : flowVars.locationRecipients]" doc:name="Set emailRecipients"/>
                 <async doc:name="Async">
                     <set-payload value="Your monthly reports are attached." doc:name="Set Payload"/>
-                    <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="#[flowVars.emailRecipients]" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Reports to Recipients"/>
+                    <smtp:outbound-endpoint host="${email.info.sending.server}" user="${email.info.sending.username}" password="${email.info.sending.password}" connector-ref="SES_SMTP_STARTTLS" to="#[flowVars.emailRecipients]" bcc="benjerrys+debug@squareup.com" from="${email.info.sending.from.reports}" subject="#['Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]" responseTimeout="10000" mimeType="text/html" doc:name="Email Reports to Recipients"/>
                 </async>
             </when>
             <otherwise>
