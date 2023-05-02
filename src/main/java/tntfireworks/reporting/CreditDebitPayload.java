@@ -4,6 +4,9 @@ import java.util.Map;
 
 import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.Tender;
+
+import util.ConnectV2MigrationHelper;
+
 import com.squareup.connect.v2.Order;
 
 /*
@@ -67,7 +70,7 @@ public class CreditDebitPayload extends TntReportLocationPayload {
         // RetrieveMerchantPayloadCallable
     	if(order != null && order.getTenders() != null) {
     		for (Tender tender : order.getTenders()) {
-                if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+                if (ConnectV2MigrationHelper.isCardPayment(tender)) {
                 	Payment payment = tenderToPayment.get(tender.getId());
                     // debits = total collected money without SQ fees but including
                     // tax

@@ -1,8 +1,12 @@
 package tntfireworks.reporting;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.PaymentRefund;
 
+import util.ConnectV2MigrationHelper;
 import util.TimeManager;
 
 /*
@@ -48,7 +54,7 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         this.cashTotalSales = 0;
     }
 
-    public void addEntry(Order order, Map<String, Payment> tenderToPayment) {
+    public void addEntry(Order order, Map<String, List<PaymentRefund>> orderToRefundsMap) {
         try {
             // use calendar objects to daily interval
             Calendar beginTime = TimeManager.toCalendar(dayTimeInterval.get(util.Constants.BEGIN_TIME));
@@ -56,11 +62,12 @@ public class LocationSalesPayload extends TntReportLocationPayload {
             Calendar orderTime = TimeManager.toCalendar(order.getCreatedAt());
 
             // loop through tenders and add tender amounts to payload
-            if(order.getTenders() != null) {
+            if(order != null && order.getTenders() != null) {
+            	List<PaymentRefund> refunds = orderToRefundsMap.getOrDefault(order.getId(), Collections.EMPTY_LIST);
+        		Map<String, PaymentRefund> refundsMap = refunds.stream().collect(Collectors.toMap(PaymentRefund::getPaymentId, Function.identity()));
                 for (Tender tender : order.getTenders()) {
                     if (isValidTender(tender)) {
-                        addTenderAmountToPayload(isDailyOrder(beginTime, endTime, orderTime), tender,
-                                getTenderToRefundMap(order, tenderToPayment));
+                        addTenderAmountToPayload(isDailyOrder(beginTime, endTime, orderTime), tender, getTenderToRefundMap(order, refundsMap));
                     }
                 }
             }
@@ -103,7 +110,7 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         }
 
         // add card tender amounts
-        if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+        if (ConnectV2MigrationHelper.isCardPayment(tender)) {
             if (isDailyOrder) {
                 creditDailySales += tender.getAmountMoney().getAmount();
                 if (tenderToRefund.containsKey(tender.getId())) {
@@ -121,26 +128,25 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         return beginTime.compareTo(orderTime) <= 0 && endTime.compareTo(orderTime) > 0;
     }
 
-    private Map<String, Integer> getTenderToRefundMap(Order order, Map<String, Payment> tenderToPayment) {
+    private Map<String, Integer> getTenderToRefundMap(Order order, Map<String, PaymentRefund> refundsMap) {
         Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
-
-        if(order.getTenders() != null) {
+    	if(!refundsMap.isEmpty()) {
         	for(Tender tender : order.getTenders()) {
-        		Payment payment = tenderToPayment.get(tender.getId());
-        		if(isValidPayment(payment)) {
-        			tenderToRefund.put(payment.getId(), payment.getRefundedMoney().getAmount());
+        		PaymentRefund refund = refundsMap.get(tender.getId());
+        		if(isValidRefund(refund)) {
+        			tenderToRefund.put(tender.getId(), refund.getAmountMoney().getAmount());
         		}
         	}
-        }
+    	}
 
         return tenderToRefund;
     }
 
     private boolean isValidTender(Tender tender) {
-        return tender != null && tender.getAmountMoney() != null;
+        return tender != null && tender.getAmountMoney() != null && tender.getAmountMoney().getAmount() != 0;
     }
 
-    private boolean isValidPayment(Payment payment) {
-    	return payment != null && payment.getRefundedMoney() != null;
+    private boolean isValidRefund(PaymentRefund refund) {
+    	return refund != null && refund.getAmountMoney() != null && refund.getAmountMoney().getAmount() > 0;
     }
 }

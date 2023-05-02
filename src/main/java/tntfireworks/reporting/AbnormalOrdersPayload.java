@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TenderCardDetails;
+
+import util.ConnectV2MigrationHelper;
+
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
 
@@ -240,7 +243,7 @@ public class AbnormalOrdersPayload extends TntReportLocationPayload {
         // amounts
         if(order.getTenders() != null) {
         	for (Tender tender : order.getTenders()) {
-                if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+                if (ConnectV2MigrationHelper.isCardPayment(tender)) {
                     int currentAmt = tender.getAmountMoney().getAmount();
                     if (currentAmt == prevAmt) {
                         alert5Orders.add(order);
@@ -265,10 +268,10 @@ public class AbnormalOrdersPayload extends TntReportLocationPayload {
     }
 
     private boolean isRegister(Tender tender) {
-   	 if (tender != null && tender.getType().equals(Tender.TENDER_TYPE_CARD) && tenderToPayment != null && tenderToPayment.get(tender.getId()) != null) {
+   	 if (ConnectV2MigrationHelper.isCardPayment(tender) && tenderToPayment != null && tenderToPayment.get(tender.getId()) != null) {
    		 Payment payment = tenderToPayment.get(tender.getId());
    		 String squareProduct = payment.getApplicationDetails().getSquareProduct();
-   		 if (squareProduct.equals("SQUARE_POS") || squareProduct.equals("VIRTUAL_TERMINAL")) {
+   		 if (squareProduct.equals("SQUARE_POS") || squareProduct.equals("OTHER")) {
    			 return true;
    		 }
    	 }
@@ -339,7 +342,7 @@ public class AbnormalOrdersPayload extends TntReportLocationPayload {
             }
 
             // check for occasional null values for card detail fields below from the API
-            if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+            if (ConnectV2MigrationHelper.isCardPayment(tender)) {
                 if (tender.getCardDetails() != null && tender.getCardDetails().getCard() != null) {
                     this.cardBrand = tender.getCardDetails().getCard().getCardBrand();
                 }

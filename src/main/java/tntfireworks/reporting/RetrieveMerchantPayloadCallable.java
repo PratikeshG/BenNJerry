@@ -319,9 +319,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
-        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        Map<String, List<PaymentRefund>> ordersToRefundsMap = ConnectV2MigrationHelper.getRefundsForOrders(squareClientV2, orders, payments);
         for (Order order : orders) {
-            locationSalesPayload.addEntry(order, tenderToPayment);
+            locationSalesPayload.addEntry(order, ordersToRefundsMap);
         }
 
         return locationSalesPayload;
@@ -371,7 +371,6 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
-
         for (Order order : orders) {
             creditDebitPayload.addEntry(order, tenderToPayment);
         }
@@ -388,8 +387,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        Map<String, List<PaymentRefund>> orderToRefundsMap = ConnectV2MigrationHelper.getRefundsForOrders(squareClientV2, orders, payments);
         for (Order order : orders) {
-            grossSalesPayload.addOrder(order, tenderToPayment);
+            grossSalesPayload.addOrder(order, tenderToPayment, orderToRefundsMap);
         }
 
         return grossSalesPayload;
@@ -405,8 +405,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
         Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+        Map<String, List<PaymentRefund>> orderToRefundsMap = ConnectV2MigrationHelper.getRefundsForOrders(squareClientV2, orders, payments);
         for (Order order : orders) {
-            currentGrossSalesPayload.addOrder(order, tenderToPayment);;
+            currentGrossSalesPayload.addOrder(order, tenderToPayment, orderToRefundsMap);
         }
 
         // get prior year time intervals
@@ -421,8 +422,9 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Order[] prevOrders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, prevAggregateIntervalParams);
         Payment[] prevPayments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, prevAggregateIntervalParams);
         Map<String, Payment> prevTenderToPayment = TntLocationDetails.getTenderToPayment(prevOrders, prevPayments, squareClientV2, prevAggregateIntervalParams);
+        Map<String, List<PaymentRefund>> prevOrderToRefundsMap = ConnectV2MigrationHelper.getRefundsForOrders(squareClientV2, prevOrders, prevPayments);
         for (Order order : prevOrders) {
-            prevGrossSalesPayload.addOrder(order, prevTenderToPayment);
+            prevGrossSalesPayload.addOrder(order, prevTenderToPayment, prevOrderToRefundsMap);
         }
 
         return new YoyGrossSalesPayload(timeZone, offset, dayTimeInterval, locationDetails, currentGrossSalesPayload,

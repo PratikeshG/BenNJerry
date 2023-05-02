@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -12,12 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.ProcessingFee;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Money;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
 
+import util.ConnectV2MigrationHelper;
 import util.TimeManager;
 
 /*
@@ -99,7 +102,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
 
     }
 
-    public void addOrder(Order order, Map<String, Payment> tenderToPayment) {
+    public void addOrder(Order order, Map<String, Payment> tenderToPayment, Map<String, List<PaymentRefund>> orderToRefundsMap) {
         try {
             // use calendar objects to daily interval
             Calendar transactionTime = TimeManager.toCalendar(order.getCreatedAt());
@@ -107,7 +110,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
             // add payment details to totals
             addTotalCollectedMoney(order, transactionTime, tenderToPayment);
             addDiscountMoney(order, transactionTime);
-            addRefundedMoney(order, transactionTime);
+            addRefundedMoney(order, transactionTime, orderToRefundsMap);
             addTaxMoney(order, transactionTime);
             addGrossSalesMoney(order, transactionTime);
             addTenderTotals(order, transactionTime, tenderToPayment);
@@ -158,12 +161,17 @@ public class GrossSalesPayload extends TntReportLocationPayload {
         }
     }
 
-    private void addRefundedMoney(Order order, Calendar transactionTime) {
-        if (order.getReturnAmounts() != null && order.getReturnAmounts().getTotalMoney() != null) {
-            if (isDailyTransaction(beginTime, endTime, transactionTime)) {
-                dailyRefundTotals -= order.getReturnAmounts().getTotalMoney().getAmount();
+    private void addRefundedMoney(Order order, Calendar transactionTime, Map<String, List<PaymentRefund>> orderToRefundsMap) {
+        if(orderToRefundsMap.containsKey(order.getId()) ) {
+            List<PaymentRefund> refunds = orderToRefundsMap.get(order.getId());
+            for(PaymentRefund refund : refunds) {
+                if (refund.getAmountMoney() != null) {
+                    if (isDailyTransaction(beginTime, endTime, transactionTime)) {
+                        dailyRefundTotals -= refund.getAmountMoney().getAmount();
+                    }
+                    seasonRefundTotals -= refund.getAmountMoney().getAmount();
+                }
             }
-            seasonRefundTotals -= order.getReturnAmounts().getTotalMoney().getAmount();
         }
     }
 
@@ -196,7 +204,7 @@ public class GrossSalesPayload extends TntReportLocationPayload {
     		for (Tender tender : order.getTenders()) {
     			Payment payment = tenderToPayment.get(tender.getId());
                 if (payment.getTotalMoney() != null) {
-                    if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+                    if (ConnectV2MigrationHelper.isCardPayment(tender)) {
                         if (isDailyTransaction(beginTime, endTime, transactionTime)) {
                             dailyCreditTotals += payment.getTotalMoney().getAmount();
                             dailyCreditCount++;

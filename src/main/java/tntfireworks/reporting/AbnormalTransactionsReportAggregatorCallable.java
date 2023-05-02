@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.squareup.connect.v2.Tender;
+
+import util.ConnectV2MigrationHelper;
+
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
 
@@ -143,7 +146,7 @@ public class AbnormalTransactionsReportAggregatorCallable extends TntReportAggre
     }
 
     private boolean isRegister(Tender tender, Map<String, Payment> tenderMap) {
-      	 if (tender != null && tender.getType().equals(Tender.TENDER_TYPE_CARD) && tenderMap != null && tenderMap.get(tender.getId()) != null) {
+      	 if (ConnectV2MigrationHelper.isCardPayment(tender) && tenderMap != null && tenderMap.get(tender.getId()) != null) {
       		 Payment payment = tenderMap.get(tender.getId());
       		 String squareProduct = payment.getApplicationDetails().getSquareProduct();
       		 if (squareProduct.equals("SQUARE_POS") || squareProduct.equals("VIRTUAL_TERMINAL")) {

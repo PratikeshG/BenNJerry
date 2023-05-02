@@ -127,10 +127,13 @@ public class ItemSalesPayload extends TntReportLocationPayload {
 
                 double quantity = Double.parseDouble(lineItem.getQuantity());
 
-                addEntry(order.getCreatedAt(), itemNumber, lineItem.getGrossSalesMoney() != null ?
-                		lineItem.getGrossSalesMoney().getAmount()
-                		: 0,
-                		quantity, itemNumber, itemDesc, itemSku);
+                int totalMoney = lineItem.getTotalMoney() != null ? lineItem.getTotalMoney().getAmount() : 0;
+            	int totalTaxMoney = lineItem.getTotalTaxMoney() != null ? lineItem.getTotalTaxMoney().getAmount() : 0;
+            	int totalDiscountMoney = lineItem.getTotalDiscountMoney() != null ? lineItem.getTotalDiscountMoney().getAmount() : 0;
+
+                int grossSales = totalMoney - totalTaxMoney + totalDiscountMoney;
+
+                addEntry(order.getCreatedAt(), itemNumber, grossSales, quantity, itemNumber, itemDesc, itemSku);
             }
     	}
     }
