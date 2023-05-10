@@ -7,6 +7,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.OrderLineItem;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -128,6 +130,76 @@ public class MerchandiseItem extends Record {
         putValue("Not On File Indicator", "0"); // not supported
         putValue("Entry Indicator", "1"); // not supported
         putValue("Taxable Indicator", itemization.getTaxes().length == 0 ? "1" : "0");
+        putValue("Item Status", "00"); // not supported
+        putValue("Raincheck", "0"); // not supported
+        putValue("Gift Item", "0"); // not supported
+        putValue("Package", "0"); // not supported
+        putValue("Send Item Indicator", "0"); // not supported
+        putValue("Send to Location #", "00"); // not supported
+        putValue("Team Associate Item Ind", "0"); // not supported
+        putValue("Team Number", "000"); // not supported
+        putValue("Return Indicator", "1"); // 1 can be returned
+        putValue("Item Sequence", "" + itemSequence);
+
+        return this;
+    }
+
+    public MerchandiseItem parse(OrderLineItem lineItem, int itemSequence, int itemNumberLookupLength,
+            boolean trackPriceOverrides, CatalogObject itemVariationData) throws Exception {
+        String sku = itemVariationData != null
+        		&& itemVariationData.getItemVariationData() != null
+        		&& itemVariationData.getItemVariationData().getSku() != null ?
+        				itemVariationData.getItemVariationData().getSku() : "";// requires special formating - check docs
+        String quantity = String.format("%.3f", lineItem.getQuantity()).replace(".", ""); // requires special formating - check docs
+        String departmentNumber = "";
+        String classNumber = "";
+
+        if (lineItem.getItemType().equals("ITEM") && lineItem.getVariationName() != null) {
+            Matcher m = Pattern.compile("\\((.*?)\\)").matcher(lineItem.getVariationName());
+            while (m.find()) {
+                String deptClass = m.group(1);
+                departmentNumber = deptClass.substring(0, 4);
+                classNumber = deptClass.substring(4, 8);
+                break;
+            }
+        } else if (lineItem.getItemType().equals("CUSTOM_AMOUNT")) {
+            // Added SKU manually to notes field on custom entry
+            if (lineItem.getNote() != null) {
+                Matcher m = Pattern.compile("([0-9]){12,14}").matcher(lineItem.getNote());
+                while (m.find()) {
+                    sku = m.group(0);
+                    break;
+                }
+            }
+        }
+
+        // requires special formating - check docs
+        if (sku.matches("[0-9]+")) {
+            sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
+        }
+
+        int originalUnitPrice = lineItem.getBasePriceMoney().getAmount();
+        int soldUnitPrice = originalUnitPrice;
+        if (trackPriceOverrides && Util.hasPriceOverride(lineItem)) {
+            originalUnitPrice = Util.getPriceBeforeOverride(lineItem);
+        }
+
+        putValue("Void Indicator", "0"); // no such thing as voided transactions
+        putValue("Exchange Indicator", "0"); // no such thing as exchanged transactions
+        putValue("Item Number", sku); // requires special formating, according to documentation
+        putValue("Sku/Class Indicator", "0"); // this should always be 0...right?
+        putValue("Department Number", departmentNumber);
+        putValue("Class Number", classNumber);
+        putValue("Quantity", quantity); // three decimal places are implied
+        putValue("Price Original", Integer.toString(originalUnitPrice));
+        putValue("Price On Lookup", Integer.toString(soldUnitPrice));
+        putValue("Price Before Discount", Integer.toString(lineItem.getBasePriceMoney().getAmount())); // not supported
+        putValue("Reserved for Future Use", Integer.toString(lineItem.getBasePriceMoney().getAmount())); // this follows the pattern of what VFC gave us
+        putValue("Price Indicator", "01"); // not supported
+        putValue("Extended Total", Integer.toString(lineItem.getGrossSalesMoney().getAmount()));
+        putValue("Not On File Indicator", "0"); // not supported
+        putValue("Entry Indicator", "1"); // not supported
+        putValue("Taxable Indicator", lineItem.getAppliedTaxes().length == 0 ? "1" : "0");
         putValue("Item Status", "00"); // not supported
         putValue("Raincheck", "0"); // not supported
         putValue("Gift Item", "0"); // not supported

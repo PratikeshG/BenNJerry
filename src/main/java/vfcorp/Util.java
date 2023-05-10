@@ -18,6 +18,7 @@ import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.OrderLineItem;
 
 import util.CloudStorageApi;
 import util.DbConnection;
@@ -228,6 +229,14 @@ public class Util {
         return false;
     }
 
+    public static boolean hasPriceOverride(OrderLineItem lineItem) {
+        if (lineItem.getItemType().equals("ITEM") && lineItem.getNote() != null
+                && lineItem.getNote().contains("Original Price:")) {
+            return true;
+        }
+        return false;
+    }
+
     public static int getPriceBeforeOverride(PaymentItemization itemization) {
         if (hasPriceOverride(itemization)) {
             String price = itemization.getNotes().split("Original Price:", 2)[1];
@@ -235,6 +244,15 @@ public class Util {
             return Integer.valueOf(price);
         }
         return itemization.getSingleQuantityMoney().getAmount();
+    }
+
+    public static int getPriceBeforeOverride(OrderLineItem lineItem) {
+        if (hasPriceOverride(lineItem)) {
+            String price = lineItem.getNote().split("Original Price:", 2)[1];
+            price = price.replaceAll("[^0-9]", "");
+            return Integer.valueOf(price);
+        }
+        return lineItem.getBasePriceMoney().getAmount();
     }
 
     public static boolean isVansDeployment(String deployment) {

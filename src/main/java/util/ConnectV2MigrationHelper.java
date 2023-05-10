@@ -1,13 +1,14 @@
 package util;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Order;
@@ -138,19 +139,102 @@ public class ConnectV2MigrationHelper {
         return orders.toArray(new Order[0]);
     }
 
-    public static boolean hasValidTender(Order order) {
-        if (order.getTenders() != null) {
-            for (Tender tender : order.getTenders()) {
-                // check if tender is NO_SALE
-                if (!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
-                    //check if tender was a card payment, and if it was not voided or failed
-                    if (tender.getCardDetails() == null || (!tender.getCardDetails().getStatus().equals("VOIDED")
-                            && !tender.getCardDetails().getStatus().equals("FAILED"))) {
-                        return true;
-                    }
-                }
-            }
+    public static Payment[] getPaymentsV2(SquareClientV2 squareClientV2, String locationId, Map<String, String> params) throws Exception {
+		params.put("location_id", locationId);
+		// All v2 payments are tied to exactly one tender, no filtering needed
+		return squareClientV2.payments().list(params);
+	}
+
+	public static PaymentRefund[] getPaymentRefunds(SquareClientV2 squareClientV2, Map<String, String> params) throws Exception {
+		return squareClientV2.refunds().listPaymentRefunds(params);
+	}
+
+	/*
+	 * Searches orders for a given time period. We include OPEN orders in this search because
+	 * OPEN orders can also have valid tenders. In order to search OPEN orders, sort field must
+	 * be set to CREATED_AT instead of CLOSED_AT because OPEN orders do not have a CLOSED_AT time stamp.
+	 */
+	public static Order[] getOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, boolean allowCashTransactions) throws Exception {
+		SearchOrdersQuery orderQuery = new SearchOrdersQuery();
+		SearchOrdersFilter searchFilter = new SearchOrdersFilter();
+        SearchOrdersSort searchSort = new SearchOrdersSort();
+        orderQuery.setFilter(searchFilter);
+        orderQuery.setSort(searchSort);
+
+        SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
+        stateFilter.setStates(new String[] { "COMPLETED", "OPEN" });
+        searchFilter.setStateFilter(stateFilter);
+
+        SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
+        TimeRange timeRange = new TimeRange();
+        timeRange.setStartAt(params.get(util.Constants.BEGIN_TIME));
+        timeRange.setEndAt(params.get(util.Constants.END_TIME));
+        dateFilter.setCreatedAt(timeRange);
+        searchFilter.setDateTimeFilter(dateFilter);
+
+        searchSort.setSortField("CREATED_AT");
+        searchSort.setSortOrder(params.get(util.Constants.SORT_ORDER_V2));
+
+
+        Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);
+        List<Order> orders = new ArrayList<Order>();
+        for(Order order : allOrders) {
+        	if(allowCashTransactions) {
+        		if(hasValidTender(order)) {
+            		orders.add(order);
+            	}
+        	} else {
+        		if(hasValidCardTender(order)) {
+        			orders.add(order);
+        		}
+        	}
+
         }
-        return false;
+        return orders.toArray(new Order[0]);
     }
+
+	private static boolean hasValidTender(Order order) {
+		if(order.getTenders() != null) {
+			for(Tender tender : order.getTenders()) {
+				// check if tender is NO_SALE
+				if(!tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
+					//check if tender was a card payment, and if it was not voided or failed
+					if(tender.getCardDetails() == null || (!tender.getCardDetails().getStatus().equals("VOIDED") && !tender.getCardDetails().getStatus().equals("FAILED"))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasValidCardTender(Order order) {
+		if(order.getTenders() != null) {
+			for(Tender tender : order.getTenders()) {
+				// check if tender is NO_SALE
+				if(!tender.getType().equals(Tender.TENDER_TYPE_CASH) && !tender.getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
+					//check if tender was a card payment, and if it was not voided or failed
+					if(tender.getCardDetails() == null || (!tender.getCardDetails().getStatus().equals("VOIDED") && !tender.getCardDetails().getStatus().equals("FAILED"))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	public static Map<String, Payment> getTenderToPayment(Order[] orders, Payment[] payments, SquareClientV2 squareClientV2, Map<String, String> params) throws Exception {
+        Map<String, Payment> tenderToPayment = Arrays.stream(payments).collect(Collectors.toMap(Payment::getId, Function.identity()));
+        for(Order order : orders) {
+        	if(order != null && order.getTenders() != null) {
+        		for(Tender tender : order.getTenders()) {
+        			if(!tenderToPayment.containsKey(tender.getId())) {
+        				Payment payment = squareClientV2.payments().get(tender.getId());
+        				tenderToPayment.put(tender.getId(), payment);
+        			}
+        		}
+        	}
+        }
+        return tenderToPayment;
+	}
 }

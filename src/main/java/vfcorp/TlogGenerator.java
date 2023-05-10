@@ -15,8 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
+import com.squareup.connect.v2.Payment;
 import com.squareup.connect.SquareClient;
+import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
 import com.squareup.connect.v2.Location;
@@ -30,6 +31,7 @@ import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TimeRange;
 
+import util.ConnectV2MigrationHelper;
 import util.DbConnection;
 import util.SequentialRecord;
 import util.SequentialRecordsApi;
@@ -120,11 +122,13 @@ public class TlogGenerator implements Callable {
         // Employees
         tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
 
+        Map<String, String> params = tlogGeneratorPayload.getParams();
+
         // Payments
-        Payment[] payments = squareV1Client.payments().list(tlogGeneratorPayload.getParams());
-        Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
-        List<Payment> allPaymentsInPeriod = new ArrayList<Payment>();
-        for (Payment payment : payments) {
+        com.squareup.connect.Payment[] v1payments = squareV1Client.payments().list(params);
+        Map<String, com.squareup.connect.Payment> paymentsCache = new HashMap<String, com.squareup.connect.Payment>();
+        List<com.squareup.connect.Payment> v1allPaymentsInPeriod = new ArrayList<com.squareup.connect.Payment>();
+        for (com.squareup.connect.Payment payment : v1payments) {
             boolean hasValidPaymentTender = false;
 
             // Save payment object for customer lookups
@@ -145,11 +149,19 @@ public class TlogGenerator implements Callable {
 
             // Example: Don't process cash-only payments for this deployment's TLOGs
             if (hasValidPaymentTender) {
-                allPaymentsInPeriod.add(payment);
+                v1allPaymentsInPeriod.add(payment);
             }
         }
 
+        //---------------------------------------v2----------------------------------------------
+        Payment[] payments = ConnectV2MigrationHelper.getPaymentsV2(squareV2Client, locationId, params);
+        Order[] orders = ConnectV2MigrationHelper.getOrders(squareV2Client, locationId, params, allowCashTransactions);
+        Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders, payments, squareV2Client, params);
+        Map<String, CatalogObject> catalog = ConnectV2MigrationHelper.getCatalogObjectsForOrder(squareV2Client, orders);
+        //---------------------------------------v2----------------------------------------------
+
         // Get existing record numbers for Orders
+        List<String> v1recordIds = new ArrayList<String>();
         List<String> recordIds = new ArrayList<String>();
 
         // get closing record for each device (more than 1)
@@ -157,16 +169,31 @@ public class TlogGenerator implements Callable {
                 timeZone, "yyyy-MM-dd");
         for (int i = 99; i > 99 - Math.max(totalConfiguredDevices, 2); i--) {
             String closingRecordId = "close-" + locationId + "-" + recordDate + "-" + String.format("%03d", i);
+            v1recordIds.add(closingRecordId);
             recordIds.add(closingRecordId);
         }
 
-        for (Payment v1P : allPaymentsInPeriod) {
+        for (com.squareup.connect.Payment v1P : v1allPaymentsInPeriod) {
             String v2OrderId = v1P.getPaymentUrl().split("transactions/", 2)[1];
-            recordIds.add(v2OrderId);
+             v1recordIds.add(v2OrderId);
+        }
+        for(Order order : orders) {
+        	recordIds.add(order.getId());
         }
 
         Map<String, SequentialRecord> existingRecordNumbersByDevice = new HashMap<String, SequentialRecord>();
+        ArrayList<Map<String, String>> v1existingSequentialRecords = sequentialRecordsApi.queryRecordsById(v1recordIds);
         ArrayList<Map<String, String>> existingSequentialRecords = sequentialRecordsApi.queryRecordsById(recordIds);
+        for (Map<String, String> record : v1existingSequentialRecords) {
+            SequentialRecord sr = new SequentialRecord();
+            sr.setLocationId(record.get("locationId"));
+            sr.setRecordId(record.get("recordId"));
+            sr.setDeviceId(record.get("deviceId"));
+            sr.setRecordNumber(Integer.parseInt(record.get("recordNumber")));
+            sr.setRecordCreatedAt(record.get("recordCreatedAt"));
+
+            existingRecordNumbersByDevice.put(sr.getRecordId(), sr);
+        }
         for (Map<String, String> record : existingSequentialRecords) {
             SequentialRecord sr = new SequentialRecord();
             sr.setLocationId(record.get("locationId"));
@@ -178,13 +205,22 @@ public class TlogGenerator implements Callable {
             existingRecordNumbersByDevice.put(sr.getRecordId(), sr);
         }
 
-        List<Payment> paymentsInPeriodToProcess = new ArrayList<Payment>();
-        for (Payment v1P : allPaymentsInPeriod) {
+        List<com.squareup.connect.Payment> paymentsInPeriodToProcess = new ArrayList<com.squareup.connect.Payment>();
+        for (com.squareup.connect.Payment v1P : v1allPaymentsInPeriod) {
             String v2OrderId = v1P.getV2OrderId();
 
             // only process new sales (during range) for SAP trickle flows
             if (!tlogType.equals("SAP") || !existingRecordNumbersByDevice.containsKey(v2OrderId)) {
                 paymentsInPeriodToProcess.add(v1P);
+            }
+        }
+
+        List<Order> ordersInPeriodToProcess = new ArrayList<Order>();
+        for (Order order : orders) {
+
+            // only process new sales (during range) for SAP trickle flows
+            if (!tlogType.equals("SAP") || !existingRecordNumbersByDevice.containsKey(order.getId())) {
+                ordersInPeriodToProcess.add(order);
             }
         }
 
@@ -203,30 +239,30 @@ public class TlogGenerator implements Callable {
         Map<String, Customer> customerPaymentCache = new HashMap<String, Customer>();
         if (customerLoyaltyEnabled) {
             // Get customer data
+//
+//            SearchOrdersQuery orderQuery = new SearchOrdersQuery();
+//            SearchOrdersFilter searchFilter = new SearchOrdersFilter();
+//            SearchOrdersSort searchSort = new SearchOrdersSort();
+//            orderQuery.setFilter(searchFilter);
+//            orderQuery.setSort(searchSort);
+//
+//            SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
+//            stateFilter.setStates(new String[] { "COMPLETED" });
+//            searchFilter.setStateFilter(stateFilter);
+//
+//            SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
+//            TimeRange timeRange = new TimeRange();
+//            timeRange.setStartAt(tlogGeneratorPayload.getParams().getOrDefault("begin_time", ""));
+//            timeRange.setEndAt(tlogGeneratorPayload.getParams().getOrDefault("end_time", ""));
+//            dateFilter.setClosedAt(timeRange);
+//            searchFilter.setDateTimeFilter(dateFilter);
+//
+//            searchSort.setSortField("CLOSED_AT");
+//            searchSort.setSortOrder("ASC");
+//
+//            List<Order> v2Orders = Arrays.asList(squareV2Client.orders().search(location.getId(), orderQuery));
 
-            SearchOrdersQuery orderQuery = new SearchOrdersQuery();
-            SearchOrdersFilter searchFilter = new SearchOrdersFilter();
-            SearchOrdersSort searchSort = new SearchOrdersSort();
-            orderQuery.setFilter(searchFilter);
-            orderQuery.setSort(searchSort);
-
-            SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
-            stateFilter.setStates(new String[] { "COMPLETED" });
-            searchFilter.setStateFilter(stateFilter);
-
-            SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
-            TimeRange timeRange = new TimeRange();
-            timeRange.setStartAt(tlogGeneratorPayload.getParams().getOrDefault("begin_time", ""));
-            timeRange.setEndAt(tlogGeneratorPayload.getParams().getOrDefault("end_time", ""));
-            dateFilter.setClosedAt(timeRange);
-            searchFilter.setDateTimeFilter(dateFilter);
-
-            searchSort.setSortField("CLOSED_AT");
-            searchSort.setSortOrder("ASC");
-
-            List<Order> v2Orders = Arrays.asList(squareV2Client.orders().search(location.getId(), orderQuery));
-
-            for (Order order : v2Orders) {
+            for (Order order : orders) {
                 if (order.getTenders() != null) {
                     for (Tender tender : order.getTenders()) {
                         if (tender.getCustomerId() != null) {
@@ -258,10 +294,10 @@ public class TlogGenerator implements Callable {
                              * customer. For now, we are just going to verify the
                              * customer has provided an email
                              */
-                            if ((customerProvidedEmail || customerProvidedPhone) && (customer.getReferenceId() == null
+                            if (tenderToPayment.containsKey(tender.getId()) && (customerProvidedEmail || customerProvidedPhone) && (customer.getReferenceId() == null
                                     || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
                                 String newId = generateNewPreferredCustomerId(nextPreferredCustomerNumbers,
-                                        paymentsCache.get(tender.getId()), storeId);
+                                        tenderToPayment.get(tender.getId()), storeId);
 
                                 customer.setReferenceId(newId);
                                 customer = squareV2Client.customers().update(customer);
@@ -275,7 +311,7 @@ public class TlogGenerator implements Callable {
                                 customer.setCompanyName(loyaltyCustomer ? "1" : "0");
 
                                 customerPaymentCache.put(tender.getId(), customer);
-                                customerPaymentCache.put(tender.getTransactionId(), customer);
+                                customerPaymentCache.put(order.getId(), customer);
                             }
                         }
                     }
@@ -300,9 +336,13 @@ public class TlogGenerator implements Callable {
         tlog.createCloseRecords(createCloseRecords);
         tlog.setTotalConfiguredDevices(totalConfiguredDevices);
 
-        tlog.parse(location, allPaymentsInPeriod.toArray(new Payment[0]),
-                paymentsInPeriodToProcess.toArray(new Payment[0]), tlogGeneratorPayload.getEmployees(),
-                tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
+//        tlog.parse(location, v1allPaymentsInPeriod.toArray(new com.squareup.connect.Payment[0]),
+//                paymentsInPeriodToProcess.toArray(new com.squareup.connect.Payment[0]), tlogGeneratorPayload.getEmployees(),
+//                tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
+
+      tlog.parse(location, orders,
+      ordersInPeriodToProcess.toArray(new Order[0]), tlogGeneratorPayload.getEmployees(),
+      tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"), tenderToPayment, catalog);
 
         message.setProperty("vfcorpStoreNumber", Util.getStoreNumber(location.getName()), PropertyScope.INVOCATION);
         message.setProperty("tlog", tlog.toString(), PropertyScope.INVOCATION);
@@ -314,11 +354,29 @@ public class TlogGenerator implements Callable {
         return true;
     }
 
-    private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
-            Payment customerPayment, String storeId) {
+    private String v1generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
+    		com.squareup.connect.Payment customerPayment, String storeId) {
 
         String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
                 ? customerPayment.getDevice().getName()
+                : null;
+        String registerNumber = Util.getRegisterNumber(deviceName);
+
+        int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);
+        int mod = 0; // Not currently performing any modulus operation
+
+        // Update for next customer
+        int updatedCounter = (nextCustomerNumber + 1 > 9999999) ? 1 : nextCustomerNumber + 1;
+        nextPreferredCustomerIds.put(registerNumber, updatedCounter);
+
+        return String.format("%s%s5%s%s", storeId, registerNumber, String.format("%07d", nextCustomerNumber), mod);
+    }
+
+    private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
+    		Payment customerPayment, String storeId) {
+
+        String deviceName = (customerPayment != null && customerPayment.getDeviceDetails() != null)
+                ? customerPayment.getDeviceDetails().getDeviceName()
                 : null;
         String registerNumber = Util.getRegisterNumber(deviceName);
 

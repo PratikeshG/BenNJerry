@@ -13,14 +13,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
+import com.squareup.connect.v2.Payment;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.Transaction;
 
+import util.ConnectV2MigrationHelper;
 import util.SquarePayload;
 import util.TimeManager;
 
@@ -56,9 +58,9 @@ public class DetailsByDeploymentCallable implements Callable {
         Map<String, String> params = TimeManager.getPastDayInterval(range, offset, location.getTimezone());
 
         // V1 Payments - ignore no-sale and cash-only payments
-        Payment[] allPayments = squareV1Client.payments().list(params);
-        List<Payment> validPayments = new ArrayList<Payment>();
-        for (Payment payment : allPayments) {
+        com.squareup.connect.Payment[] v1allPayments = squareV1Client.payments().list(params);
+        List<com.squareup.connect.Payment> v1validPayments = new ArrayList<com.squareup.connect.Payment>();
+        for (com.squareup.connect.Payment payment : v1allPayments) {
             boolean hasValidPaymentTender = false;
             for (com.squareup.connect.Tender tender : payment.getTender()) {
 
@@ -73,7 +75,7 @@ public class DetailsByDeploymentCallable implements Callable {
                 }
             }
             if (hasValidPaymentTender) {
-                validPayments.add(payment);
+                v1validPayments.add(payment);
             }
         }
 
@@ -97,13 +99,27 @@ public class DetailsByDeploymentCallable implements Callable {
             if (hasValidTransactionTender) {
                 validTransactions.add(transaction);
             }
-
         }
 
         // V2 Customers
+//        HashMap<String, Customer> customers = new HashMap<String, Customer>();
+//        for (Transaction transaction : validTransactions) {
+//            for (Tender tender : transaction.getTenders()) {
+//                if (tender.getCustomerId() != null) {
+//                    Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
+//                    customers.put(customer.getId(), customer);
+//                }
+//            }
+//        }
+
+		params.put("location_id", location.getId());
+        Payment[] payments = ConnectV2MigrationHelper.getPaymentsV2(squareV2Client,location.getId(), params);
+        Order[] orders = ConnectV2MigrationHelper.getOrders(squareV2Client, location.getId(), params, allowCashTransactions);
+        Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders, payments, squareV2Client, params);
+
         HashMap<String, Customer> customers = new HashMap<String, Customer>();
-        for (Transaction transaction : validTransactions) {
-            for (Tender tender : transaction.getTenders()) {
+        for (Order order : orders) {
+            for (Tender tender : order.getTenders()) {
                 if (tender.getCustomerId() != null) {
                     Customer customer = squareV2Client.customers().retrieve(tender.getCustomerId());
                     customers.put(customer.getId(), customer);
@@ -111,9 +127,10 @@ public class DetailsByDeploymentCallable implements Callable {
             }
         }
 
-        LocationTransactionDetails details = new LocationTransactionDetails(location,
-                validTransactions.toArray(new Transaction[0]), validPayments.toArray(new Payment[0]), customers);
 
+//        LocationTransactionDetails details = new LocationTransactionDetails(location,
+//                validTransactions.toArray(new Transaction[0]), v1validPayments.toArray(new com.squareup.connect.Payment[0]), customers);
+        LocationTransactionDetails details = new LocationTransactionDetails(location, orders, payments, customers, tenderToPayment);
         return details;
     }
 }
