@@ -88,7 +88,9 @@ public class TransactionTaxExtended extends Record {
                 break;
         }
 
-        long taxRate = Math.round(Double.parseDouble(tax.getRate()) * 10000000);
+        String rate = tax.getRate() != null ? tax.getRate() : "0";
+
+        long taxRate = Math.round(Double.parseDouble(rate) * 10000000);
 
         int taxableAmount = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
 
