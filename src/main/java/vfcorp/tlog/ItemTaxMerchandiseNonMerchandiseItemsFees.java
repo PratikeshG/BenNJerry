@@ -5,6 +5,9 @@ import java.util.Map;
 
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentTax;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedTax;
+import com.squareup.connect.v2.OrderLineItemTax;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -104,6 +107,62 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
         putValue("Tax Amount", ""); // not supported
         putValue("Tax Override Code", ""); // not supported
         putValue("Taxable Amount", "" + itemization.getNetSalesMoney().getAmount());
+        putValue("Tax Code", taxCode);
+
+        return this;
+    }
+
+    public ItemTaxMerchandiseNonMerchandiseItemsFees parse(OrderLineItemAppliedTax tax, OrderLineItem lineItem, OrderLineItemTax taxDetails)
+            throws Exception {
+        String taxType = "01";
+        String taxMethod = "01";
+        String taxCode = "1";
+        switch (taxDetails.getName()) {
+            case "VAT":
+                taxType = "02";
+                break;
+            case "GST":
+            case "Goods and Services Tax":
+                taxType = "03";
+                break;
+            case "GST/PST":
+            case "Provincial Sales Tax":
+                taxType = "04";
+                taxCode = "PST";
+                break;
+            case "PST ON GST":
+                taxType = "05";
+                break;
+            case "No tax":
+                taxType = "07";
+                break;
+            case "Youth Item Tax":
+                taxCode = "2";
+            case "HST":
+            case "Harmonized Sales Tax":
+                taxType = "08";
+                break;
+            case "Sales Tax":
+            default:
+                taxType = "01";
+                break;
+        }
+        String rate = taxDetails.getPercentage() != null ? taxDetails.getPercentage() : "";
+        long taxRate = Math.round(Double.parseDouble(rate) * 10000000);
+
+        // for special taxes
+        String specialTaxDetails = Util.getValueInParenthesis(taxDetails.getName());
+        if (specialTaxDetails.length() > 2) {
+            taxMethod = specialTaxDetails.substring(0, 2);
+            taxCode = specialTaxDetails.substring(2);
+        }
+
+        putValue("Tax Type", taxType);
+        putValue("Tax Method", taxMethod);
+        putValue("Tax Rate", "" + taxRate);
+        putValue("Tax Amount", ""); // not supported
+        putValue("Tax Override Code", ""); // not supported
+        putValue("Taxable Amount", "" + lineItem.getGrossSalesMoney().getAmount() + lineItem.getTotalDiscountMoney().getAmount());
         putValue("Tax Code", taxCode);
 
         return this;

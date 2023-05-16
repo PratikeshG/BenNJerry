@@ -3,6 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.squareup.connect.v2.Payment;
+
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
@@ -138,6 +140,78 @@ public class Tender extends Record {
             tenderAmount = "" + tender.getTotalMoney().getAmount();
         } else {
             tenderAmount = "" + tender.getTenderedMoney().getAmount();
+        }
+
+        putValue("Tender Code", tenderCode);
+        putValue("Tender Amount", tenderAmount);
+        putValue("Tender Count", "");
+        // TODO(): needs to be refactored for refunds
+        putValue("Sign Indicator", "0"); // always positive
+        putValue("Currency Indicator", "0");
+        putValue("Currency Exchange Rate", ""); // not supported
+
+        return this;
+    }
+
+    public Tender parse(com.squareup.connect.v2.Tender tender, String deployment, Payment payment) throws Exception {
+        String tenderCode = "";
+        if (tender.getType().equals(com.squareup.connect.v2.Tender.TENDER_TYPE_CASH)) {
+            tenderCode = TENDER_CODE_CASH;
+        } else if (tender.getType().equals(com.squareup.connect.v2.Tender.TENDER_TYPE_CARD) && payment.getCardDetails() != null) {
+            if (deployment.contains("vans") || deployment.contains("test")) {
+                tenderCode = TENDER_CODE_VANS_CARD;
+            } else {
+                if (payment.getCardDetails().getCard().getCardBrand().equals("VISA")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_VISA_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_VISA;
+                    }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("MASTER_CARD")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_MASTERCARD_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_MASTERCARD;
+                    }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("AMERICAN_EXPRESS")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_AMEX_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_AMEX;
+                    }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("DISCOVER")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_DISCOVER_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_DISCOVER;
+                    }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("DISCOVER_DINERS")) {
+                    tenderCode = TENDER_CODE_DISCOVERDINERS;
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("JCB")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_JCB_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_JCB;
+                    }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("OTHER_BRAND")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_DEBIT_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_ECHECK;
+                    }
+                } else {
+                    tenderCode = TENDER_CODE_ECHECK;
+                }
+            }
+        } else {
+            tenderCode = TENDER_CODE_ECHECK;
+        }
+
+        String tenderAmount = "";
+        if (payment.getCashDetails() != null) {
+            tenderAmount = "" + payment.getTotalMoney().getAmount();
+        } else {
+            tenderAmount = "" + payment.getCashDetails().getBuyerSuppliedMoney().getAmount();
         }
 
         putValue("Tender Code", tenderCode);
