@@ -4,7 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.Order;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -54,11 +55,11 @@ public class TenderCount extends Record {
         return id;
     }
 
-    public TenderCount parse(String tenderCode, List<Payment> squarePaymentsList, String deployment) throws Exception {
+    public TenderCount parse(String tenderCode, List<com.squareup.connect.Payment> squarePaymentsList, String deployment) throws Exception {
         int number = 0;
         int amount = 0;
 
-        for (Payment squarePayment : squarePaymentsList) {
+        for (com.squareup.connect.Payment squarePayment : squarePaymentsList) {
             for (com.squareup.connect.Tender tender : squarePayment.getTender()) {
                 if (deployment.contains("vans") || deployment.contains("test")) {
                     if ((Tender.TENDER_CODE_CASH.equals(tenderCode) && tender.getType().equals("CASH"))
@@ -118,6 +119,90 @@ public class TenderCount extends Record {
                         }
                     }
                 }
+            }
+        }
+
+        putValue("Tender Code", tenderCode);
+        putValue("Number In Drawer", "" + number);
+        putValue("Amount In Drawer", "" + amount);
+        putValue("Amount In Drawer Sign", amount >= 0 ? "0" : "1");
+        putValue("Amount Counted", "" + amount);
+        putValue("Amount Counted Sign", amount >= 0 ? "0" : "1");
+        putValue("Currency Indicator", "0"); // not supported
+        putValue("Counted Indicator", "1"); // 1 is "dollars"
+
+        return this;
+    }
+
+    public TenderCount parse(String tenderCode, List<Order> squareOrdersList, Map<String, Payment> tenderToPayment, String deployment) throws Exception {
+        int number = 0;
+        int amount = 0;
+
+        for (Order order : squareOrdersList) {
+            for (com.squareup.connect.v2.Tender tender : order.getTenders()) {
+            	Payment payment = tenderToPayment.get(tender.getId());
+            	if(payment != null) {
+            		if (deployment.contains("vans") || deployment.contains("test")) {
+                        if ((Tender.TENDER_CODE_CASH.equals(tenderCode) && tender.getType().equals(com.squareup.connect.v2.Tender.TENDER_TYPE_CASH))
+                                || (Tender.TENDER_CODE_VANS_CARD.equals(tenderCode)
+                                        && tender.getType().equals(com.squareup.connect.v2.Tender.TENDER_TYPE_CARD))
+                                || (Tender.TENDER_CODE_GIFT_CERTIFICATE.equals(tenderCode)
+                                        && tender.getType().equals("OTHER")
+                                        && "MERCHANT_GIFT_CARD".equals(payment.getSourceType()))
+                                || (Tender.TENDER_CODE_98.equals(tenderCode) && tender.getType().equals("UNKNOWN"))) {
+
+                            number += 1;
+                            if (payment.getCashDetails() != null) {
+                                amount += payment.getCashDetails().getBuyerSuppliedMoney().getAmount();
+                            } else {
+                                amount += payment.getTotalMoney().getAmount();
+                            }
+                        }
+                    } else {
+                    	String cardBrand = payment.getCardDetails() != null && payment.getCardDetails().getCard() != null ?
+                    			payment.getCardDetails().getCard().getCardBrand() : "";
+                        if ((Tender.TENDER_CODE_CASH.equals(tenderCode) && tender.getType().equals("CASH"))
+                                || (Tender.TENDER_CODE_AMEX.equals(tenderCode) && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("AMERICAN_EXPRESS"))
+                                || (Tender.TENDER_CODE_AMEX_BETA.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("AMERICAN_EXPRESS"))
+                                || (Tender.TENDER_CODE_DISCOVER.equals(tenderCode) && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("DISCOVER"))
+                                || (Tender.TENDER_CODE_DISCOVER_BETA.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("DISCOVER"))
+                                || (Tender.TENDER_CODE_VISA.equals(tenderCode) && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("VISA"))
+                                || (Tender.TENDER_CODE_VISA_BETA.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD") && cardBrand.equals("VISA"))
+                                || (Tender.TENDER_CODE_MASTERCARD.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("MASTER_CARD"))
+                                || (Tender.TENDER_CODE_MASTERCARD_BETA.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("MASTER_CARD"))
+                                || (Tender.TENDER_CODE_JCB.equals(tenderCode) && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("JCB"))
+                                || (Tender.TENDER_CODE_JCB_BETA.equals(tenderCode) && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("JCB"))
+                                || (Tender.TENDER_CODE_DEBIT_BETA.equals(tenderCode)
+                                        && tender.getType().equals("CREDIT_CARD")
+                                        && cardBrand.equals("OTHER_BRAND"))
+                                || (Tender.TENDER_CODE_GIFT_CERTIFICATE.equals(tenderCode)
+                                        && tender.getType().equals("OTHER")
+                                        && "MERCHANT_GIFT_CARD".equals(payment.getSourceType()))
+                                || (Tender.TENDER_CODE_98.equals(tenderCode) && tender.getType().equals("UNKNOWN"))) {
+
+                            number += 1;
+                            if (payment.getCashDetails() != null) {
+                                amount += payment.getCashDetails().getBuyerSuppliedMoney().getAmount();
+                            } else {
+                                amount += payment.getTotalMoney().getAmount();
+                            }
+                        }
+                    }
+            	}
             }
         }
 

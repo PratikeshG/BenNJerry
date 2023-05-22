@@ -10,6 +10,7 @@ import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
@@ -18,7 +19,10 @@ import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
 import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.Tender;
 
 import util.CloudStorageApi;
 import util.DbConnection;
@@ -370,5 +374,19 @@ public class Util {
             reader.endArray();
         }
         return (ArrayList<ItemSaleDbRecord>) cachedType;
+    }
+
+    public static String getDeviceName(Order order, Map<String, Payment> tenderToPayment) {
+    	String registerNumber = null;
+    	if(order != null && order.getTenders() != null) {
+			for(Tender tender : order.getTenders()) {
+				Payment payment = tenderToPayment.get(tender.getId());
+				if(payment != null && payment.getDeviceDetails() != null) {
+					registerNumber = payment.getDeviceDetails().getDeviceName();
+					break;
+				}
+			}
+		}
+    	return registerNumber;
     }
 }

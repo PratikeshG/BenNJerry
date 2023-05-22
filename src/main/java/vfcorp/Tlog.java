@@ -143,7 +143,7 @@ public class Tlog {
 		createSaleRecords(location, tlogEntryOrders, employees, customerPaymentCache, tenderToPayment, catalog);
 
 		if (createCloseRecords) {
-			createStoreCloseRecords(location, tlogCloseRecordOrders, processingForDate);
+			createStoreCloseRecords(location, tlogCloseRecordOrders, tenderToPayment, processingForDate);
 		}
 	}
 
@@ -650,12 +650,17 @@ public class Tlog {
 					paymentList.add(new CrmLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
 				}
 
-				String registerNumber = Util
-						.getRegisterNumber(payment.getDevice() != null ? payment.getDevice().getName() : null);
-				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
-						payment.getV2OrderId(), payment.getCreatedAt());
+				String registerNumber = Util.getDeviceName(order, tenderToPayment);
 
-				paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, payment, employeeId,
+				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
+						order.getId(), order.getCreatedAt());
+
+//				String registerNumber = Util
+//						.getRegisterNumber(payment.getDevice() != null ? payment.getDevice().getName() : null);
+//				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
+//						payment.getV2OrderId(), payment.getCreatedAt());
+
+				paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, order, registerNumber, employeeId,
 						TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, timeZoneId));
 
 				transactionLog.addAll(paymentList);
@@ -786,6 +791,146 @@ public class Tlog {
 				}
 				newRecordList.add(
 						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerPayments, deployment));
+			}
+
+			newRecordList.add(new ForInStoreReportingUseOnly()
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
+			newRecordList.add(new ForInStoreReportingUseOnly()
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
+			newRecordList.add(new ForInStoreReportingUseOnly()
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
+
+			int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber, closingRecordId,
+					recordDate);
+			newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
+					registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
+					timeZoneId, processingForDate));
+
+			transactionLog.addAll(newRecordList);
+		}
+	}
+
+	private void createStoreCloseRecords(Location location, List<Order> orders, Map<String, Payment> tenderToPayment, String processingForDate) throws Exception {
+		Map<String, List<Order>> deviceOrdersList = new HashMap<String, List<Order>>();
+
+		for (Order order : orders) {
+			String deviceName = Util.getDeviceName(order, tenderToPayment);
+			String regNumber = Util.getRegisterNumber(deviceName);
+
+			// Add payment to device-specific payment list
+			List<Order> deviceOrders = deviceOrdersList.get(regNumber);
+			if (deviceOrders == null) {
+				deviceOrders = new ArrayList<Order>();
+				deviceOrdersList.put(regNumber, deviceOrders);
+			}
+			deviceOrders.add(order);
+		}
+
+		// get empty payments list for all missing devices
+		int expectedNumberOfDevices = Math.max(MIN_CONFIGURED_DEVICES, totalConfiguredDevices);
+		if ((isVansDeployment()) && deviceOrdersList.keySet().size() < expectedNumberOfDevices) {
+			Set<String> missingDeviceIds = getDeviceIdsWithNoPayments(deviceOrdersList.keySet(),
+					expectedNumberOfDevices);
+			for (String d : missingDeviceIds) {
+				List<Order> emptyDeviceOrders = new ArrayList<Order>();
+				deviceOrdersList.put(d, emptyDeviceOrders);
+			}
+		}
+
+		for (String registerNumber : deviceOrdersList.keySet()) {
+			String recordDate = TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "yyyy-MM-dd");
+			String closingRecordId = "close-" + location.getId() + "-" + recordDate + "-" + registerNumber;
+
+			List<Order> registerOrders = deviceOrdersList.get(registerNumber);
+			LinkedList<Record> newRecordList = new LinkedList<Record>();
+
+			newRecordList.add(new SubHeaderStoreSystemLocalizationInformation().parse());
+			newRecordList.add(new CashierRegisterIdentification().parse(registerNumber));
+
+			if (isVansDeployment()) {
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VANS_CARD, registerOrders, tenderToPayment,
+						deployment));
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerOrders, tenderToPayment,
+						deployment));
+				newRecordList
+						.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerOrders, tenderToPayment,
+						deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE,
+						registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE,
+						registerOrders, tenderToPayment, deployment));
+				newRecordList
+						.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerOrders, tenderToPayment, deployment));
+			} else {
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CASH, registerOrders, tenderToPayment, deployment));
+
+				if (deployment.contains("tnf")) {
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX_BETA,
+							registerOrders, tenderToPayment, deployment));
+				} else {
+					newRecordList.add(
+							new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_AMEX, registerOrders, tenderToPayment, deployment));
+				}
+
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MALL_GC, registerOrders, tenderToPayment, deployment));
+
+				if (deployment.contains("tnf")) {
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER_BETA,
+							registerOrders, tenderToPayment, deployment));
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB_BETA, registerOrders, tenderToPayment,
+							deployment));
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT_BETA,
+							registerOrders, tenderToPayment, deployment));
+				} else {
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DISCOVER, registerOrders, tenderToPayment,
+							deployment));
+					newRecordList.add(
+							new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_JCB, registerOrders, tenderToPayment, deployment));
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_DEBIT, registerOrders, tenderToPayment,
+							deployment));
+				}
+
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_CHEQUE, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MAIL_CHEQUE, registerOrders, tenderToPayment,
+						deployment));
+				newRecordList
+						.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_EGC, registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_STORE_CREDIT, registerOrders, tenderToPayment,
+						deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_TRAVELERS_CHEQUE,
+						registerOrders, tenderToPayment, deployment));
+				newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_GIFT_CERTIFICATE,
+						registerOrders, tenderToPayment, deployment));
+
+				if (deployment.contains("tnf")) {
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA_BETA,
+							registerOrders, tenderToPayment, deployment));
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD_BETA,
+							registerOrders, tenderToPayment, deployment));
+				} else {
+					newRecordList.add(
+							new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_VISA, registerOrders, tenderToPayment, deployment));
+					newRecordList.add(new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_MASTERCARD,
+							registerOrders, tenderToPayment, deployment));
+				}
+
+				// Catch all for "other" - not used by TNF
+				if (!deployment.contains("tnf")) {
+					newRecordList.add(
+							new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_98, registerOrders, tenderToPayment, deployment));
+				}
+				newRecordList.add(
+						new TenderCount().parse(vfcorp.tlog.Tender.TENDER_CODE_ECHECK, registerOrders, tenderToPayment, deployment));
 			}
 
 			newRecordList.add(new ForInStoreReportingUseOnly()
