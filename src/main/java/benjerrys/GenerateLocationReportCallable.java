@@ -87,9 +87,9 @@ public class GenerateLocationReportCallable implements Callable {
         reportBuilder.buildReports();
 
         // Skip email (and attachments) if there are no transactions or recipients
-        if (isEmailSkipped(reportBuilder, emailRecipients)) {
-            return summary;
-        }
+//        if (isEmailSkipped(reportBuilder, emailRecipients)) {
+//            return summary;
+//        }
 
         uploadReportsToSftp(reportBuilder, location.getName(), dateMonthYear);
 
