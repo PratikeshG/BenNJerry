@@ -794,15 +794,15 @@ public class Tlog {
 			}
 
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
+					.parsePayment(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
+					.parsePayment(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
+					.parsePayment(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
 
 			int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber, closingRecordId,
 					recordDate);
-			newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
+			newRecordList.addFirst(new TransactionHeader().parsePayment(transactionNumber, location, registerPayments,
 					registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
 					timeZoneId, processingForDate));
 
@@ -934,15 +934,15 @@ public class Tlog {
 			}
 
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerPayments));
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_MERCHANDISE_SALES, registerOrders));
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerPayments));
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_DISCOUNTS, registerOrders));
 			newRecordList.add(new ForInStoreReportingUseOnly()
-					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerPayments));
+					.parse(ForInStoreReportingUseOnly.TRANSACTION_IDENTIFIER_SALES_TAX, registerOrders));
 
 			int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber, closingRecordId,
 					recordDate);
-			newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerPayments,
+			newRecordList.addFirst(new TransactionHeader().parse(transactionNumber, location, registerOrders,
 					registerNumber, TransactionHeader.TRANSACTION_TYPE_TENDER_COUNT_REGISTER, newRecordList.size() + 1,
 					timeZoneId, processingForDate));
 

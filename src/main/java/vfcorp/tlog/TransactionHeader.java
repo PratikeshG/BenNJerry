@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.squareup.connect.v2.Payment;
+import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 
@@ -172,7 +172,7 @@ public class TransactionHeader extends Record {
         return id;
     }
 
-    public TransactionHeader parse(int transactionNumber, Location location, List<Payment> squarePaymentsList,
+    public TransactionHeader parsePayment(int transactionNumber, Location location, List<Payment> squarePaymentsList,
             String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
             String processingForDate) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
