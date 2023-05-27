@@ -2,6 +2,7 @@ package tntfireworks.reporting;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -275,18 +276,28 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         Map<String, String> tenderToEntryMethod = new HashMap<String, String>();
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
         Order[] orders = TntLocationDetails.getOrders(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
+        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
         for (Order order : orders) {
         	if(order != null && order.getTenders() != null) {
         		for (Tender tender : order.getTenders()) {
-                    tenderToFee.put(tender.getId(), tender.getProcessingFeeMoney().getAmount());
+        			Payment payment = tenderToPayment.get(tender.getId());
+        			int feeMoney = payment != null && payment.getProcessingFee() != null
+        			        ? Arrays.stream(payment.getProcessingFee())
+        			            .filter(pf -> pf != null && pf.getType().equals("INITIAL"))
+        			            .mapToInt(pf -> pf.getAmountMoney() != null ? pf.getAmountMoney().getAmount() : 0)
+        			            .findFirst()
+        			            .orElse(0)
+        			        : 0;
+
+                    tenderToFee.put(tender.getId(), feeMoney);
                     if (tender.getCardDetails() != null && tender.getCardDetails().getEntryMethod() != null) {
                         tenderToEntryMethod.put(tender.getId(), tender.getCardDetails().getEntryMethod());
                     }
                 }
         	}
         }
-        Payment[] payments = TntLocationDetails.getPaymentsV2(squareClientV2, locationDetails.sqLocationId, aggregateIntervalParams);
-        Map<String, Payment> tenderToPayment = TntLocationDetails.getTenderToPayment(orders, payments, squareClientV2, aggregateIntervalParams);
+
         for (Order order : orders) {
             ordersPayload.addEntry(order, tenderToFee, tenderToEntryMethod, tenderToPayment);
         }
