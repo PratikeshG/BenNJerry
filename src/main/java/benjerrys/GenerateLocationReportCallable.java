@@ -81,8 +81,7 @@ public class GenerateLocationReportCallable implements Callable {
             return summary;
         }
 
-        //List<String> emailRecipients = setLocationEmailRecipients(message, location, employees);
-        List<String> emailRecipients = new ArrayList<String>();
+        List<String> emailRecipients = setLocationEmailRecipients(message, location, employees);
 
         // Retrieve location report data
         MonthlyReportBuilder reportBuilder = getReportBuilderForLocation(apiUrl, location, squarePayload, dateMonthYear,
@@ -90,9 +89,9 @@ public class GenerateLocationReportCallable implements Callable {
         reportBuilder.buildReports();
 
         // Skip email (and attachments) if there are no transactions or recipients
-//        if (isEmailSkipped(reportBuilder, emailRecipients)) {
-//            return summary;
-//        }
+        if (isEmailSkipped(reportBuilder, emailRecipients)) {
+            return summary;
+        }
 
         uploadReportsToSftp(reportBuilder, location.getName(), dateMonthYear);
 
