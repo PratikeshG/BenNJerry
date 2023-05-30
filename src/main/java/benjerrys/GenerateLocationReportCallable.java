@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.activation.DataHandler;
 
@@ -31,6 +32,7 @@ import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.PaymentRefund;
 
+import util.ConnectV2MigrationHelper;
 import util.Constants;
 import util.SftpApi;
 import util.SquarePayload;
@@ -81,6 +83,7 @@ public class GenerateLocationReportCallable implements Callable {
 
         //List<String> emailRecipients = setLocationEmailRecipients(message, location, employees);
         List<String> emailRecipients = new ArrayList<String>();
+
         // Retrieve location report data
         MonthlyReportBuilder reportBuilder = getReportBuilderForLocation(apiUrl, location, squarePayload, dateMonthYear,
                 monthOffset);
@@ -190,114 +193,108 @@ public class GenerateLocationReportCallable implements Callable {
         MonthlyReportBuilder reportBuilder = new MonthlyReportBuilder(location.getName(), dateMonthYear,
                 dateParams.get(Constants.BEGIN_TIME), dateParams.get(Constants.END_TIME));
 
-        // Get payments
-        Payment[] paymentsArray = clientV2.payments().list(dateParams);
-        Map<String, Payment> paymentsMap = new HashMap<>();
-        Arrays.stream(paymentsArray).forEach(payment -> paymentsMap.put(payment.getId(), payment));
+        Order[] orders = ConnectV2MigrationHelper.getOrders(clientV2, locationId, dateParams);
+		Map<String, Order> ordersMap = new HashMap<>();
+		Arrays.stream(orders).forEach(order -> ordersMap.put(order.getId(), order));
 
-        // Get payment refunds
-        PaymentRefund[] refunds = clientV2.refunds().listPaymentRefunds(dateParams);
+		PaymentRefund[] refunds = clientV2.refunds().listPaymentRefunds(dateParams);
 
-        if(refunds != null) {
-            for(PaymentRefund refund : refunds) {
-            	if(refund != null && refund.getPaymentId() != null) {
-            		Payment payment = paymentsMap.get(refund.getPaymentId());
-            		if(payment == null) {
-            			// get payment object from refunds if it doesn't already exist in the payments map
-            			payment = clientV2.payments().get(refund.getPaymentId());
-            			paymentsMap.put(refund.getPaymentId(), payment);
-            		}
-            	}
-            }
-        }
+		Map<String, Payment> paymentsMap = new HashMap<>();
+		List<String> orderIdsFromPaymentRefunds = new ArrayList<String>();
+		if(refunds != null) {
+		    for(PaymentRefund refund : refunds) {
+		    	if(refund != null && refund.getPaymentId() != null) {
+		    		// not many refunds, better to do one-offs than list entire payments
+		    		Payment payment = clientV2.payments().get(refund.getPaymentId());
+		    		paymentsMap.put(refund.getPaymentId(), payment);
+		    		// check if the order for the payment from the refund exists - the order might have been out of the UPDATED_AT time frame
+		    		if(!ordersMap.containsKey(payment.getOrderId())) {
+		    			orderIdsFromPaymentRefunds.add(payment.getOrderId());
+		    		}
+		      	}
+		    }
+		}
 
-        reportBuilder.setPayments(paymentsMap);
+		Order[] refundOrders = clientV2.orders().batchRetrieve(locationId, orderIdsFromPaymentRefunds.toArray(new String[0]));
+		for(Order order : refundOrders) {
+			ordersMap.put(order.getId(), order);
+		}
+
+		reportBuilder.setPayments(paymentsMap);
         reportBuilder.setPaymentRefunds(refunds);
-
-        Map<String, Order> orders = new HashMap<String, Order>();
-        HashSet<String> orderIdSet = new HashSet<String>();
-
-        // get OrderIds from both payments and refunds
-        for(Payment payment : reportBuilder.getPayments().values()) {
-        	orderIdSet.add(payment.getOrderId());
-        }
-        for(PaymentRefund refund : reportBuilder.getPaymentRefunds()) {
-        	orderIdSet.add(refund.getOrderId());
-        }
-
-        // call BatchRetrieve on orders
-        String[] orderIds = new String[orderIdSet.size()];
-        orderIdSet.toArray(orderIds);
-        Order[] ordersArray = clientV2.orders().batchRetrieve(locationId, orderIds);
+        reportBuilder.setOrders(ordersMap);
 
         // go through orders and extract ItemVariationIds
-        List<String> itemVariationIdList = new ArrayList<String>();
-        for(Order order : ordersArray) {
-        	if(order != null && order.getId() != null) {
-            	orders.put(order.getId(), order);
-            	OrderLineItem[] items = order.getLineItems();
-            	if(items != null) {
-            		for(OrderLineItem orderLineItem : items) {
-            			if(orderLineItem != null) {
-            				String catalogObjectId = orderLineItem.getCatalogObjectId();
-                    		if(catalogObjectId != null) {
-                    			// the catalogObjectId from an orderLineItem translates to the itemVariationId
-                    			itemVariationIdList.add(catalogObjectId);
-                    		}
-            			}
-                	}
-            	}
-        	}
-        }
+        String[] itemVariationIds = getItemVariationIds(orders);
 
-        reportBuilder.setOrders(orders);
+        // get catalogMap which consists of ITEM and ITEM_VARIATION data
+	  	Map<String, CatalogObject> catalogMap = getCatalogMap(itemVariationIds, clientV2);
+	  	// list categories (fast)
+	  	Map<String, CatalogObject> categoriesMap = getCategoriesMap(clientV2);
 
-        String[] itemVariationIds = new String[itemVariationIdList.size()];
-        itemVariationIdList.toArray(itemVariationIds);
+	  	// map itemVariationId -> category
+	  	Map<String, CatalogObject> itemVariationIdToCategory = getItemVariationIdToCategory(itemVariationIds, catalogMap, categoriesMap);
 
-        // retrieve item variations and related item data by setting "includeRelatedObjects" to true
-        CatalogObject[] relatedItems = clientV2.catalog().batchRetrieve(itemVariationIds, true);
+		reportBuilder.setCategories(itemVariationIdToCategory);
 
-        // initialize catalogMap and put both itemVariationData and itemData in it
-        Map<String, CatalogObject> catalogMap = new HashMap<>();
-        Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
-
-        List<String> categoryIdList = new ArrayList<String>();
-        for(CatalogObject item : relatedItems) {
-        	// store a list of categoryIds to call batchRetrieve one more time to retrieve categoryData
-        	if(item.getItemData() != null) {
-        		String categoryId = item.getItemData().getCategoryId();
-        		if(categoryId != null) {
-        			categoryIdList.add(categoryId);
-        		}
-        	}
-        }
-
-        String[] categoryIds = new String[categoryIdList.size()];
-        categoryIdList.toArray(categoryIds);
-
-        // retrieve categoryData
-        CatalogObject[] categories = clientV2.catalog().batchRetrieve(categoryIds, false);
-
-        // set catalogMap with categoryData
-        Arrays.stream(categories).forEach(category -> catalogMap.put(category.getId(), category));
-
-        Map<String, CatalogObject> categoriesMap = new HashMap<>();
-
-        // map the itemVariationId (which is the ID stored in an order) to its respective categoryData
-        for(String itemVariationId : itemVariationIdList) {
-        	CatalogObject itemVariation = catalogMap.get(itemVariationId);
-        	if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
-        		CatalogObject item = catalogMap.get(itemVariation.getItemVariationData().getItemId());
-        		if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
-        			CatalogObject category = catalogMap.get(item.getItemData().getCategoryId());
-        	        categoriesMap.put(itemVariationId, category);
-        		}
-        	}
-        }
-
-        reportBuilder.setCategories(categoriesMap);
         return reportBuilder;
+    }
+
+    private Map<String, CatalogObject> getCatalogMap(String[] itemVariationIds, SquareClientV2 clientV2) throws Exception {
+        CatalogObject[] relatedItems = clientV2.catalog().batchRetrieve(itemVariationIds, true);
+	  	Map<String, CatalogObject> catalogMap = new HashMap<>();
+	  	Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
+	  	return catalogMap;
+    }
+
+    private String[] getItemVariationIds(Order[] orders) {
+    	Set<String> set = new HashSet<String>();
+    	if(orders != null) {
+    		for(Order order : orders) {
+        		if(order != null && order.getLineItems() != null) {
+    	            for(OrderLineItem orderLineItem : order.getLineItems()) {
+        	        	if(orderLineItem != null) {
+        	        		String catalogObjectId = orderLineItem.getCatalogObjectId();
+    	              		if(catalogObjectId != null) {
+    	              			// the catalogObjectId from an orderLineItem translates to the itemVariationId
+    	              			set.add(catalogObjectId);
+    	              		}
+    	      			}
+    	        	}
+    	        }
+    		}
+    	}
+    	String[] ids = new String[set.size()];
+        set.toArray(ids);
+
+    	return ids;
+    }
+
+    private Map<String, CatalogObject> getCategoriesMap(SquareClientV2 clientV2) throws Exception {
+    	Map<String, CatalogObject> categoriesMap = new HashMap<>();
+	  	CatalogObject[] categories = clientV2.catalog().listCategories();
+        Arrays.stream(categories).forEach(category -> categoriesMap.put(category.getId(), category));
+        return categoriesMap;
+    }
+
+    private Map<String, CatalogObject> getItemVariationIdToCategory(String[] itemVariationIdList,
+    		Map<String, CatalogObject> catalogMap,
+    		Map<String, CatalogObject> categoriesMap) {
+	  	Map<String, CatalogObject> itemVariationIdToCategory = new HashMap<>();
+    	if(itemVariationIdList != null) {
+    		for(String itemVariationId : itemVariationIdList) {
+    			CatalogObject itemVariation = catalogMap.get(itemVariationId);
+    			if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
+    				CatalogObject item = catalogMap.get(itemVariation.getItemVariationData().getItemId());
+    				if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
+    					CatalogObject category = categoriesMap.get(item.getItemData().getCategoryId());
+    			        itemVariationIdToCategory.put(itemVariationId, category);
+    				}
+    			}
+    		}
+    	}
+
+    	return itemVariationIdToCategory;
     }
 
     private List<String> reportRecipients(Location location, Employee[] employees) {
