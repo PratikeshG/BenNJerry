@@ -60,7 +60,7 @@ public class TntReportAggregator {
     protected String storeOrAttachReport(MuleMessage muleMessage, String reportName, String generatedReport)
             throws Exception {
         String emailBody = "";
-        logger.info("Sending out report %s", reportName);
+        logger.info(String.format("Sending out report %s", reportName));
 
         // if file size is too large to send in email attachment, send to SFTP
         if (generatedReport.getBytes(CHARSET).length > MAX_REPORT_SIZE) {
@@ -75,7 +75,7 @@ public class TntReportAggregator {
     protected String attachReport(MuleMessage muleMessage, String reportName, String generatedReport) throws Exception {
         DataHandler dataHandler = new DataHandler(generatedReport, String.format("text/plain; charset=%s", CHARSET));
         muleMessage.addOutboundAttachment(reportName, dataHandler);
-        logger.info("Attached report %s to Mule message", reportName);
+        logger.info(String.format("Attached report %s to Mule message", reportName));
 
         return String.format("See attached report: %s", reportName);
     }
@@ -89,7 +89,7 @@ public class TntReportAggregator {
         InputStream is = new ByteArrayInputStream(generatedReport.getBytes(CHARSET));
         sftpChannel.put(is, String.format("%s/%s", reportFullPath, reportName));
         SshUtil.closeConnection(sftpChannel);
-        logger.info("Sent report %s to SFTP", reportName);
+        logger.info(String.format("Sent report %s to SFTP", reportName));
 
         return String.format("%s sent to SFTP.", reportName);
     }
