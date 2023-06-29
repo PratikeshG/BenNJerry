@@ -70,141 +70,78 @@ public class LoyaltyAggregationCallable implements Callable {
         for (LocationTransactionDetails locationTransactionDetails : transactionDetailsByLocation) {
             String storeId = Util.getStoreNumber(locationTransactionDetails.getLocation().getName());
 
-            // Create a tender_id:employee_id mapping
-            HashMap<String, String> v1tenderEmployeeMapping = new HashMap<String, String>();
-            for (com.squareup.connect.Payment payment : locationTransactionDetails.getv1Payments()) {
-                for (com.squareup.connect.Tender tender : payment.getTender()) {
-                    if (tender.getEmployeeId() != null) {
-                        v1tenderEmployeeMapping.put(tender.getId(), tender.getEmployeeId());
-                    }
-                }
-            }
-
-            for (Transaction transaction : locationTransactionDetails.getTransactions()) {
-                for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
-
-                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0)
-                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
-
-                        if (customer != null && customer.getReferenceId() != null
-                                && customer.getReferenceId().length() == LOYALTY_CUSTOMER_ID_LENGTH) {
-
-                            String employeeId = v1tenderEmployeeMapping.get(tender.getId());
-                            String associateId = employees.get(employeeId);
-
-                            LoyaltyEntryPayload loyaltyPayload = new LoyaltyEntryPayload();
-                            loyaltyPayload.setStoreId(storeId);
-                            loyaltyPayload.setAssociateId(associateId);
-                            loyaltyPayload.setCustomer(customer);
-
-                            if (brand.equals("kipling") || brand.equals("vans") || brand.equals("test")) {
-                                loyaltyPayload.setEmailOptIn(true);
-                            } else {
-                                if (customer.getGroups() != null) {
-                                    for (CustomerGroup group : customer.getGroups()) {
-                                        if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
-                                            loyaltyPayload.setEmailOptIn(true);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
-                        } else {
-                            if (customer != null && customerHasContactInfo && customer.getReferenceId() == null) {
-                                throwCustomerReferenceIdMissingError = true;
-                                logger.warn("Loyalty customer missing generated reference ID. Customer: "
-                                        + customer.getId());
-                            } else if (customer != null && customerHasContactInfo
-                                    && customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH) {
-                                // Square might start returning customer objects
-                                // on transactions without merchant adding them
-                                throwCutomerReferenceIdLengthError = true;
-                                logger.warn("Loyalty customer has invalid reference ID length. Customer: "
-                                        + customer.getId());
-                            } else if (customer != null && !customerHasContactInfo) {
-                                logger.warn("Loyalty customer does not have contact info: " + customer.getId());
-                            } else {
-                                throwCustomerNotFoundError = true;
-                                logger.warn("Loyalty customer not found in cache for tender: " + tender.getId());
-                            }
-                        }
-                    }
-                }
-            }
-            //------------------------------------------v2----------------------------------------
             Map<String, String> tenderTeamMemberMapping = new HashMap<String, String>();
             Map<String, Payment> tenderToPayment = locationTransactionDetails.getTenderToPayment();
             for (Order order : locationTransactionDetails.getOrders()) {
-                for (Tender tender : order.getTenders()) {
-                    if (tenderToPayment.containsKey(tender.getId())) {
-                    	Payment payment = tenderToPayment.get(tender.getId());
-                    	if(payment.getTeamMemberId() != null) {
-                            tenderTeamMemberMapping.put(tender.getId(), payment.getTeamMemberId());
-                    	}
+            	if(order.getTenders() != null) {
+            		for (Tender tender : order.getTenders()) {
+                        if (tenderToPayment.containsKey(tender.getId())) {
+                        	Payment payment = tenderToPayment.get(tender.getId());
+                        	if(payment.getTeamMemberId() != null) {
+                                tenderTeamMemberMapping.put(tender.getId(), payment.getTeamMemberId());
+                        	}
+                        }
                     }
-                }
+            	}
             }
 
-            for (Transaction transaction : locationTransactionDetails.getTransactions()) {
-                for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
+            for (Order order : locationTransactionDetails.getOrders()) {
+            	if(order.getTenders() != null) {
+            		for (Tender tender : order.getTenders()) {
+                        if (tender.getCustomerId() != null) {
+                            Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
 
-                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0)
-                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
+                            boolean customerHasContactInfo = (customer.getEmailAddress() != null
+                                    && customer.getEmailAddress().length() > 0)
+                                    || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
 
-                        if (customer != null && customer.getReferenceId() != null
-                                && customer.getReferenceId().length() == LOYALTY_CUSTOMER_ID_LENGTH) {
+                            if (customer != null && customer.getReferenceId() != null
+                                    && customer.getReferenceId().length() == LOYALTY_CUSTOMER_ID_LENGTH) {
 
-                            String employeeId = tenderTeamMemberMapping.get(tender.getId());
-                            String associateId = employees.get(employeeId);
+                                String employeeId = tenderTeamMemberMapping.get(tender.getId());
+                                String associateId = employees.get(employeeId);
 
-                            LoyaltyEntryPayload loyaltyPayload = new LoyaltyEntryPayload();
-                            loyaltyPayload.setStoreId(storeId);
-                            loyaltyPayload.setAssociateId(associateId);
-                            loyaltyPayload.setCustomer(customer);
+                                LoyaltyEntryPayload loyaltyPayload = new LoyaltyEntryPayload();
+                                loyaltyPayload.setStoreId(storeId);
+                                loyaltyPayload.setAssociateId(associateId);
+                                loyaltyPayload.setCustomer(customer);
 
-                            if (brand.equals("kipling") || brand.equals("vans") || brand.equals("test")) {
-                                loyaltyPayload.setEmailOptIn(true);
-                            } else {
-                                if (customer.getGroups() != null) {
-                                    for (CustomerGroup group : customer.getGroups()) {
-                                        if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
-                                            loyaltyPayload.setEmailOptIn(true);
-                                            break;
+                                if (brand.equals("kipling") || brand.equals("vans") || brand.equals("test")) {
+                                    loyaltyPayload.setEmailOptIn(true);
+                                } else {
+                                    if (customer.getGroups() != null) {
+                                        for (CustomerGroup group : customer.getGroups()) {
+                                            if (group.getId().equals(CUSTOMER_GROUP_EMAIL)) {
+                                                loyaltyPayload.setEmailOptIn(true);
+                                                break;
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
-                        } else {
-                            if (customer != null && customerHasContactInfo && customer.getReferenceId() == null) {
-                                throwCustomerReferenceIdMissingError = true;
-                                logger.warn("Loyalty customer missing generated reference ID. Customer: "
-                                        + customer.getId());
-                            } else if (customer != null && customerHasContactInfo
-                                    && customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH) {
-                                // Square might start returning customer objects
-                                // on transactions without merchant adding them
-                                throwCutomerReferenceIdLengthError = true;
-                                logger.warn("Loyalty customer has invalid reference ID length. Customer: "
-                                        + customer.getId());
-                            } else if (customer != null && !customerHasContactInfo) {
-                                logger.warn("Loyalty customer does not have contact info: " + customer.getId());
+                                loyaltyPayloadSet.put(customer.getReferenceId(), loyaltyPayload);
                             } else {
-                                throwCustomerNotFoundError = true;
-                                logger.warn("Loyalty customer not found in cache for tender: " + tender.getId());
+                                if (customer != null && customerHasContactInfo && customer.getReferenceId() == null) {
+                                    throwCustomerReferenceIdMissingError = true;
+                                    logger.warn("Loyalty customer missing generated reference ID. Customer: "
+                                            + customer.getId());
+                                } else if (customer != null && customerHasContactInfo
+                                        && customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH) {
+                                    // Square might start returning customer objects
+                                    // on transactions without merchant adding them
+                                    throwCutomerReferenceIdLengthError = true;
+                                    logger.warn("Loyalty customer has invalid reference ID length. Customer: "
+                                            + customer.getId());
+                                } else if (customer != null && !customerHasContactInfo) {
+                                    logger.warn("Loyalty customer does not have contact info: " + customer.getId());
+                                } else {
+                                    throwCustomerNotFoundError = true;
+                                    logger.warn("Loyalty customer not found in cache for tender: " + tender.getId());
+                                }
                             }
                         }
                     }
-                }
+            	}
             }
         }
 

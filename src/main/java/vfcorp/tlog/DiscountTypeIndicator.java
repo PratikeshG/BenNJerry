@@ -77,18 +77,21 @@ public class DiscountTypeIndicator extends Record {
 	public DiscountTypeIndicator parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount, String discountCode, String discountAppyType) throws Exception {
 		// Need to subtract previously applied discounts on this item from beforeTotal
 		int beforeTotal = lineItem.getGrossSalesMoney().getAmount();
-		for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
-			if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
-				break;
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
+				if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
+					break;
+				}
+				beforeTotal -= prevDiscount.getAppliedMoney().getAmount();
 			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
 		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
-		int finalTotal = beforeTotal + discountTotal;
+
+		int discountTotal = discount.getAppliedMoney().getAmount();
+		int finalTotal = beforeTotal - discountTotal;
 
 		putValue("Discount Code", discountCode);
 		putValue("Amount Before Discount", "" + beforeTotal);
-		putValue("Amount Discount", "" + -discountTotal);
+		putValue("Amount Discount", "" + discountTotal);
 		putValue("Amount After Discount", "" + finalTotal);
 		putValue("Transaction Discount", discountAppyType);
 

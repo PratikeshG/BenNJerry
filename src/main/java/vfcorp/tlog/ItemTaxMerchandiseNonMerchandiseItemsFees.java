@@ -162,7 +162,8 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
         putValue("Tax Rate", "" + taxRate);
         putValue("Tax Amount", ""); // not supported
         putValue("Tax Override Code", ""); // not supported
-        putValue("Taxable Amount", "" + lineItem.getGrossSalesMoney().getAmount() + lineItem.getTotalDiscountMoney().getAmount());
+        int taxableAmount = lineItem.getGrossSalesMoney().getAmount() - lineItem.getTotalDiscountMoney().getAmount();
+        putValue("Taxable Amount", String.valueOf(taxableAmount));
         putValue("Tax Code", taxCode);
 
         return this;

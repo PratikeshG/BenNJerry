@@ -13,8 +13,8 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.PaymentRefund;
 
 import util.Constants;
 import util.LocationContext;
@@ -40,7 +40,7 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 		int offset = Integer.parseInt(message.getProperty(Constants.OFFSET, PropertyScope.SESSION));
 
 		@SuppressWarnings("unchecked")
-		HashMap<String, LocationContext> locationContexts = (HashMap<String, LocationContext>) message
+		Map<String, LocationContext> locationContexts = (HashMap<String, LocationContext>) message
 				.getProperty(Constants.LOCATION_CONTEXT_MAP, PropertyScope.INVOCATION);
 		ArrayList<Location> locations = new ArrayList<Location>();
 		locationContexts.forEach((locId, locCtx) -> locations.add(locCtx.getLocation()));
@@ -54,7 +54,7 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC),
 				PropertyScope.SESSION);
 
-		HashMap<String, List<Refund>> locationsRefunds = new RefundsReportBuilder(apiUrl, accessToken, merchantId)
+		Map<String, List<PaymentRefund>> locationsRefunds = new RefundsReportBuilder(apiUrl, accessToken, merchantId)
 				.forLocations(locations).forPastDayInterval(range, offset).build();
 
 		setRefundsDatesToLocalTime(locationsRefunds, locationContexts);
@@ -62,10 +62,10 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 		return locationsRefunds;
 	}
 
-	private void setRefundsDatesToLocalTime(HashMap<String, List<Refund>> locationsPayments,
-			HashMap<String, LocationContext> locationContexts) throws ParseException {
-		for (Map.Entry<String, List<Refund>> locationPaymenEntry : locationsPayments.entrySet()) {
-			for (Refund refund : locationPaymenEntry.getValue()) {
+	private void setRefundsDatesToLocalTime(Map<String, List<PaymentRefund>> locationsRefunds,
+			Map<String, LocationContext> locationContexts) throws ParseException {
+		for (Map.Entry<String, List<PaymentRefund>> locationPaymenEntry : locationsRefunds.entrySet()) {
+			for (PaymentRefund refund : locationPaymenEntry.getValue()) {
 				Location location = locationContexts.get(locationPaymenEntry.getKey()).getLocation();
 				String timeZone = location.getTimezone();
 				refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));

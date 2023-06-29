@@ -8,13 +8,14 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.v2.Refund;
+import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
+import util.reports.DashboardCsvRowFactory;
 
 public class TransformRefundsToCsvCallable implements Callable {
 
@@ -32,28 +33,28 @@ public class TransformRefundsToCsvCallable implements Callable {
 
     @Override
     public Object onCall(MuleEventContext eventContext) throws Exception {
-        MuleMessage message = eventContext.getMessage();
-        Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
-                PropertyScope.INVOCATION);
+    	 MuleMessage message = eventContext.getMessage();
+         Map<String, LocationContext> locationContexts = message.getProperty(Constants.LOCATION_CONTEXT_MAP,
+                 PropertyScope.INVOCATION);
 
-        String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
-        SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
+         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
+         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
-        CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
+         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+         DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
 
-        for (String locationId : locationContexts.keySet()) {
-            LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
-            clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
+         for (String locationId : locationContexts.keySet()) {
+             LocationContext locationCtx = locationContexts.get(locationId);
+             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
 
-            Refund[] refunds = clientv2.refunds().list(locationId, locationCtx.generateQueryParamMap());
-            for (Refund refund : refunds) {
-                csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
-            }
-        }
-        return csvGenerator.build();
+             PaymentRefund[] refunds = clientv2.refunds().listPaymentRefunds(locationCtx.generateQueryParamMap());
+             for (PaymentRefund refund : refunds) {
+                 csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
+             }
+         }
+         return csvGenerator.build();
     }
 
 }

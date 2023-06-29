@@ -191,7 +191,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
     	CatalogObject catalogObject = catalog.get(lineItem.getCatalogObjectId());
     	String sku = catalogObject != null && catalogObject.getItemVariationData() != null ?
     			catalogObject.getItemVariationData().getSku() : "";
-		if (sku.matches("[0-9]+")) {
+		if (!sku.isEmpty() && sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 
@@ -208,48 +208,50 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
 		Map<String, OrderLineItemDiscount> lineItemDiscountDetails = order.getDiscounts() != null ?
 				Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, Function.identity())) : new HashMap<>();
 
-        for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
-            String discountType = "";
-            String discountAppyType = "";
-			String name = lineItemDiscountDetails.containsKey(discount.getUid()) ? lineItemDiscountDetails.get(discount.getUid()).getName() : "";
-            String discountDetails = Util.getValueInBrackets(name);
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
+	            String discountType = "";
+	            String discountAppyType = "";
+				String name = lineItemDiscountDetails.containsKey(discount.getDiscountUid()) ? lineItemDiscountDetails.get(discount.getDiscountUid()).getName() : "";
+	            String discountDetails = Util.getValueInBrackets(name);
 
-            if (discountDetails.length() == 5) {
-                String firstChar = discountDetails.substring(0, 1);
-                if (firstChar.equals("1") || firstChar.equals("2")) {
-                    discountType = firstChar;
-                } else {
-                    discountType = "0";
-                }
-                discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
-            }
+	            if (discountDetails.length() == 5) {
+	                String firstChar = discountDetails.substring(0, 1);
+	                if (firstChar.equals("1") || firstChar.equals("2")) {
+	                    discountType = firstChar;
+	                } else {
+	                    discountType = "0";
+	                }
+	                discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
+	            }
 
-            int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
-            int discountedAmount = discountAmounts[lineItemIndex - 1];
+	            int[] discountAmounts = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), totalLineItemQty);
+	            int discountedAmount = discountAmounts[lineItemIndex - 1];
 
-            lineItemAmount -= discountAmounts[lineItemIndex - 1];
+	            lineItemAmount -= discountAmounts[lineItemIndex - 1];
 
-            // Line Item Discount
-            if (discountType.equals("0") && discountAppyType.equals("0")) {
-                lineItemDiscountValue += discountedAmount;
-            }
-            // Line Item Promo
-            if (discountType.equals("1") && discountAppyType.equals("0")) {
-                lineItemPromoValue += discountedAmount;
-            }
-            // Transaction Discount
-            if (discountType.equals("0") && discountAppyType.equals("1")) {
-                transactionDiscountValue += discountedAmount;
-            }
-            // Transaction Promo
-            if (discountType.equals("1") && discountAppyType.equals("1")) {
-                transactionPromoValue += discountedAmount;
-            }
-            // Employee Discount
-            if (discountType.equals("2")) {
-                employeeDiscountValue += discountedAmount;
-            }
-        }
+	            // Line Item Discount
+	            if (discountType.equals("0") && discountAppyType.equals("0")) {
+	                lineItemDiscountValue += discountedAmount;
+	            }
+	            // Line Item Promo
+	            if (discountType.equals("1") && discountAppyType.equals("0")) {
+	                lineItemPromoValue += discountedAmount;
+	            }
+	            // Transaction Discount
+	            if (discountType.equals("0") && discountAppyType.equals("1")) {
+	                transactionDiscountValue += discountedAmount;
+	            }
+	            // Transaction Promo
+	            if (discountType.equals("1") && discountAppyType.equals("1")) {
+	                transactionPromoValue += discountedAmount;
+	            }
+	            // Employee Discount
+	            if (discountType.equals("2")) {
+	                employeeDiscountValue += discountedAmount;
+	            }
+	        }
+		}
 
         // Receipt Presentation Price
         // NOTE: Can be the full, non-discounted value when there is a transaction-level discount(s)

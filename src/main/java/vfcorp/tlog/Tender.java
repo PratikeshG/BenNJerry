@@ -173,6 +173,12 @@ public class Tender extends Record {
                     } else {
                         tenderCode = TENDER_CODE_MASTERCARD;
                     }
+                } else if (payment.getCardDetails().getCard().getCardBrand().equals("MASTERCARD")) {
+                    if (deployment.contains("tnf")) {
+                        tenderCode = TENDER_CODE_MASTERCARD_BETA;
+                    } else {
+                        tenderCode = TENDER_CODE_MASTERCARD;
+                    }
                 } else if (payment.getCardDetails().getCard().getCardBrand().equals("AMERICAN_EXPRESS")) {
                     if (deployment.contains("tnf")) {
                         tenderCode = TENDER_CODE_AMEX_BETA;
@@ -208,7 +214,7 @@ public class Tender extends Record {
         }
 
         String tenderAmount = "";
-        if (payment.getCashDetails() != null) {
+        if (payment.getCashDetails() == null) {
             tenderAmount = "" + payment.getTotalMoney().getAmount();
         } else {
             tenderAmount = "" + payment.getCashDetails().getBuyerSuppliedMoney().getAmount();

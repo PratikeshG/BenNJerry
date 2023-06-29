@@ -19,7 +19,6 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
 
 import util.SquarePayload;
 import vfcorp.Util;
@@ -100,63 +99,32 @@ public class CustomerVerificationCallable implements Callable {
                 customerCounters = new HashMap<String, Integer>();
             }
 
-            Map<String, com.squareup.connect.Payment> v1paymentsCache = new HashMap<String, com.squareup.connect.Payment>();
-            for (com.squareup.connect.Payment payment : locationTransactionDetails.getv1Payments()) {
-                // Save payment object for customer lookups
-                v1paymentsCache.put(payment.getId(), payment);
-                for (com.squareup.connect.Tender tender : payment.getTender()) {
-                    v1paymentsCache.put(tender.getId(), payment);
-                }
-            }
-
-            for (Transaction transaction : locationTransactionDetails.getTransactions()) {
-                for (Tender tender : transaction.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
-
-                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0)
-                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
-
-                        if (customer != null && customerHasContactInfo && (customer.getReferenceId() == null
-                                || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
-                            String newId = v1generateNewPreferredCustomerId(customerCounters,
-                                    v1paymentsCache.get(tender.getId()), storeId);
-
-                            customer.setReferenceId(newId);
-                            customer = squareV2Client.customers().update(customer);
-
-                            logger.info("New Customer: " + customer.getId());
-                            logger.info("New Customer ID: " + customer.getReferenceId());
-                        }
-                    }
-                }
-            }
-
             Map<String, Payment> tenderToPayment = locationTransactionDetails.getTenderToPayment();
 
             for (Order order : locationTransactionDetails.getOrders()) {
-                for (Tender tender : order.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
+            	if(order.getTenders() != null) {
+            		for (Tender tender : order.getTenders()) {
+                        if (tender.getCustomerId() != null) {
+                            Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
 
-                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0)
-                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
+                            boolean customerHasContactInfo = (customer.getEmailAddress() != null
+                                    && customer.getEmailAddress().length() > 0)
+                                    || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
 
-                        if (customer != null && customerHasContactInfo && (customer.getReferenceId() == null
-                                || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
-                            String newId = generateNewPreferredCustomerId(customerCounters,
-                                    tenderToPayment.get(tender.getId()), storeId);
+                            if (customer != null && customerHasContactInfo && (customer.getReferenceId() == null
+                                    || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
+                                String newId = generateNewPreferredCustomerId(customerCounters,
+                                        tenderToPayment.get(tender.getId()), storeId);
 
-                            customer.setReferenceId(newId);
-                            customer = squareV2Client.customers().update(customer);
+                                customer.setReferenceId(newId);
+                                customer = squareV2Client.customers().update(customer);
 
-                            logger.info("New Customer: " + customer.getId());
-                            logger.info("New Customer ID: " + customer.getReferenceId());
+                                logger.info("New Customer: " + customer.getId());
+                                logger.info("New Customer ID: " + customer.getReferenceId());
+                            }
                         }
                     }
-                }
+            	}
             }
 
             String deploymentId = String.format("vfcorp-%s-%s", brand, storeId);
@@ -167,24 +135,6 @@ public class CustomerVerificationCallable implements Callable {
         databaseApi.close();
 
         return 1;
-    }
-
-    private String v1generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
-    		com.squareup.connect.Payment customerPayment, String storeId) {
-
-        String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
-                ? customerPayment.getDevice().getName() : null;
-        String registerNumber = Util.getRegisterNumber(deviceName);
-
-        int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);
-        int mod = 0; // Not currently performing any modulus operation
-
-        // Update for next customer
-        int updatedCounter = (nextCustomerNumber + 1 > 9999999) ? 1 : nextCustomerNumber + 1;
-        nextPreferredCustomerIds.put(registerNumber, updatedCounter);
-
-        logger.info("update counter: " + updatedCounter);
-        return String.format("%s%s5%s%s", storeId, registerNumber, String.format("%07d", nextCustomerNumber), mod);
     }
 
     private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.Payment;
@@ -75,7 +76,7 @@ public class ConnectV2MigrationHelper {
             }
         }
 
-        return result;
+    	return result;
     }
 
     /**
@@ -237,4 +238,11 @@ public class ConnectV2MigrationHelper {
         }
         return tenderToPayment;
 	}
+
+	public static Customer getCustomer(Order order, SquareClientV2 clientv2) throws Exception {
+        if (order != null && order.getTenders() != null && order.getTenders().length > 0 && order.getTenders()[0].getCustomerId() != null) {
+            return clientv2.customers().retrieve(order.getTenders()[0].getCustomerId());
+        }
+        return null;
+    }
 }

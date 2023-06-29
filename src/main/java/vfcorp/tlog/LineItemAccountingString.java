@@ -109,7 +109,7 @@ public class LineItemAccountingString extends Record {
     	CatalogObject catalogObject = catalog.get(lineItem.getCatalogObjectId());
     	String sku = catalogObject != null && catalogObject.getItemVariationData() != null ?
     			catalogObject.getItemVariationData().getSku() : "";
-		if (sku.matches("[0-9]+")) {
+		if (!sku.isEmpty() && sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 
@@ -119,9 +119,12 @@ public class LineItemAccountingString extends Record {
 		// Get line item's applied amount from discounts applied to line item's index
 		int totalLineItemQty =  Integer.parseInt(lineItem.getQuantity());
 		int lineItemAmount = lineItem.getBasePriceMoney().getAmount();
-		for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
-			int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
-			lineItemAmount -= discountAmounts[lineItemIndex-1];
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
+				int[] discountAmounts = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), totalLineItemQty);
+				lineItemAmount -= discountAmounts[lineItemIndex-1];
+			}
+
 		}
 
 		// Taxable amounts

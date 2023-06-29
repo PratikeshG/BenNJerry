@@ -13,9 +13,9 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.Refund;
 
 import util.Constants;
 import util.LocationContext;
@@ -57,26 +57,27 @@ public class AggregateLocationsPreviousDayPaymentsCallable implements Callable {
 		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC),
 				PropertyScope.SESSION);
 
-		HashMap<String, List<Payment>> locationsPayments = new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
+		Map<String, List<Order>> locationsOrders = new PaymentsReportBuilder(apiUrl, accessToken, merchantId)
 				.forLocations(locations).forPastDayInterval(range, offset).build();
 
-		setPaymentsDatesToLocalTime(locationsPayments, locationContexts);
+		setPaymentsDatesToLocalTime(locationsOrders, locationContexts);
 
-		message.setProperty(Constants.PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
+		message.setProperty(Constants.PAYMENTS, locationsOrders, PropertyScope.INVOCATION);
 
 		return message.getPayload();
 	}
 
-	private void setPaymentsDatesToLocalTime(HashMap<String, List<Payment>> locationsPayments,
-			HashMap<String, LocationContext> locationContexts) throws ParseException {
-		for (Map.Entry<String, List<Payment>> locationPaymenEntry : locationsPayments.entrySet()) {
-			for (Payment payment : locationPaymenEntry.getValue()) {
+	private void setPaymentsDatesToLocalTime(Map<String, List<Order>> locationsOrders,
+			Map<String, LocationContext> locationContexts) throws ParseException {
+		for (Map.Entry<String, List<Order>> locationPaymenEntry : locationsOrders.entrySet()) {
+			for (Order order : locationPaymenEntry.getValue()) {
 				Location location = locationContexts.get(locationPaymenEntry.getKey()).getLocation();
 				String timeZone = location.getTimezone();
-				payment.setCreatedAt(TimeManager.convertToLocalTime(payment.getCreatedAt(), timeZone));
-				for (Refund refund : payment.getRefunds()) {
-					refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
-					refund.setProcessedAt(TimeManager.convertToLocalTime(refund.getProcessedAt(), timeZone));
+				order.setCreatedAt(TimeManager.convertToLocalTime(order.getCreatedAt(), timeZone));
+				if(order.getRefunds() != null) {
+					for (Refund refund : order.getRefunds()) {
+						refund.setCreatedAt(TimeManager.convertToLocalTime(refund.getCreatedAt(), timeZone));
+					}
 				}
 			}
 		}

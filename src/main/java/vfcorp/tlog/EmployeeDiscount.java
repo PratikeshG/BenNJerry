@@ -72,15 +72,18 @@ public class EmployeeDiscount extends Record {
 	public EmployeeDiscount parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount) throws Exception {
 		// Need to subtract previously applied discounts on this item from beforeTotal
 		int beforeTotal = lineItem.getGrossSalesMoney().getAmount();
-		for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
-			if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
-				break;
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
+				if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
+					break;
+				}
+				beforeTotal -= prevDiscount.getAppliedMoney().getAmount();
 			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
 		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
 
-		putValue("Amount of Discount", "" + -discountTotal);
+		int discountTotal = discount.getAppliedMoney().getAmount();
+
+		putValue("Amount of Discount", "" + discountTotal);
 		putValue("Amount of Item", "" + beforeTotal);
 		putValue("Discount Type Indicator", "0"); // 0 is "Normal Employee discount"
 

@@ -161,7 +161,7 @@ public class ForInStoreReportingUseOnly extends Record {
 			for (Order order : orders) {
 				if (order.getTotalDiscountMoney() != null && order.getTotalDiscountMoney().getAmount() != 0) {
 					count += 1;
-					amount += order.getTotalDiscountMoney().getAmount();
+					amount -= order.getTotalDiscountMoney().getAmount();
 				}
 			}
 		} else if (TRANSACTION_IDENTIFIER_SALES_TAX.equals(transactionIdentifier)) {

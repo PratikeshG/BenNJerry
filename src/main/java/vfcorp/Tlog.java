@@ -408,7 +408,7 @@ public class Tlog {
 		for (Order order : squareOrdersList) {
 			Customer loyaltyCustomer = customerPaymentCache.get(order.getId());
 
-			if (order.getTenders() != null && order.getTenders()[0].getType() != null
+			if (order.getTenders() != null && order.getTenders().length > 0 && order.getTenders()[0].getType() != null
 					&& order.getTenders()[0].getType().equals(Tender.TENDER_TYPE_NO_SALE)) {
 				// Don't report $0 "No Sale" transactions
 				continue;
@@ -433,15 +433,17 @@ public class Tlog {
 
 				paymentList.add(new TransactionTotal().parse(order));
 
-				for (OrderLineItemTax tax : order.getTaxes()) {
-					if (tax != null && tax.getType().equals("ADDITIVE")) {
-						paymentList.add(new TransactionTaxExtended().parse(order, tax));
+				if(order.getTaxes() != null) {
+					for (OrderLineItemTax tax : order.getTaxes()) {
+						if (tax != null && tax.getType().equals("ADDITIVE")) {
+							paymentList.add(new TransactionTaxExtended().parse(order, tax));
+						}
 					}
-				}
 
-				for (OrderLineItemTax tax : order.getTaxes()) {
-					if (tax != null && tax.getType().equals("INCLUSIVE")) {
-						paymentList.add(new TransactionTaxExtended().parse(order, tax));
+					for (OrderLineItemTax tax : order.getTaxes()) {
+						if (tax != null && tax.getType().equals("INCLUSIVE")) {
+							paymentList.add(new TransactionTaxExtended().parse(order, tax));
+						}
 					}
 				}
 
@@ -544,100 +546,112 @@ public class Tlog {
 				// now process itemizations
 				// 001
 				int itemSequence = 1;
-				for (OrderLineItem lineItem : order.getLineItems()) {
-					CatalogObject itemVariationData = catalog.get(lineItem.getCatalogObjectId());
-					paymentList.add(new MerchandiseItem().parse(lineItem, itemSequence++, itemNumberLookupLength,
-							trackPriceOverrides, itemVariationData));
+				if(order.getLineItems() != null) {
+					for (OrderLineItem lineItem : order.getLineItems()) {
+						CatalogObject itemVariationData = catalog.get(lineItem.getCatalogObjectId());
+						paymentList.add(new MerchandiseItem().parse(lineItem, itemSequence++, itemNumberLookupLength,
+								trackPriceOverrides, itemVariationData));
 
-					// 026
-					if (employeeId.length() > 0) {
-						paymentList.add(new Associate().parse(employeeId));
-					}
+						// 026
+						if (employeeId.length() > 0) {
+							paymentList.add(new Associate().parse(employeeId));
+						}
 
-					// 022 - price overrides
-					if (trackPriceOverrides && Util.hasPriceOverride(lineItem)) {
-						paymentList.add(new ReasonCode().parse(ReasonCode.REASON_CODE_PRICE_CORRECT,
-								ReasonCode.FUNCTION_INDICATOR_PRICE_CORRECT));
-					}
+						// 022 - price overrides
+						if (trackPriceOverrides && Util.hasPriceOverride(lineItem)) {
+							paymentList.add(new ReasonCode().parse(ReasonCode.REASON_CODE_PRICE_CORRECT,
+									ReasonCode.FUNCTION_INDICATOR_PRICE_CORRECT));
+						}
 
-					// Add promo records 071 after 056
-					// LineItemAssociateAndDiscountAccountingString records
-					ArrayList<EventGiveback> promoRecords = new ArrayList<EventGiveback>();
-					Map<String, OrderLineItemDiscount> lineItemDiscountDetails = order.getDiscounts() != null ?
-							Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, Function.identity())) : new HashMap<>();
-					Map<String, OrderLineItemTax> lineItemTaxDetails = order.getTaxes() != null ?
-							Arrays.stream(order.getTaxes()).collect(Collectors.toMap(OrderLineItemTax::getUid, Function.identity())) : new HashMap<>();
-					for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
-						String discountType = "";
-						String discountAppyType = "";
-						String discountCode = "";
-						String name = lineItemDiscountDetails.containsKey(discount.getUid()) ? lineItemDiscountDetails.get(discount.getUid()).getName() : "";
-						String discountDetails = Util.getValueInBrackets(name);
+						// Add promo records 071 after 056
+						// LineItemAssociateAndDiscountAccountingString records
+						ArrayList<EventGiveback> promoRecords = new ArrayList<EventGiveback>();
+						Map<String, OrderLineItemDiscount> lineItemDiscountDetails = order.getDiscounts() != null ?
+								Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, Function.identity())) : new HashMap<>();
+						Map<String, OrderLineItemTax> lineItemTaxDetails = order.getTaxes() != null ?
+								Arrays.stream(order.getTaxes()).collect(Collectors.toMap(OrderLineItemTax::getUid, Function.identity())) : new HashMap<>();
 
-						if (discountDetails.length() == 5) {
-							String firstChar = discountDetails.substring(0, 1);
-							if (firstChar.equals("1") || firstChar.equals("2")) {
-								discountType = firstChar;
-							} else {
-								discountType = "0";
-							}
-							discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
-							discountCode = discountDetails.substring(2);
+						if(lineItem.getAppliedDiscounts() != null) {
+							for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
+								String discountType = "";
+								String discountAppyType = "";
+								String discountCode = "";
+								String name = lineItemDiscountDetails.containsKey(discount.getDiscountUid()) ? lineItemDiscountDetails.get(discount.getDiscountUid()).getName() : "";
+								String discountDetails = Util.getValueInBrackets(name);
 
-							// Only create 021 record for employee applied
-							// discounts
-							if (discountType.equals("0")) {
-								paymentList.add(new DiscountTypeIndicator().parse(lineItem, discount, discountCode,
-										discountAppyType));
-							} else if (discountType.equals("2")) {
-								paymentList.add(new EmployeeDiscount().parse(lineItem, discount));
-							} else if (discountType.equals("1")) {
-								String promoDetails = Util.getValueInParenthesis(name);
-								if (promoDetails.length() > 6) {
-									promoRecords.add(new EventGiveback().parse(lineItem, discount,
-											itemNumberLookupLength, promoDetails, discountAppyType, catalog));
+								if (discountDetails.length() == 5) {
+									String firstChar = discountDetails.substring(0, 1);
+									if (firstChar.equals("1") || firstChar.equals("2")) {
+										discountType = firstChar;
+									} else {
+										discountType = "0";
+									}
+									discountAppyType = discountDetails.substring(1, 2).equals("1") ? "1" : "0";
+									discountCode = discountDetails.substring(2);
+
+									// Only create 021 record for employee applied
+									// discounts
+									if (discountType.equals("0")) {
+										paymentList.add(new DiscountTypeIndicator().parse(lineItem, discount, discountCode,
+												discountAppyType));
+									} else if (discountType.equals("2")) {
+										paymentList.add(new EmployeeDiscount().parse(lineItem, discount));
+									} else if (discountType.equals("1")) {
+										String promoDetails = Util.getValueInParenthesis(name);
+										if (promoDetails.length() > 6) {
+											promoRecords.add(new EventGiveback().parse(lineItem, discount,
+													itemNumberLookupLength, promoDetails, discountAppyType, catalog));
+										}
+									}
 								}
 							}
 						}
-					}
 
-					// 025
-					for (OrderLineItemAppliedTax tax : lineItem.getAppliedTaxes()) {
-						OrderLineItemTax taxDetails = lineItemTaxDetails.get(tax.getUid());
-						if(taxDetails != null) {
-							paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, lineItem, taxDetails));
+						if(lineItem.getAppliedTaxes() != null) {
+							// 025
+							for (OrderLineItemAppliedTax tax : lineItem.getAppliedTaxes()) {
+								OrderLineItemTax taxDetails = lineItemTaxDetails.get(tax.getTaxUid());
+								if(taxDetails != null) {
+									paymentList.add(new ItemTaxMerchandiseNonMerchandiseItemsFees().parse(tax, lineItem, taxDetails));
+								}
+							}
 						}
-					}
 
-					// 055
-					// 056
-					int i = 1;
-					for (double q = Double.parseDouble(lineItem.getQuantity()); q > 0; q = q - 1) {
-						paymentList.add(new LineItemAccountingString().parse(lineItem, itemNumberLookupLength, i, catalog));
-						paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(order, lineItem,
-								itemNumberLookupLength, i, employeeId, catalog));
-						i++;
-					}
 
-					for (EventGiveback promo : promoRecords) {
-						paymentList.add(promo);
+						// 055
+						// 056
+						int i = 1;
+						for (double q = Double.parseDouble(lineItem.getQuantity()); q > 0; q = q - 1) {
+							paymentList.add(new LineItemAccountingString().parse(lineItem, itemNumberLookupLength, i, catalog));
+							paymentList.add(new LineItemAssociateAndDiscountAccountingString().parse(order, lineItem,
+									itemNumberLookupLength, i, employeeId, catalog));
+							i++;
+						}
+
+						for (EventGiveback promo : promoRecords) {
+							paymentList.add(promo);
+						}
 					}
 				}
 
-				// 061
-				// 065
-				for (Tender tender : order.getTenders()) {
-					Payment p = tenderToPayment.get(tender.getId());
-					// don't create 061 records for zero-value tenders
-					if (p != null && p.getTotalMoney().getAmount() == 0) {
-						continue;
+
+				if(order.getTenders() != null) {
+					// 061
+					// 065
+					for (Tender tender : order.getTenders()) {
+						Payment p = tenderToPayment.get(tender.getId());
+						// don't create 061 records for zero-value tenders
+						if (p != null && p.getTotalMoney().getAmount() == 0) {
+							continue;
+						}
+
+						paymentList.add(new vfcorp.tlog.Tender().parse(tender, deployment, p));
+
+						if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
+							paymentList.add(new CreditCardTender().parse(tender, p));
+						}
 					}
 
-					paymentList.add(new vfcorp.tlog.Tender().parse(tender, deployment, p));
-
-					if (tender.getType().equals(Tender.TENDER_TYPE_CARD)) {
-						paymentList.add(new CreditCardTender().parse(tender, p));
-					}
 				}
 
 				// 099010 - CRM
@@ -655,18 +669,12 @@ public class Tlog {
 				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
 						order.getId(), order.getCreatedAt());
 
-//				String registerNumber = Util
-//						.getRegisterNumber(payment.getDevice() != null ? payment.getDevice().getName() : null);
-//				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
-//						payment.getV2OrderId(), payment.getCreatedAt());
-
 				paymentList.addFirst(new TransactionHeader().parse(transactionNumber, location, order, registerNumber, employeeId,
 						TransactionHeader.TRANSACTION_TYPE_SALE, paymentList.size() + 1, timeZoneId));
 
 				transactionLog.addAll(paymentList);
 			}
 		}
-
 	}
 
 	private void createStoreCloseRecords(Location location, List<com.squareup.connect.Payment> locationPayments,
@@ -1027,33 +1035,37 @@ public class Tlog {
 			int[] totalMonies = Util.divideIntegerEvenly(lineItem.getTotalMoney().getAmount(), itemQty);
 			li.setTotalMoney(new Money(totalMonies[i]));
 
-			int[] grossSaleMonies = Util.divideIntegerEvenly(lineItem.getGrossSalesMoney().getAmount(), itemQty);
+			int[] grossSaleMonies = Util.divideIntegerEvenly(lineItem.getGrossSalesMoney() != null ? lineItem.getGrossSalesMoney().getAmount() : 0, itemQty);
 			li.setGrossSalesMoney(new Money(grossSaleMonies[i]));
 
-			int[] discountMonies = Util.divideIntegerEvenly(-lineItem.getTotalDiscountMoney().getAmount(), itemQty);
-			li.setTotalDiscountMoney(new Money(-discountMonies[i]));
+			int[] discountMonies = Util.divideIntegerEvenly(lineItem.getTotalDiscountMoney() != null ? lineItem.getTotalDiscountMoney().getAmount() : 0, itemQty);
+			li.setTotalDiscountMoney(new Money(discountMonies[i]));
 
 			ArrayList<OrderLineItemAppliedTax> newTaxes = new ArrayList<OrderLineItemAppliedTax>();
-			for (OrderLineItemAppliedTax tax : lineItem.getAppliedTaxes()) {
-				OrderLineItemAppliedTax newTax = new OrderLineItemAppliedTax();
-				newTax.setTaxUid(tax.getTaxUid());
+			if(lineItem.getAppliedTaxes() != null)  {
+				for (OrderLineItemAppliedTax tax : lineItem.getAppliedTaxes()) {
+					OrderLineItemAppliedTax newTax = new OrderLineItemAppliedTax();
+					newTax.setTaxUid(tax.getTaxUid());
 
-				int[] appliedMonies = Util.divideIntegerEvenly(tax.getAppliedMoney().getAmount(), itemQty);
-				newTax.setAppliedMoney(new Money(appliedMonies[i]));
+					int[] appliedMonies = Util.divideIntegerEvenly(tax.getAppliedMoney().getAmount(), itemQty);
+					newTax.setAppliedMoney(new Money(appliedMonies[i]));
 
-				newTaxes.add(newTax);
+					newTaxes.add(newTax);
+				}
 			}
 			li.setAppliedTaxes(newTaxes.toArray(new OrderLineItemAppliedTax[newTaxes.size()]));
 
 			ArrayList<OrderLineItemAppliedDiscount> newDiscounts = new ArrayList<OrderLineItemAppliedDiscount>();
-			for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
-				OrderLineItemAppliedDiscount newDiscount = new OrderLineItemAppliedDiscount();
-				newDiscount.setDiscountUid(discount.getDiscountUid());
+			if(lineItem.getAppliedDiscounts() != null) {
+				for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
+					OrderLineItemAppliedDiscount newDiscount = new OrderLineItemAppliedDiscount();
+					newDiscount.setDiscountUid(discount.getDiscountUid());
 
-				int[] appliedMonies = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), itemQty);
-				newDiscount.setAppliedMoney(new Money(appliedMonies[i]));
+					int[] appliedMonies = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), itemQty);
+					newDiscount.setAppliedMoney(new Money(appliedMonies[i]));
 
-				newDiscounts.add(newDiscount);
+					newDiscounts.add(newDiscount);
+				}
 			}
 			li.setAppliedDiscounts(newDiscounts.toArray(new OrderLineItemAppliedDiscount[newDiscounts.size()]));
 
@@ -1069,7 +1081,7 @@ public class Tlog {
 			return nextTransactionNumber++;
 		}
 
-		if (registerNumber == null || registerNumber.equals("")) {
+		if (registerNumber == null || registerNumber.equals("") || !registerNumber.matches("\\d+")) {
 			registerNumber = "0";
 		}
 		String registerNumberFormatted = String.format("%03d", Integer.parseInt(registerNumber));

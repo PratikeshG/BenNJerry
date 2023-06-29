@@ -22,14 +22,8 @@ import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.CustomerGroup;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
-import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
-import com.squareup.connect.v2.SearchOrdersFilter;
-import com.squareup.connect.v2.SearchOrdersQuery;
-import com.squareup.connect.v2.SearchOrdersSort;
-import com.squareup.connect.v2.SearchOrdersStateFilter;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.TimeRange;
 
 import util.ConnectV2MigrationHelper;
 import util.DbConnection;
@@ -239,28 +233,6 @@ public class TlogGenerator implements Callable {
         Map<String, Customer> customerPaymentCache = new HashMap<String, Customer>();
         if (customerLoyaltyEnabled) {
             // Get customer data
-//
-//            SearchOrdersQuery orderQuery = new SearchOrdersQuery();
-//            SearchOrdersFilter searchFilter = new SearchOrdersFilter();
-//            SearchOrdersSort searchSort = new SearchOrdersSort();
-//            orderQuery.setFilter(searchFilter);
-//            orderQuery.setSort(searchSort);
-//
-//            SearchOrdersStateFilter stateFilter = new SearchOrdersStateFilter();
-//            stateFilter.setStates(new String[] { "COMPLETED" });
-//            searchFilter.setStateFilter(stateFilter);
-//
-//            SearchOrdersDateTimeFilter dateFilter = new SearchOrdersDateTimeFilter();
-//            TimeRange timeRange = new TimeRange();
-//            timeRange.setStartAt(tlogGeneratorPayload.getParams().getOrDefault("begin_time", ""));
-//            timeRange.setEndAt(tlogGeneratorPayload.getParams().getOrDefault("end_time", ""));
-//            dateFilter.setClosedAt(timeRange);
-//            searchFilter.setDateTimeFilter(dateFilter);
-//
-//            searchSort.setSortField("CLOSED_AT");
-//            searchSort.setSortOrder("ASC");
-//
-//            List<Order> v2Orders = Arrays.asList(squareV2Client.orders().search(location.getId(), orderQuery));
 
             for (Order order : orders) {
                 if (order.getTenders() != null) {
@@ -336,21 +308,35 @@ public class TlogGenerator implements Callable {
         tlog.createCloseRecords(createCloseRecords);
         tlog.setTotalConfiguredDevices(totalConfiguredDevices);
 
-//        tlog.parse(location, v1allPaymentsInPeriod.toArray(new com.squareup.connect.Payment[0]),
-//                paymentsInPeriodToProcess.toArray(new com.squareup.connect.Payment[0]), tlogGeneratorPayload.getEmployees(),
-//                tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
+        Tlog tlog2 = new Tlog();
+        tlog2.setNextRecordNumbers(nextDeviceRecordNumbers);
+        tlog2.setRecordNumberCache(existingRecordNumbersByDevice);
+        tlog2.setItemNumberLookupLength(itemNumberLookupLength);
+        tlog2.setDeployment(deployment);
+        tlog2.setTimeZoneId(timeZone);
+        tlog2.setType(tlogType);
+        tlog2.trackPriceOverrides(trackPriceOverrides);
+        tlog2.createCloseRecords(createCloseRecords);
+        tlog2.setTotalConfiguredDevices(totalConfiguredDevices);
+
+        tlog2.parse(location, v1allPaymentsInPeriod.toArray(new com.squareup.connect.Payment[0]),
+                paymentsInPeriodToProcess.toArray(new com.squareup.connect.Payment[0]), tlogGeneratorPayload.getEmployees(),
+                tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"));
 
       tlog.parse(location, orders,
       ordersInPeriodToProcess.toArray(new Order[0]), tlogGeneratorPayload.getEmployees(),
       tlogGeneratorPayload.getCustomers(), tlogGeneratorPayload.getParams().get("end_time"), tenderToPayment, catalog);
 
+      System.out.println(tlog2.toString());
+      System.out.println("--------------------------------------------");
+      System.out.println(tlog.toString());
+
         message.setProperty("vfcorpStoreNumber", Util.getStoreNumber(location.getName()), PropertyScope.INVOCATION);
         message.setProperty("tlog", tlog.toString(), PropertyScope.INVOCATION);
 
-        List<SequentialRecord> srs = new ArrayList<SequentialRecord>(tlog.getRecordNumberCache().values());
-        sequentialRecordsApi.updateRecordNumbersForLocation(srs, location.getId());
-        sequentialRecordsApi.close();
-
+//        List<SequentialRecord> srs = new ArrayList<SequentialRecord>(tlog.getRecordNumberCache().values());
+//        sequentialRecordsApi.updateRecordNumbersForLocation(srs, location.getId());
+//        sequentialRecordsApi.close();
         return true;
     }
 

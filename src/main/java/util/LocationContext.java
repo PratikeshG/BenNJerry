@@ -57,7 +57,7 @@ public class LocationContext implements Serializable {
 	}
 
 	public Map<String, String> generateQueryParamMap() {
-		HashMap<String, String> map = new HashMap<String, String>();
+		Map<String, String> map = new HashMap<String, String>();
 		map.put(Constants.BEGIN_TIME, this.beginTime);
 		map.put(Constants.END_TIME, this.endTime);
 		return map;

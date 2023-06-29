@@ -1,4 +1,4 @@
-package vfcorp.eb;
+package util.reports;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,9 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TenderCardDetails;
-import com.squareup.connect.v2.Transaction;
 
 public class DashboardCsvTenderSummary {
 	private static final String TENDER_TYPE_CASH = "CASH";
@@ -93,37 +93,41 @@ public class DashboardCsvTenderSummary {
 		}
 		return String.join(", ", panSuffixes);
 	}
-	public static DashboardCsvTenderSummary generateTenderSummary(Transaction transaction) throws Exception {
-		DashboardCsvTenderSummary summary = new DashboardCsvTenderSummary();
-		for (Tender tender : transaction.getTenders()) {
-			int totalMoney = tender.getAmountMoney().getAmount();
-			if (tender.getType().equals(TENDER_TYPE_CARD) || tender.getType().equals(TENDER_TYPE_SQUARE_GIFT_CARD)) {
-				String entryMethod = tender.getCardDetails().getEntryMethod();
-				String entryMethodLabel = entryMethodLabelMap.get(entryMethod);
-				String cardBrandLabel = cardBrandLabelMap.get(tender.getCardDetails().getCard().getCardBrand());
 
-				summary.cardEntryMethods.add(entryMethodLabel);
-				summary.cardBrands.add(cardBrandLabel);
-				summary.panSuffixes.add(tender.getCardDetails().getCard().getLast4());
-			}
-			switch (tender.getType()) {
-			case TENDER_TYPE_CASH:
-				summary.cash += totalMoney;
-				break;
-			case TENDER_TYPE_SQUARE_GIFT_CARD:
-				summary.giftCard += totalMoney;
-				break;
-			case TENDER_TYPE_CARD:
-				summary.card += totalMoney;
-				break;
-			case TENDER_TYPE_OTHER:
-				summary.other += totalMoney;
-			case TENDER_TYPE_NO_SALE:
-				break;
-			default:
-				throw new Exception("Unknown tender type: " + tender.getType());
+	public static DashboardCsvTenderSummary generateTenderSummary(Order order) throws Exception {
+		DashboardCsvTenderSummary summary = new DashboardCsvTenderSummary();
+		if(order.getTenders() != null) {
+			for (Tender tender : order.getTenders()) {
+				int totalMoney = tender.getAmountMoney().getAmount();
+				if (tender.getType().equals(TENDER_TYPE_CARD) || tender.getType().equals(TENDER_TYPE_SQUARE_GIFT_CARD)) {
+					String entryMethod = tender.getCardDetails().getEntryMethod();
+					String entryMethodLabel = entryMethodLabelMap.get(entryMethod);
+					String cardBrandLabel = cardBrandLabelMap.get(tender.getCardDetails().getCard().getCardBrand());
+
+					summary.cardEntryMethods.add(entryMethodLabel);
+					summary.cardBrands.add(cardBrandLabel);
+					summary.panSuffixes.add(tender.getCardDetails().getCard().getLast4());
+				}
+				switch (tender.getType()) {
+				case TENDER_TYPE_CASH:
+					summary.cash += totalMoney;
+					break;
+				case TENDER_TYPE_SQUARE_GIFT_CARD:
+					summary.giftCard += totalMoney;
+					break;
+				case TENDER_TYPE_CARD:
+					summary.card += totalMoney;
+					break;
+				case TENDER_TYPE_OTHER:
+					summary.other += totalMoney;
+				case TENDER_TYPE_NO_SALE:
+					break;
+				default:
+					throw new Exception("Unknown tender type: " + tender.getType());
+				}
 			}
 		}
+
 		if (summary.cardEntryMethods.size() == 0) {
 			summary.cardEntryMethods.add(NA_LABEL);
 		}
