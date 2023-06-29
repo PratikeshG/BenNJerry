@@ -125,12 +125,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 	</flow>
 	<flow name="VFC:TNF:plu-trigger-database-to-square"
 		processingStrategy="synchronous">
-		<quartz:inbound-endpoint jobName="quartz-vfc-tnf-PLU-daily-1531330499"
-			cronExpression="0 30 2 * * ? *" repeatInterval="0" connector-ref="Quartz-VFC-plu"
-			responseTimeout="10000" doc:name="Run every day at 2:30am EST"
-			cronTimeZone="America/New_York">
-			<quartz:event-generator-job />
-		</quartz:inbound-endpoint>
 		<logger message="CRON: PLU Database to Square for TNF" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="tnf"
@@ -146,12 +140,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 	</flow>
 	<flow name="VFC:TNF-CA:plu-trigger-database-to-square"
 		processingStrategy="synchronous">
-		<quartz:inbound-endpoint jobName="quartz-vfc-tnfca-PLU-daily-1571074299"
-			cronExpression="0 0 2 * * ? *" cronTimeZone="America/New_York"
-			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
-			doc:name="Run every day at 2:00am EST">
-			<quartz:event-generator-job />
-		</quartz:inbound-endpoint>
 		<logger message="CRON: PLU Database to Square for TNF Canada"
 			level="INFO" doc:name="Logger" />
 		<set-session-variable variableName="brand" value="tnfca"
@@ -167,12 +155,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 	</flow>
 	<flow name="VFC:Vans1:plu-trigger-database-to-square"
 		processingStrategy="synchronous">
-		<quartz:inbound-endpoint jobName="quartz-vfc-vans1-PLU-daily-1571074498"
-			cronExpression="0 20 1 * * ? *" cronTimeZone="America/New_York"
-			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
-			doc:name="Run every day at 1:20am EST">
-			<quartz:event-generator-job />
-		</quartz:inbound-endpoint>
 		<logger message="CRON: PLU Database to Square for Vans" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vans"
@@ -188,12 +170,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 	</flow>
 	<flow name="VFC:Vans2:plu-trigger-database-to-square"
 		processingStrategy="synchronous">
-		<quartz:inbound-endpoint jobName="quartz-vfc-vans2-PLU-daily-1571074498"
-			cronExpression="0 40 1 * * ? *" cronTimeZone="America/New_York"
-			repeatInterval="0" connector-ref="Quartz-VFC-plu" responseTimeout="10000"
-			doc:name="Run every day at 1:40am EST">
-			<quartz:event-generator-job />
-		</quartz:inbound-endpoint>
 		<logger message="CRON: PLU Database to Square for Vans" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vans"
@@ -280,9 +256,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 			doc:name="VFC:plu-database-to-square-for-brand" />
 	</flow>
 	<flow name="VFC:TNF-catalog-cron-square-to-gcp" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnf-gcp-daily-111" cronExpression="0 0 21 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 9:00pm EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: Items from Square Connect to GCP for TNF" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="tnf"
@@ -295,9 +268,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
     </flow>
 	<flow name="VFC:TNFCA-catalog-cron-square-to-gcp" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-tnfca-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: Items from Square Connect to GCP for TNFCA" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="tnfca"
@@ -310,9 +280,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
     </flow>
 	<flow name="VFC:Vans1-catalog-cron-square-to-gcp" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-vans1-gcp-daily-111" cronExpression="0 30 21 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 9:30pm EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: Items from Square Connect to GCP for Vans (1)" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vans"
@@ -325,9 +292,6 @@ http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/e
 			doc:name="VFC:catalog-from-connect-to-gcp-for-deployment" />
     </flow>
 	<flow name="VFC:Vans2-catalog-cron-square-to-gcp" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="quartz-vfc-vans2-gcp-daily-111" cronExpression="0 30 22 * * ? *" cronTimeZone="America/New_York" repeatInterval="0" connector-ref="Quartz-VFC-gcp" responseTimeout="10000" doc:name="Run every day at 10:30pm EST">
-            <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
         <logger message="CRON: Items from Square Connect to GCP for Vans (2)" level="INFO"
 			doc:name="Logger" />
 		<set-session-variable variableName="brand" value="vans"
