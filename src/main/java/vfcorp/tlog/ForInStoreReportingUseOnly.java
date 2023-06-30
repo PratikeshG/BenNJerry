@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Order;
 
 import vfcorp.Record;
@@ -111,40 +110,6 @@ public class ForInStoreReportingUseOnly extends Record {
 	@Override
 	public String getId() {
 		return id;
-	}
-
-	public ForInStoreReportingUseOnly parsePayment(String transactionIdentifier, List<Payment> squarePayments) throws Exception {
-		int count = 0;
-		int amount = 0;
-
-		if (TRANSACTION_IDENTIFIER_MERCHANDISE_SALES.equals(transactionIdentifier)) {
-			count = squarePayments.size();
-			for (Payment payment : squarePayments) {
-				amount += payment.getTotalCollectedMoney().getAmount();
-			}
-		} else if (TRANSACTION_IDENTIFIER_DISCOUNTS.equals(transactionIdentifier)) {
-			for (Payment payment : squarePayments) {
-				if (payment.getDiscountMoney().getAmount() != 0) {
-					count += 1;
-					amount += payment.getDiscountMoney().getAmount();
-				}
-			}
-		} else if (TRANSACTION_IDENTIFIER_SALES_TAX.equals(transactionIdentifier)) {
-			for (Payment payment : squarePayments) {
-				if (payment.getTaxMoney().getAmount() > 0) {
-					count += 1;
-					amount += payment.getTaxMoney().getAmount();
-				}
-			}
-		}
-
-		putValue("Transaction Identifier", transactionIdentifier);
-		putValue("Count", "" + count);
-		putValue("Amount", "" + Math.abs(amount));
-		putValue("Amount Sign", amount >= 0 ? "0" : "1");
-		putValue("Currency Indicator", "0"); // 0 is primary; other value not supported
-
-		return this;
 	}
 
 	public ForInStoreReportingUseOnly parse(String transactionIdentifier, List<Order> orders) throws Exception {

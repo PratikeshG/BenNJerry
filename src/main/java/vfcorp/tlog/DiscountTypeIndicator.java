@@ -3,8 +3,6 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
@@ -51,27 +49,6 @@ public class DiscountTypeIndicator extends Record {
 	@Override
 	public String getId() {
 		return id;
-	}
-
-	public DiscountTypeIndicator parse(PaymentItemization itemization, PaymentDiscount discount, String discountCode, String discountAppyType) throws Exception {
-		// Need to subtract previously applied discounts on this item from beforeTotal
-		int beforeTotal = itemization.getGrossSalesMoney().getAmount();
-		for (PaymentDiscount prevDiscount : itemization.getDiscounts()) {
-			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
-				break;
-			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
-		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
-		int finalTotal = beforeTotal + discountTotal;
-
-		putValue("Discount Code", discountCode);
-		putValue("Amount Before Discount", "" + beforeTotal);
-		putValue("Amount Discount", "" + -discountTotal);
-		putValue("Amount After Discount", "" + finalTotal);
-		putValue("Transaction Discount", discountAppyType);
-
-		return this;
 	}
 
 	public DiscountTypeIndicator parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount, String discountCode, String discountAppyType) throws Exception {

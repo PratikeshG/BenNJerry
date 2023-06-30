@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 
@@ -172,35 +171,6 @@ public class TransactionHeader extends Record {
         return id;
     }
 
-    public TransactionHeader parsePayment(int transactionNumber, Location location, List<Payment> squarePaymentsList,
-            String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
-            String processingForDate) throws Exception {
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("Register Number", registerNumber);
-
-        String lastDate = "";
-        for (Payment squarePayment : squarePaymentsList) {
-            if (squarePayment.getCreatedAt().compareTo(lastDate) > 0) {
-                lastDate = squarePayment.getCreatedAt();
-            }
-        }
-
-        // Closing records cannot match same time as last transaction
-        if (!lastDate.equals("")) {
-            params.put("Transaction Date", incrementAndFormatDateTime(lastDate, timeZoneId, "MMddyyyy", 1));
-            params.put("Business Date", incrementAndFormatDateTime(lastDate, timeZoneId, "MMddyyyy", 1));
-            params.put("Transaction Time", incrementAndFormatDateTime(lastDate, timeZoneId, "HHmm", 1));
-        } else {
-            params.put("Transaction Date",
-                    TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "MMddyyyy"));
-            params.put("Business Date",
-                    TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "MMddyyyy"));
-            params.put("Transaction Time", "1200"); // default to noon for no payments
-        }
-
-        return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
-    }
-
     public TransactionHeader parse(int transactionNumber, Location location, List<Order> orders,
             String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
             String processingForDate) throws Exception {
@@ -226,25 +196,6 @@ public class TransactionHeader extends Record {
                     TimeManager.toSimpleDateTimeInTimeZone(processingForDate, timeZoneId, "MMddyyyy"));
             params.put("Transaction Time", "1200"); // default to noon for no payments
         }
-
-        return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
-    }
-
-    public TransactionHeader parse(int transactionNumber, Location location, com.squareup.connect.Payment squarePayment, String employeeId,
-            String transactionType, int numberOfRecords, String timeZoneId) throws Exception {
-        Map<String, String> params = new HashMap<String, String>();
-
-        params.put("Employee Number", employeeId);
-        params.put("Transaction Date",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
-        params.put("Business Date",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
-        params.put("Transaction Time",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
-
-        String registerName = (squarePayment.getDevice() != null) ? squarePayment.getDevice().getName() : null;
-        String registerNumber = Util.getRegisterNumber(registerName);
-        params.put("Register Number", registerNumber);
 
         return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
     }

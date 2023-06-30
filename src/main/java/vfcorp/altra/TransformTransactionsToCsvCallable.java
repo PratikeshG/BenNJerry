@@ -55,9 +55,11 @@ public class TransformTransactionsToCsvCallable implements Callable {
         for (String locationId : locationsOrders.keySet()) {
             List<Order> orders = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
-            Payment[] payments = clientv2.payments().list(locationCtx.generateQueryParamMap());
+            Map<String, String> params = locationCtx.generateQueryParamMap();
+            params.put("location_id", locationId);
+            Payment[] payments = clientv2.payments().list(params);
             Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders.toArray(new Order[0]), payments, clientv2, locationCtx.generateQueryParamMap());
 
             // loop through payments and generate csv row entries for each

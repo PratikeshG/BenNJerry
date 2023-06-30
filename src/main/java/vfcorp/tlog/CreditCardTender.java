@@ -54,25 +54,6 @@ public class CreditCardTender extends Record {
 		return id;
 	}
 
-	public CreditCardTender parse(com.squareup.connect.Tender tender) throws Exception {
-		String entryMethod = "";
-		if (tender.getEntryMethod().equals("SWIPED"))
-			entryMethod = "1";
-		if (tender.getEntryMethod().equals("MANUAL"))
-			entryMethod = "2";
-
-		putValue("Account Number", tender.getPanSuffix()); // not supported
-		putValue("Account Number Format", "0"); // not supported
-		putValue("Start Date", ""); // not supported
-		putValue("Expiration Date", ""); // not supported
-		putValue("Entry Method", entryMethod);
-		putValue("Authorization Method", "2"); // "electronic authorization"; only supported method
-		putValue("Authorization Code", ""); // not supported
-		putValue("Settlement Data", tender.getCardBrand() != null ? tender.getCardBrand() : "");
-
-		return this;
-	}
-
 	public CreditCardTender parse(Tender tender, Payment payment) throws Exception {
 		String entryMethod = "";
 		if (payment.getCardDetails() != null && payment.getCardDetails().getEntryMethod().equals("SWIPED"))

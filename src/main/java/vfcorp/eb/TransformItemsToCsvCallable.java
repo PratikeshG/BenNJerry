@@ -63,8 +63,10 @@ public class TransformItemsToCsvCallable implements Callable {
             LocationContext locationCtx = locationContexts.get(locationId);
             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
+            Map<String, String> params = locationCtx.generateQueryParamMap();
+            params.put("location_id", locationId);
             Map<String, CatalogObject> catalogMap = ConnectV2MigrationHelper.getCatalogObjectsForOrder(clientv2, orders.toArray(new Order[0]));
-            Payment[] payments = clientv2.payments().list(locationCtx.generateQueryParamMap());
+            Payment[] payments = clientv2.payments().list(params);
             Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders.toArray(new Order[0]), payments, clientv2, locationCtx.generateQueryParamMap());
             // loop through payments and generate csv row entries for each
             // itemization

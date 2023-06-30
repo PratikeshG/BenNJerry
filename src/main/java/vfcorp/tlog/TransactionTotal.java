@@ -6,7 +6,6 @@ import java.util.Map;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Order;
 
 public class TransactionTotal extends Record {
@@ -46,14 +45,6 @@ public class TransactionTotal extends Record {
 	@Override
 	public String getId() {
 		return id;
-	}
-
-	public TransactionTotal parse(Payment payment) throws Exception {
-		putValue("Amount", "" + payment.getTotalCollectedMoney().getAmount());
-		// TODO(): needs to be refactored for refunds
-		putValue("Sign Indicator", "0"); // sign is always positive
-
-		return this;
 	}
 
 	public TransactionTotal parse(Order order) throws Exception {

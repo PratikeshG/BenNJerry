@@ -3,8 +3,6 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
@@ -49,24 +47,6 @@ public class EmployeeDiscount extends Record {
 	@Override
 	public String getId() {
 		return id;
-	}
-
-	public EmployeeDiscount parse(PaymentItemization itemization, PaymentDiscount discount) throws Exception {
-		// Need to subtract previously applied discounts on this item from beforeTotal
-		int beforeTotal = itemization.getGrossSalesMoney().getAmount();
-		for (PaymentDiscount prevDiscount : itemization.getDiscounts()) {
-			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
-				break;
-			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
-		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
-
-		putValue("Amount of Discount", "" + -discountTotal);
-		putValue("Amount of Item", "" + beforeTotal);
-		putValue("Discount Type Indicator", "0"); // 0 is "Normal Employee discount"
-
-		return this;
 	}
 
 	public EmployeeDiscount parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount) throws Exception {

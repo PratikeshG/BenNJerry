@@ -26,9 +26,10 @@ import util.LocationContext;
 
 public class DashboardCsvRowFactory {
 	private static final String PRODUCT_TYPE_OTHER_LABEL = "OTHER";
-	private static final String PRODUCT_TYPE_EXTERNAL_API_LABEL = "eCommerce Integrations";
-	private static final String PRODUCT_TYPE_EXTERNAL_API = "EXTERNAL_API";
-	public static final String PRODUCT_TYPE_REGISTER = "REGISTER";
+	private static final String PRODUCT_TYPE_ECOMMERCE_API_LABEL = "eCommerce Integrations";
+	private static final String PRODUCT_TYPE_ECOMMERCE_API = "ECOMMERCE_API";
+	public static final String PRODUCT_TYPE_REGISTER = "SQUARE_POS";
+	public static final String PRODUCT_TYPE_RETAIL = "RETAIL";
 	public static final String PRODUCT_TYPE_REGISTER_LABEL = "Point of Sale";
 
 	private final String DETAILS_URL_ROUTE = "/dashboard/sales/transactions/";
@@ -47,11 +48,11 @@ public class DashboardCsvRowFactory {
 		fields.add(getTime(order.getCreatedAt()));
 		fields.add(getTimeZoneLabel(locationContext.getTimezone()));
 		fields.add(getCurrencyString(totalMoney - totalTaxMoney + totalDiscountMoney - totalTipMoney));
-		fields.add(getCurrencyString(totalDiscountMoney));
+		fields.add(getCurrencyString(-totalDiscountMoney));
 		fields.add(getCurrencyString(totalMoney - totalTaxMoney - totalTipMoney));
 		fields.add(getCurrencyString(getGiftCardSales(order)));
-		fields.add(getCurrencyString(order.getTotalTaxMoney().getAmount()));
-		fields.add(getCurrencyString(order.getTotalTipMoney().getAmount()));
+		fields.add(getCurrencyString(totalTaxMoney));
+		fields.add(getCurrencyString(totalTipMoney));
 		fields.add(""); // Partial refunds
 		fields.add(getCurrencyString(netAmounts));
 		fields.add(getProductTypeLabel(order, tenderToPayment));
@@ -95,9 +96,10 @@ public class DashboardCsvRowFactory {
 		fields.add(getTime(order.getCreatedAt()));
 		fields.add(getTimeZoneLabel(locationCtx.getTimezone()));
 		CatalogObject itemVariation = catalogMap.get(lineItem.getCatalogObjectId());
-		CatalogObject item = catalogMap.get(itemVariation.getItemVariationData().getItemId());
-		CatalogObject category = catalogMap.get(item.getItemData().getCategoryId());
-		fields.add(category.getCategoryData().getName()); // Category
+		CatalogObject item = itemVariation != null ? catalogMap.get(itemVariation.getItemVariationData().getItemId()) : null;
+		CatalogObject category = item != null ? catalogMap.get(item.getItemData().getCategoryId()) : null;
+		String categoryName = category != null ? category.getCategoryData().getName() : "";
+		fields.add(categoryName); // Category
 		fields.add(lineItem.getName()); // Item name
 		fields.add(lineItem.getQuantity().toString()); // Qty
 		fields.add(emptyStringIfNull(lineItem.getVariationName())); // name
@@ -105,11 +107,13 @@ public class DashboardCsvRowFactory {
 		fields.add(getModifiers(lineItem));// Modifiers
 		fields.add(getCurrencyString(lineItem.getGrossSalesMoney().getAmount()));// Gross
 																					// Sales
-		fields.add(getCurrencyString(lineItem.getTotalDiscountMoney().getAmount()));// Discounts
+		fields.add(getCurrencyString(-lineItem.getTotalDiscountMoney().getAmount()));// Discounts
 		fields.add(getCurrencyString(lineItem.getGrossSalesMoney().getAmount() + lineItem.getTotalDiscountMoney().getAmount()));// Net
 																					// Sales
 		fields.add(getTaxes(lineItem));// Tax
 		fields.add(order.getId());// Transaction ID
+		String paymentId = order.getTenders() != null && order.getTenders().length > 0 ? order.getTenders()[0].getId() : "";
+		fields.add(paymentId);
 		fields.add(getDeviceName(order, tenderToPayment));// Device name
 		fields.add(emptyStringIfNull(lineItem.getNote()));// Notes
 		fields.add(getDetailsUrl(order, domainUrl));// Details
@@ -145,12 +149,11 @@ public class DashboardCsvRowFactory {
 		fields.add(""); // other tender type
 		fields.add(""); // other tender note
 
-		int totalProcessingFee = 0;
-     	totalProcessingFee = Arrays.stream(refund.getProcessingFee())
+     	int totalProcessingFee = refund.getProcessingFee() != null ? Arrays.stream(refund.getProcessingFee())
          		.map(ProcessingFee::getAmountMoney)
          		.filter(Objects::nonNull)
          		.mapToInt(Money::getAmount)
-         		.sum();
+         		.sum() : 0;
 		fields.add(getCurrencyString(Math.negateExact(totalProcessingFee)));
 		fields.add("");// net total
 		fields.add(refund.getOrderId());
@@ -174,8 +177,8 @@ public class DashboardCsvRowFactory {
 	}
 
 	private String getTenderIds(Order order) {
-		if(order.getTenders() != null) {
-			if (order.getTenders() != null && order.getTenders().length > 1) {
+		if(order.getTenders() != null && order.getTenders().length > 0) {
+			if (order.getTenders().length > 1) {
 				ArrayList<String> paymentIds = new ArrayList<String>();
 				for (Tender tender : order.getTenders()) {
 					paymentIds.add(tender.getId());
@@ -327,10 +330,10 @@ public class DashboardCsvRowFactory {
 				if(tenderToPayment.containsKey(tender.getId())) {
 					Payment payment = tenderToPayment.get(tender.getId());
 					String squareProduct = payment.getApplicationDetails().getSquareProduct();
-					if (squareProduct.equals(PRODUCT_TYPE_REGISTER)) {
+					if (squareProduct.equals(PRODUCT_TYPE_REGISTER) || squareProduct.equals(PRODUCT_TYPE_RETAIL)) {
 						return PRODUCT_TYPE_REGISTER_LABEL;
-					} else if (squareProduct.equals(PRODUCT_TYPE_EXTERNAL_API)) {
-						return PRODUCT_TYPE_EXTERNAL_API_LABEL;
+					} else if (squareProduct.equals(PRODUCT_TYPE_ECOMMERCE_API)) {
+						return PRODUCT_TYPE_ECOMMERCE_API_LABEL;
 					}
 		        }
 			}
@@ -339,7 +342,7 @@ public class DashboardCsvRowFactory {
 	}
 
 	private String getTaxes(OrderLineItem lineItem) {
-		if (lineItem.getAppliedTaxes().length > 0) {
+		if (lineItem.getAppliedTaxes() != null && lineItem.getAppliedTaxes().length > 0) {
 			int taxes = 0;
 			for (OrderLineItemAppliedTax tax : lineItem.getAppliedTaxes()) {
 				taxes += tax.getAppliedMoney().getAmount();

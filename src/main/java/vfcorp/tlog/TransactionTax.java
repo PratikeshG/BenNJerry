@@ -6,7 +6,6 @@ import java.util.Map;
 import vfcorp.FieldDetails;
 import vfcorp.Record;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Order;
 
 public class TransactionTax extends Record {
@@ -46,14 +45,6 @@ public class TransactionTax extends Record {
 	@Override
 	public String getId() {
 		return id;
-	}
-
-	public TransactionTax parse(Payment payment) throws Exception {
-		putValue("Amount", "" + payment.getTaxMoney().getAmount());
-		// TODO(): needs to be refactored for refunds
-		putValue("Sign Indicator", "0"); // always positive
-
-		return this;
 	}
 
 	public TransactionTax parse(Order order) throws Exception {

@@ -3,8 +3,6 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentItemization;
-import com.squareup.connect.PaymentTax;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemAppliedTax;
 import com.squareup.connect.v2.OrderLineItemTax;
@@ -55,61 +53,6 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
     @Override
     public String getId() {
         return id;
-    }
-
-    public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization)
-            throws Exception {
-        String taxType = "01";
-        String taxMethod = "01";
-        String taxCode = "1";
-        switch (tax.getName()) {
-            case "VAT":
-                taxType = "02";
-                break;
-            case "GST":
-            case "Goods and Services Tax":
-                taxType = "03";
-                break;
-            case "GST/PST":
-            case "Provincial Sales Tax":
-                taxType = "04";
-                taxCode = "PST";
-                break;
-            case "PST ON GST":
-                taxType = "05";
-                break;
-            case "No tax":
-                taxType = "07";
-                break;
-            case "Youth Item Tax":
-                taxCode = "2";
-            case "HST":
-            case "Harmonized Sales Tax":
-                taxType = "08";
-                break;
-            case "Sales Tax":
-            default:
-                taxType = "01";
-                break;
-        }
-        long taxRate = Math.round(Double.parseDouble(tax.getRate()) * 10000000);
-
-        // for special taxes
-        String taxDetails = Util.getValueInParenthesis(tax.getName());
-        if (taxDetails.length() > 2) {
-            taxMethod = taxDetails.substring(0, 2);
-            taxCode = taxDetails.substring(2);
-        }
-
-        putValue("Tax Type", taxType);
-        putValue("Tax Method", taxMethod);
-        putValue("Tax Rate", "" + taxRate);
-        putValue("Tax Amount", ""); // not supported
-        putValue("Tax Override Code", ""); // not supported
-        putValue("Taxable Amount", "" + itemization.getNetSalesMoney().getAmount());
-        putValue("Tax Code", taxCode);
-
-        return this;
     }
 
     public ItemTaxMerchandiseNonMerchandiseItemsFees parse(OrderLineItemAppliedTax tax, OrderLineItem lineItem, OrderLineItemTax taxDetails)
