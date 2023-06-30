@@ -1,5 +1,7 @@
 package vfcorp.altra;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,9 +57,10 @@ public class TransformItemsToCsvCallable implements Callable {
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
         DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-
+        Map<String, List<com.squareup.connect.Payment>> locationsPayments = new HashMap<>();
         // loop through locations and process the file for each
         for (String locationId : locationsOrders.keySet()) {
+        	List<com.squareup.connect.Payment> v1Payments = new ArrayList<>();
             List<Order> ordersList = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
@@ -77,6 +80,8 @@ public class TransformItemsToCsvCallable implements Callable {
             for (Order order : orders) {
             	if(order.getTenders() != null && order.getTenders().length > 0) {
                     Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
+                    com.squareup.connect.Payment v1Payment = ConnectV2MigrationHelper.toV1Payment(order, catalogMap, lineItemCategories, tenderToPayment, customer);
+                    v1Payments.add(v1Payment);
                     if(order.getLineItems() != null) {
                     	for (OrderLineItem lineItem : order.getLineItems()) {
                             csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, lineItemCategories, tenderToPayment,
@@ -85,7 +90,10 @@ public class TransformItemsToCsvCallable implements Callable {
                     }
             	}
             }
+            locationsPayments.put(locationId, v1Payments);
         }
+
+        message.setProperty(Constants.V1PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
 
         return csvGenerator.build();
     }

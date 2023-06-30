@@ -9,7 +9,7 @@
             merchantId: sessionVars['squarePayload'].merchantId,
             businessName: sessionVars['squarePayload'].merchantAlias
         },
-        locations: { (payload pluck ({
+        locations: { (flowVars.v1refunds pluck ({
             (location: { 
                 locationId: ($$),
                 beginTime: flowVars.locationContextMap[($$)].beginTime,
@@ -18,19 +18,12 @@
                 timezone: flowVars.locationContextMap[($$)].timezone,
                 refunds: { ($ default [] map {
                     refund: {
+                        type: $.type,
                         createdAt: $.createdAt,
+                        processedAt: $.processedAt,
                         reason: $.reason,
-                        amountMoney: $.amountMoney,
+                        refundedMoney: $.refundedMoney,
                         paymentId: $.paymentId,
-                        orderId: $.orderId,
-                        status: $.status,
-                        teamMemberId: $.teamMemberId,
-                        appFeeMoney: $.appFeeMoney,
-                        processingFee: {
-							($.processingFee default [] map {
-								processingFee: ($)
-							})
-						},
                         locationId: flowVars.refundLocationMap[($.paymentId)]
                     }
                 })}

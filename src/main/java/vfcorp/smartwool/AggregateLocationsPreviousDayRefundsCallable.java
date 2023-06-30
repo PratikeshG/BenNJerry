@@ -54,7 +54,7 @@ public class AggregateLocationsPreviousDayRefundsCallable implements Callable {
 		message.setProperty(Constants.CREATED_AT, TimeManager.toIso8601(Calendar.getInstance(), UTC),
 				PropertyScope.SESSION);
 
-		Map<String, List<PaymentRefund>> locationsRefunds = new RefundsReportBuilder(apiUrl, accessToken, merchantId)
+		Map<String, List<PaymentRefund>> locationsRefunds = new RefundsReportBuilder(apiUrl, accessToken, merchantId, message)
 				.forLocations(locations).forPastDayInterval(range, offset).build();
 
 		setRefundsDatesToLocalTime(locationsRefunds, locationContexts);

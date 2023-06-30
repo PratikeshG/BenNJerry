@@ -10,66 +10,70 @@
 			businessName: sessionVars['squarePayload'].merchantAlias
 		},
 		locations: {
-			(flowVars.payments pluck ({
+			(flowVars.v1payments pluck ({
 				(location: {
 					locationId: ($$),
 					beginTime: flowVars.locationContextMap[($$)].beginTime,
 					endTime: flowVars.locationContextMap[($$)].endTime,
 					locationName: flowVars.locationContextMap[($$)].name,
 					timezone: flowVars.locationContextMap[($$)].timezone,
-					orders: {
+					payments: {
 						($ default [] map {
-							order: {
+							payment: {
 								id: $.id,
 								createdAt: $.createdAt,
-								referenceId: $.referenceId,
-								totalMoney: $.totalMoney,
-								totalTaxMoney: $.totalTaxMoney,
-								totalDiscountMoney: $.totalDiscountMoney,
-								totalTipMoney: $.totalTipMoney,
-								totalServiceChargeMoney: $.totalServiceChargeMoney,
-								netAmounts: $.netAmounts,
-								returnAmounts: $.returnAmounts,
-								taxes: {
-									($.taxes default [] map {
-										tax: ($)
+								device: $.device,
+								paymentUrl: $.paymentUrl,
+								receiptUrl: $.receiptUrl,
+								inclusiveTaxMoney: $.inclusiveTaxMoney,
+								additiveTaxMoney: $.additiveTaxMoney,
+								taxMoney: $.taxMoney,
+								tipMoney: $.tipMoney,
+								discountMoney: $.discountMoney,
+								totalCollectedMoney: $.totalCollectedMoney,
+								processingFeeMoney: $.processingFeeMoney,
+								netTotalMoney: $.netTotalMoney,
+								grossSalesMoney: $.grossSalesMoney,
+								netSalesMoney: $.netSalesMoney,
+								inclusiveTax: {
+									($.inclusiveTax default [] map {
+										inclusiveTax: ($)
 									})
 								},
-								discounts: {
-									($.discounts default [] map {
-										discount: ($)
-									})
-								},
-								serviceCharges: {
-									($.serviceCharges default [] map {
-										serviceCharge: ($)
+								additiveTax: {
+									($.additiveTax default [] map {
+										additiveTax: ($)
 									})
 								},
 								tenders: {
-									($.tenders default [] map {
-										tender: ($)
+									($.tender default [] map {
+										tender: ($) mapObject ({
+											($$): $
+										} when $$ as :string != "refundedMoney" otherwise {
+										})
 									})
 								},
-								lineItems: {
-									($.lineItems default [] map {
-										lineItem: {
+								itemizations: {
+									($.itemizations default [] map {
+										itemization: {
 											name: $.name,
 											quantity: $.quantity,
-											itemType: $.itemType,
-											catalogObjectId: $.catalogObjectId,
-											note: $.note,
-											variationName: $.variationName,
+											itemizationType: $.itemizationType,
+											itemDetail: $.itemDetail,
+											notes: $.notes,
+											itemVariationName: $.itemVariationName,
 											totalMoney: $.totalMoney,
-											basePriceMoney: $.basePriceMoney,
+											singleQuantityMoney: $.singleQuantityMoney,
 											grossSalesMoney: $.grossSalesMoney,
-											totalDiscountMoney: $.discountMoney,
-											appliedTaxes: {
-												($.appliedTaxes default [] map {
+											discountMoney: $.discountMoney,
+											netSalesMoney: $.netSalesMoney,
+											taxes: {
+												($.taxes default [] map {
 													paymentTax: ($)
 												})
 											},
-											appliedDiscounts: {
-												($.appliedDiscounts default [] map {
+											discounts: {
+												($.discounts default [] map {
 													discount: ($)
 												})
 											},

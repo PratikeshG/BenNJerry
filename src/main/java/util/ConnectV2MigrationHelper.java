@@ -2,18 +2,32 @@ package util;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
+import com.squareup.connect.Money;
+import com.squareup.connect.PaymentDiscount;
+import com.squareup.connect.PaymentItemDetail;
+import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.PaymentModifier;
+import com.squareup.connect.PaymentTax;
+import com.squareup.connect.Refund;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
+import com.squareup.connect.v2.OrderLineItemAppliedTax;
+import com.squareup.connect.v2.OrderLineItemDiscount;
+import com.squareup.connect.v2.OrderLineItemModifier;
+import com.squareup.connect.v2.OrderLineItemTax;
 import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
@@ -24,6 +38,7 @@ import com.squareup.connect.v2.SearchOrdersStateFilter;
 import com.squareup.connect.v2.SquareClientV2;
 import com.squareup.connect.v2.Tender;
 import com.squareup.connect.v2.TimeRange;
+
 
 /**
  * Helper methods for use in Square Connect v1 -> v2 migration
@@ -150,12 +165,7 @@ public class ConnectV2MigrationHelper {
 		return squareClientV2.refunds().listPaymentRefunds(params);
 	}
 
-	/*
-	 * Searches orders for a given time period. We include OPEN orders in this search because
-	 * OPEN orders can also have valid tenders. In order to search OPEN orders, sort field must
-	 * be set to CREATED_AT instead of CLOSED_AT because OPEN orders do not have a CLOSED_AT time stamp.
-	 */
-	public static Order[] getOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, boolean allowCashTransactions) throws Exception {
+	public static SearchOrdersQuery getOrdersQuery(Map<String, String> params) {
 		SearchOrdersQuery orderQuery = new SearchOrdersQuery();
 		SearchOrdersFilter searchFilter = new SearchOrdersFilter();
         SearchOrdersSort searchSort = new SearchOrdersSort();
@@ -176,7 +186,16 @@ public class ConnectV2MigrationHelper {
         searchSort.setSortField("CREATED_AT");
         searchSort.setSortOrder(params.get(util.Constants.SORT_ORDER_V2));
 
+        return orderQuery;
+	}
 
+	/*
+	 * Searches orders for a given time period. We include OPEN orders in this search because
+	 * OPEN orders can also have valid tenders. In order to search OPEN orders, sort field must
+	 * be set to CREATED_AT instead of CLOSED_AT because OPEN orders do not have a CLOSED_AT time stamp.
+	 */
+	public static Order[] getOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, boolean allowCashTransactions) throws Exception {
+		SearchOrdersQuery orderQuery = getOrdersQuery(params);
         Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);
         List<Order> orders = new ArrayList<Order>();
         for(Order order : allOrders) {
@@ -189,7 +208,19 @@ public class ConnectV2MigrationHelper {
         			orders.add(order);
         		}
         	}
+        }
+        return orders.toArray(new Order[0]);
+    }
 
+	public static Order[] getOrdersWithExchanges(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, boolean allowCashTransactions) throws Exception {
+		SearchOrdersQuery orderQuery = getOrdersQuery(params);
+
+        Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);
+        List<Order> orders = new ArrayList<Order>();
+        for(Order order : allOrders) {
+        	if((allowCashTransactions && hasValidTender(order)) || hasValidCardTender(order) || isExchange(order)) {
+        		orders.add(order);
+        	}
         }
         return orders.toArray(new Order[0]);
     }
@@ -302,4 +333,247 @@ public class ConnectV2MigrationHelper {
 
     	return itemVariationIdToCategory;
     }
+
+    public static com.squareup.connect.Payment toV1Payment(Order order, Map<String, CatalogObject> catalogMap,
+    		Map<String, CatalogObject> lineItemCategories, Map<String, Payment> tenderToPayment,
+			Customer customer) {
+    	com.squareup.connect.Payment payment = new com.squareup.connect.Payment();
+    	int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
+    	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
+    	int totalDiscountMoney = order.getTotalDiscountMoney() != null ? order.getTotalDiscountMoney().getAmount() : 0;
+    	int totalTipMoney = order.getTotalTipMoney() != null ? order.getTotalTipMoney().getAmount() : 0;
+    	int netAmounts = order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
+    	payment.setId(order.getId());
+    	payment.setCreatedAt(order.getCreatedAt());
+    	payment.setGrossSalesMoney(new Money(totalMoney - totalTaxMoney + totalDiscountMoney - totalTipMoney));
+    	payment.setDiscountMoney(new Money(-totalDiscountMoney));
+    	payment.setNetSalesMoney(new Money(totalMoney - totalTaxMoney - totalTipMoney));
+    	payment.setTaxMoney(new Money(totalTaxMoney));
+    	payment.setTipMoney(new Money(totalTipMoney));
+    	payment.setTotalCollectedMoney(new Money(netAmounts));
+    	int totalProcessingFee = order.getTenders() != null ? Arrays.stream(order.getTenders())
+         		.map(Tender::getProcessingFeeMoney)
+         		.filter(Objects::nonNull)
+         		.mapToInt(com.squareup.connect.v2.Money::getAmount)
+         		.sum() : 0;
+    	payment.setProcessingFeeMoney(new Money(-totalProcessingFee));
+    	payment.setNetTotalMoney(new Money(netAmounts - totalProcessingFee));
+    	setTenders(order, payment, tenderToPayment);
+    	setPaymentDetails(order, payment, catalogMap, lineItemCategories, tenderToPayment, customer);
+    	int totalInclusiveTaxMoney = payment.getInclusiveTax().length > 0 ? Arrays.stream(payment.getInclusiveTax())
+    			.map(PaymentTax::getAppliedMoney)
+    			.filter(Objects::nonNull)
+    			.mapToInt(Money::getAmount)
+    			.sum() : 0;
+    	payment.setInclusiveTaxMoney(new Money(totalInclusiveTaxMoney));
+    	int totalAdditiveTaxMoney = payment.getAdditiveTax().length > 0 ? Arrays.stream(payment.getAdditiveTax())
+    			.map(PaymentTax::getAppliedMoney)
+    			.filter(Objects::nonNull)
+    			.mapToInt(Money::getAmount)
+    			.sum() : 0;
+    	payment.setAdditiveTaxMoney(new Money(totalAdditiveTaxMoney));
+    	return payment;
+    }
+
+    public static void setTenders(Order order, com.squareup.connect.Payment payment, Map<String, Payment> tenderToPayment) {
+		List<com.squareup.connect.Tender> v1Tenders = new ArrayList<>();
+    	if(order.getTenders() != null) {
+    		for(Tender tender : order.getTenders()) {
+    			Payment v2Payment = tenderToPayment.get(tender.getId());
+    			com.squareup.connect.Tender v1Tender = new com.squareup.connect.Tender();
+    			v1Tender.setId(tender.getId());
+    			v1Tender.setType(v2Payment.getSourceType());
+    			v1Tender.setEmployeeId(v2Payment.getTeamMemberId());
+    			v1Tender.setReceiptUrl(v2Payment.getReceiptUrl());
+    			if(v2Payment.getCardDetails() != null && v2Payment.getCardDetails().getCard() != null) {
+    				v1Tender.setCardBrand(v2Payment.getCardDetails().getCard().getCardBrand());
+    				v1Tender.setPanSuffix(v2Payment.getCardDetails().getCard().getLast4());
+    				v1Tender.setEntryMethod(v2Payment.getCardDetails().getEntryMethod());
+    			}
+    			v1Tender.setPaymentNote(v2Payment.getNote());
+    			v1Tender.setTotalMoney(new Money(v2Payment.getTotalMoney().getAmount()));
+    			if(v2Payment.getCashDetails() != null && v2Payment.getCashDetails().getChangeBackMoney() != null) {
+    				v1Tender.setChangeBackMoney(new Money(v2Payment.getCashDetails().getChangeBackMoney().getAmount()));
+    			}
+    			v1Tender.setExchange(isExchange(order));
+    			v1Tenders.add(v1Tender);
+    		}
+    	}
+    	payment.setTender(v1Tenders.toArray(new com.squareup.connect.Tender[0]));
+    }
+
+    public static void setPaymentDetails(Order order, com.squareup.connect.Payment payment, Map<String, CatalogObject> catalogMap,
+    		Map<String, CatalogObject> lineItemCategories, Map<String, Payment> tenderToPayment,
+			Customer customer) {
+    	List<PaymentItemization> itemizations = new ArrayList<>();
+    	List<PaymentTax> inclusiveTax = new ArrayList<>();
+		List<PaymentTax> additiveTax = new ArrayList<>();
+
+    	if(order.getLineItems() != null) {
+    		for(OrderLineItem lineItem : order.getLineItems()) {
+    			//itemization details
+    			PaymentItemization itemization = new PaymentItemization();
+    			itemization.setName(lineItem.getName());
+    			itemization.setQuantity(Double.parseDouble(lineItem.getQuantity()));
+    			itemization.setItemizationType(lineItem.getItemType());
+    			CatalogObject itemVariation = catalogMap.get(lineItem.getCatalogObjectId());
+    			CatalogObject category = lineItemCategories.get(lineItem.getCatalogObjectId());
+    			PaymentItemDetail detail = new PaymentItemDetail();
+    			detail.setCategoryName(category != null && category.getCategoryData() != null ? category.getCategoryData().getName() : "");
+    			detail.setSku(itemVariation != null && itemVariation.getItemVariationData() != null ? itemVariation.getItemVariationData().getSku() : "");
+    			detail.setItemVariationId(lineItem.getCatalogObjectId());
+    			detail.setItemId(itemVariation != null && itemVariation.getItemVariationData() != null ? itemVariation.getItemVariationData().getItemId() : "");
+    			itemization.setItemDetail(detail);
+    			itemization.setItemVariationName(lineItem.getVariationName());
+    			itemization.setNotes(lineItem.getNote());
+    			itemization.setTotalMoney(new Money(lineItem.getTotalMoney().getAmount()));
+    			itemization.setSingleQuantityMoney(new Money(lineItem.getBasePriceMoney().getAmount()));
+    			itemization.setGrossSalesMoney(new Money(lineItem.getGrossSalesMoney().getAmount()));
+    			itemization.setDiscountMoney(new Money(-lineItem.getTotalDiscountMoney().getAmount()));
+    			itemization.setNetSalesMoney(new Money(lineItem.getGrossSalesMoney().getAmount() - lineItem.getTotalDiscountMoney().getAmount()));
+    			//taxes
+    			Map<String, OrderLineItemTax> lineItemTaxes = getOrderLineItemTaxMap(order);
+    			List<PaymentTax> paymentTaxes = new ArrayList<>();
+    			if(lineItem.getAppliedTaxes() != null) {
+					for (OrderLineItemAppliedTax lineItemAppliedTax : lineItem.getAppliedTaxes()) {
+						OrderLineItemTax lineItemTax = lineItemTaxes.get(lineItemAppliedTax.getTaxUid());
+						PaymentTax v1Tax = new PaymentTax();
+						v1Tax.setName(lineItemTax.getName());
+						v1Tax.setAppliedMoney(new Money(lineItemAppliedTax.getAppliedMoney().getAmount()));
+						v1Tax.setRate(lineItemTax.getPercentage());
+						v1Tax.setInclusionType(lineItemTax.getType());
+						v1Tax.setFeeId(lineItemAppliedTax.getTaxUid());
+						paymentTaxes.add(v1Tax);
+						if (lineItemTax.getType().equals("ADDITIVE")) {
+							additiveTax.add(v1Tax);
+						} else if(lineItemTax.getType().equals("INCLUSIVE")) {
+							inclusiveTax.add(v1Tax);
+						}
+					}
+				}
+    			itemization.setTaxes(paymentTaxes.toArray(new PaymentTax[0]));
+
+    			//discounts
+    			Map<String, OrderLineItemDiscount> lineItemDiscounts = getOrderLineItemDiscountMap(order);
+    			List<PaymentDiscount> paymentDiscounts = new ArrayList<>();
+    			if(lineItem.getAppliedDiscounts() != null) {
+    				for(OrderLineItemAppliedDiscount lineItemAppliedDiscount : lineItem.getAppliedDiscounts()) {
+    					OrderLineItemDiscount lineItemDiscount = lineItemDiscounts.get(lineItemAppliedDiscount.getDiscountUid());
+    					PaymentDiscount v1Discount = new PaymentDiscount();
+    					v1Discount.setName(lineItemDiscount.getName());
+    					v1Discount.setAppliedMoney(new Money(-lineItemAppliedDiscount.getAppliedMoney().getAmount()));
+    					v1Discount.setDiscountId(lineItemAppliedDiscount.getDiscountUid());
+    					paymentDiscounts.add(v1Discount);
+    				}
+    			}
+    			itemization.setDiscounts(paymentDiscounts.toArray(new PaymentDiscount[0]));
+
+
+    			//modifiers
+    			List<PaymentModifier> paymentModifiers = new ArrayList<>();
+    			if(lineItem.getModifiers() != null) {
+    				for(OrderLineItemModifier lineItemModifier : lineItem.getModifiers()) {
+    					PaymentModifier v1Modifier = new PaymentModifier();
+    					v1Modifier.setName(lineItemModifier.getName());
+    					v1Modifier.setAppliedMoney(new Money(lineItemModifier.getTotalPriceMoney().getAmount()));
+    					v1Modifier.setModifierOptionId(lineItemModifier.getCatalogObjectId());
+    				}
+    			}
+    			itemization.setModifiers(paymentModifiers.toArray(new PaymentModifier[0]));
+
+    			itemizations.add(itemization);
+    		}
+    	}
+    	payment.setItemizations(itemizations.toArray(new PaymentItemization[0]));
+    	payment.setInclusiveTax(inclusiveTax.toArray(new PaymentTax[0]));
+    	payment.setAdditiveTax(additiveTax.toArray(new PaymentTax[0]));
+    }
+
+    public static Map<String, OrderLineItemTax> getOrderLineItemTaxMap(Order order) {
+        return order != null && order.getTaxes() != null ? Arrays.stream(order.getTaxes()).collect(Collectors.toMap(OrderLineItemTax::getUid, tax -> tax)) : new HashMap<>();
+    }
+
+    public static Map<String, OrderLineItemDiscount> getOrderLineItemDiscountMap(Order order) {
+        return order != null && order.getDiscounts() != null ? Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, discount -> discount)) : new HashMap<>();
+    }
+
+    public static boolean isExchange(Order order) {
+    	return order != null && order.getLineItems() != null && order.getLineItems().length > 0 && order.getReturns() != null && order.getReturns().length > 0;
+    }
+
+    public static List<Refund> toV1Refunds(PaymentRefund[] paymentRefunds, SquareClientV2 clientV2, String locationId, Map<String, String> params) throws Exception {
+        List<Refund> refunds = new ArrayList<>();
+        Order[] orders = getRefundedAndExchangedOrders(clientV2, locationId, params, paymentRefunds);
+        for(Order order : orders) {
+          //exchange
+          if(isExchange(order)) {
+            int netAmount = order.getNetAmounts() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
+            int returnAmount = order.getReturnAmounts() != null ? order.getReturnAmounts().getTotalMoney().getAmount() : 0;
+            // if it's an down exchange (paying customer back after an exchange), we need to refund the difference
+            // i.e. customer bought $200 item, and exchanged it for $80. When we process transactions,
+            // we process both items as transactions, so the total incoming payment would be $280.
+            // Refunds needs to process the paymentRefund of $120, as well as the difference between
+            // the down exchange and the payment refund, which would be $200 - $120 = $80
+            if(netAmount <= 0) {
+              returnAmount += netAmount;
+            }
+            // exchanges in V2 do not have ids (in V1, exchange is technically a payment) so for refund, use orderId
+            Refund refund = new Refund();
+            refund.setCreatedAt(order.getCreatedAt());
+            refund.setProcessedAt(order.getCreatedAt());
+            refund.setReason("RETURNED GOODS");
+            refund.setRefundedMoney(new Money(returnAmount));
+            // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
+            String paymentId = order.getTenders() != null && order.getTenders().length > 0 ? order.getTenders()[0].getId() : order.getId();
+            refund.setPaymentId(paymentId);
+            refunds.add(refund);
+          }
+          // refund
+          if(order.getRefunds() != null) {
+            for(com.squareup.connect.v2.Refund v2Refund : order.getRefunds()) {
+            	 Refund refund = new Refund();
+                 refund.setCreatedAt(v2Refund.getCreatedAt());
+                 refund.setProcessedAt(v2Refund.getCreatedAt());
+                 refund.setReason(v2Refund.getReason());
+                 refund.setRefundedMoney(new Money(v2Refund.getAmountMoney().getAmount()));
+                 // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
+                 refund.setPaymentId(v2Refund.getTenderId());
+                 refunds.add(refund);
+            }
+          }
+        }
+        return refunds;
+     }
+
+    public static Order[] getRefundedAndExchangedOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, PaymentRefund[] refunds) throws Exception {
+		SearchOrdersQuery orderQuery = getOrdersQuery(params);
+
+        Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);
+        List<Order> orders = new ArrayList<Order>();
+        Set<String> existingOrderIds = new HashSet<>();
+        for(Order order : allOrders) {
+        	if(isExchange(order)) {
+        		orders.add(order);
+        		existingOrderIds.add(order.getId());
+        	}
+        }
+        Set<String> refundedOrderIds = new HashSet<>();
+        if(refunds != null) {
+        	for(PaymentRefund refund : refunds) {
+        		if(!existingOrderIds.contains(refund.getOrderId()))
+        			refundedOrderIds.add(refund.getOrderId());
+        	}
+        }
+        Order[] refundedOrders = squareClientV2.orders().batchRetrieve(locationId, refundedOrderIds.toArray(new String[0]));
+        for(Order refundedOrder : refundedOrders) {
+        	orders.add(refundedOrder);
+        }
+        return orders.toArray(new Order[0]);
+	}
+
 }
+
+
+
+
+

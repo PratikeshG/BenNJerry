@@ -1,5 +1,7 @@
 package vfcorp.eb;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +32,7 @@ public class TransformItemsToCsvCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TransformItemsToCsvCallable.class);
 
     public String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Category", "Item", "Qty", "Price Point Name",
-            "SKU", "Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
+            "SKU" ,"Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
             "Device Name", "Notes", "Details", "Event Type", "Location", "Dining Option", "Customer ID",
             "Customer Name", "Customer Reference ID" };
 
@@ -47,7 +49,7 @@ public class TransformItemsToCsvCallable implements Callable {
 
         @SuppressWarnings("unchecked")
         Map<String, List<Order>> locationsOrders = (Map<String, List<Order>>) message
-        .getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
+                .getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
 
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
@@ -55,10 +57,11 @@ public class TransformItemsToCsvCallable implements Callable {
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
         DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-
+        Map<String, List<com.squareup.connect.Payment>> locationsPayments = new HashMap<>();
         // loop through locations and process the file for each
         for (String locationId : locationsOrders.keySet()) {
-        	List<Order> ordersList = locationsOrders.get(locationId);
+        	List<com.squareup.connect.Payment> v1Payments = new ArrayList<>();
+            List<Order> ordersList = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
@@ -77,6 +80,8 @@ public class TransformItemsToCsvCallable implements Callable {
             for (Order order : orders) {
             	if(order.getTenders() != null && order.getTenders().length > 0) {
                     Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
+                    com.squareup.connect.Payment v1Payment = ConnectV2MigrationHelper.toV1Payment(order, catalogMap, lineItemCategories, tenderToPayment, customer);
+                    v1Payments.add(v1Payment);
                     if(order.getLineItems() != null) {
                     	for (OrderLineItem lineItem : order.getLineItems()) {
                             csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, lineItemCategories, tenderToPayment,
@@ -85,7 +90,11 @@ public class TransformItemsToCsvCallable implements Callable {
                     }
             	}
             }
+            locationsPayments.put(locationId, v1Payments);
         }
+
+        message.setProperty(Constants.V1PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
+
         return csvGenerator.build();
     }
 }

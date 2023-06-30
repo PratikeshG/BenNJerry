@@ -5,9 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.mule.api.MuleMessage;
+import org.mule.api.transport.PropertyScope;
+
+import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.SquareClientV2;
+
+import util.ConnectV2MigrationHelper;
+import util.Constants;
 
 /**
  *
@@ -23,8 +31,8 @@ public class RefundsReportBuilder extends AbstractReportBuilder<PaymentRefund> {
 	 * @param accessToken
 	 * @param merchantId
 	 */
-	public RefundsReportBuilder(String apiUrl, String accessToken, String merchantId) {
-		super(apiUrl, accessToken, merchantId);
+	public RefundsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
+		super(apiUrl, accessToken, merchantId, message);
 	}
 
 	/**
@@ -44,13 +52,15 @@ public class RefundsReportBuilder extends AbstractReportBuilder<PaymentRefund> {
 	 */
 	public Map<String, List<PaymentRefund>> build() throws Exception {
 		Map<String, List<PaymentRefund>> locationsRefunds = new HashMap<String, List<PaymentRefund>>();
+        Map<String, List<Refund>> locationsV1Refunds = new HashMap<>();
 		for (Location location : this.getLocations()) {
-			this.processLocation(location, locationsRefunds);
+			this.processLocation(location, locationsRefunds, locationsV1Refunds);
 		}
+        this.message.setProperty(Constants.V1REFUNDS, locationsV1Refunds, PropertyScope.INVOCATION);
 		return locationsRefunds;
 	}
 
-	private void processLocation(Location location, Map<String, List<PaymentRefund>> locationsRefunds) throws Exception {
+	private void processLocation(Location location, Map<String, List<PaymentRefund>> locationsRefunds, Map<String, List<Refund>> locationsV1Refunds) throws Exception {
 		String locationId = location.getId();
 		String timezone = location.getTimezone();
 		PaymentRefund[] refunds;
@@ -60,7 +70,8 @@ public class RefundsReportBuilder extends AbstractReportBuilder<PaymentRefund> {
 		} else {
 			refunds = this.getClient().refunds().listPaymentRefunds(new HashMap<>());
 		}
-
+        List<Refund> v1Refunds = ConnectV2MigrationHelper.toV1Refunds(refunds, this.getClient(), locationId, this.getDateRangeFilters(timezone));
+        locationsV1Refunds.put(locationId, v1Refunds);
 		locationsRefunds.put(locationId, Arrays.asList(refunds));
 	}
 }

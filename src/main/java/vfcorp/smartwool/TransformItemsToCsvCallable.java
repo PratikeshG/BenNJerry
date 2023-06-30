@@ -1,5 +1,6 @@
 package vfcorp.smartwool;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,13 +8,15 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
-import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.ConnectV2MigrationHelper;
@@ -25,8 +28,10 @@ import util.reports.DashboardCsvRowFactory;
 
 public class TransformItemsToCsvCallable implements Callable {
 
+    private static Logger logger = LoggerFactory.getLogger(TransformItemsToCsvCallable.class);
+
     public String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Category", "Item", "Qty", "Price Point Name",
-            "SKU", "Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
+            "SKU" ,"Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
             "Device Name", "Notes", "Details", "Event Type", "Location", "Dining Option", "Customer ID",
             "Customer Name", "Customer Reference ID" };
 
@@ -51,11 +56,11 @@ public class TransformItemsToCsvCallable implements Callable {
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
         DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
-
+        Map<String, List<com.squareup.connect.Payment>> locationsPayments = new HashMap<>();
         // loop through locations and process the file for each
-
         for (String locationId : locationsOrders.keySet()) {
-        	List<Order> ordersList = locationsOrders.get(locationId);
+        	List<com.squareup.connect.Payment> v1Payments = new ArrayList<>();
+            List<Order> ordersList = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
@@ -74,6 +79,8 @@ public class TransformItemsToCsvCallable implements Callable {
             for (Order order : orders) {
             	if(order.getTenders() != null && order.getTenders().length > 0) {
                     Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
+                    com.squareup.connect.Payment v1Payment = ConnectV2MigrationHelper.toV1Payment(order, catalogMap, lineItemCategories, tenderToPayment, customer);
+                    v1Payments.add(v1Payment);
                     if(order.getLineItems() != null) {
                     	for (OrderLineItem lineItem : order.getLineItems()) {
                             csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, lineItemCategories, tenderToPayment,
@@ -82,7 +89,10 @@ public class TransformItemsToCsvCallable implements Callable {
                     }
             	}
             }
+            locationsPayments.put(locationId, v1Payments);
         }
+
+        message.setProperty(Constants.V1PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
 
         return csvGenerator.build();
     }

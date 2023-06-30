@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.mule.api.MuleMessage;
+
 import com.google.common.base.Preconditions;
 import com.squareup.connect.SquareClient;
 import com.squareup.connect.v2.Location;
@@ -27,6 +29,7 @@ public abstract class AbstractReportBuilder<T> {
 	private final HashSet<String> locationIds = new HashSet<String>();
 	private final ArrayList<Location> locations = new ArrayList<Location>();
 	private final String merchantId;
+	protected final MuleMessage message;
 
 	private boolean dateRangeFiltersSet = false;
 	private int range = 0;
@@ -59,7 +62,23 @@ public abstract class AbstractReportBuilder<T> {
 		this.apiUrl = Preconditions.checkNotNull(apiUrl);
 		this.accessToken = Preconditions.checkNotNull(accessToken);
 		this.merchantId = Preconditions.checkNotNull(merchantId);
-		this.client = new SquareClientV2(this.apiUrl, this.accessToken, "2022-12-14");
+		this.client = new SquareClientV2(this.apiUrl, this.accessToken, "2023-05-17");
+		this.message = null;
+	}
+
+	/**
+	 * Generic report of location to connect object result.
+	 *
+	 * @param apiUrl
+	 * @param accessToken
+	 * @param merchantId
+	 */
+	public AbstractReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
+		this.apiUrl = Preconditions.checkNotNull(apiUrl);
+		this.accessToken = Preconditions.checkNotNull(accessToken);
+		this.merchantId = Preconditions.checkNotNull(merchantId);
+		this.client = new SquareClientV2(this.apiUrl, this.accessToken, "2023-05-17");
+		this.message = message;
 	}
 
 	/**
@@ -78,6 +97,7 @@ public abstract class AbstractReportBuilder<T> {
 		this.accessToken = accessToken;
 		this.merchantId = merchantId;
 		this.client = client;
+		this.message = null;
 	}
 
 	/**

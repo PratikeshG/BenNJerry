@@ -38,9 +38,6 @@ public class DashboardCsvRowFactory {
 
 	public List<String> generateTransactionCsvRow(Order order, Map<String, Payment> tenderToPayment, Customer customer,
 			LocationContext locationContext, String domainUrl) throws Exception {
-		if(order.getId().equals("PPe44r8TqclZuqAHXZNozJ8eV")) {
-			System.out.println("HERE");
-		}
 		ArrayList<String> fields = new ArrayList<String>();
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(order);
 		int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
@@ -124,6 +121,7 @@ public class DashboardCsvRowFactory {
 		fields.addAll(getCustomerInfo(customer)); // Customer ID, Name &
 													// Reference ID
 		fields.add(""); // Device nickname
+
 		return fields;
 	}
 

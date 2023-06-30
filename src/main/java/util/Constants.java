@@ -15,6 +15,8 @@ public class Constants {
     public static final String LOCATIONS = "locations";
     public static final String SQUARE_PAYLOAD = "squarePayload";
     public static final String PAYMENTS = "payments";
+    public static final String V1PAYMENTS = "v1payments";
+    public static final String V1REFUNDS = "v1refunds";
     public static final String RANGE = "range";
     public static final String OFFSET = "offset";
     public static final String EMPLOYEES = "employees";

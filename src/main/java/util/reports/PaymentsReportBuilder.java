@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.mule.api.MuleMessage;
+
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.SquareClientV2;
@@ -27,6 +29,10 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Order> {
 	 */
 	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId) {
 		super(apiUrl, accessToken, merchantId);
+	}
+
+	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
+		super(apiUrl, accessToken, merchantId, message);
 	}
 
 	/**
@@ -59,9 +65,9 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Order> {
 		Order[] orders;
 
 		if (this.isDateRangeFiltersSet()) {
-			orders = ConnectV2MigrationHelper.getOrders(this.getClient(), locationId, this.getDateRangeFilters(timezone), true);
+			orders = ConnectV2MigrationHelper.getOrdersWithExchanges(this.getClient(), locationId, this.getDateRangeFilters(timezone), true);
 		} else {
-			orders = ConnectV2MigrationHelper.getOrders(this.getClient(), locationId, new HashMap<>(), true);
+			orders = ConnectV2MigrationHelper.getOrdersWithExchanges(this.getClient(), locationId, new HashMap<>(), true);
 		}
 
 		locationsOrders.put(locationId, Arrays.asList(orders));
