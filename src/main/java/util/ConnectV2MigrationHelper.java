@@ -505,61 +505,59 @@ public class ConnectV2MigrationHelper {
         List<Refund> refunds = new ArrayList<>();
         Order[] orders = getRefundedAndExchangedOrders(clientV2, locationId, params, paymentRefunds);
         for(Order order : orders) {
+        	Order sourceOrder = order.getReturns() != null && order.getReturns().length > 0 ? clientV2.orders().retrieve(locationId, order.getReturns()[0].getSourceOrderId()) : null;
           //exchange
-          if(isExchange(order)) {
-            int netAmount = order.getNetAmounts() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
-            int returnAmount = order.getReturnAmounts() != null ? order.getReturnAmounts().getTotalMoney().getAmount() : 0;
-            // if it's an down exchange (paying customer back after an exchange), we need to refund the difference
-            // i.e. customer bought $200 item, and exchanged it for $80. When we process transactions,
-            // we process both items as transactions, so the total incoming payment would be $280.
-            // Refunds needs to process the paymentRefund of $120, as well as the difference between
-            // the down exchange and the payment refund, which would be $200 - $120 = $80
-            if(netAmount <= 0) {
-              returnAmount += netAmount;
-            }
-            // exchanges in V2 do not have ids (in V1, exchange is technically a payment) so for refund, use orderId
-            Refund refund = new Refund();
-            //exchanges are FULLY returned. Cannot have a partial exchange
-            refund.setType("FULL");
-            refund.setCreatedAt(order.getCreatedAt());
-            refund.setProcessedAt(order.getCreatedAt());
-            //exchanges are returned goods
-            refund.setReason("Returned Goods");
-            refund.setRefundedMoney(new Money(-returnAmount));
-            // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
-            String paymentId = order.getTenders() != null && order.getTenders().length > 0 ? order.getTenders()[0].getId() : order.getId();
-            refund.setPaymentId(paymentId);
-            refunds.add(refund);
-          }
-          // refund
-          if(order.getRefunds() != null) {
-            for(com.squareup.connect.v2.Refund v2Refund : order.getRefunds()) {
-            	 Refund refund = new Refund();
-                 refund.setCreatedAt(v2Refund.getCreatedAt());
-                 refund.setProcessedAt(v2Refund.getCreatedAt());
-                 refund.setReason(v2Refund.getReason());
-                 refund.setRefundedMoney(new Money(-v2Refund.getAmountMoney().getAmount()));
-                 // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
-                 refund.setPaymentId(v2Refund.getTenderId());
-                 refund.setType("FULL");
-                 Order sourceOrder = order.getReturns() != null && order.getReturns().length > 0 ? clientV2.orders().retrieve(locationId, order.getReturns()[0].getSourceOrderId()) : null;
-                 if(sourceOrder != null && sourceOrder.getTenders() != null) {
-                	 int totalMoney = 0;
-                	 for(Tender tender : sourceOrder.getTenders()) {
-                		 Payment payment = clientV2.payments().get(tender.getId());
-                		 totalMoney += payment.getTotalMoney().getAmount();
-                	 }
-                	 if(totalMoney < sourceOrder.getTotalMoney().getAmount()) {
-                		 refund.setType("PARTIAL");
-                	 }
-                 }
-
-                 refunds.add(refund);
-            }
-          }
-        }
+        	if(isExchange(order)) {
+	            int netAmount = order.getNetAmounts() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
+	            int returnAmount = order.getReturnAmounts() != null ? order.getReturnAmounts().getTotalMoney().getAmount() : 0;
+	            // if it's an down exchange (paying customer back after an exchange), we need to refund the difference
+	            // i.e. customer bought $200 item, and exchanged it for $80. When we process transactions,
+	            // we process both items as transactions, so the total incoming payment would be $280.
+	            // Refunds needs to process the paymentRefund of $120, as well as the difference between
+	            // the down exchange and the payment refund, which would be $200 - $120 = $80
+	            if(netAmount <= 0) {
+	              returnAmount += netAmount;
+	            }
+	            // exchanges in V2 do not have ids (in V1, exchange is technically a payment) so for refund, use orderId
+	            Refund refund = new Refund();
+	            refund.setCreatedAt(order.getCreatedAt());
+	            refund.setProcessedAt(order.getCreatedAt());
+	            //exchanges are returned goods
+	            refund.setReason("Returned Goods");
+	            refund.setRefundedMoney(new Money(-returnAmount));
+	            // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
+	            String paymentId = order.getTenders() != null && order.getTenders().length > 0 ? order.getTenders()[0].getId() : order.getId();
+	            refund.setPaymentId(paymentId);
+	            refund.setType(getRefundType(refund, sourceOrder));
+	            refunds.add(refund);
+           }
+	          // refund
+	       if(order.getRefunds() != null) {
+	            for(com.squareup.connect.v2.Refund v2Refund : order.getRefunds()) {
+	            	 Refund refund = new Refund();
+	                 refund.setCreatedAt(v2Refund.getCreatedAt());
+	                 refund.setProcessedAt(v2Refund.getCreatedAt());
+	                 refund.setReason(v2Refund.getReason());
+	                 refund.setRefundedMoney(new Money(-v2Refund.getAmountMoney().getAmount()));
+	                 // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
+	                 refund.setPaymentId(v2Refund.getTenderId());
+	                 refund.setType(getRefundType(refund, sourceOrder));
+	                 refunds.add(refund);
+	            }
+	        }
+	    }
         return refunds;
      }
+
+    public static String getRefundType(Refund refund, Order sourceOrder) {
+    	if(sourceOrder == null) {
+    		return "CUSTOM";
+    	}
+    	if(-refund.getRefundedMoney().getAmount() < sourceOrder.getTotalMoney().getAmount()) {
+    		return "PARTIAL";
+    	}
+    	return "FULL";
+    }
 
     public static Order[] getRefundedAndExchangedOrders(SquareClientV2 squareClientV2, String locationId, Map<String, String> params, PaymentRefund[] refunds) throws Exception {
 		SearchOrdersQuery orderQuery = getOrdersQuery(params);
