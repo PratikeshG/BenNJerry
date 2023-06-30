@@ -519,10 +519,13 @@ public class ConnectV2MigrationHelper {
             }
             // exchanges in V2 do not have ids (in V1, exchange is technically a payment) so for refund, use orderId
             Refund refund = new Refund();
+            //exchanges are FULLY returned. Cannot have a partial exchange
+            refund.setType("FULL");
             refund.setCreatedAt(order.getCreatedAt());
             refund.setProcessedAt(order.getCreatedAt());
-            refund.setReason("RETURNED GOODS");
-            refund.setRefundedMoney(new Money(returnAmount));
+            //exchanges are returned goods
+            refund.setReason("Returned Goods");
+            refund.setRefundedMoney(new Money(-returnAmount));
             // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
             String paymentId = order.getTenders() != null && order.getTenders().length > 0 ? order.getTenders()[0].getId() : order.getId();
             refund.setPaymentId(paymentId);
@@ -535,9 +538,21 @@ public class ConnectV2MigrationHelper {
                  refund.setCreatedAt(v2Refund.getCreatedAt());
                  refund.setProcessedAt(v2Refund.getCreatedAt());
                  refund.setReason(v2Refund.getReason());
-                 refund.setRefundedMoney(new Money(v2Refund.getAmountMoney().getAmount()));
+                 refund.setRefundedMoney(new Money(-v2Refund.getAmountMoney().getAmount()));
                  // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
                  refund.setPaymentId(v2Refund.getTenderId());
+                 refund.setType("FULL");
+                 if(order.getTenders() != null) {
+                	 int totalMoney = 0;
+                	 for(Tender tender : order.getTenders()) {
+                		 Payment payment = clientV2.payments().get(tender.getId());
+                		 totalMoney += payment.getTotalMoney().getAmount();
+                	 }
+                	 if(totalMoney < order.getTotalMoney().getAmount()) {
+                		 refund.setType("PARTIAL");
+                	 }
+                 }
+
                  refunds.add(refund);
             }
           }
