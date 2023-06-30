@@ -3,7 +3,6 @@ package vfcorp;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Customer;
 
 import util.SquarePayload;

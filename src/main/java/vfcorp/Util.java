@@ -17,7 +17,6 @@ import com.google.gson.stream.JsonReader;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.mysql.jdbc.ResultSet;
-import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
@@ -225,29 +224,12 @@ public class Util {
         return deployment;
     }
 
-    public static boolean hasPriceOverride(PaymentItemization itemization) {
-        if (itemization.getItemizationType().equals("ITEM") && itemization.getNotes() != null
-                && itemization.getNotes().contains("Original Price:")) {
-            return true;
-        }
-        return false;
-    }
-
     public static boolean hasPriceOverride(OrderLineItem lineItem) {
         if (lineItem.getItemType().equals("ITEM") && lineItem.getNote() != null
                 && lineItem.getNote().contains("Original Price:")) {
             return true;
         }
         return false;
-    }
-
-    public static int getPriceBeforeOverride(PaymentItemization itemization) {
-        if (hasPriceOverride(itemization)) {
-            String price = itemization.getNotes().split("Original Price:", 2)[1];
-            price = price.replaceAll("[^0-9]", "");
-            return Integer.valueOf(price);
-        }
-        return itemization.getSingleQuantityMoney().getAmount();
     }
 
     public static int getPriceBeforeOverride(OrderLineItem lineItem) {
