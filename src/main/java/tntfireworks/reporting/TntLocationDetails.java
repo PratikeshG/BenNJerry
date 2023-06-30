@@ -9,6 +9,9 @@ import java.util.regex.Pattern;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.Payment;
@@ -38,6 +41,7 @@ public class TntLocationDetails {
 	protected String sqLocationId;
 	protected String sqLocationName;
 	protected String sqLocationTimeZone;
+    private static Logger logger = LoggerFactory.getLogger(TntLocationDetails.class);
 
 	public TntLocationDetails(List<Map<String, String>> dbLocationRows, Location location) {
 		// init square location values

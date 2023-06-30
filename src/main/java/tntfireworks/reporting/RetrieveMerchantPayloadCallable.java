@@ -100,7 +100,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         // retrieve location details according to reportType and store into
         // abstracted object (reportPayload)
         logger.info("Retrieving location details for merchant: " + deployment.getMerchantId());
-        return getMerchantPayload(reportType, squareClientV2, offset, range);
+        return getMerchantPayload(reportType, squareClientV2, offset, range, deployment);
     }
 
     public static int computeSeasonInterval(String startOfSeason, int offset, TimeZone tz) {
@@ -147,7 +147,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         return range;
     }
 
-    private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClientV2 squareClientV2, int offset, int range)
+    private List<TntReportLocationPayload> getMerchantPayload(int reportType, SquareClientV2 squareClientV2, int offset, int range, SquarePayload deployment)
     		throws Exception {
         // initialize dbConnection
         DbConnection dbConnection = new DbConnection(databaseUrl, databaseUser, databasePassword);
@@ -161,6 +161,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
 
             // dbLocationRows used for all report Types
+            // TODO: refactor to not pull the entire thing? check later
             List<Map<String, String>> dbLocationRows = tntDatabaseApi
                     .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
 
@@ -179,7 +180,10 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 
             // iterate through each location in merchant and aggregate account
             // data
-            for (Location location : squareClientV2.locations().list()) {
+
+            Location[] locations = squareClientV2.locations().list();
+            logger.info("NUMBER OF LOCATIONS: " + locations.length + " FOR MERCHANT: " + deployment.getMerchantId());
+            for (Location location : locations) {
 	            if (isValidLocation(location, dbLocationRows)) {
 	                // initialize TntLocationDetails with DB data
 	                TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location);
@@ -410,6 +414,8 @@ public class RetrieveMerchantPayloadCallable implements Callable {
             TntLocationDetails locationDetails, Map<String, String> aggregateIntervalParams,
             Map<String, String> dayTimeInterval, int offset) throws Exception {
         // get order data for gross sales payload
+
+    	logger.info("printing locationNumber: " + locationDetails.locationNumber);
         GrossSalesPayload currentGrossSalesPayload = new GrossSalesPayload(timeZone, offset, dayTimeInterval,
                 locationDetails);
         aggregateIntervalParams.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
