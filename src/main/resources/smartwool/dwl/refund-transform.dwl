@@ -18,12 +18,19 @@
                 timezone: flowVars.locationContextMap[($$)].timezone,
                 refunds: { ($ default [] map {
                     refund: {
-                        type: $.type,
                         createdAt: $.createdAt,
-                        processedAt: $.processedAt,
                         reason: $.reason,
-                        refundedMoney: $.refundedMoney,
+                        amountMoney: $.amountMoney,
                         paymentId: $.paymentId,
+                        orderId: $.orderId,
+                        status: $.status,
+                        teamMemberId: $.teamMemberId,
+                        appFeeMoney: $.appFeeMoney,
+                        processingFee: {
+							($.processingFee default [] map {
+								processingFee: ($)
+							})
+						},
                         locationId: flowVars.refundLocationMap[($.paymentId)]
                     }
                 })}

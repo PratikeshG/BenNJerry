@@ -46,7 +46,7 @@ public class TransformRefundsToCsvCallable implements Callable {
 
          for (String locationId : locationContexts.keySet()) {
              LocationContext locationCtx = locationContexts.get(locationId);
-             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
              clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
 
              PaymentRefund[] refunds = clientv2.refunds().listPaymentRefunds(locationCtx.generateQueryParamMap());

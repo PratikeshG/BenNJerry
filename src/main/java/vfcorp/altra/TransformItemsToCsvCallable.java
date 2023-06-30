@@ -1,6 +1,5 @@
 package vfcorp.altra;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +30,7 @@ public class TransformItemsToCsvCallable implements Callable {
     private static Logger logger = LoggerFactory.getLogger(TransformItemsToCsvCallable.class);
 
     public String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Category", "Item", "Qty", "Price Point Name",
-            "SKU,Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
+            "SKU" ,"Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
             "Device Name", "Notes", "Details", "Event Type", "Location", "Dining Option", "Customer ID",
             "Customer Name", "Customer Reference ID" };
 
@@ -47,7 +46,7 @@ public class TransformItemsToCsvCallable implements Callable {
                 PropertyScope.INVOCATION);
 
         @SuppressWarnings("unchecked")
-        Map<String, List<Order>> locationsOrders = (HashMap<String, List<Order>>) message
+        Map<String, List<Order>> locationsOrders = (Map<String, List<Order>>) message
                 .getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
 
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
@@ -58,17 +57,21 @@ public class TransformItemsToCsvCallable implements Callable {
         DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
         // loop through locations and process the file for each
-
         for (String locationId : locationsOrders.keySet()) {
-            List<Order> orders = locationsOrders.get(locationId);
+            List<Order> ordersList = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
             SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
-            Map<String, CatalogObject> catalogMap = ConnectV2MigrationHelper.getCatalogObjectsForOrder(clientv2, orders.toArray(new Order[0]));
+            Order[] orders = ordersList.toArray(new Order[0]);
+            String[] ids = ConnectV2MigrationHelper.getItemVariationIds(orders);
+        	Map<String, CatalogObject> catalogMap = ConnectV2MigrationHelper.getCatalogMap(ids, clientv2);
+        	Map<String, CatalogObject> categoriesMap = ConnectV2MigrationHelper.getCategoriesMap(clientv2);
+        	Map<String, CatalogObject> lineItemCategories = ConnectV2MigrationHelper.getItemVariationIdToCategory(ids, catalogMap, categoriesMap);
+
             Map<String, String> params = locationCtx.generateQueryParamMap();
             params.put("location_id", locationId);
             Payment[] payments = clientv2.payments().list(params);
-            Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders.toArray(new Order[0]), payments, clientv2, locationCtx.generateQueryParamMap());
+            Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders, payments, clientv2, locationCtx.generateQueryParamMap());
             // loop through payments and generate csv row entries for each
             // itemization
             for (Order order : orders) {
@@ -76,7 +79,7 @@ public class TransformItemsToCsvCallable implements Callable {
                     Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
                     if(order.getLineItems() != null) {
                     	for (OrderLineItem lineItem : order.getLineItems()) {
-                            csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, tenderToPayment,
+                            csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, lineItemCategories, tenderToPayment,
                                     customer, locationCtx, this.DOMAIN_URL));
                         }
                     }

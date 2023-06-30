@@ -17,63 +17,59 @@
 					endTime: flowVars.locationContextMap[($$)].endTime,
 					locationName: flowVars.locationContextMap[($$)].name,
 					timezone: flowVars.locationContextMap[($$)].timezone,
-					payments: {
+					orders: {
 						($ default [] map {
-							payment: {
+							order: {
 								id: $.id,
 								createdAt: $.createdAt,
-								device: $.device,
-								paymentUrl: $.paymentUrl,
-								receiptUrl: $.receiptUrl,
-								inclusiveTaxMoney: $.inclusiveTaxMoney,
-								additiveTaxMoney: $.additiveTaxMoney,
-								taxMoney: $.taxMoney,
-								tipMoney: $.tipMoney,
-								discountMoney: $.discountMoney,
-								totalCollectedMoney: $.totalCollectedMoney,
-								processingFeeMoney: $.processingFeeMoney,
-								netTotalMoney: $.netTotalMoney,
-								grossSalesMoney: $.grossSalesMoney,
-								netSalesMoney: $.netSalesMoney,
-								inclusiveTax: {
-									($.inclusiveTax default [] map {
-										inclusiveTax: ($)
+								referenceId: $.referenceId,
+								totalMoney: $.totalMoney,
+								totalTaxMoney: $.totalTaxMoney,
+								totalDiscountMoney: $.totalDiscountMoney,
+								totalTipMoney: $.totalTipMoney,
+								totalServiceChargeMoney: $.totalServiceChargeMoney,
+								netAmounts: $.netAmounts,
+								returnAmounts: $.returnAmounts,
+								taxes: {
+									($.taxes default [] map {
+										tax: ($)
 									})
 								},
-								additiveTax: {
-									($.additiveTax default [] map {
-										additiveTax: ($)
+								discounts: {
+									($.discounts default [] map {
+										discount: ($)
+									})
+								},
+								serviceCharges: {
+									($.serviceCharges default [] map {
+										serviceCharge: ($)
 									})
 								},
 								tenders: {
-									($.tender default [] map {
-										tender: ($) mapObject ({
-											($$): $
-										} when $$ as :string != "refundedMoney" otherwise {
-										})
+									($.tenders default [] map {
+										tender: ($)
 									})
 								},
-								itemizations: {
-									($.itemizations default [] map {
-										itemization: {
+								lineItems: {
+									($.lineItems default [] map {
+										lineItem: {
 											name: $.name,
 											quantity: $.quantity,
-											itemizationType: $.itemizationType,
-											itemDetail: $.itemDetail,
-											notes: $.notes,
-											itemVariationName: $.itemVariationName,
+											itemType: $.itemType,
+											catalogObjectId: $.catalogObjectId,
+											note: $.note,
+											variationName: $.variationName,
 											totalMoney: $.totalMoney,
-											singleQuantityMoney: $.singleQuantityMoney,
+											basePriceMoney: $.basePriceMoney,
 											grossSalesMoney: $.grossSalesMoney,
-											discountMoney: $.discountMoney,
-											netSalesMoney: $.netSalesMoney,
-											taxes: {
-												($.taxes default [] map {
+											totalDiscountMoney: $.discountMoney,
+											appliedTaxes: {
+												($.appliedTaxes default [] map {
 													paymentTax: ($)
 												})
 											},
-											discounts: {
-												($.discounts default [] map {
+											appliedDiscounts: {
+												($.appliedDiscounts default [] map {
 													discount: ($)
 												})
 											},

@@ -49,7 +49,7 @@ public class TransformTransactionsToCsvCallable implements Callable {
         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+        DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
         // loop through locations and process the file for each
         for (String locationId : locationsOrders.keySet()) {
@@ -66,7 +66,7 @@ public class TransformTransactionsToCsvCallable implements Callable {
             // itemization
             for (Order order : orders) {
                 Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
-                csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(order, tenderToPayment, customer,
+                csvGenerator.addRecord(csvRowFactory.generateTransactionCsvRow(order, tenderToPayment, customer,
                         locationCtx, this.DOMAIN_URL));
             }
         }

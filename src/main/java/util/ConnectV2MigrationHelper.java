@@ -245,4 +245,61 @@ public class ConnectV2MigrationHelper {
         }
         return null;
     }
+
+	public static Map<String, CatalogObject> getCatalogMap(String[] itemVariationIds, SquareClientV2 clientV2) throws Exception {
+	        CatalogObject[] relatedItems = clientV2.catalog().batchRetrieve(itemVariationIds, true);
+		  	Map<String, CatalogObject> catalogMap = new HashMap<>();
+		  	Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
+		  	return catalogMap;
+	}
+
+    public static String[] getItemVariationIds(Order[] orders) {
+    	Set<String> set = new HashSet<String>();
+    	if(orders != null) {
+    		for(Order order : orders) {
+        		if(order != null && order.getLineItems() != null) {
+    	            for(OrderLineItem orderLineItem : order.getLineItems()) {
+        	        	if(orderLineItem != null) {
+        	        		String catalogObjectId = orderLineItem.getCatalogObjectId();
+    	              		if(catalogObjectId != null) {
+    	              			// the catalogObjectId from an orderLineItem translates to the itemVariationId
+    	              			set.add(catalogObjectId);
+    	              		}
+    	      			}
+    	        	}
+    	        }
+    		}
+    	}
+    	String[] ids = new String[set.size()];
+        set.toArray(ids);
+
+        return ids;
+    }
+
+    public static Map<String, CatalogObject> getCategoriesMap(SquareClientV2 clientV2) throws Exception {
+    	Map<String, CatalogObject> categoriesMap = new HashMap<>();
+	  	CatalogObject[] categories = clientV2.catalog().listCategories();
+        Arrays.stream(categories).forEach(category -> categoriesMap.put(category.getId(), category));
+        return categoriesMap;
+    }
+
+    public static Map<String, CatalogObject> getItemVariationIdToCategory(String[] itemVariationIdList,
+    		Map<String, CatalogObject> catalogMap,
+    		Map<String, CatalogObject> categoriesMap) {
+	  	Map<String, CatalogObject> itemVariationIdToCategory = new HashMap<>();
+    	if(itemVariationIdList != null) {
+    		for(String itemVariationId : itemVariationIdList) {
+    			CatalogObject itemVariation = catalogMap.get(itemVariationId);
+    			if(itemVariation != null && itemVariation.getItemVariationData() != null && itemVariation.getItemVariationData().getItemId() != null) {
+    				CatalogObject item = catalogMap.get(itemVariation.getItemVariationData().getItemId());
+    				if(item != null && item.getItemData() != null && item.getItemData().getCategoryId() != null) {
+    					CatalogObject category = categoriesMap.get(item.getItemData().getCategoryId());
+    			        itemVariationIdToCategory.put(itemVariationId, category);
+    				}
+    			}
+    		}
+    	}
+
+    	return itemVariationIdToCategory;
+    }
 }

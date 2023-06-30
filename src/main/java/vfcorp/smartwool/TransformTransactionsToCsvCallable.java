@@ -49,13 +49,13 @@ public class TransformTransactionsToCsvCallable implements Callable {
         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+        DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
         // loop through locations and process the file for each
         for (String locationId : locationsOrders.keySet()) {
             List<Order> orders = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
             Map<String, String> params = locationCtx.generateQueryParamMap();
             params.put("location_id", locationId);
@@ -66,7 +66,7 @@ public class TransformTransactionsToCsvCallable implements Callable {
             // itemization
             for (Order order : orders) {
                 Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
-                csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(order, tenderToPayment, customer,
+                csvGenerator.addRecord(csvRowFactory.generateTransactionCsvRow(order, tenderToPayment, customer,
                         locationCtx, this.DOMAIN_URL));
             }
         }

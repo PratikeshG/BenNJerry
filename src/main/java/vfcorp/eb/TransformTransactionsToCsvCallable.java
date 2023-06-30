@@ -1,6 +1,5 @@
 package vfcorp.eb;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,21 +42,20 @@ public class TransformTransactionsToCsvCallable implements Callable {
                 PropertyScope.INVOCATION);
 
         @SuppressWarnings("unchecked")
-        HashMap<String, List<Order>> locationsOrders = (HashMap<String, List<Order>>) message
+        Map<String, List<Order>> locationsOrders = (Map<String, List<Order>>) message
                 .getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
 
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
-
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+        DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
         // loop through locations and process the file for each
         for (String locationId : locationsOrders.keySet()) {
             List<Order> orders = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
             Map<String, String> params = locationCtx.generateQueryParamMap();
             params.put("location_id", locationId);
@@ -67,18 +65,11 @@ public class TransformTransactionsToCsvCallable implements Callable {
             // loop through payments and generate csv row entries for each
             // itemization
             for (Order order : orders) {
-                Customer customer = getCustomer(order, clientv2);
-                csvGenerator.addRecord(csvRowFactorty.generateTransactionCsvRow(order, tenderToPayment, customer,
+                Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
+                csvGenerator.addRecord(csvRowFactory.generateTransactionCsvRow(order, tenderToPayment, customer,
                         locationCtx, this.DOMAIN_URL));
             }
         }
         return csvGenerator.build();
-    }
-
-    private Customer getCustomer(Order order, SquareClientV2 clientv2) throws Exception {
-        if (order.getTenders() != null && order.getTenders().length > 0 && order.getTenders()[0].getCustomerId() != null) {
-            return clientv2.customers().retrieve(order.getTenders()[0].getCustomerId());
-        }
-        return null;
     }
 }

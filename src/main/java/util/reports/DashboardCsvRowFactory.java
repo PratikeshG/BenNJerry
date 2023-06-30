@@ -30,6 +30,7 @@ public class DashboardCsvRowFactory {
 	private static final String PRODUCT_TYPE_ECOMMERCE_API = "ECOMMERCE_API";
 	public static final String PRODUCT_TYPE_REGISTER = "SQUARE_POS";
 	public static final String PRODUCT_TYPE_RETAIL = "RETAIL";
+	public static final String PRODUCT_TYPE_OTHER = "OTHER";
 	public static final String PRODUCT_TYPE_REGISTER_LABEL = "Point of Sale";
 
 	private final String DETAILS_URL_ROUTE = "/dashboard/sales/transactions/";
@@ -37,6 +38,9 @@ public class DashboardCsvRowFactory {
 
 	public List<String> generateTransactionCsvRow(Order order, Map<String, Payment> tenderToPayment, Customer customer,
 			LocationContext locationContext, String domainUrl) throws Exception {
+		if(order.getId().equals("PPe44r8TqclZuqAHXZNozJ8eV")) {
+			System.out.println("HERE");
+		}
 		ArrayList<String> fields = new ArrayList<String>();
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(order);
 		int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
@@ -63,13 +67,12 @@ public class DashboardCsvRowFactory {
 		fields.add(getCurrencyString(0));
 		fields.add("");
 		fields.add("");
-		int totalProcessingFee = 0;
-     	totalProcessingFee = Arrays.stream(order.getTenders())
+     	int totalProcessingFee = order.getTenders() != null ? Arrays.stream(order.getTenders())
          		.map(Tender::getProcessingFeeMoney)
          		.filter(Objects::nonNull)
          		.mapToInt(Money::getAmount)
-         		.sum();
-		fields.add(getCurrencyString(totalProcessingFee));
+         		.sum() : 0;
+		fields.add(getCurrencyString(-totalProcessingFee));
 		fields.add(getCurrencyString(netAmounts - totalProcessingFee));
 		fields.add(order.getId());
 		fields.add(getTenderIds(order));
@@ -89,26 +92,24 @@ public class DashboardCsvRowFactory {
 	}
 
 	public List<String> generateItemCsvRow(Order order, OrderLineItem lineItem,
-			Map<String, CatalogObject> catalogMap, Map<String, Payment> tenderToPayment,
+			Map<String, CatalogObject> catalogMap, Map<String, CatalogObject> lineItemCategories, Map<String, Payment> tenderToPayment,
 			Customer customer, LocationContext locationCtx, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
 		fields.add(getDate(order.getCreatedAt()));
 		fields.add(getTime(order.getCreatedAt()));
 		fields.add(getTimeZoneLabel(locationCtx.getTimezone()));
 		CatalogObject itemVariation = catalogMap.get(lineItem.getCatalogObjectId());
-		CatalogObject item = itemVariation != null ? catalogMap.get(itemVariation.getItemVariationData().getItemId()) : null;
-		CatalogObject category = item != null ? catalogMap.get(item.getItemData().getCategoryId()) : null;
-		String categoryName = category != null ? category.getCategoryData().getName() : "";
-		fields.add(categoryName); // Category
+		CatalogObject category = lineItemCategories.get(lineItem.getCatalogObjectId());
+		fields.add(emptyStringIfNull(category != null && category.getCategoryData() != null ? category.getCategoryData().getName() : "")); // Category
 		fields.add(lineItem.getName()); // Item name
 		fields.add(lineItem.getQuantity().toString()); // Qty
 		fields.add(emptyStringIfNull(lineItem.getVariationName())); // name
-		fields.add(itemVariation.getItemVariationData().getSku() != null ? itemVariation.getItemVariationData().getSku() : "");// Sku
+		fields.add(emptyStringIfNull(itemVariation != null && itemVariation.getItemVariationData() != null ? itemVariation.getItemVariationData().getSku() : ""));// Sku
 		fields.add(getModifiers(lineItem));// Modifiers
 		fields.add(getCurrencyString(lineItem.getGrossSalesMoney().getAmount()));// Gross
 																					// Sales
 		fields.add(getCurrencyString(-lineItem.getTotalDiscountMoney().getAmount()));// Discounts
-		fields.add(getCurrencyString(lineItem.getGrossSalesMoney().getAmount() + lineItem.getTotalDiscountMoney().getAmount()));// Net
+		fields.add(getCurrencyString(lineItem.getGrossSalesMoney().getAmount() - lineItem.getTotalDiscountMoney().getAmount()));// Net
 																					// Sales
 		fields.add(getTaxes(lineItem));// Tax
 		fields.add(order.getId());// Transaction ID
@@ -330,7 +331,7 @@ public class DashboardCsvRowFactory {
 				if(tenderToPayment.containsKey(tender.getId())) {
 					Payment payment = tenderToPayment.get(tender.getId());
 					String squareProduct = payment.getApplicationDetails().getSquareProduct();
-					if (squareProduct.equals(PRODUCT_TYPE_REGISTER) || squareProduct.equals(PRODUCT_TYPE_RETAIL)) {
+					if (squareProduct.equals(PRODUCT_TYPE_REGISTER) || squareProduct.equals(PRODUCT_TYPE_RETAIL) || squareProduct.equals(PRODUCT_TYPE_OTHER)) {
 						return PRODUCT_TYPE_REGISTER_LABEL;
 					} else if (squareProduct.equals(PRODUCT_TYPE_ECOMMERCE_API)) {
 						return PRODUCT_TYPE_ECOMMERCE_API_LABEL;
