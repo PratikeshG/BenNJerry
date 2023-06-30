@@ -542,13 +542,14 @@ public class ConnectV2MigrationHelper {
                  // exchanges in V2 do not have paymentIds. Substituting it with order Id instead
                  refund.setPaymentId(v2Refund.getTenderId());
                  refund.setType("FULL");
-                 if(order.getTenders() != null) {
+                 Order sourceOrder = order.getReturns() != null && order.getReturns().length > 0 ? clientV2.orders().retrieve(locationId, order.getReturns()[0].getSourceOrderId()) : null;
+                 if(sourceOrder != null && sourceOrder.getTenders() != null) {
                 	 int totalMoney = 0;
-                	 for(Tender tender : order.getTenders()) {
+                	 for(Tender tender : sourceOrder.getTenders()) {
                 		 Payment payment = clientV2.payments().get(tender.getId());
                 		 totalMoney += payment.getTotalMoney().getAmount();
                 	 }
-                	 if(totalMoney < order.getTotalMoney().getAmount()) {
+                	 if(totalMoney < sourceOrder.getTotalMoney().getAmount()) {
                 		 refund.setType("PARTIAL");
                 	 }
                  }
