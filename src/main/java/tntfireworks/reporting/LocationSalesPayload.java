@@ -1,5 +1,6 @@
 package tntfireworks.reporting;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,10 +65,10 @@ public class LocationSalesPayload extends TntReportLocationPayload {
             // loop through tenders and add tender amounts to payload
             if(order != null && order.getTenders() != null) {
             	List<PaymentRefund> refunds = orderToRefundsMap.getOrDefault(order.getId(), Collections.EMPTY_LIST);
-        		Map<String, PaymentRefund> refundsMap = refunds.stream().collect(Collectors.toMap(PaymentRefund::getPaymentId, Function.identity()));
-                for (Tender tender : order.getTenders()) {
+            	Map<String, List<PaymentRefund>> refundsMap = getPaymentIdToRefunds(refunds);
+            	for (Tender tender : order.getTenders()) {
                     if (isValidTender(tender)) {
-                        addTenderAmountToPayload(isDailyOrder(beginTime, endTime, orderTime), tender, getTenderToRefundMap(order, refundsMap));
+                        addTenderAmountToPayload(isDailyOrder(beginTime, endTime, orderTime), tender, getTenderToRefundAmount(order, refundsMap));
                     }
                 }
             }
@@ -75,6 +76,19 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         } catch (Exception e) {
             logger.error("Calendar Exception from aggregating sales/payload data for LocationSales: " + e);
         }
+    }
+
+    private Map<String, List<PaymentRefund>> getPaymentIdToRefunds(List<PaymentRefund> refunds) {
+    	Map<String, List<PaymentRefund>> paymentIdToRefunds = new HashMap<>();
+    	if(refunds != null) {
+    		for(PaymentRefund refund : refunds) {
+    			if(!paymentIdToRefunds.containsKey(refund.getPaymentId())) {
+    				paymentIdToRefunds.put(refund.getPaymentId(), new ArrayList<>());
+    			}
+    			paymentIdToRefunds.get(refund.getPaymentId()).add(refund);
+    		}
+    	}
+    	return paymentIdToRefunds;
     }
 
     private int getCashCreditDaily() {
@@ -128,25 +142,34 @@ public class LocationSalesPayload extends TntReportLocationPayload {
         return beginTime.compareTo(orderTime) <= 0 && endTime.compareTo(orderTime) > 0;
     }
 
-    private Map<String, Integer> getTenderToRefundMap(Order order, Map<String, PaymentRefund> refundsMap) {
-        Map<String, Integer> tenderToRefund = new HashMap<String, Integer>();
+    private Map<String, Integer> getTenderToRefundAmount(Order order, Map<String, List<PaymentRefund>> refundsMap) {
+        Map<String, Integer> tenderToRefundAmount = new HashMap<String, Integer>();
     	if(!refundsMap.isEmpty()) {
         	for(Tender tender : order.getTenders()) {
-        		PaymentRefund refund = refundsMap.get(tender.getId());
-        		if(isValidRefund(refund)) {
-        			tenderToRefund.put(tender.getId(), refund.getAmountMoney().getAmount());
+        		List<PaymentRefund> refunds = refundsMap.get(tender.getId());
+        		if(areValidRefunds(refunds)) {
+        			int total = 0;
+        			for(PaymentRefund refund : refunds) {
+        				total += refund.getAmountMoney().getAmount();
+        			}
+        			tenderToRefundAmount.put(tender.getId(), total);
         		}
         	}
     	}
 
-        return tenderToRefund;
+        return tenderToRefundAmount;
     }
 
     private boolean isValidTender(Tender tender) {
         return tender != null && tender.getAmountMoney() != null && tender.getAmountMoney().getAmount() != 0;
     }
 
-    private boolean isValidRefund(PaymentRefund refund) {
-    	return refund != null && refund.getAmountMoney() != null && refund.getAmountMoney().getAmount() > 0;
+    private boolean areValidRefunds(List<PaymentRefund> refunds) {
+    	for(PaymentRefund refund : refunds) {
+    		if(refund == null || refund.getAmountMoney() == null || refund.getAmountMoney().getAmount() < 0) {
+    			return false;
+    		}
+    	}
+    	return true;
     }
 }
