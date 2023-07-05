@@ -26,6 +26,7 @@ import util.SquarePayload;
 public class PullAllOrders {
     private final static String ENCRYPTED_ACCESS_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCESS_TOKEN");
     private final static String ENCRYPTION_KEY = System.getenv("SCRIPT_ENCRYPTION_KEY");
+    private final static String LOCATION_ID = "REPLACE_ME";
 
     private final static String API_URL = "https://connect.squareup.com";
 
@@ -40,7 +41,7 @@ public class PullAllOrders {
         params.put("end_time", "2023-07-04T00:00:00");
         params.put("begin_time", "2022-07-04T00:00:00");
 
-        Order[] orders = ConnectV2MigrationHelper.getOrders(client, "9WV2WS4G3GTDN", params);
+        Order[] orders = ConnectV2MigrationHelper.getOrders(client, LOCATION_ID, params);
         Set<String> v2TenderIds = new HashSet<>();
         for (Order order : orders) {
             if (order.getTenders() != null) {
@@ -62,7 +63,7 @@ public class PullAllOrders {
         }
 
         SquareClient v1Client = new SquareClient(account.getAccessToken(ENCRYPTION_KEY), API_URL);
-        v1Client.setLocation("9WV2WS4G3GTDN");
+        v1Client.setLocation(LOCATION_ID);
         Map<String, String> customMap = new HashMap<>();
         customMap.put("begin_time", "2022-07-04T00:00:00Z");
         customMap.put("end_time", "2023-07-04T00:00:00Z");
@@ -71,7 +72,7 @@ public class PullAllOrders {
         Payment[] payments = v1Client.payments().list(customMap);
 
         String paymentJson = gson.toJson(payments);
-        params.put("location_id", "9WV2WS4G3GTDN");
+        params.put("location_id", LOCATION_ID);
         com.squareup.connect.v2.Payment[] v2payments = client.payments().list(params);
         Map<String, List<PaymentRefund>> orderRefunds = ConnectV2MigrationHelper.getRefundsForOrders(client, orders,
                 v2payments);
