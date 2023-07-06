@@ -155,36 +155,37 @@ public class RetrieveMerchantPayloadCallable implements Callable {
         // initialize payload to store ItemSalesFile objects
         List<TntReportLocationPayload> merchantPayload = new ArrayList<TntReportLocationPayload>();
 
-        try {
-            // get db information for later lookup
-            // initialized TntDatabaseApi for information lookup
-            TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
+        // get db information for later lookup
+        // initialized TntDatabaseApi for information lookup
+        TntDatabaseApi tntDatabaseApi = new TntDatabaseApi(dbConnection);
 
-            // dbLocationRows used for all report Types
-            // TODO: refactor to not pull the entire thing? check later
-            List<Map<String, String>> dbLocationRows = tntDatabaseApi
-                    .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
+        // dbLocationRows used for all report Types
+        // TODO: refactor to not pull the entire thing? check later
+        List<Map<String, String>> dbLocationRows = tntDatabaseApi
+                .submitQuery(tntDatabaseApi.generateLocationSQLSelect());
 
-            // dbItemRows only used for ITEM_SALES_REPORT_TYPE
-            List<Map<String, String>> dbItemRows = null;
+        // dbItemRows only used for ITEM_SALES_REPORT_TYPE
+        List<Map<String, String>> dbItemRows = null;
 
-            // dbLoadNumber only used for CREDIT_DEBIT_REPORT_TYPE
-            List<Map<String, String>> dbLoadNumbers = null;
+        // dbLoadNumber only used for CREDIT_DEBIT_REPORT_TYPE
+        List<Map<String, String>> dbLoadNumbers = null;
 
-            if (reportType == ITEM_SALES_REPORT_TYPE) {
-                dbItemRows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
-            } else if (reportType == CREDIT_DEBIT_REPORT_TYPE) {
-                dbLoadNumbers = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLoadNumberSQLSelect());
-            }
-            tntDatabaseApi.close();
+        if (reportType == ITEM_SALES_REPORT_TYPE) {
+            dbItemRows = tntDatabaseApi.submitQuery(tntDatabaseApi.generateItemSQLSelect());
+        } else if (reportType == CREDIT_DEBIT_REPORT_TYPE) {
+            dbLoadNumbers = tntDatabaseApi.submitQuery(tntDatabaseApi.generateLoadNumberSQLSelect());
+        }
+        tntDatabaseApi.close();
 
-            // iterate through each location in merchant and aggregate account
-            // data
+        // iterate through each location in merchant and aggregate account
+        // data
 
-            Location[] locations = squareClientV2.locations().list();
-            logger.info("NUMBER OF LOCATIONS: " + locations.length + " FOR MERCHANT: " + deployment.getMerchantId());
-            for (Location location : locations) {
-	            if (isValidLocation(location, dbLocationRows)) {
+        Location[] locations = squareClientV2.locations().list();
+        logger.info("NUMBER OF LOCATIONS: " + locations.length + " FOR MERCHANT: " + deployment.getMerchantId());
+    	int failedLocationCounter = 0;
+        for (Location location : locations) {
+        	try {
+        		if (isValidLocation(location, dbLocationRows)) {
 	                // initialize TntLocationDetails with DB data
 	                TntLocationDetails locationDetails = new TntLocationDetails(dbLocationRows, location);
 
@@ -234,11 +235,15 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 	                        break;
 	                }
 	            }
-            }
-        } catch (Exception e) {
-            logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause());
+        	} catch (Exception e) {
+        		logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause());
+        		logger.error(e.getMessage());
+        		logger.error("FAILED LOCATION: " + location.getId() + ", MERCHANT: " + deployment.getMerchantId());
+        		logger.error("NUMBER OF LOCATIONS FROM THE FAILED DEPLOYMENT LOCATION: " + locations.length);
+        		failedLocationCounter++;
+        	}
         }
-
+        logger.info("NUMBER OF FAILED LOCATIONS FROM THIS DEPLOYMENT: " + failedLocationCounter);
         return merchantPayload;
 
     }

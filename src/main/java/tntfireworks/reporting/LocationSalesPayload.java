@@ -75,12 +75,14 @@ public class LocationSalesPayload extends TntReportLocationPayload {
 
         } catch (Exception e) {
             logger.error("Calendar Exception from aggregating sales/payload data for LocationSales: " + e);
+            logger.error(e.getMessage());
+            logger.error("failed order: " + order.getId());
         }
     }
 
     private Map<String, List<PaymentRefund>> getPaymentIdToRefunds(List<PaymentRefund> refunds) {
     	Map<String, List<PaymentRefund>> paymentIdToRefunds = new HashMap<>();
-    	if(refunds != null) {
+    	if(refunds != null && !refunds.isEmpty()) {
     		for(PaymentRefund refund : refunds) {
     			if(!paymentIdToRefunds.containsKey(refund.getPaymentId())) {
     				paymentIdToRefunds.put(refund.getPaymentId(), new ArrayList<>());
@@ -165,6 +167,9 @@ public class LocationSalesPayload extends TntReportLocationPayload {
     }
 
     private boolean areValidRefunds(List<PaymentRefund> refunds) {
+    	if(refunds == null || refunds.isEmpty()) {
+    		return false;
+    	}
     	for(PaymentRefund refund : refunds) {
     		if(refund == null || refund.getAmountMoney() == null || refund.getAmountMoney().getAmount() < 0) {
     			return false;
