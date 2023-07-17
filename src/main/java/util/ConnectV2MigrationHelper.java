@@ -24,7 +24,6 @@ import com.squareup.connect.Refund;
 import com.squareup.connect.v2.CashPaymentDetails;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
-import com.squareup.connect.v2.DeviceDetails;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
@@ -61,7 +60,7 @@ public class ConnectV2MigrationHelper {
      * the original order, refunds are
      * fetched by first fetching associated payments with the order, then
      * fetching refunds associated with those payments.
-     * 
+     *
      * @param order
      * @return Map of Order Id to list of PaymentRefunds associated with Order
      *         Id
@@ -444,7 +443,8 @@ public class ConnectV2MigrationHelper {
     			}
     			v1Tender.setExchange(isExchange(order));
     			if(isExchange(order)) {
-    				// TODO: explain diff between v1 vs v2 for exchanges
+    				// set the "isExchange" flag of the actual tender to be false, because we will be creating another
+    				// v1 Tender object with the exchanged amount - this tender's "isExchange" flag should be set as true.
     				v1Tender.setExchange(false);
     				int netAmounts = order.getNetAmounts().getTotalMoney().getAmount();
     			      // for up exchanges, we use the return lineitem as the additional payment to the tender payment.
