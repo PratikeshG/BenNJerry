@@ -9,7 +9,7 @@
             merchantId: sessionVars['squarePayload'].merchantId,
             businessName: sessionVars['squarePayload'].merchantAlias
         },
-        locations: { (payload pluck ({
+        locations: { (flowVars.v1refunds pluck ({
             (location: { 
                 locationId: ($$),
                 beginTime: flowVars.locationContextMap[($$)].beginTime,

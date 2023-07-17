@@ -14,10 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
+import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.SquareClientV2;
-import com.squareup.connect.v2.Transaction;
+import com.squareup.connect.v2.Tender;
 
 import util.SquarePayload;
 import vfcorp.Util;
@@ -98,37 +99,32 @@ public class CustomerVerificationCallable implements Callable {
                 customerCounters = new HashMap<String, Integer>();
             }
 
-            Map<String, Payment> paymentsCache = new HashMap<String, Payment>();
-            for (Payment payment : locationTransactionDetails.getPayments()) {
-                // Save payment object for customer lookups
-                paymentsCache.put(payment.getId(), payment);
-                for (com.squareup.connect.Tender tender : payment.getTender()) {
-                    paymentsCache.put(tender.getId(), payment);
-                }
-            }
+            Map<String, Payment> tenderToPayment = locationTransactionDetails.getTenderToPayment();
 
-            for (Transaction transaction : locationTransactionDetails.getTransactions()) {
-                for (com.squareup.connect.v2.Tender tender : transaction.getTenders()) {
-                    if (tender.getCustomerId() != null) {
-                        Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
+            for (Order order : locationTransactionDetails.getOrders()) {
+            	if(order.getTenders() != null) {
+            		for (Tender tender : order.getTenders()) {
+                        if (tender.getCustomerId() != null) {
+                            Customer customer = locationTransactionDetails.getCustomers().get(tender.getCustomerId());
 
-                        boolean customerHasContactInfo = (customer.getEmailAddress() != null
-                                && customer.getEmailAddress().length() > 0)
-                                || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
+                            boolean customerHasContactInfo = (customer.getEmailAddress() != null
+                                    && customer.getEmailAddress().length() > 0)
+                                    || (customer.getPhoneNumber() != null && customer.getPhoneNumber().length() > 0);
 
-                        if (customer != null && customerHasContactInfo && (customer.getReferenceId() == null
-                                || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
-                            String newId = generateNewPreferredCustomerId(customerCounters,
-                                    paymentsCache.get(tender.getId()), storeId);
+                            if (customer != null && customerHasContactInfo && (customer.getReferenceId() == null
+                                    || customer.getReferenceId().length() != LOYALTY_CUSTOMER_ID_LENGTH)) {
+                                String newId = generateNewPreferredCustomerId(customerCounters,
+                                        tenderToPayment.get(tender.getId()), storeId);
 
-                            customer.setReferenceId(newId);
-                            customer = squareV2Client.customers().update(customer);
+                                customer.setReferenceId(newId);
+                                customer = squareV2Client.customers().update(customer);
 
-                            logger.info("New Customer: " + customer.getId());
-                            logger.info("New Customer ID: " + customer.getReferenceId());
+                                logger.info("New Customer: " + customer.getId());
+                                logger.info("New Customer ID: " + customer.getReferenceId());
+                            }
                         }
                     }
-                }
+            	}
             }
 
             String deploymentId = String.format("vfcorp-%s-%s", brand, storeId);
@@ -142,10 +138,10 @@ public class CustomerVerificationCallable implements Callable {
     }
 
     private String generateNewPreferredCustomerId(Map<String, Integer> nextPreferredCustomerIds,
-            Payment customerPayment, String storeId) {
+    		Payment customerPayment, String storeId) {
 
-        String deviceName = (customerPayment != null && customerPayment.getDevice() != null)
-                ? customerPayment.getDevice().getName() : null;
+        String deviceName = (customerPayment != null && customerPayment.getDeviceDetails() != null)
+                ? customerPayment.getDeviceDetails().getDeviceName() : null;
         String registerNumber = Util.getRegisterNumber(deviceName);
 
         int nextCustomerNumber = nextPreferredCustomerIds.getOrDefault(registerNumber, 1);

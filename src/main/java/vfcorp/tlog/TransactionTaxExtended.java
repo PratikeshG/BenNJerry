@@ -3,8 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.PaymentTax;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.OrderLineItemTax;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -54,7 +54,7 @@ public class TransactionTaxExtended extends Record {
         return id;
     }
 
-    public TransactionTaxExtended parse(Payment payment, PaymentTax tax) throws Exception {
+    public TransactionTaxExtended parse(Order order, OrderLineItemTax tax) throws Exception {
         String taxType = "01";
         String taxMethod = "01";
         String taxCode = "";
@@ -88,11 +88,10 @@ public class TransactionTaxExtended extends Record {
                 break;
         }
 
-        String rate = tax.getRate() != null ? tax.getRate() : "0";
-
-        long taxRate = Math.round(Double.parseDouble(rate) * 10000000);
-
-        int taxableAmount = payment.getTotalCollectedMoney().getAmount() - payment.getTaxMoney().getAmount();
+        long taxRate = Math.round(Double.parseDouble(tax.getPercentage()) * 10000000);
+        int netAmounts = order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
+        int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
+        int taxableAmount = netAmounts - totalTaxMoney;
 
         // for special taxes
         String taxDetails = Util.getValueInParenthesis(tax.getName());

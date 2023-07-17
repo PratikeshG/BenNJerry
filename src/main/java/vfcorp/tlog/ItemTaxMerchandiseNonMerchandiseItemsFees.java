@@ -3,8 +3,9 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentItemization;
-import com.squareup.connect.PaymentTax;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedTax;
+import com.squareup.connect.v2.OrderLineItemTax;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -54,12 +55,12 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
         return id;
     }
 
-    public ItemTaxMerchandiseNonMerchandiseItemsFees parse(PaymentTax tax, PaymentItemization itemization)
+    public ItemTaxMerchandiseNonMerchandiseItemsFees parse(OrderLineItemAppliedTax tax, OrderLineItem lineItem, OrderLineItemTax taxDetails)
             throws Exception {
         String taxType = "01";
         String taxMethod = "01";
         String taxCode = "1";
-        switch (tax.getName()) {
+        switch (taxDetails.getName()) {
             case "VAT":
                 taxType = "02";
                 break;
@@ -89,13 +90,14 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
                 taxType = "01";
                 break;
         }
-        long taxRate = Math.round(Double.parseDouble(tax.getRate()) * 10000000);
+        String rate = taxDetails.getPercentage() != null ? taxDetails.getPercentage() : "";
+        long taxRate = Math.round(Double.parseDouble(rate) * 10000000);
 
         // for special taxes
-        String taxDetails = Util.getValueInParenthesis(tax.getName());
-        if (taxDetails.length() > 2) {
-            taxMethod = taxDetails.substring(0, 2);
-            taxCode = taxDetails.substring(2);
+        String specialTaxDetails = Util.getValueInParenthesis(taxDetails.getName());
+        if (specialTaxDetails.length() > 2) {
+            taxMethod = specialTaxDetails.substring(0, 2);
+            taxCode = specialTaxDetails.substring(2);
         }
 
         putValue("Tax Type", taxType);
@@ -103,7 +105,8 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
         putValue("Tax Rate", "" + taxRate);
         putValue("Tax Amount", ""); // not supported
         putValue("Tax Override Code", ""); // not supported
-        putValue("Taxable Amount", "" + itemization.getNetSalesMoney().getAmount());
+        int taxableAmount = lineItem.getGrossSalesMoney().getAmount() - lineItem.getTotalDiscountMoney().getAmount();
+        putValue("Taxable Amount", String.valueOf(taxableAmount));
         putValue("Tax Code", taxCode);
 
         return this;

@@ -3,8 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -14,7 +14,7 @@ public class EmployeeDiscount extends Record {
 	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
-	
+
 	static {
 		fields = new HashMap<String,FieldDetails>();
 		length = 24;
@@ -25,7 +25,7 @@ public class EmployeeDiscount extends Record {
 		fields.put("Amount of Item", new FieldDetails(10, 14, "zero filled"));
 		fields.put("Discount Type Indicator", new FieldDetails(1, 24, ""));
 	}
-	
+
 	public EmployeeDiscount() {
 		super();
 	}
@@ -49,18 +49,21 @@ public class EmployeeDiscount extends Record {
 		return id;
 	}
 
-	public EmployeeDiscount parse(PaymentItemization itemization, PaymentDiscount discount) throws Exception {		
+	public EmployeeDiscount parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount) throws Exception {
 		// Need to subtract previously applied discounts on this item from beforeTotal
-		int beforeTotal = itemization.getGrossSalesMoney().getAmount();
-		for (PaymentDiscount prevDiscount : itemization.getDiscounts()) {
-			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
-				break;
+		int beforeTotal = lineItem.getGrossSalesMoney().getAmount();
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
+				if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
+					break;
+				}
+				beforeTotal -= prevDiscount.getAppliedMoney().getAmount();
 			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
 		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
-		
-		putValue("Amount of Discount", "" + -discountTotal);
+
+		int discountTotal = discount.getAppliedMoney().getAmount();
+
+		putValue("Amount of Discount", "" + discountTotal);
 		putValue("Amount of Item", "" + beforeTotal);
 		putValue("Discount Type Indicator", "0"); // 0 is "Normal Employee discount"
 

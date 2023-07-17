@@ -3,17 +3,22 @@ package util.reports;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.SquareClient;
+import org.mule.api.MuleMessage;
+
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.SquareClientV2;
+
+import util.ConnectV2MigrationHelper;
 
 /**
  *
  * @author finci
  *
  */
-public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
+public class PaymentsReportBuilder extends AbstractReportBuilder<Order> {
 	/**
 	 * Creates a report map of location Id to Payments filtered by date range
 	 * set by calling {@code forPastDayInterval(int range, int offset)}.
@@ -26,6 +31,10 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 		super(apiUrl, accessToken, merchantId);
 	}
 
+	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
+		super(apiUrl, accessToken, merchantId, message);
+	}
+
 	/**
 	 * {@code clientOverride} provided for test.
 	 *
@@ -34,33 +43,33 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Payment> {
 	 * @param merchantId
 	 * @param clientOverride
 	 */
-	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, SquareClient clientOverride) {
+	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, SquareClientV2 clientOverride) {
 		super(apiUrl, accessToken, merchantId, clientOverride);
 	}
 
 	/**
 	 * Build map.
 	 */
-	public HashMap<String, List<Payment>> build() throws Exception {
-		HashMap<String, List<Payment>> locationsPayments = new HashMap<String, List<Payment>>();
+
+	public Map<String, List<Order>> build() throws Exception {
+		HashMap<String, List<Order>> locationsOrders = new HashMap<String, List<Order>>();
 		for (Location location : this.getLocations()) {
-			this.processLocation(location, locationsPayments);
+			this.processLocation(location, locationsOrders);
 		}
-		return locationsPayments;
+		return locationsOrders;
 	}
 
-	private void processLocation(Location location, HashMap<String, List<Payment>> locationsPayments) throws Exception {
+	private void processLocation(Location location, Map<String, List<Order>> locationsOrders) throws Exception {
 		String locationId = location.getId();
 		String timezone = location.getTimezone();
-		Payment[] payments;
+		Order[] orders;
 
-		this.getClient().setLocation(locationId);
 		if (this.isDateRangeFiltersSet()) {
-			payments = this.getClient().payments().list(this.getDateRangeFilters(timezone));
+			orders = ConnectV2MigrationHelper.getOrdersWithExchanges(this.getClient(), locationId, this.getDateRangeFilters(timezone), true);
 		} else {
-			payments = this.getClient().payments().list();
+			orders = ConnectV2MigrationHelper.getOrdersWithExchanges(this.getClient(), locationId, new HashMap<>(), true);
 		}
 
-		locationsPayments.put(locationId, Arrays.asList(payments));
+		locationsOrders.put(locationId, Arrays.asList(orders));
 	}
 }

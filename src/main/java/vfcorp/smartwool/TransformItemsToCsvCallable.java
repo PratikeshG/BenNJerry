@@ -1,5 +1,5 @@
 package vfcorp.smartwool;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,24 +8,30 @@ import org.mule.api.MuleEventContext;
 import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.Payment;
-import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.Payment;
+import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.Order;
+import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.SquareClientV2;
-import com.squareup.connect.v2.Tender;
-import com.squareup.connect.v2.Transaction;
 
+import util.ConnectV2MigrationHelper;
 import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
+import util.reports.DashboardCsvRowFactory;
 
 public class TransformItemsToCsvCallable implements Callable {
 
+    private static Logger logger = LoggerFactory.getLogger(TransformItemsToCsvCallable.class);
+
     public String[] HEADERS = new String[] { "Date", "Time", "Time Zone", "Category", "Item", "Qty", "Price Point Name",
-            "SKU,Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
+            "SKU" ,"Modifiers Applied", "Gross Sales", "Discounts", "Net Sales", "Tax", "Transaction ID", "Payment ID",
             "Device Name", "Notes", "Details", "Event Type", "Location", "Dining Option", "Customer ID",
             "Customer Name", "Customer Reference ID" };
 
@@ -41,51 +47,53 @@ public class TransformItemsToCsvCallable implements Callable {
                 PropertyScope.INVOCATION);
 
         @SuppressWarnings("unchecked")
-        HashMap<String, List<Payment>> locationsPayments = (HashMap<String, List<Payment>>) message
+        Map<String, List<Order>> locationsOrders = (Map<String, List<Order>>) message
                 .getProperty(Constants.PAYMENTS, PropertyScope.INVOCATION);
 
         String apiUrl = message.getProperty(Constants.API_URL, PropertyScope.SESSION);
         SquarePayload sqPayload = message.getProperty(Constants.SQUARE_PAYLOAD, PropertyScope.SESSION);
 
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
-        HashMap<String, Transaction> tenderTransactionMap = new HashMap<>();
 
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
-
+        DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
+        Map<String, List<com.squareup.connect.Payment>> locationsPayments = new HashMap<>();
         // loop through locations and process the file for each
-        for (String locationId : locationsPayments.keySet()) {
-            List<Payment> payments = locationsPayments.get(locationId);
+        for (String locationId : locationsOrders.keySet()) {
+        	List<com.squareup.connect.Payment> v1Payments = new ArrayList<>();
+            List<Order> ordersList = locationsOrders.get(locationId);
             LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
+            Order[] orders = ordersList.toArray(new Order[0]);
+            String[] ids = ConnectV2MigrationHelper.getItemVariationIds(orders);
+        	Map<String, CatalogObject> catalogMap = ConnectV2MigrationHelper.getCatalogMap(ids, clientv2);
+        	Map<String, CatalogObject> categoriesMap = ConnectV2MigrationHelper.getCategoriesMap(clientv2);
+        	Map<String, CatalogObject> lineItemCategories = ConnectV2MigrationHelper.getItemVariationIdToCategory(ids, catalogMap, categoriesMap);
 
-            Transaction[] transactions = clientv2.transactions().list(locationId, locationCtx.generateQueryParamMap());
-            for (Transaction transaction : transactions) {
-                for (Tender tender : transaction.getTenders()) {
-                    tenderTransactionMap.put(tender.getId(), transaction);
-                }
-            }
-
+            Map<String, String> params = locationCtx.generateQueryParamMap();
+            params.put("location_id", locationId);
+            Payment[] payments = clientv2.payments().list(params);
+            Map<String, Payment> tenderToPayment = ConnectV2MigrationHelper.getTenderToPayment(orders, payments, clientv2, locationCtx.generateQueryParamMap());
             // loop through payments and generate csv row entries for each
             // itemization
-            for (Payment payment : payments) {
-                String tenderId = payment.getTender()[0].getId();
-                Transaction transaction = tenderTransactionMap.get(tenderId);
-                Customer customer = getCustomer(transaction, clientv2);
-
-                for (PaymentItemization itemization : payment.getItemizations()) {
-                    csvGenerator.addRecord(csvRowFactorty.generateItemCsvRow(payment, itemization, transaction,
-                            customer, locationCtx, this.DOMAIN_URL));
-                }
+            for (Order order : orders) {
+            	if(order.getTenders() != null && order.getTenders().length > 0) {
+                    Customer customer = ConnectV2MigrationHelper.getCustomer(order, clientv2);
+                    com.squareup.connect.Payment v1Payment = ConnectV2MigrationHelper.toV1Payment(order, catalogMap, lineItemCategories, tenderToPayment, customer);
+                    v1Payments.add(v1Payment);
+                    if(order.getLineItems() != null) {
+                    	for (OrderLineItem lineItem : order.getLineItems()) {
+                            csvGenerator.addRecord(csvRowFactory.generateItemCsvRow(order, lineItem, catalogMap, lineItemCategories, tenderToPayment,
+                                    customer, locationCtx, this.DOMAIN_URL));
+                        }
+                    }
+            	}
             }
+            locationsPayments.put(locationId, v1Payments);
         }
-        return csvGenerator.build();
-    }
 
-    private Customer getCustomer(Transaction transaction, SquareClientV2 clientv2) throws Exception {
-        if (transaction.getTenders()[0].getCustomerId() != null) {
-            return clientv2.customers().retrieve(transaction.getTenders()[0].getCustomerId());
-        }
-        return null;
+        message.setProperty(Constants.V1PAYMENTS, locationsPayments, PropertyScope.INVOCATION);
+
+        return csvGenerator.build();
     }
 }

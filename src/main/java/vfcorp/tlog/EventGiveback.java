@@ -4,8 +4,9 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -54,14 +55,16 @@ public class EventGiveback extends Record {
         return id;
     }
 
-    public EventGiveback parse(PaymentItemization itemization, PaymentDiscount discount, int itemNumberLookupLength,
-            String promoDetails, String discountAppyType) throws Exception {
-        String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
-        if (sku.matches("[0-9]+")) {
+    public EventGiveback parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount, int itemNumberLookupLength,
+            String promoDetails, String discountAppyType, Map<String, CatalogObject> catalog) throws Exception {
+    	CatalogObject catalogObject = catalog.get(lineItem.getCatalogObjectId());
+    	String sku = catalogObject != null && catalogObject.getItemVariationData() != null ?
+    			catalogObject.getItemVariationData().getSku() : "";
+        if (!sku.isEmpty() && sku.matches("[0-9]+")) {
             sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
         }
 
-        int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
+        int discountTotal = discount.getAppliedMoney().getAmount();
 
         String eventNumber = "";
         String dealNumber = "";
@@ -73,7 +76,7 @@ public class EventGiveback extends Record {
         }
 
         putValue("Item Number", sku);
-        putValue("Amount", "" + -discountTotal);
+        putValue("Amount", "" + discountTotal);
         putValue("Event Number", eventNumber);
         putValue("Deal Number", dealNumber);
         putValue("Coupon Number", couponNumber);

@@ -8,13 +8,14 @@ import org.mule.api.lifecycle.Callable;
 import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.squareup.connect.v2.Refund;
+import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.SquareClientV2;
 
 import util.Constants;
 import util.LocationContext;
 import util.SquarePayload;
 import util.reports.CSVGenerator;
+import util.reports.DashboardCsvRowFactory;
 
 public class TransformRefundsToCsvCallable implements Callable {
 
@@ -41,19 +42,19 @@ public class TransformRefundsToCsvCallable implements Callable {
 
         CSVGenerator csvGenerator = new CSVGenerator(this.HEADERS);
 
-        DashboardCsvRowFactory csvRowFactorty = new DashboardCsvRowFactory();
+        DashboardCsvRowFactory csvRowFactory = new DashboardCsvRowFactory();
 
         for (String locationId : locationContexts.keySet()) {
             LocationContext locationCtx = locationContexts.get(locationId);
-            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY));
+            SquareClientV2 clientv2 = new SquareClientV2(apiUrl, sqPayload.getAccessToken(this.ENCRYPTION_KEY), "2023-05-17");
             clientv2.setLogInfo(sqPayload.getMerchantId() + " - " + locationId);
-
-            Refund[] refunds = clientv2.refunds().list(locationId, locationCtx.generateQueryParamMap());
-            for (Refund refund : refunds) {
-                csvGenerator.addRecord(csvRowFactorty.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
+            Map<String, String> params = locationCtx.generateQueryParamMap();
+            params.put("location_id", locationId);
+            PaymentRefund[] refunds = clientv2.refunds().listPaymentRefunds(params);
+            for (PaymentRefund refund : refunds) {
+                csvGenerator.addRecord(csvRowFactory.generateRefundCsvRow(refund, locationCtx, this.DOMAIN_URL));
             }
         }
         return csvGenerator.build();
     }
-
 }

@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.squareup.connect.Payment;
 import com.squareup.connect.v2.Location;
+import com.squareup.connect.v2.Order;
 
 import util.TimeManager;
 import vfcorp.FieldDetails;
@@ -171,16 +171,16 @@ public class TransactionHeader extends Record {
         return id;
     }
 
-    public TransactionHeader parse(int transactionNumber, Location location, List<Payment> squarePaymentsList,
+    public TransactionHeader parse(int transactionNumber, Location location, List<Order> orders,
             String registerNumber, String transactionType, int numberOfRecords, String timeZoneId,
             String processingForDate) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
         params.put("Register Number", registerNumber);
 
         String lastDate = "";
-        for (Payment squarePayment : squarePaymentsList) {
-            if (squarePayment.getCreatedAt().compareTo(lastDate) > 0) {
-                lastDate = squarePayment.getCreatedAt();
+        for (Order order : orders) {
+            if (order.getCreatedAt().compareTo(lastDate) > 0) {
+                lastDate = order.getCreatedAt();
             }
         }
 
@@ -200,19 +200,18 @@ public class TransactionHeader extends Record {
         return parse(transactionNumber, location, transactionType, numberOfRecords, registerNumber, params);
     }
 
-    public TransactionHeader parse(int transactionNumber, Location location, Payment squarePayment, String employeeId,
+    public TransactionHeader parse(int transactionNumber, Location location, Order order, String registerName, String employeeId,
             String transactionType, int numberOfRecords, String timeZoneId) throws Exception {
         Map<String, String> params = new HashMap<String, String>();
 
         params.put("Employee Number", employeeId);
         params.put("Transaction Date",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+                TimeManager.toSimpleDateTimeInTimeZone(order.getCreatedAt(), timeZoneId, "MMddyyyy"));
         params.put("Business Date",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "MMddyyyy"));
+                TimeManager.toSimpleDateTimeInTimeZone(order.getCreatedAt(), timeZoneId, "MMddyyyy"));
         params.put("Transaction Time",
-                TimeManager.toSimpleDateTimeInTimeZone(squarePayment.getCreatedAt(), timeZoneId, "HHmm"));
+                TimeManager.toSimpleDateTimeInTimeZone(order.getCreatedAt(), timeZoneId, "HHmm"));
 
-        String registerName = (squarePayment.getDevice() != null) ? squarePayment.getDevice().getName() : null;
         String registerNumber = Util.getRegisterNumber(registerName);
         params.put("Register Number", registerNumber);
 

@@ -15,23 +15,23 @@ public abstract class Record {
 	 */
 	protected Map<String,String> values = new HashMap<String,String>();
 	protected char[] record;
-	
+
 	private static Logger logger = LoggerFactory.getLogger(Record.class);
-	
+
 	public Record() {
 		clearCharArray();
 		values.put("Identifier", getId());
 	}
-	
+
 	public Record(String record) {
 		for (String key : getFields().keySet()) {
 			FieldDetails details = getFields().get(key);
-			
+
 			// In the Epicor documentation, value locations are one-indexed,
 			// not zero-indexed.
 			int zeroIndexStartLocation = details.getStartLocation() - 1;
 			int zeroIndexEndLocation = zeroIndexStartLocation + details.getCharacters();
-			
+
 			// If input is too short, pad it out with spaces
 			if (zeroIndexEndLocation > record.length()) {
 				record = String.format("%1$-" + zeroIndexEndLocation + "s", record);
@@ -40,63 +40,65 @@ public abstract class Record {
 			values.put(key, value);
 		}
 	}
-	
+
 	/*
 	 * The "fields" map is a mapping between a string name and a set of details
 	 * regarding that field. Every record has a unique set of fields, each
 	 * with their own unique characteristics.
 	 */
 	public abstract Map<String,FieldDetails> getFields();
-	
+
 	/*
 	 * Every record is serialized into a string, the length of which is kept in
 	 * a variable in every record; this method retrieves that length.
 	 */
 	public abstract int getLength();
-	
+
 	/*
 	 * Every record is denoted by a unique identifier, maintained in each
 	 * record; this method retrieves that identifier.
 	 */
 	public abstract String getId();
-	
+
 	public String toString() {
 		clearCharArray();
-		
+
 		for (String field : values.keySet()) {
 			String value = values.get(field);
 			put(field, value);
 		}
-		
+
 		return new String(record);
 	}
-	
+
 	protected String putValue(String field, String value) throws Exception {
 		if (getFields().get(field) == null) {
 			logger.error("field details were not found for " + field + "for record type " + this.getId());
 			throw new Exception("field details were not found for " + field + "for record type " + this.getId());
 		}
-		
+
 		return values.put(field, value);
 	}
-	
+
 	protected String getValue(String field) {
 		return values.get(field);
 	}
-	
+
 	/*
 	 * Items are put into the record with right-justification and space filling
 	 * by default.
 	 */
 	private void put(String field, String value) {
 		FieldDetails details = getFields().get(field);
-		
+		if(field.equals("Tender Amount"))
+			System.out.println("START HERE");
+
 		// Passed in value should always be a string. A null string should be treated as empty.
 		if (value == null) {
 			logger.info("null string passed in for field " + field + " for record type " + this.getId() + "; turning into empty string");
 			value = "";
 		}
-		
+
 		if (value.length() > details.getCharacters()) {
 			logger.info("For class \"" + this.getClass().toString().substring(6) +
 				"\", value \"" + value + "\" is too long to fit into field \"" +
@@ -104,12 +106,12 @@ public abstract class Record {
 			// Cut off value, culling characters from the right.
 			value = value.substring(0, details.getCharacters());
 		}
-		
+
 		boolean zeroFill = details.getComments().contains("zero filled");
 		boolean spaceFill = details.getComments().contains("space filled");
 		boolean rightJust = details.getComments().contains("right justified");
 		boolean leftJust = details.getComments().contains("left justified");
-		
+
 		if (spaceFill || zeroFill || leftJust || rightJust) {
 			int width = details.getCharacters() - value.length();
 		    char fill;
@@ -118,7 +120,7 @@ public abstract class Record {
 		    } else {
 		    	fill = ' ';
 		    }
-		    
+
 		    String stringFill = new String(new char[width]).replace('\0', fill);
 		    if (leftJust) {
 		    	value = value + stringFill;
@@ -126,14 +128,18 @@ public abstract class Record {
 		    	value = stringFill + value;
 		    }
 		}
-		
+
+		if(value.equals("000005000005273400000052734001")) {
+			System.out.println("HERE?");
+		}
+
 		int start = details.getStartLocation() - 1;
 		int finish = start + details.getCharacters() - 1;
 		for (int i = finish, j = value.length() - 1; i >= start && j >= 0; i--, j--) {
 			record[i] = value.charAt(j);
 		}
 	}
-	
+
 	private void clearCharArray() {
 		record = new char[getLength()];
 		for (int i = 0; i < getLength(); i++) {

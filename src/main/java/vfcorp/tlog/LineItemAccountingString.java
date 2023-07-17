@@ -8,11 +8,12 @@ import vfcorp.Record;
 import vfcorp.Util;
 import vfcorp.FieldDetails;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.CatalogObject;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
 public class LineItemAccountingString extends Record {
-	
+
 	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
@@ -21,7 +22,7 @@ public class LineItemAccountingString extends Record {
 		fields = new HashMap<String,FieldDetails>();
 		length = 148;
 		id = "055";
-		
+
 		fields.put("Identifier", new FieldDetails(3, 1, ""));
 		fields.put("Item Number", new FieldDetails(24, 4, "Left justified, space filled"));
 		fields.put("Non Merchandise Number", new FieldDetails(24, 28, ""));
@@ -38,11 +39,11 @@ public class LineItemAccountingString extends Record {
 		fields.put("Item Index", new FieldDetails(7, 136, "zero filled"));
 		fields.put("Reserved for Future Use", new FieldDetails(6, 143, "Space filled"));
 	}
-	
+
 	public LineItemAccountingString() {
 		super();
 	}
-	
+
 	public LineItemAccountingString(String record) {
 		super(record);
 	}
@@ -61,11 +62,13 @@ public class LineItemAccountingString extends Record {
 	public String getId() {
 		return id;
 	}
-	
-	public LineItemAccountingString parse(PaymentItemization itemization, int itemNumberLookupLength, int lineItemIndex) throws Exception {
+
+	public LineItemAccountingString parse(OrderLineItem lineItem, int itemNumberLookupLength, int lineItemIndex, Map<String, CatalogObject> catalog) throws Exception {
 		// TODO(bhartard): Create helper function to share this logic
-		String sku = itemization.getItemDetail().getSku(); // requires special formating - check docs
-		if (sku.matches("[0-9]+")) {
+    	CatalogObject catalogObject = catalog.get(lineItem.getCatalogObjectId());
+    	String sku = catalogObject != null && catalogObject.getItemVariationData() != null ?
+    			catalogObject.getItemVariationData().getSku() : "";
+		if (!sku.isEmpty() && sku.matches("[0-9]+")) {
 			sku = String.format("%0" + Integer.toString(itemNumberLookupLength) + "d", new BigInteger(sku));
 		}
 
@@ -73,18 +76,21 @@ public class LineItemAccountingString extends Record {
 		String productivityQuantity = String.format( "%.3f", 1.0).replace(".", "");
 
 		// Get line item's applied amount from discounts applied to line item's index
-		int totalLineItemQty =  itemization.getQuantity().intValue();
-		int lineItemAmount = itemization.getSingleQuantityMoney().getAmount();
-		for (PaymentDiscount discount : itemization.getDiscounts()) {
-			int[] discountAmounts = Util.divideIntegerEvenly(-discount.getAppliedMoney().getAmount(), totalLineItemQty);
-			lineItemAmount -= discountAmounts[lineItemIndex-1];
+		int totalLineItemQty =  Integer.parseInt(lineItem.getQuantity());
+		int lineItemAmount = lineItem.getBasePriceMoney().getAmount();
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount discount : lineItem.getAppliedDiscounts()) {
+				int[] discountAmounts = Util.divideIntegerEvenly(discount.getAppliedMoney().getAmount(), totalLineItemQty);
+				lineItemAmount -= discountAmounts[lineItemIndex-1];
+			}
+
 		}
 
 		// Taxable amounts
-		boolean isTaxable = itemization.getTaxes().length > 0;
+		boolean isTaxable = lineItem.getAppliedTaxes() != null && lineItem.getAppliedTaxes().length > 0;
 		String salesTaxableAmount = isTaxable ? "" + lineItemAmount : "0";
 		String salesNotTaxableAmount = isTaxable ? "0" : "" + lineItemAmount;
-		
+
 		putValue("Item Number", sku); // requires special formating, according to documentation
 		putValue("Non Merchandise Number", ""); // no such thing as "non merchandise" in square
 		putValue("EGC/Gift Certificate Number", "");

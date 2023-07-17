@@ -3,8 +3,8 @@ package vfcorp.tlog;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.squareup.connect.PaymentDiscount;
-import com.squareup.connect.PaymentItemization;
+import com.squareup.connect.v2.OrderLineItem;
+import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
 
 import vfcorp.FieldDetails;
 import vfcorp.Record;
@@ -14,12 +14,12 @@ public class DiscountTypeIndicator extends Record {
 	private static Map<String,FieldDetails> fields;
 	private static int length;
 	private static String id;
-	
+
 	static {
 		fields = new HashMap<String,FieldDetails>();
 		length = 42;
 		id = "021";
-		
+
 		fields.put("Identifier", new FieldDetails(3, 1, ""));
 		fields.put("Discount Code", new FieldDetails(8, 4, "left justified, space filled"));
 		fields.put("Amount Before Discount", new FieldDetails(10, 12, "zero filled"));
@@ -27,7 +27,7 @@ public class DiscountTypeIndicator extends Record {
 		fields.put("Amount After Discount", new FieldDetails(10, 32, "zero filled"));
 		fields.put("Transaction Discount", new FieldDetails(1, 42, ""));
 	}
-	
+
 	public DiscountTypeIndicator() {
 		super();
 	}
@@ -50,22 +50,25 @@ public class DiscountTypeIndicator extends Record {
 	public String getId() {
 		return id;
 	}
-	
-	public DiscountTypeIndicator parse(PaymentItemization itemization, PaymentDiscount discount, String discountCode, String discountAppyType) throws Exception {
+
+	public DiscountTypeIndicator parse(OrderLineItem lineItem, OrderLineItemAppliedDiscount discount, String discountCode, String discountAppyType) throws Exception {
 		// Need to subtract previously applied discounts on this item from beforeTotal
-		int beforeTotal = itemization.getGrossSalesMoney().getAmount();
-		for (PaymentDiscount prevDiscount : itemization.getDiscounts()) {
-			if (prevDiscount.getDiscountId().equals(discount.getDiscountId())) {
-				break;
+		int beforeTotal = lineItem.getGrossSalesMoney().getAmount();
+		if(lineItem.getAppliedDiscounts() != null) {
+			for (OrderLineItemAppliedDiscount prevDiscount : lineItem.getAppliedDiscounts()) {
+				if (prevDiscount.getDiscountUid().equals(discount.getDiscountUid())) {
+					break;
+				}
+				beforeTotal -= prevDiscount.getAppliedMoney().getAmount();
 			}
-			beforeTotal += prevDiscount.getAppliedMoney().getAmount(); // negative value
 		}
-		int discountTotal = discount.getAppliedMoney().getAmount(); // negative value
-		int finalTotal = beforeTotal + discountTotal;
-		
+
+		int discountTotal = discount.getAppliedMoney().getAmount();
+		int finalTotal = beforeTotal - discountTotal;
+
 		putValue("Discount Code", discountCode);
 		putValue("Amount Before Discount", "" + beforeTotal);
-		putValue("Amount Discount", "" + -discountTotal);
+		putValue("Amount Discount", "" + discountTotal);
 		putValue("Amount After Discount", "" + finalTotal);
 		putValue("Transaction Discount", discountAppyType);
 
