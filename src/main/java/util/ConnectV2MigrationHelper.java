@@ -6,12 +6,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import com.squareup.connect.Device;
 import com.squareup.connect.Money;
 import com.squareup.connect.PaymentDiscount;
 import com.squareup.connect.PaymentItemDetail;
@@ -19,8 +21,10 @@ import com.squareup.connect.PaymentItemization;
 import com.squareup.connect.PaymentModifier;
 import com.squareup.connect.PaymentTax;
 import com.squareup.connect.Refund;
+import com.squareup.connect.v2.CashPaymentDetails;
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
+import com.squareup.connect.v2.DeviceDetails;
 import com.squareup.connect.v2.Order;
 import com.squareup.connect.v2.OrderLineItem;
 import com.squareup.connect.v2.OrderLineItemAppliedDiscount;
@@ -28,6 +32,8 @@ import com.squareup.connect.v2.OrderLineItemAppliedTax;
 import com.squareup.connect.v2.OrderLineItemDiscount;
 import com.squareup.connect.v2.OrderLineItemModifier;
 import com.squareup.connect.v2.OrderLineItemTax;
+import com.squareup.connect.v2.OrderReturn;
+import com.squareup.connect.v2.OrderReturnLineItem;
 import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.SearchOrdersDateTimeFilter;
@@ -372,6 +378,19 @@ public class ConnectV2MigrationHelper {
     			.mapToInt(Money::getAmount)
     			.sum() : 0;
     	payment.setAdditiveTaxMoney(new Money(totalAdditiveTaxMoney));
+    	if(order.getTenders() != null) {
+    		for(Tender tender : order.getTenders()) {
+    			Payment v2Payment = tenderToPayment.get(tender.getId());
+    			if(v2Payment != null && v2Payment.getDeviceDetails() != null) {
+    		    	Device device = new Device();
+    				device.setId(v2Payment.getDeviceDetails().getDeviceId());
+    				device.setName(v2Payment.getDeviceDetails().getDeviceName());
+    				payment.setDevice(device);
+    				break;
+    			}
+    		}
+    	}
+
     	return payment;
     }
 
@@ -382,7 +401,29 @@ public class ConnectV2MigrationHelper {
     			Payment v2Payment = tenderToPayment.get(tender.getId());
     			com.squareup.connect.Tender v1Tender = new com.squareup.connect.Tender();
     			v1Tender.setId(tender.getId());
-    			v1Tender.setType(v2Payment.getSourceType());
+    			String type = v2Payment.getSourceType();
+    			String name = "";
+    			switch(type) {
+    				case Tender.TENDER_TYPE_WALLET:
+	    			case Tender.TENDER_TYPE_CARD:
+	    				name = "Credit Card";
+	    				break;
+	    			case Tender.TENDER_TYPE_CASH:
+	    				name = "Cash";
+	    				break;
+	    			case Tender.TENDER_TYPE_OTHER:
+	    				name = "Other";
+	    				break;
+    				default:
+    					name = "Unknown";
+    					break;
+    			}
+
+    			// type "CARD" is different for v1 and v2
+    			v1Tender.setName(name);
+    			if(type.equals(Tender.TENDER_TYPE_CARD))
+    				type = "CREDIT_CARD";
+    			v1Tender.setType(type);
     			v1Tender.setEmployeeId(v2Payment.getTeamMemberId());
     			v1Tender.setReceiptUrl(v2Payment.getReceiptUrl());
     			if(v2Payment.getCardDetails() != null && v2Payment.getCardDetails().getCard() != null) {
@@ -392,14 +433,54 @@ public class ConnectV2MigrationHelper {
     			}
     			v1Tender.setPaymentNote(v2Payment.getNote());
     			v1Tender.setTotalMoney(new Money(v2Payment.getTotalMoney().getAmount()));
-    			if(v2Payment.getCashDetails() != null && v2Payment.getCashDetails().getChangeBackMoney() != null) {
-    				v1Tender.setChangeBackMoney(new Money(v2Payment.getCashDetails().getChangeBackMoney().getAmount()));
+    			if(v2Payment.getCashDetails() != null) {
+    				CashPaymentDetails cashDetails = v2Payment.getCashDetails();
+    				if(cashDetails.getChangeBackMoney() != null) {
+        				v1Tender.setChangeBackMoney(new Money(cashDetails.getChangeBackMoney().getAmount()));
+    				}
+    				if(cashDetails.getBuyerSuppliedMoney() != null) {
+        				v1Tender.setTenderedMoney(new Money(cashDetails.getBuyerSuppliedMoney().getAmount()));
+    				}
     			}
     			v1Tender.setExchange(isExchange(order));
+    			if(isExchange(order)) {
+    				// TODO: explain diff between v1 vs v2 for exchanges
+    				v1Tender.setExchange(false);
+    				int netAmounts = order.getNetAmounts().getTotalMoney().getAmount();
+    			      // for up exchanges, we use the return lineitem as the additional payment to the tender payment.
+    			      // for example, the original item was $20, but customer exchanges for $50 item, then the tender
+    			      // will pay $30, and count the returned $20 as the extra payment.
+				    if(netAmounts > 0) {
+				    	for(OrderReturn orderReturn : order.getReturns()) {
+				    		for(OrderReturnLineItem lineItem : orderReturn.getReturnLineItems()) {
+			    				v1Tenders.add(getExchangeTender(new Money(lineItem.getTotalMoney().getAmount())));
+				    		}
+				    	}
+				    }
+				    // for even and down exchanges, we just take the order lineitem (which is the item the customer
+				    // wants to exchange for) as a payment, and later in the refunds we adjust. For example,
+				    // if the customer bought a $200 item, but wants to exchange for a $80 item,
+				    // then we count both $200 and $80 as payments. Later refunds, we refund the difference of $120
+				    // as the payment refund, as well as the extra $80 that we charged ($200 - $120)
+				    else {
+				        for(OrderLineItem lineItem : order.getLineItems()) {
+		    				v1Tenders.add(getExchangeTender(new Money(lineItem.getTotalMoney().getAmount())));
+				        }
+				    }
+    			}
     			v1Tenders.add(v1Tender);
     		}
     	}
     	payment.setTender(v1Tenders.toArray(new com.squareup.connect.Tender[0]));
+    }
+
+    public static com.squareup.connect.Tender getExchangeTender(Money totalMoney) {
+    	com.squareup.connect.Tender exchangeTender = new com.squareup.connect.Tender();
+		exchangeTender.setExchange(true);
+		exchangeTender.setTotalMoney(totalMoney);
+		exchangeTender.setType("OTHER");
+		exchangeTender.setName("Other");
+		return exchangeTender;
     }
 
     public static void setPaymentDetails(Order order, com.squareup.connect.Payment payment, Map<String, CatalogObject> catalogMap,
@@ -440,7 +521,10 @@ public class ConnectV2MigrationHelper {
 						PaymentTax v1Tax = new PaymentTax();
 						v1Tax.setName(lineItemTax.getName());
 						v1Tax.setAppliedMoney(new Money(lineItemAppliedTax.getAppliedMoney().getAmount()));
-						v1Tax.setRate(lineItemTax.getPercentage());
+						double rate = Double.parseDouble(lineItemTax.getPercentage());
+					    double reformattedNumber = rate / 100;
+					    DecimalFormat df = new DecimalFormat("0.00000000");
+						v1Tax.setRate(df.format(reformattedNumber));
 						v1Tax.setInclusionType(lineItemTax.getType());
 						v1Tax.setFeeId(lineItemAppliedTax.getTaxUid());
 						paymentTaxes.add(v1Tax);
