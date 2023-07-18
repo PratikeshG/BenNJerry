@@ -90,9 +90,6 @@ public abstract class Record {
 	 */
 	private void put(String field, String value) {
 		FieldDetails details = getFields().get(field);
-		if(field.equals("Tender Amount"))
-			System.out.println("START HERE");
-
 		// Passed in value should always be a string. A null string should be treated as empty.
 		if (value == null) {
 			logger.info("null string passed in for field " + field + " for record type " + this.getId() + "; turning into empty string");
@@ -127,10 +124,6 @@ public abstract class Record {
 		    } else {
 		    	value = stringFill + value;
 		    }
-		}
-
-		if(value.equals("000005000005273400000052734001")) {
-			System.out.println("HERE?");
 		}
 
 		int start = details.getStartLocation() - 1;

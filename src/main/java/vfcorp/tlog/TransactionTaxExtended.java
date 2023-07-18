@@ -88,7 +88,9 @@ public class TransactionTaxExtended extends Record {
                 break;
         }
 
-        long taxRate = Math.round(Double.parseDouble(tax.getPercentage()) * 10000000);
+        double rate = tax.getPercentage() != null ? Double.parseDouble(tax.getPercentage()) : 0;
+	    double reformattedNumber = rate / 100;
+        long taxRate = Math.round(reformattedNumber * 10000000);
         int netAmounts = order.getNetAmounts() != null && order.getNetAmounts().getTotalMoney() != null ? order.getNetAmounts().getTotalMoney().getAmount() : 0;
         int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
         int taxableAmount = netAmounts - totalTaxMoney;

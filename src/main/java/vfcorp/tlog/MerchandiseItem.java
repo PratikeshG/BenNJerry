@@ -82,7 +82,7 @@ public class MerchandiseItem extends Record {
         		&& itemVariationData.getItemVariationData() != null
         		&& itemVariationData.getItemVariationData().getSku() != null ?
         				itemVariationData.getItemVariationData().getSku() : "";// requires special formating - check docs
-        String quantity = String.format("%.3s", lineItem.getQuantity()).replace(".", ""); // requires special formating - check docs
+        String quantity = String.format("%.3f", Double.parseDouble(lineItem.getQuantity())).replace(".", ""); // requires special formating - check docs
         String departmentNumber = "";
         String classNumber = "";
 
