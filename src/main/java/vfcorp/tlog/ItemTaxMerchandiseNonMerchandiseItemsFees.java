@@ -1,5 +1,6 @@
 package vfcorp.tlog;
 
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -90,8 +91,10 @@ public class ItemTaxMerchandiseNonMerchandiseItemsFees extends Record {
                 taxType = "01";
                 break;
         }
-        String rate = taxDetails.getPercentage() != null ? taxDetails.getPercentage() : "";
-        long taxRate = Math.round(Double.parseDouble(rate) * 10000000);
+        double rate = taxDetails.getPercentage() != null ? Double.parseDouble(taxDetails.getPercentage()) : 0;
+	    double reformattedNumber = rate / 100;
+
+        long taxRate = Math.round(reformattedNumber * 10000000);
 
         // for special taxes
         String specialTaxDetails = Util.getValueInParenthesis(taxDetails.getName());
