@@ -147,7 +147,7 @@ public class ConnectV2MigrationHelper {
         dateFilter.setUpdatedAt(timeRange);
         searchFilter.setDateTimeFilter(dateFilter);
 
-        searchSort.setSortField("UPDATED_AT");
+        searchSort.setSortField("CREATED_AT");
         searchSort.setSortOrder(params.get(util.Constants.SORT_ORDER_V2));
 
         Order[] allOrders = squareClientV2.orders().search(locationId, orderQuery);

@@ -58,7 +58,7 @@ public class CreditCardTender extends Record {
 		String entryMethod = "";
 		if (payment.getCardDetails() != null && payment.getCardDetails().getEntryMethod().equals("SWIPED"))
 			entryMethod = "1";
-		if (payment.getCardDetails() != null && payment.getCardDetails().getEntryMethod().equals("MANUAL"))
+		if (payment.getCardDetails() != null && (payment.getCardDetails().getEntryMethod().equals("CONTACTLESS") || payment.getCardDetails().getEntryMethod().equals("KEYED") || payment.getCardDetails().getEntryMethod().equals("EMV")))
 			entryMethod = "2";
 		String last4 =  payment.getCardDetails() != null
 				&& payment.getCardDetails().getCard() != null

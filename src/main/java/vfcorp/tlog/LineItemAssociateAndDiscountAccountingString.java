@@ -149,7 +149,7 @@ public class LineItemAssociateAndDiscountAccountingString extends Record {
         int rrp = lineItem.getGrossSalesMoney().getAmount();
         if ((lineItemDiscountValue + lineItemPromoValue + employeeDiscountValue > 0)
                 && (transactionDiscountValue + transactionPromoValue == 0)) {
-            rrp = lineItem.getGrossSalesMoney().getAmount() + lineItem.getTotalDiscountMoney().getAmount();
+            rrp = lineItem.getGrossSalesMoney().getAmount() - lineItem.getTotalDiscountMoney().getAmount();
         }
 
         int priceOverrideIndicator = 0;

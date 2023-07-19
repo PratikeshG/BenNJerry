@@ -112,6 +112,7 @@ public class TlogGenerator implements Callable {
         tlogGeneratorPayload.setEmployees(databaseApi.getEmployeeIdsForBrand(getBrandFromDeployment(deployment)));
 
         Map<String, String> params = tlogGeneratorPayload.getParams();
+        params.put(util.Constants.SORT_ORDER_V2, util.Constants.SORT_ORDER_ASC_V2);
 
         Payment[] payments = ConnectV2MigrationHelper.getPaymentsV2(squareV2Client, locationId, params);
         Order[] orders = ConnectV2MigrationHelper.getOrders(squareV2Client, locationId, params, allowCashTransactions);
