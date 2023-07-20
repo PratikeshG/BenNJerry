@@ -359,16 +359,16 @@ public class Util {
     }
 
     public static String getDeviceName(Order order, Map<String, Payment> tenderToPayment) {
-    	String registerNumber = null;
+    	String deviceName = null;
     	if(order != null && order.getTenders() != null) {
 			for(Tender tender : order.getTenders()) {
 				Payment payment = tenderToPayment.get(tender.getId());
 				if(payment != null && payment.getDeviceDetails() != null) {
-					registerNumber = payment.getDeviceDetails().getDeviceName();
+					deviceName = payment.getDeviceDetails().getDeviceName();
 					break;
 				}
 			}
 		}
-    	return registerNumber;
+    	return deviceName;
     }
 }
