@@ -405,7 +405,8 @@ public class Tlog {
 					paymentList.add(new CrmLoyaltyIndicator().parse(loyaltyCustomer.getReferenceId(), isLoyalty));
 				}
 
-				String registerNumber = Util.getDeviceName(order, tenderToPayment);
+				String deviceName = Util.getDeviceName(order, tenderToPayment);
+				String registerNumber = Util.getRegisterNumber(deviceName);
 
 				int transactionNumber = getNextTransactionNumberForRegister(location, registerNumber,
 						order.getId(), order.getCreatedAt());
