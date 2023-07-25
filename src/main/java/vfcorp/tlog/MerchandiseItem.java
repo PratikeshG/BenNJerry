@@ -131,7 +131,7 @@ public class MerchandiseItem extends Record {
         putValue("Extended Total", Integer.toString(lineItem.getGrossSalesMoney().getAmount()));
         putValue("Not On File Indicator", "0"); // not supported
         putValue("Entry Indicator", "1"); // not supported
-        putValue("Taxable Indicator", lineItem.getAppliedTaxes().length == 0 ? "1" : "0");
+        putValue("Taxable Indicator", lineItem.getAppliedTaxes() != null && lineItem.getAppliedTaxes().length == 0 ? "1" : "0");
         putValue("Item Status", "00"); // not supported
         putValue("Raincheck", "0"); // not supported
         putValue("Gift Item", "0"); // not supported
