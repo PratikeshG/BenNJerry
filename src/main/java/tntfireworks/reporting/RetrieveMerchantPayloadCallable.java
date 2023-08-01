@@ -236,7 +236,7 @@ public class RetrieveMerchantPayloadCallable implements Callable {
 	                }
 	            }
         	} catch (Exception e) {
-        		logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause());
+        		logger.error("ERROR: caught exception while aggregating '" + reportType + "' details: " + e.getCause(), e);
         		logger.error(e.getMessage());
         		logger.error("FAILED LOCATION: " + location.getId() + ", MERCHANT: " + deployment.getMerchantId());
         		logger.error("NUMBER OF LOCATIONS FROM THE FAILED DEPLOYMENT LOCATION: " + locations.length);
