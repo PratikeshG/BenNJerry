@@ -144,7 +144,7 @@ public class ConnectV2MigrationHelper {
         TimeRange timeRange = new TimeRange();
         timeRange.setStartAt(params.get(util.Constants.BEGIN_TIME));
         timeRange.setEndAt(params.get(util.Constants.END_TIME));
-        dateFilter.setUpdatedAt(timeRange);
+        dateFilter.setCreatedAt(timeRange);
         searchFilter.setDateTimeFilter(dateFilter);
 
         searchSort.setSortField("CREATED_AT");
