@@ -287,7 +287,7 @@ public class InputParser {
 
         if (items.size() > 0) {
             updateStatement = "INSERT INTO tntfireworks_marketing_plans (mktPlan, itemNumber, cat, category, itemDescription, casePacking, unitPrice, pricingUOM,"
-                    + "suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, bogo, itemNum3, currency, halfOff, sellingPrice) VALUES ";
+                    + "suggestedPrice, sellingUOM, upc, netItem, expiredDate, effectiveDate, discount, itemNum3, currency, notUsed, sellingPrice) VALUES ";
             String valuesFormat = "('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')";
 
             ArrayList<String> updates = new ArrayList<String>();
@@ -295,15 +295,15 @@ public class InputParser {
                 updates.add(String.format(valuesFormat, mktPlanName, item.getNumber(), item.getCat(),
                         item.getCategory(), item.getDescription(), item.getCasePacking(), item.getUnitPrice(),
                         item.getPricingUOM(), item.getSuggestedPrice(), item.getSellingUOM(), item.getUPC(),
-                        item.getNetItem(), item.getExpiredDate(), item.getEffectiveDate(), item.getBOGO(),
-                        item.getItemNum3(), item.getCurrency(), item.getHalfOff(), item.getSellingPrice()));
+                        item.getNetItem(), item.getExpiredDate(), item.getEffectiveDate(), item.getDiscount(),
+                        item.getItemNum3(), item.getCurrency(), item.getNotUsed(), item.getSellingPrice()));
             }
 
             updateStatement = appendWithListIterator(updateStatement, updates);
             updateStatement += " ON DUPLICATE KEY UPDATE cat=VALUES(cat), category=VALUES(category), itemDescription=VALUES(itemDescription), casePacking=VALUES(casePacking),"
                     + "unitPrice=VALUES(unitPrice), pricingUOM=VALUES(pricingUOM), suggestedPrice=VALUES(suggestedPrice), sellingUOM=VALUES(sellingUOM), upc=VALUES(upc),"
-                    + "netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), bogo=VALUES(bogo), itemNum3=VALUES(itemNum3), currency=VALUES(currency), "
-                    + "halfOff=VALUES(halfOff), sellingPrice=VALUES(sellingPrice);";
+                    + "netItem=VALUES(netItem), expiredDate=VALUES(expiredDate), effectiveDate=VALUES(effectiveDate), discount=VALUES(discount), itemNum3=VALUES(itemNum3), currency=VALUES(currency), "
+                    + "notUsed=VALUES(notUsed), sellingPrice=VALUES(sellingPrice);";
         }
 
         return updateStatement;

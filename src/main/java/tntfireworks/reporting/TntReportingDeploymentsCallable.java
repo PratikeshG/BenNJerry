@@ -39,7 +39,7 @@ public class TntReportingDeploymentsCallable implements Callable {
         List<SquarePayload> deploymentPayloads = getReportingDeploymentsFromDb(tntDatabaseApi, adhoc);
         tntDatabaseApi.close();
 
-        logger.info("Returning %s deployments from DB", deploymentPayloads.size());
+        logger.info("Returning {} deployments from DB", deploymentPayloads.size());
         return deploymentPayloads;
     }
 

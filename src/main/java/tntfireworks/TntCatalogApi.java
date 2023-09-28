@@ -279,9 +279,9 @@ public class TntCatalogApi {
          *      - for any BOGO item, the original item description is appended with BOGO PRICE suffix
          */
         String desc = csvItem.getDescription();
-        if (csvItem.getHalfOff().equals(CsvItem.BOGO_TRUE)) {
-            desc = String.format("%s - BOGO PRICE", desc);
-        }
+//        if (csvItem.getHalfOff().equals(CsvItem.BOGO_TRUE)) {
+//            desc = String.format("%s - BOGO PRICE", desc);
+//        }
         squareItem.getItemData().setName(desc);
 
         // set item variation data

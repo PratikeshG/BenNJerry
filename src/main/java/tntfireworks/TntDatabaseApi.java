@@ -34,7 +34,7 @@ public class TntDatabaseApi {
     public static final String DB_MKT_PLAN_CATEGORY_COLUMN = "category";
     public static final String DB_MKT_PLAN_NAME_COLUMN = "mktPlan";
     public static final String DB_MKT_PLAN_CURRENCY_COLUMN = "currency";
-    public static final String DB_MKT_PLAN_HALF_OFF_COLUMN = "halfOff";
+    public static final String DB_MKT_PLAN_NOT_USED_COLUMN = "notUsed";
     public static final String DB_MKT_PLAN_SELLING_PRICE_COLUMN = "sellingPrice";
     public static final String DB_MKT_PLAN_UPC_COLUMN = "upc";
     public static final String DB_MKT_PLAN_ITEM_NUMBER_COLUMN = "itemNumber";
@@ -160,7 +160,7 @@ public class TntDatabaseApi {
     public String generateItemSQLSelect() {
         String query = String.format("SELECT %s, %s, %s, %s, %s, %s, %s, %s FROM %s", DB_MKT_PLAN_ITEM_NUMBER_COLUMN,
                 DB_MKT_PLAN_CATEGORY_COLUMN, DB_MKT_PLAN_ITEM_DESCRIPTION_COLUMN, DB_MKT_PLAN_UPC_COLUMN,
-                DB_MKT_PLAN_NAME_COLUMN, DB_MKT_PLAN_CURRENCY_COLUMN, DB_MKT_PLAN_HALF_OFF_COLUMN,
+                DB_MKT_PLAN_NAME_COLUMN, DB_MKT_PLAN_CURRENCY_COLUMN, DB_MKT_PLAN_NOT_USED_COLUMN,
                 DB_MKT_PLAN_SELLING_PRICE_COLUMN, DB_MKT_PLAN);
         logger.info("Generated query: " + query);
         return query;
