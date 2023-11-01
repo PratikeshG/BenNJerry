@@ -48,11 +48,15 @@ public class DatabaseToSquareCallable implements Callable {
 
         if (syncType.equals(TntCatalogSyncDeploymentsCallable.SYNC_TYPE_CATALOG)) {
             // perform catalog pricing updates
-            logger.info(String.format("Begin processing Catalog API updates for merchant token: %s",
-                    deployment.getMerchantId()));
-            synchronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
-            logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
-                    deployment.getMerchantId()));
+        	try {
+        		   logger.info(String.format("Begin processing Catalog API updates for merchant token: %s",
+                           deployment.getMerchantId()));
+                   synchronizeItemsAndCategoriesForDeployment(deployment, locationMarketingPlanCache, marketingPlanItemsCache);
+                   logger.info(String.format("Done processing Catalog API updates for merchant token: %s",
+                           deployment.getMerchantId()));
+        	} catch (Exception e) {
+        		logger.error("Catalog Sync failed: %s. Continuing to inventory sync...", e.getLocalizedMessage());
+        	}
         }
 
         if (syncType.equals(TntCatalogSyncDeploymentsCallable.SYNC_TYPE_INVENTORY)) {
