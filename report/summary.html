@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migration Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="assets/styles/tsorter.css">
+</head>
+<body>
+<div class="mulesoft-topbar">
+    <div class="mulesoft-appbar">
+        <div class="muleicon muleicon-logo"></div>
+        <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+    </div>
+</div>
+<div class="col-md-8">
+    <h4>Issues found during migration:</h2>
+</div>
+    <div class="col-md-8 col-md-offset-1">
+        <h2 class="text-bold">Errors:</h2>
+        <table id="resources_table" class="table table-featured table-hover sortable">
+                <thead>
+                <tr>
+                    <th colspan="2" data-tsorter="link">Resource</th>
+                    <th data-tsorter="numeric"># Issues</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-global.xml">global.xml</label></a>
+                                    <input type="checkbox" name="error-global.xml" id="error-global.xml" data-toggle="toggle">
+                                </td>
+                                <td>7</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-global-0.html>- Review uses of properties defined in the referenced file, and add the 'secure' prefix to them.</a>
+                                        </td>
+                                        <td>5</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-global-1.html>- The migration of 's3' is not supported.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-global-2.html>- Add a suitable JDBC driver dependency for this connection.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-benjerrys.xml">benjerrys.xml</label></a>
+                                    <input type="checkbox" name="error-benjerrys.xml" id="error-benjerrys.xml" data-toggle="toggle">
+                                </td>
+                                <td>6</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-benjerrys-0.html>- Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-benjerrys-1.html>- Use the inline configuration of the operation instead of relying on properties set before this endpoint.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-benjerrys-2.html>- Could not find a non-custom splitter associated with this aggregator and there is no way of knowing the expected aggregation size. If the splitter and aggregator are in different flows, they might not be migrated. If that is not the case, the aggregators module should provide the required functionality.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-mi-oauth.xml">mi-oauth.xml</label></a>
+                                    <input type="checkbox" name="error-mi-oauth.xml" id="error-mi-oauth.xml" data-toggle="toggle">
+                                </td>
+                                <td>5</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-mi-oauth-0.html>- Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.</a>
+                                        </td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-mi-oauth-1.html>- Custom types defined in Studio 6 are not migrated to Studio 7.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                </tbody>
+            </table>
+    </div>
+    <div class="col-md-8 col-md-offset-1">
+        <h2 class="text-bold">Warnings:</h2>
+        <table id="resources_table" class="table table-featured table-hover sortable">
+                <thead>
+                <tr>
+                    <th colspan="2" data-tsorter="link">Resource</th>
+                    <th data-tsorter="numeric"># Issues</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-global.xml">global.xml</label></a>
+                                    <input type="checkbox" name="warn-global.xml" id="warn-global.xml" data-toggle="toggle">
+                                </td>
+                                <td>12</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-global-0.html>- The MEL expression could not be migrated to a DataWeave expression.</a>
+                                        </td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-global-1.html>- Instead of using session variables in the flow, use variables.</a>
+                                        </td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-global-2.html>- Make sure the migrated app is allowed to access GMail.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-global-3.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-global-4.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-benjerrys.xml">benjerrys.xml</label></a>
+                                    <input type="checkbox" name="warn-benjerrys.xml" id="warn-benjerrys.xml" data-toggle="toggle">
+                                </td>
+                                <td>28</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-0.html>- The MEL expression could not be migrated to a DataWeave expression.</a>
+                                        </td>
+                                        <td>6</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-1.html>- You can remove this if this flow is not using 'sessionVariables' or after migrating them to variables.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-2.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-3.html>- Instead of using session variables in the flow, use variables.</a>
+                                        </td>
+                                        <td>7</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-4.html>- Could not find any associated aggregator for the splitter. Might produce unexpected behavior.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-5.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-6.html>- Avoid using an outbound property to determine the status code.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-benjerrys-7.html>- The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-mi-oauth.xml">mi-oauth.xml</label></a>
+                                    <input type="checkbox" name="warn-mi-oauth.xml" id="warn-mi-oauth.xml" data-toggle="toggle">
+                                </td>
+                                <td>18</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-mi-oauth-0.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>8</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-mi-oauth-1.html>- Avoid using an outbound property to determine the status code.</a>
+                                        </td>
+                                        <td>6</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-mi-oauth-2.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-mi-oauth-3.html>- The MEL expression could not be migrated to a DataWeave expression.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                </tbody>
+            </table>
+    </div>
+    <div class="col-md-8 col-md-offset-1">
+            <h2 class="text-bold">Info:</h2>
+            <table id="resources_table" class="table table-featured table-hover sortable">
+                    <thead>
+                    <tr>
+                        <th colspan="2" data-tsorter="link">Resource</th>
+                        <th data-tsorter="numeric"># Issues</th>
+                    </tr>
+                    </thead>
+                    <tbody id="table-body">
+                            <tbody class="labels">
+                                <tr>
+                                    <td colspan="2">
+                                        <a><label for="info-benjerrys.xml">benjerrys.xml</label></a>
+                                        <input type="checkbox" name="warn-benjerrys.xml" id="info-benjerrys.xml" data-toggle="toggle">
+                                    </td>
+                                    <td>4</td>
+                                </tr>
+                            </tbody>
+                            <tbody class="hide" style="display: none">
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-benjerrys-0.html>- The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-benjerrys-1.html>- The queue configured in the VM inbound endpoint of the 'request-reply' is not used anymore.</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-benjerrys-2.html>- The 'flow' element no longer has a 'processingStrategy' attribute.</a>
+                                            </td>
+                                            <td>2</td>
+                                        </tr>
+                            </tbody>
+                            <tbody class="labels">
+                                <tr>
+                                    <td colspan="2">
+                                        <a><label for="info-mi-oauth.xml">mi-oauth.xml</label></a>
+                                        <input type="checkbox" name="warn-mi-oauth.xml" id="info-mi-oauth.xml" data-toggle="toggle">
+                                    </td>
+                                    <td>4</td>
+                                </tr>
+                            </tbody>
+                            <tbody class="hide" style="display: none">
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-mi-oauth-0.html>- Streaming is enabled by default in Mule 4</a>
+                                            </td>
+                                            <td>3</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-mi-oauth-1.html>- The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                            </tbody>
+                    </tbody>
+                </table>
+        </div>
+
+    <script type="text/javascript" src="assets/js/jquery-3.3.1.js"></script>
+    <script type="text/javascript">
+         $('[data-toggle="toggle"]').change(function(){
+            $(this).parents().next('.hide').toggle();
+        });
+    </script>
+</body>
+</html>

@@ -5,9 +5,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.QuoteMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +32,7 @@ public class CatalogExportImages {
 
         int totalVariations = 0;
 
-        try (CSVPrinter printer = new CSVPrinter(out,
-                CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
+   
 
             for (CatalogObject item : items) {
                 if (item.getItemData() == null || item.getItemData().getVariations() == null) {
@@ -46,7 +42,7 @@ public class CatalogExportImages {
                 String itemImages = item.getItemData().getImageIds() != null
                         ? String.join(",", item.getItemData().getImageIds())
                         : "";
-                printer.printRecord("item", item.getItemData().getName(), item.getId(), "", itemImages);
+               // printer.printRecord("item", item.getItemData().getName(), item.getId(), "", itemImages);
 
                 for (CatalogObject variation : item.getItemData().getVariations()) {
                     totalVariations++;
@@ -54,13 +50,12 @@ public class CatalogExportImages {
                     String varImages = variation.getItemVariationData().getImageIds() != null
                             ? String.join(",", variation.getItemVariationData().getImageIds())
                             : "";
-                    printer.printRecord("variation", variation.getItemVariationData().getName(), variation.getId(),
-                            varImages);
+                //    printer.printRecord("variation", variation.getItemVariationData().getName(), variation.getId(),varImages);
                 }
             }
 
-            printer.close();
-        }
+          //  printer.close();
+       
 
         logger.info("Total items: " + items.length);
         logger.info("Total variations: " + totalVariations);

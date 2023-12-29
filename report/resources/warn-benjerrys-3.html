@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">Instead of using session variables in the flow, use variables.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables">https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;emailOverride&quot; value=&quot;#[&apos;&apos;]&quot; doc:name=&quot;Set emailOverride&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;offset&quot; value=&quot;#[if (vars.compatibility_inboundProperties.&apos;http.query.params&apos;.offset != null)   vars.compatibility_inboundProperties.&apos;http.query.params&apos;.offset else   &apos;1&apos;]&quot; doc:name=&quot;Set offset&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;locationOverride&quot; value=&quot;#[&apos;&apos;]&quot; doc:name=&quot;Set locationOverride&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;dateMonthYear&quot; value=&quot;#[mel:server.dateTime.plusMonths(flowVars.negateOffset).format(&apos;MMM yyyy&apos;)]&quot; doc:name=&quot;Set reportMonthYear date string&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+    &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+    &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+&lt;/set-session-variable&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;emailOverride&quot; value=&quot;#[if (vars.compatibility_inboundProperties.&apos;http.query.params&apos;.email != null)   vars.compatibility_inboundProperties.&apos;http.query.params&apos;.email else   &apos;&apos;]&quot; doc:name=&quot;Set email (override)&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;offset&quot; value=&quot;1&quot; doc:name=&quot;Set offset&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;locationOverride&quot; value=&quot;#[if (vars.compatibility_inboundProperties.&apos;http.query.params&apos;.location != null)   vars.compatibility_inboundProperties.&apos;http.query.params&apos;.location else   &apos;&apos;]&quot; doc:name=&quot;Set location (override)&quot; /&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

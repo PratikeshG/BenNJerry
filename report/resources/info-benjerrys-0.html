@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz">https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">2</span>&nbsp;
+                    Column: <span class="text-italic text-normal">1,157</span>
+                </h4>
+                <br>
+                <pre>&lt;mule xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd&quot;&gt;
+    &lt;vm:connector name=&quot;BJS_REPORTING_VM&quot; validateConnections=&quot;true&quot; doc:name=&quot;VM&quot; /&gt;
+    &lt;quartz:connector name=&quot;Quartz-BJs&quot; validateConnections=&quot;true&quot; doc:name=&quot;Quartz&quot; /&gt;
+    &lt;migration:splitterGlobalValues&gt;
+        &lt;migration:splitterGlobalIndexes collection-splitter=&quot;0&quot; /&gt;
+    &lt;/migration:splitterGlobalValues&gt;
+    &lt;vm:config name=&quot;BJS_REPORTING_VM&quot;&gt;
+        &lt;vm:queues&gt;
+            &lt;vm:queue queueName=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; queueType=&quot;TRANSIENT&quot; /&gt;
+        &lt;/vm:queues&gt;
+    &lt;/vm:config&gt;
+    &lt;flow name=&quot;BJs-trigger-monthly-report&quot;&gt;
+        &lt;http:listener config-ref=&quot;HTTP_Listener_Configuration&quot; path=&quot;/bjs/report/${urlKey}&quot; doc:name=&quot;/bjs/report&quot; /&gt;
+        &lt;set-session-variable variableName=&quot;offset&quot; value=&quot;#[message.inboundProperties.&apos;http.query.params&apos;.offset != null ? message.inboundProperties.&apos;http.query.params&apos;.offset : &amp;quot;1&amp;quot;]&quot; doc:name=&quot;Set offset&quot; /&gt;
+        &lt;set-session-variable variableName=&quot;emailOverride&quot; value=&quot;#[message.inboundProperties.&apos;http.query.params&apos;.email != null ? message.inboundProperties.&apos;http.query.params&apos;.email : &amp;quot;&amp;quot;]&quot; doc:name=&quot;Set email (override)&quot; /&gt;
+        &lt;set-session-variable variableName=&quot;locationOverride&quot; value=&quot;#[message.inboundProperties.&apos;http.query.params&apos;.location != null ? message.inboundProperties.&apos;http.query.params&apos;.location : &amp;quot;&amp;quot;]&quot; doc:name=&quot;Set location (override)&quot; /&gt;
+        &lt;flow-ref name=&quot;BJs-generate-monthly-report&quot; doc:name=&quot;BJs-generate-monthly-report&quot; /&gt;
+        &lt;set-payload value=&quot;#[&amp;quot;BJs mothly reports generated with offset: $(sessionVars.offset)&amp;quot;]&quot; doc:name=&quot;Response message&quot; /&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;BJs-monthly-report-cron&quot; maxConcurrency=&quot;1&quot;&gt;
+        &lt;!--Migration INFO: The &apos;flow&apos; element no longer has a &apos;processingStrategy&apos; attribute.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine--&gt;
+        &lt;scheduler responseTimeout=&quot;10000&quot; doc:name=&quot;Run first of every month at 8:45pm EST&quot; migration:isMessageSource=&quot;true&quot;&gt;
+            &lt;scheduling-strategy&gt;
+                &lt;fixed-frequency frequency=&quot;0&quot; /&gt;
+                &lt;cron expression=&quot;0 45 20 1 * ?&quot; timeZone=&quot;America/New_York&quot; /&gt;
+            &lt;/scheduling-strategy&gt;
+        &lt;/scheduler&gt;
+        &lt;choice doc:name=&quot;Choice&quot;&gt;
+            &lt;when expression=&quot;#[&apos;${benjerrys.reporting.active}&apos; == false]&quot;&gt;
+                &lt;logger message=&quot;Ben &amp;amp; Jerrys Reporting Disabled&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot; /&gt;
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                &lt;set-session-variable variableName=&quot;offset&quot; value=&quot;1&quot; doc:name=&quot;Set offset&quot; /&gt;
+                &lt;set-session-variable variableName=&quot;emailOverride&quot; value=&quot;#[&amp;quot;&amp;quot;]&quot; doc:name=&quot;Set emailOverride&quot; /&gt;
+                &lt;set-session-variable variableName=&quot;locationOverride&quot; value=&quot;#[&amp;quot;&amp;quot;]&quot; doc:name=&quot;Set locationOverride&quot; /&gt;
+                &lt;flow-ref name=&quot;BJs-generate-monthly-report&quot; doc:name=&quot;BJs-generate-monthly-report&quot; /&gt;
+            &lt;/otherwise&gt;
+        &lt;/choice&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;BJs-generate-monthly-report&quot;&gt;
+        &lt;logger message=&quot;Begin generating Ben &amp;amp; Jerrys Reporting&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot; /&gt;
+        &lt;flow-ref name=&quot;GLOBAL:set-session-vars&quot; doc:name=&quot;GLOBAL:set-session-vars&quot; /&gt;
+        &lt;set-variable variableName=&quot;deployment&quot; value=&quot;ben-and-jerrys&quot; doc:name=&quot;Deployment ID&quot; /&gt;
+        &lt;flow-ref name=&quot;MI:OAuth:retrieveToken&quot; doc:name=&quot;MI:OAuth:retrieveToken&quot; /&gt;
+        &lt;set-variable variableName=&quot;negateOffset&quot; value=&quot;#[mel:Integer.parseInt(sessionVars.offset) * -1]&quot; doc:name=&quot;Calc negative offset for date string&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+            &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+        &lt;/set-variable&gt;
+        &lt;set-session-variable variableName=&quot;dateMonthYear&quot; value=&quot;#[server.dateTime.plusMonths(flowVars.negateOffset).format(&apos;MMM yyyy&apos;)]&quot; doc:name=&quot;Set reportMonthYear date string&quot; /&gt;
+        &lt;flow-ref name=&quot;BJs-aggregate-location-payloads&quot; doc:name=&quot;BJs-aggregate-location-payloads&quot; /&gt;
+        &lt;component doc:name=&quot;Generate aggregate summary report&quot;&gt;
+            &lt;singleton-object class=&quot;benjerrys.AggregateSummaryCallable&quot; /&gt;
+        &lt;/component&gt;
+        &lt;smtp:outbound-endpoint host=&quot;${email.info.sending.server}&quot; user=&quot;${email.info.sending.username}&quot; password=&quot;****&quot; connector-ref=&quot;SES_SMTP_STARTTLS_HTML&quot; to=&quot;${benjerrys.email.summary.to}&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Job Summary&quot; /&gt;
+        &lt;logger message=&quot;Finished BJs generate-monthly-report flow.&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot; /&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;BJs-aggregate-location-payloads&quot;&gt;
+        &lt;component class=&quot;benjerrys.LocationsCallable&quot; doc:name=&quot;Get LocationsCallable&quot; /&gt;
+        &lt;async&gt;
+            &lt;compatibility:outbound-properties-to-var consumeStreams=&quot;true&quot;&gt;
+                &lt;!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as &apos;method&apos;) of the operation or listener that accepts the expression.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+            &lt;/compatibility:outbound-properties-to-var&gt;
+            &lt;vm:publish-consume doc:name=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; config-ref=&quot;BJS_REPORTING_VM&quot; queueName=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot;&gt;
+                &lt;!--Migration INFO: The queue configured in the VM inbound endpoint of the &apos;request-reply&apos; is not used anymore.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://docs.mulesoft.com/connectors/vm/vm-publish-response--&gt;
+                &lt;!--&lt;vm:inbound-endpoint xmlns:vm=&quot;http://www.mulesoft.org/schema/mule/vm&quot; xmlns:doc=&quot;http://www.mulesoft.org/schema/mule/documentation&quot; exchange-pattern=&quot;one-way&quot; path=&quot;BJs-aggregate-location-payloads-queue-reply&quot; doc:name=&quot;BJs-aggregate-location-payloads-queue-reply&quot;&gt;
+                &lt;collection-aggregator xmlns=&quot;http://www.mulesoft.org/schema/mule/core&quot; failOnTimeout=&quot;true&quot; doc:name=&quot;Collection Aggregator&quot;&gt;
+                    
+                    
+                    
+                    
+                &lt;/collection-aggregator&gt;
+            &lt;/vm:inbound-endpoint&gt;--&gt;
+                &lt;set-variable variableName=&quot;collection-splitter0-group-size&quot; value=&quot;#[sizeOf(payload)]&quot; /&gt;
+                &lt;foreach&gt;
+                    &lt;!--Migration WARN: Could not find any associated aggregator for the splitter. Might produce unexpected behavior.--&gt;
+                    &lt;!--    For more information refer to:--&gt;
+                    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-core-splitter-aggregator--&gt;
+                    &lt;!--&lt;collection-splitter xmlns=&quot;http://www.mulesoft.org/schema/mule/core&quot; xmlns:doc=&quot;http://www.mulesoft.org/schema/mule/documentation&quot; doc:name=&quot;Collection Splitter&quot; enableCorrelation=&quot;ALWAYS&quot; /&gt;--&gt;
+                    &lt;aggregators:group-based-aggregator evictionTime=&quot;0&quot; name=&quot;collection-splitter0-aggregator&quot; groupSize=&quot;#[vars.&apos;collection-splitter0-group-size&apos;]&quot;&gt;
+                        &lt;aggregators:aggregation-complete&gt;
+                            &lt;set-variable variableName=&quot;collection-splitter0-aggregator-aggregation&quot; value=&quot;#[payload]&quot; /&gt;
+                        &lt;/aggregators:aggregation-complete&gt;
+                    &lt;/aggregators:group-based-aggregator&gt;
+                &lt;/foreach&gt;
+                &lt;set-payload value=&quot;#[vars.&apos;collection-splitter0-aggregator-aggregation&apos;]&quot; /&gt;
+                &lt;vm:content&gt;
+                    &lt;!--Migration WARN: You can remove this if this flow is not using &apos;sessionVariables&apos; or after migrating them to variables.--&gt;
+                    &lt;!--    For more information refer to:--&gt;
+                    &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables--&gt;
+                    &lt;![CDATA[#[output application/java --- {&apos;_vmTransportMode&apos;: true, &apos;payload&apos;: payload.^raw, &apos;mimeType&apos;: payload.^mimeType, &apos;session&apos;: vars.compatibility_outboundProperties[&apos;MULE_SESSION&apos;]}]]]&gt;
+                &lt;/vm:content&gt;
+            &lt;/vm:publish-consume&gt;
+            &lt;compatibility:attributes-to-inbound-properties&gt;
+                &lt;!--Migration WARN: Expressions that query &apos;inboundProperties&apos; from the message should instead query the message &apos;attributes&apos;. Remove this component if there are no uses of &apos;inboundProperties&apos; in expressions or components that rely on &apos;inboundProperties&apos; (such as &apos;copy-properties&apos;).--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties--&gt;
+            &lt;/compatibility:attributes-to-inbound-properties&gt;
+            &lt;logger message=&quot;Successfully completed all BJs location processing.&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot; /&gt;
+        &lt;/async&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; maxConcurrency=&quot;${benjerrys.reporting.maxThreads}&quot;&gt;
+        &lt;!--Migration INFO: The &apos;flow&apos; element no longer has a &apos;processingStrategy&apos; attribute.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine--&gt;
+        &lt;vm:inbound-endpoint exchange-pattern=&quot;one-way&quot; path=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; connector-ref=&quot;BJS_REPORTING_VM&quot; doc:name=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; /&gt;
+        &lt;logger message=&quot;#[mel:&amp;quot;Retrieving location details for deployment: &amp;quot; + payload.getName()]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+            &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+        &lt;/logger&gt;
+        &lt;component doc:name=&quot;Generate report for location&quot;&gt;
+            &lt;singleton-object class=&quot;benjerrys.GenerateLocationReportCallable&quot; /&gt;
+        &lt;/component&gt;
+        &lt;choice doc:name=&quot;Choice&quot;&gt;
+            &lt;when expression=&quot;#[mel:payload.isProcessed()]&quot;&gt;
+                &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+                &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+                &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+                &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+                &lt;set-variable variableName=&quot;emailRecipients&quot; value=&quot;#[if ((sessionVars.emailOverride != null and length(sessionVars.emailOverride) &amp;gt; 0))   sessionVars.emailOverride else   vars.locationRecipients]&quot; doc:name=&quot;Set emailRecipients&quot; /&gt;
+                &lt;async doc:name=&quot;Async&quot;&gt;
+                    &lt;set-payload value=&quot;Your monthly reports are attached.&quot; doc:name=&quot;Set Payload&quot; /&gt;
+                    &lt;smtp:outbound-endpoint host=&quot;${email.info.sending.server}&quot; user=&quot;${email.info.sending.username}&quot; password=&quot;****&quot; connector-ref=&quot;SES_SMTP_STARTTLS&quot; to=&quot;#[flowVars.emailRecipients]&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Reports to Recipients&quot; /&gt;
+                &lt;/async&gt;
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                &lt;logger message=&quot;Skipping. Location not processed.&quot; level=&quot;INFO&quot; doc:name=&quot;Location not processed&quot; /&gt;
+            &lt;/otherwise&gt;
+        &lt;/choice&gt;
+    &lt;/flow&gt;
+&lt;/mule&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.mule.api.MuleMessage;
-import org.mule.api.transport.PropertyScope;
+//import org.mule.api.MuleMessage;
+//import org.mule.api.transport.PropertyScope;
 
 import com.squareup.connect.Refund;
 import com.squareup.connect.v2.Location;
@@ -31,8 +31,8 @@ public class RefundsReportBuilder extends AbstractReportBuilder<PaymentRefund> {
 	 * @param accessToken
 	 * @param merchantId
 	 */
-	public RefundsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
-		super(apiUrl, accessToken, merchantId, message);
+	public RefundsReportBuilder(String apiUrl, String accessToken, String merchantId) {
+		super(apiUrl, accessToken, merchantId);
 	}
 
 	/**
@@ -56,7 +56,7 @@ public class RefundsReportBuilder extends AbstractReportBuilder<PaymentRefund> {
 		for (Location location : this.getLocations()) {
 			this.processLocation(location, locationsRefunds, locationsV1Refunds);
 		}
-        this.message.setProperty(Constants.V1REFUNDS, locationsV1Refunds, PropertyScope.INVOCATION);
+        //this.message.setProperty(Constants.V1REFUNDS, locationsV1Refunds, PropertyScope.INVOCATION);
 		return locationsRefunds;
 	}
 

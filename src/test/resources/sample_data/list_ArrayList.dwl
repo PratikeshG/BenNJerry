@@ -1,8 +1,8 @@
-%dw 1.0
-%output application/java
+%dw 2.0
+output application/java  
 ---
-[{
-	empty: true
-} as :object {
-	class : "java.util.ArrayList"
-}]
+[
+  {
+    empty: true
+  } as Object {class: "java.util.ArrayList"}
+]

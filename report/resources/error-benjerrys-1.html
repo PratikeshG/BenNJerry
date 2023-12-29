@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">Use the inline configuration of the operation instead of relying on properties set before this endpoint.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint">https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;email:send to=&quot;#[flowVars.emailRecipients]&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Reports to Recipients&quot; config-ref=&quot;SES_SMTP_STARTTLS&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;email:send to=&quot;${benjerrys.email.summary.to}&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Job Summary&quot; config-ref=&quot;SES_SMTP_STARTTLS_HTML&quot; /&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

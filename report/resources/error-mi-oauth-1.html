@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">mi-oauth.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">Custom types defined in Studio 6 are not migrated to Studio 7.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">129</span>&nbsp;
+                    Column: <span class="text-italic text-normal">52</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform metadata:id=&quot;4c4f26e2-147b-4d27-848f-efeb8db63fc2&quot; doc:name=&quot;Transform Message&quot;&gt;
+    &lt;ee:message&gt;
+        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { encryptedAccessToken: payload[0].encryptedAccessToken as String, locationId: payload[0].locationId, merchantAlias: payload[0].merchantAlias, merchantId: payload[0].merchantId } as Object {class: &quot;util.SquarePayload&quot;}]]&gt;&lt;/ee:set-payload&gt;
+    &lt;/ee:message&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

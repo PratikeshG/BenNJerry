@@ -7,9 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.QuoteMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,23 +48,22 @@ public class EmployeeExport {
 
         Writer out = new OutputStreamWriter(new FileOutputStream(OUTPUT_PATH), StandardCharsets.ISO_8859_1);
 
-        try (CSVPrinter printer = new CSVPrinter(out,
-                CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
-
-            for (Employee employee : employees) {
-                ArrayList<String> authorizedLocations = new ArrayList<String>();
-
-                for (String locationId : employee.getAuthorizedLocationIds()) {
-                    authorizedLocations.add(locationNamesCache.get(locationId));
-                }
-
-                printer.printRecord(employee.getId(), employee.getExternalId(), employee.getFirstName(),
-                        employee.getLastName(), employee.getStatus(), employee.getEmail(),
-                        String.join(", ", authorizedLocations));
-            }
-
-            printer.close();
-        }
+//        try (CSVPrinter printer = new CSVPrinter(out,CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
+//
+//            for (Employee employee : employees) {
+//                ArrayList<String> authorizedLocations = new ArrayList<String>();
+//
+//                for (String locationId : employee.getAuthorizedLocationIds()) {
+//                    authorizedLocations.add(locationNamesCache.get(locationId));
+//                }
+//
+//                printer.printRecord(employee.getId(), employee.getExternalId(), employee.getFirstName(),
+//                        employee.getLastName(), employee.getStatus(), employee.getEmail(),
+//                        String.join(", ", authorizedLocations));
+//            }
+//
+//            printer.close();
+//        }
 
         logger.info("Done.");
     }

@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <!--Migration INFO: The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4-->
+    <!--    For more information refer to:-->
+    <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz-->
+    <!--<quartz:connector xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" name="Quartz-OAuth" validateConnections="true" doc:name="Quartz">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="Quartz-OAuth" />
+    </quartz:connector>-->
+    <flow name="MI:OAuth:create-token">
+        <http:listener config-ref="${default.http.config}" path="/createToken" doc:name="HTTPS">
+            <http:response statusCode="#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <compatibility:attributes-to-inbound-properties>
+            <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+        </compatibility:attributes-to-inbound-properties>
+
+        <choice doc:name="Prompt user to add deployment URI parameter">
+            <when expression="#[vars.compatibility_inboundProperties.'http.query.params'.deployment == null]">
+                <set-payload value="You must provide a URI parameter, &quot;deployment&quot;, which denotes the deployment name." doc:name="Inform user of missing URI parameter" />
+            </when>
+            <when expression="#[vars.compatibility_inboundProperties.'http.query.params'.scope == null]">
+                <set-payload value="You must provide a URI parameter, &quot;scope&quot;, which denotes the requested Connect permission scopes." doc:name="Inform user of missing Connect permissions scope" />
+            </when>
+            <when expression="#[vars.compatibility_inboundProperties.'http.query.params'.alias == null]">
+                <set-payload value="You must provide a URI parameter, &quot;alias&quot;, which denotes the Nickname/Alias for this integration." doc:name="Inform user of missing account Nickname parameter" />
+            </when>
+            <otherwise>
+                <component doc:name="Generate state variable">
+                    <!--Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.-->
+                    <prototype-object class="util.oauth.StateVariableGenerator" />
+                </component>
+                <parse-template location="static/bridge-oauth-redirect-state.html" doc:name="Parse Template" />
+            </otherwise>
+        </choice>
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+    </flow>
+
+    <flow name="MI:OAuth:callback">
+        <http:listener config-ref="${default.http.config}" path="/callback" doc:name="HTTPS">
+            <http:response statusCode="#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <compatibility:attributes-to-inbound-properties>
+            <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+        </compatibility:attributes-to-inbound-properties>
+
+        <component class="util.oauth.StateVariableParser" doc:name="Verify State Token">
+            <!--Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.-->
+        </component>
+
+        <choice doc:name="Route based on valid state variable">
+            <when expression="#[vars.deployment != null and vars.code != null]">
+                <component doc:name="Convert OAuth code to token">
+                    <!--Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.-->
+                    <prototype-object class="util.oauth.CodeToTokenConverter" />
+                </component>
+                <compatibility:outbound-properties-to-var>
+                    <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                </compatibility:outbound-properties-to-var>
+                <db:insert config-ref="MySQL_Configuration" doc:name="Write token to database">
+                    <db:sql><![CDATA[#["INSERT INTO `token` (deployment, connectApp, encryptedAccessToken, encryptedRefreshToken, merchantId, locationId, expiryDate, merchantAlias) VALUES ($(vars.deployment), $(vars.connectAppId), $(vars.encryptedAccessToken), $(vars.encryptedRefreshToken), $(vars.merchantId), $(vars.locationId), $(vars.expiresAt), $(vars.alias));"]]]></db:sql>
+                </db:insert>
+                <set-payload value="Token written to database." doc:name="Inform user of successful operation" />
+            </when>
+            <otherwise>
+                <set-payload value="Failed to validate state parameter. Token creation failed." doc:name="Inform user of failed operation" />
+            </otherwise>
+        </choice>
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+    </flow>
+
+    <sub-flow name="MI:OAuth:retrieveToken">
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment ID">
+            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+            <db:sql><![CDATA[#["SELECT * FROM token WHERE deployment = $(vars.deployment) LIMIT 1;"]]]></db:sql>
+        </db:select>
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  encryptedAccessToken: payload[0].encryptedAccessToken as String,
+  locationId: payload[0].locationId,
+  merchantAlias: payload[0].merchantAlias,
+  merchantId: payload[0].merchantId
+} as Object {class: "util.SquarePayload"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+
+    <sub-flow name="MI:OAuth:retrieve-tokens">
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for deployment IDs">
+            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+            <db:sql><![CDATA[#["SELECT * FROM token WHERE deployment = $(vars.deployment);"]]]></db:sql>
+        </db:select>
+    </sub-flow>
+
+    <flow name="MI:OAuth:renew-expiring-tokens">
+        <scheduler responseTimeout="10000" doc:name="Run every Monday &amp; Thursday at 10:00am (PST)">
+            <scheduling-strategy>
+                <fixed-frequency frequency="0" />
+                <cron expression="0 0 10 ? * MON,THU" timeZone="America/Los_Angeles" />
+            </scheduling-strategy>
+        </scheduler>
+
+        <set-payload value="#[mel:server.dateTime.plusDays(14).withTimeZone(&quot;UTC&quot;).format()]" doc:name="Set payload to date two weeks in the future in ISO8601 format">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+        </set-payload>
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+        <db:select config-ref="MySQL_Configuration" doc:name="Query database for expired tokens">
+            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+            <db:sql><![CDATA[#["SELECT * FROM token WHERE expiryDate < $(payload);"]]]></db:sql>
+        </db:select>
+
+        <foreach doc:name="For each expiring token">
+            <component doc:name="Renew token">
+                <!--Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.-->
+                <prototype-object class="util.oauth.TokenRenewer" />
+            </component>
+            <choice doc:name="Process token">
+                <when expression="#[payload == false]">
+                    <logger message="#[&quot;Error attempting to renew token: $(vars.error)&quot;]" level="INFO" doc:name="Log error" />
+                </when>
+                <otherwise>
+                    <compatibility:outbound-properties-to-var>
+                        <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                    </compatibility:outbound-properties-to-var>
+                    <db:update config-ref="MySQL_Configuration" doc:name="Update token in database">
+                        <db:sql><![CDATA[#["UPDATE `token` SET encryptedAccessToken = $(vars.encryptedAccessToken), expiryDate = $(vars.expiresAt) WHERE id = $(vars.tokenId);"]]]></db:sql>
+                    </db:update>
+                </otherwise>
+            </choice>
+        </foreach>
+
+    </flow>
+
+    <flow name="MI:OAuth:trigger-oauth-refresh">
+        <http:listener config-ref="${default.http.config}" path="/oauth/refresh/${urlKey}" doc:name="/oauth/refresh">
+            <http:response statusCode="#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <compatibility:attributes-to-inbound-properties>
+            <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+        </compatibility:attributes-to-inbound-properties>
+
+        <flow-ref name="MI:OAuth:renew-expiring-tokens" doc:name="MI:OAuth:renew-expiring-tokens" />
+
+        <set-payload value="Running OAuth refresh..." doc:name="Set Payload" />
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+    </flow>
+
+</mule>

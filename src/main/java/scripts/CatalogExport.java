@@ -5,9 +5,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.QuoteMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,24 +29,23 @@ public class CatalogExport {
 
         int totalVariations = 0;
 
-        try (CSVPrinter printer = new CSVPrinter(out,
-                CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
-
-            for (CatalogObject item : items) {
-                if (item.getItemData() == null || item.getItemData().getVariations() == null) {
-                    continue;
-                }
-
-                for (CatalogObject variation : item.getItemData().getVariations()) {
-                    totalVariations++;
-
-                    printer.printRecord(item.getItemData().getName(), item.getId(),
-                            variation.getItemVariationData().getName(), variation.getId());
-                }
-            }
-
-            printer.close();
-        }
+//        try (CSVPrinter printer = new CSVPrinter(out,CSVFormat.DEFAULT.withHeader(HEADERS).withQuoteMode(QuoteMode.MINIMAL))) {
+//
+//            for (CatalogObject item : items) {
+//                if (item.getItemData() == null || item.getItemData().getVariations() == null) {
+//                    continue;
+//                }
+//
+//                for (CatalogObject variation : item.getItemData().getVariations()) {
+//                    totalVariations++;
+//
+//                    printer.printRecord(item.getItemData().getName(), item.getId(),
+//                            variation.getItemVariationData().getName(), variation.getId());
+//                }
+//            }
+//
+//            printer.close();
+//        }
 
         logger.info("Total items: " + items.length);
         logger.info("Total variations: " + totalVariations);

@@ -28,7 +28,8 @@ public class DecryptFiles {
         logger.info(String.format(LOGGER_RUNNING, FILE_PATTERN, PATH));
 
         File dir = new File(PATH);
-        File[] files = dir.listFiles((d, name) -> name.endsWith(FILE_PATTERN));
+        //pratikesh
+        File[] files = null;//dir.listFiles((d, name) -> name.endsWith(FILE_PATTERN));
 
         for (File f : files) {
             String encryptedName = f.getName();

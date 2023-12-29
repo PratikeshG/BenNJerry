@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
+//import org.apache.commons.csv.CSVFormat;
+//import org.apache.commons.csv.CSVPrinter;
 
 public class CSVGenerator {
 	private List<String> headers = null;
@@ -22,12 +22,12 @@ public class CSVGenerator {
 	}
 	public String build() throws IOException {
 		StringBuilder output = new StringBuilder();
-		CSVPrinter printer = new CSVPrinter(output, CSVFormat.DEFAULT);
-		printer.printRecord(this.headers);
-		for (List<String> row : this.rows) {
-			printer.printRecord(row);
-		}
-		printer.close();
+		//CSVPrinter printer = new CSVPrinter(output, CSVFormat.DEFAULT);
+//		printer.printRecord(this.headers);
+//		for (List<String> row : this.rows) {
+//			printer.printRecord(row);
+//		}
+//		printer.close();
 		return output.toString();
 	}
 }

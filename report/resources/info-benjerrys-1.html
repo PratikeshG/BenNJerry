@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The queue configured in the VM inbound endpoint of the 'request-reply' is not used anymore.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/connectors/vm/vm-publish-response">https://docs.mulesoft.com/connectors/vm/vm-publish-response</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;vm:publish-consume exchange-pattern=&quot;one-way&quot; path=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot; doc:name=&quot;BJs-aggregate-location-payloads-queue-async-worker&quot;&gt;
+    &lt;set-variable variableName=&quot;collection-splitter0-group-size&quot; value=&quot;#[sizeOf(payload)]&quot; /&gt;
+    &lt;foreach&gt;
+        &lt;!--Migration WARN: Could not find any associated aggregator for the splitter. Might produce unexpected behavior.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-core-splitter-aggregator--&gt;
+        &lt;!--&lt;collection-splitter xmlns=&quot;http://www.mulesoft.org/schema/mule/core&quot; xmlns:doc=&quot;http://www.mulesoft.org/schema/mule/documentation&quot; doc:name=&quot;Collection Splitter&quot; enableCorrelation=&quot;ALWAYS&quot; /&gt;--&gt;
+        &lt;aggregators:group-based-aggregator evictionTime=&quot;0&quot; name=&quot;collection-splitter0-aggregator&quot; groupSize=&quot;#[vars.&apos;collection-splitter0-group-size&apos;]&quot;&gt;
+            &lt;aggregators:aggregation-complete&gt;
+                &lt;set-variable variableName=&quot;collection-splitter0-aggregator-aggregation&quot; value=&quot;#[payload]&quot; /&gt;
+            &lt;/aggregators:aggregation-complete&gt;
+        &lt;/aggregators:group-based-aggregator&gt;
+    &lt;/foreach&gt;
+    &lt;set-payload value=&quot;#[vars.&apos;collection-splitter0-aggregator-aggregation&apos;]&quot; /&gt;
+&lt;/vm:publish-consume&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

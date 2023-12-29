@@ -7,15 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
-import com.google.api.services.storage.model.StorageObject;
-
-import util.CloudStorageApi;
+//import util.CloudStorageApi;
 
 public class DownloadArchivedFiles {
     private final static String[] LOCATIONS = { "00313" }; // ex: { "00313", "00512"}
@@ -34,45 +31,43 @@ public class DownloadArchivedFiles {
     public static void main(String[] args) throws Exception {
         logger.info("Running...");
 
-        JSONParser parser = new JSONParser();
+        //JSONParser parser = new JSONParser();
         Resource resource = new ClassPathResource(GOOGLE_CREDENTIALS);
-        Object credentials = parser.parse(new FileReader(resource.getFile()));
-        CloudStorageApi cloudStorage = new CloudStorageApi(credentials.toString());
+       // Object credentials = parser.parse(new FileReader(resource.getFile()));
+       // CloudStorageApi cloudStorage = new CloudStorageApi(credentials.toString());
 
         for (String locationId : LOCATIONS) {
-            for (StorageObject o : cloudStorage.listObjects(ARCHIVE_BUCKET,
-                    String.format(SEARCH_FILE_PATH, locationId, SEARCH_FILE_PREFIX))) {
+           // for (StorageObject o : cloudStorage.listObjects(ARCHIVE_BUCKET,String.format(SEARCH_FILE_PATH, locationId, SEARCH_FILE_PREFIX))) {
 
-                logger.info("Downloading and decrypting file: " + o.getName());
-                InputStream is = cloudStorage.downloadAndDecryptObject(FILE_ENCRYPTION_KEY, ARCHIVE_BUCKET,
-                        o.getName());
+               // logger.info("Downloading and decrypting file: " + o.getName());
+               // InputStream is = cloudStorage.downloadAndDecryptObject(FILE_ENCRYPTION_KEY, ARCHIVE_BUCKET,o.getName());
 
-                String[] tmp = o.getName().split("/");
-                String fileName = tmp[tmp.length - 1];
+                //String[] tmp = o.getName().split("/");
+                //String fileName = tmp[tmp.length - 1];
 
-                if (fileName.endsWith(SECURE_FILE_EXTENSION)) {
-                    fileName = fileName.substring(0, fileName.length() - SECURE_FILE_EXTENSION.length());
-                }
-
-                try {
-                    OutputStream os = new FileOutputStream(new File(DESTINATION_PATH + fileName));
-
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    //read from is to buffer
-                    while ((bytesRead = is.read(buffer)) != -1) {
-                        os.write(buffer, 0, bytesRead);
-                    }
-                    is.close();
-                    //flush OutputStream to write any buffered data to file
-                    os.flush();
-                    os.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+//                if (fileName.endsWith(SECURE_FILE_EXTENSION)) {
+//                    fileName = fileName.substring(0, fileName.length() - SECURE_FILE_EXTENSION.length());
+//                }
+//
+//                try {
+//                    OutputStream os = new FileOutputStream(new File(DESTINATION_PATH + fileName));
+//
+//                    byte[] buffer = new byte[1024];
+//                    int bytesRead;
+//                    //read from is to buffer
+//                    while ((bytesRead = is.read(buffer)) != -1) {
+//                        os.write(buffer, 0, bytesRead);
+//                    }
+//                    is.close();
+//                    //flush OutputStream to write any buffered data to file
+//                    os.flush();
+//                    os.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
         }
 
         logger.info("done");
-    }
+        }
 }

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:aws="http://www.mulesoft.org/schema/mule/aws" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<aws:s3-config name="Amazon_S3__Configuration" accessKeyId="${aws.accesskey}" secretAccessKey="${aws.secretkey}" doc:name="Amazon S3: Configuration">
+   		<aws:connection-pooling-profile initialisationPolicy="INITIALISE_ONE" exhaustedAction="FAIL"/>
+    	<aws:region config-ref="AWS_Region" />
+	</aws:s3-config>
+	
+    <http:listener-config name="HTTP_Listener_Configuration" doc:name="HTTP_Listener_Configuration">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+
+    <http:listener-config name="HTTPS_Listener_Configuration" doc:name="HTTPS_Listener_Configuration">
+        <http:listener-connection protocol="HTTPS" host="0.0.0.0" port="8082">
+            <tls:context>
+                <tls:key-store type="jks" path="keystore.jks" alias="mule" keyPassword="${keystore.password}" password="${keystore.password}" />
+            </tls:context>
+        </http:listener-connection>
+    </http:listener-config>
+
+    <db:config name="MySQL_Configuration" doc:name="MySQL Configuration">
+        <db:my-sql-connection database="${mysql.database}" host="${mysql.ip}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}">
+            <db:pooling-profile maxPoolSize="40" minPoolSize="10" />
+            <!--Migration ERROR: Add a suitable JDBC driver dependency for this connection.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/db-connector/1.8/database-connector-examples#configure-a-database-connection-->
+            <reconnection failsDeployment="true">
+                <reconnect-forever frequency="5000" />
+            </reconnection>
+        </db:my-sql-connection>
+    </db:config>
+
+    <configuration defaultExceptionStrategy-ref="globalExceptionCatchingStrategy" doc:name="Configuration" />
+    
+    
+
+    
+
+
+    <http:request-config name="Pagerduty_HTTPS_Config" doc:name="HTTP Request Configuration">
+        <http:request-connection protocol="HTTPS" host="events.pagerduty.com" port="443" />
+    </http:request-config>
+
+    
+    <!--  Updated secure properties tag for below properties benjerrys and mi -->
+    
+    <secure-properties:config file="${mule.env}.benjerrys.properties" key="${secure::mule.decryptionKey}" name="Secure_Property_Placeholder_5">
+    	<secure-properties:encrypt algorithm="AES" mode="CBC" />
+	</secure-properties:config>
+
+    <secure-properties:config file="${mule.env}.mi.properties" key="${secure::mule.decryptionKey}" name="Secure_Property_Placeholder">
+        <secure-properties:encrypt algorithm="AES" mode="CBC" />
+    </secure-properties:config>
+    
+    
+
+    <email:smtp-config name="SES_SMTP_STARTTLS_HTML">
+        <email:smtps-connection host="smtp.gmail.com" port="465" user="${email.info.sending.username}" password="${email.info.sending.password}">
+            <!--Migration WARN: Make sure the migrated app is allowed to access GMail.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/email-connector/1.2/email-gmail#gmail-configurations-->
+            <!--<smtp:gmail-connector xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" name="SES_SMTP_STARTTLS_HTML" contentType="text/html" validateConnections="true" doc:name="Gmail"><reconnection xmlns="http://www.mulesoft.org/schema/mule/core" failsDeployment="true" /></smtp:gmail-connector>-->
+            <tls:context>
+                <tls:trust-store insecure="true" />
+            </tls:context>
+        </email:smtps-connection>
+    </email:smtp-config>
+
+    <email:smtp-config name="SES_SMTP_STARTTLS">
+        <email:smtps-connection host="smtp.gmail.com" port="465" user="${email.info.sending.username}" password="${email.info.sending.password}">
+            <!--Migration WARN: Make sure the migrated app is allowed to access GMail.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/email-connector/1.2/email-gmail#gmail-configurations-->
+            <!--<smtp:gmail-connector xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" name="SES_SMTP_STARTTLS" validateConnections="true" doc:name="Gmail"><reconnection xmlns="http://www.mulesoft.org/schema/mule/core" failsDeployment="true" /></smtp:gmail-connector>-->
+            <tls:context>
+                <tls:trust-store insecure="true" />
+            </tls:context>
+        </email:smtps-connection>
+    </email:smtp-config>
+
+    <sub-flow name="GLOBAL:set-session-vars">
+        <compatibility:set-session-variable variableName="apiUrl" value="${api.url}" doc:name="Set API URL">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+        <compatibility:set-session-variable variableName="apiVersion" value="${api.version}" doc:name="Set API Version">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+        <compatibility:set-session-variable variableName="domainUrl" value="${domain.url}" doc:name="Set Domain URL">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+    </sub-flow>
+
+    <error-handler name="globalExceptionCatchingStrategy">
+        <on-error-continue>
+            <compatibility:remove-session-variable variableName="token" doc:name="Redact any token value">
+                <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+            </compatibility:remove-session-variable>
+            <set-variable variableName="exceptionValue" value="#[mel:exception.toString().replace(&quot;\&quot;&quot;,&quot;'&quot;)]" doc:name="Sanitized exceptionValue">
+                <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            </set-variable>
+            <set-variable variableName="exceptionMessage" value="#[mel:exception.?cause.?message.replace(&quot;\&quot;&quot;,&quot;'&quot;)]" doc:name="Sanitized exceptionMessage">
+                <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            </set-variable>
+            <logger message="#[vars.exceptionValue ++ '\n' ++ vars.exceptionMessage]" level="ERROR" doc:name="Log error to console" />
+            <set-variable variableName="exceptionPayload" value="#[&quot;{'routing_key': '${pagerduty.key}', 'event_action': 'trigger', 'payload': {'summary': '$(mel:'${mule.env}'.toUpperCase() + ' ' + flowVars.exceptionValue)', 'source': 'Square Bridge', 'severity': 'error', 'custom_details': { 'env': '${mule.env}', 'app_name': '$(vars.app.name)', 'exception': '$(vars.exceptionValue)', 'exception_message': '$(vars.exceptionMessage)'}}}&quot;]" doc:name="exceptionPayload">
+                <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            </set-variable>
+            <choice doc:name="Choice">
+                <when expression="#[mel:'${mule.env}'.equals('production')]">
+                    <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                    <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+                    <set-payload value="#[vars.exceptionPayload]" doc:name="Set Payload" />
+                    <compatibility:outbound-properties-to-var>
+                        <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                    </compatibility:outbound-properties-to-var>
+                    <http:request config-ref="Pagerduty_HTTPS_Config" path="v2/enqueue" method="POST" doc:name="Pagerduty">
+                        <http:headers><![CDATA[#[migration::HttpRequester::httpRequesterHeaders(vars) ++ {'Content-Type' : 'application/json'}]]]></http:headers>
+                    </http:request>
+                    <compatibility:attributes-to-inbound-properties>
+                        <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+                    </compatibility:attributes-to-inbound-properties>
+                </when>
+                <otherwise>
+                    <logger message="#[&quot;DEVELOPMENT - $(vars.exceptionPayload)&quot;]" level="INFO" doc:name="Logger" />
+                </otherwise>
+            </choice>
+        </on-error-continue>
+    </error-handler>
+
+</mule>

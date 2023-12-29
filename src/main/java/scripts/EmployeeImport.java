@@ -22,7 +22,6 @@ import com.squareup.connect.v2.TeamMemberAssignedLocations;
 import com.squareup.connect.v2.WageSetting;
 
 import util.SquarePayload;
-import vfcorp.Util;
 
 public class EmployeeImport {
     private final static String MASTER_ACCOUNT_TOKEN = System.getenv("SCRIPT_ENCRYPTED_ACCOUNT_TOKEN");
@@ -56,8 +55,8 @@ public class EmployeeImport {
         SquareClientV2 clientV2 = new SquareClientV2(API_URL, account.getAccessToken(ENCRYPTION_KEY));
         Location[] locations = clientV2.locations().list();
         for (Location location : locations) {
-            String storeId = Util.getValueInParenthesis(location.getName()).replaceAll("[^\\d]", "");
-            locationsCache.put(storeId, location.getId());
+           // String storeId = Util.getValueInParenthesis(location.getName()).replaceAll("[^\\d]", "");
+            locationsCache.put("", location.getId());
         }
 
         TeamMember[] teamMembers = clientV2.team().search();

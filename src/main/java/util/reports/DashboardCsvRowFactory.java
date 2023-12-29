@@ -13,6 +13,9 @@ import com.squareup.connect.v2.Payment;
 import com.squareup.connect.v2.PaymentRefund;
 import com.squareup.connect.v2.ProcessingFee;
 import com.squareup.connect.v2.Tender;
+
+import util.LocationContext;
+
 import com.squareup.connect.v2.CatalogObject;
 import com.squareup.connect.v2.Customer;
 import com.squareup.connect.v2.Money;
@@ -22,7 +25,7 @@ import com.squareup.connect.v2.OrderLineItemAppliedTax;
 import com.squareup.connect.v2.OrderLineItemModifier;
 
 import util.Constants;
-import util.LocationContext;
+//import util.LocationContext;
 
 public class DashboardCsvRowFactory {
 	private static final String PRODUCT_TYPE_OTHER_LABEL = "OTHER";
@@ -39,6 +42,7 @@ public class DashboardCsvRowFactory {
 	public List<String> generateTransactionCsvRow(Order order, Map<String, Payment> tenderToPayment, Customer customer,
 			LocationContext locationContext, String domainUrl) throws Exception {
 		ArrayList<String> fields = new ArrayList<String>();
+		//Constants constant = Constants.EVENT_TYPE_PAYMENT;
 		DashboardCsvTenderSummary tenders = DashboardCsvTenderSummary.generateTenderSummary(order);
 		int totalMoney = order.getTotalMoney() != null ? order.getTotalMoney().getAmount() : 0;
     	int totalTaxMoney = order.getTotalTaxMoney() != null ? order.getTotalTaxMoney().getAmount() : 0;
@@ -64,11 +68,11 @@ public class DashboardCsvRowFactory {
 		fields.add(getCurrencyString(0));
 		fields.add("");
 		fields.add("");
-     	int totalProcessingFee = order.getTenders() != null ? Arrays.stream(order.getTenders())
-         		.map(Tender::getProcessingFeeMoney)
-         		.filter(Objects::nonNull)
-         		.mapToInt(Money::getAmount)
-         		.sum() : 0;
+     	int totalProcessingFee = 0;//order.getTenders() != null ? Arrays.stream(order.getTenders())
+//         		.map(Tender::getProcessingFeeMoney)
+//         		.filter(Objects::nonNull)
+//         		.mapToInt(Money::getAmount)
+//         		.sum() : 0;
 		fields.add(getCurrencyString(-totalProcessingFee));
 		fields.add(getCurrencyString(netAmounts - totalProcessingFee));
 		fields.add(order.getId());

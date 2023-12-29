@@ -2,19 +2,13 @@ package benjerrys;
 
 import java.util.List;
 
-import org.mule.api.MuleEventContext;
-import org.mule.api.MuleMessage;
-import org.mule.api.lifecycle.Callable;
+public class AggregateSummaryCallable {
 
-public class AggregateSummaryCallable implements Callable {
-
-    @Override
-    public Object onCall(MuleEventContext eventContext) throws Exception {
-        MuleMessage message = eventContext.getMessage();
+    public Object agregateSummaryCallable() throws Exception {
+        //MuleMessage message = eventContext.getMessage();
 
         @SuppressWarnings("unchecked")
-        List<LocationReportSummaryPayload> reportSummaryByLocation = (List<LocationReportSummaryPayload>) message
-                .getPayload();
+        List<LocationReportSummaryPayload> reportSummaryByLocation = null;//(List<LocationReportSummaryPayload>) message.getPayload();
 
         StringBuilder builder = new StringBuilder();
         builder.append("<!DOCTYPE html>");

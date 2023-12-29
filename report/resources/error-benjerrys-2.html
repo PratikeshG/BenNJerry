@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">Could not find a non-custom splitter associated with this aggregator and there is no way of knowing the expected aggregation size. If the splitter and aggregator are in different flows, they might not be migrated. If that is not the case, the aggregators module should provide the required functionality.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-core-splitter-aggregator">https://docs.mulesoft.com/mule-runtime/4.3/migration-core-splitter-aggregator</a></h4>
+            <h4><a href="https://docs.mulesoft.com/aggregators-module/1.0/">https://docs.mulesoft.com/aggregators-module/1.0/</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;collection-aggregator failOnTimeout=&quot;true&quot; doc:name=&quot;Collection Aggregator&quot; /&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

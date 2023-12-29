@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.mule.api.MuleMessage;
+//import org.mule.api.MuleMessage;
 
 import com.squareup.connect.v2.Location;
 import com.squareup.connect.v2.Order;
@@ -31,9 +31,9 @@ public class PaymentsReportBuilder extends AbstractReportBuilder<Order> {
 		super(apiUrl, accessToken, merchantId);
 	}
 
-	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
-		super(apiUrl, accessToken, merchantId, message);
-	}
+//	public PaymentsReportBuilder(String apiUrl, String accessToken, String merchantId, MuleMessage message) {
+//		super(apiUrl, accessToken, merchantId, message);
+//	}
 
 	/**
 	 * {@code clientOverride} provided for test.

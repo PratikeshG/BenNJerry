@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">benjerrys.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The MEL expression could not be migrated to a DataWeave expression.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-mel">https://docs.mulesoft.com/mule-runtime/4.3/migration-mel</a></h4>
+            <h4><a href="https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions">https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions</a></h4>
+            <h4><a href="https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4">https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;email:send to=&quot;#[flowVars.emailRecipients]&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Reports to Recipients&quot; config-ref=&quot;SES_SMTP_STARTTLS&quot; fromAddress=&quot;#[vars.compatibility_outboundProperties.fromAddress]&quot;&gt;
+    &lt;!--Migration ERROR: Use the inline configuration of the operation instead of relying on properties set before this endpoint.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint--&gt;
+&lt;/email:send&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;when expression=&quot;#[payload.isProcessed()]&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+    &lt;set-variable variableName=&quot;emailRecipients&quot; value=&quot;#[(sessionVars.emailOverride != null &amp;amp;&amp;amp; sessionVars.emailOverride.length() &amp;gt; 0 ) ?  sessionVars.emailOverride : flowVars.locationRecipients]&quot; doc:name=&quot;Set emailRecipients&quot; /&gt;
+    &lt;async doc:name=&quot;Async&quot;&gt;
+        &lt;set-payload value=&quot;Your monthly reports are attached.&quot; doc:name=&quot;Set Payload&quot; /&gt;
+        &lt;smtp:outbound-endpoint host=&quot;${email.info.sending.server}&quot; user=&quot;${email.info.sending.username}&quot; password=&quot;****&quot; connector-ref=&quot;SES_SMTP_STARTTLS&quot; to=&quot;#[flowVars.emailRecipients]&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Reports to Recipients&quot; /&gt;
+    &lt;/async&gt;
+&lt;/when&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;logger message=&quot;#[&amp;quot;Retrieving location details for deployment: &amp;quot; + payload.getName()]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+&lt;/logger&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-session-variable variableName=&quot;dateMonthYear&quot; value=&quot;#[server.dateTime.plusMonths(flowVars.negateOffset).format(&apos;MMM yyyy&apos;)]&quot; doc:name=&quot;Set reportMonthYear date string&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;set-variable variableName=&quot;negateOffset&quot; value=&quot;#[Integer.parseInt(sessionVars.offset) * -1]&quot; doc:name=&quot;Calc negative offset for date string&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+&lt;/set-variable&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">0</span>&nbsp;
+                    Column: <span class="text-italic text-normal">0</span>
+                </h4>
+                <br>
+                <pre>&lt;email:send to=&quot;${benjerrys.email.summary.to}&quot; bcc=&quot;benjerrys+debug@squareup.com&quot; from=&quot;${email.info.sending.from.reports}&quot; subject=&quot;#[&apos;Ben &amp;amp; Jerry\&apos;s Monthly Summary - Square - &apos; + sessionVars.dateMonthYear]&quot; responseTimeout=&quot;10000&quot; mimeType=&quot;text/html&quot; doc:name=&quot;Email Job Summary&quot; config-ref=&quot;SES_SMTP_STARTTLS_HTML&quot; fromAddress=&quot;#[vars.compatibility_outboundProperties.fromAddress]&quot;&gt;
+    &lt;!--Migration ERROR: Use the inline configuration of the operation instead of relying on properties set before this endpoint.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint--&gt;
+&lt;/email:send&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

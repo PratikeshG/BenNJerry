@@ -70,7 +70,8 @@ public class ConnectV2MigrationHelper {
         Map<String, List<PaymentRefund>> result = new HashMap<>();
 
         Map<String, Payment> paymentsMap = new HashMap<>();
-        Arrays.stream(payments).forEach(payment -> paymentsMap.put(payment.getId(), payment));
+        //pratikesh
+        //Arrays.stream(payments).forEach(payment -> paymentsMap.put(payment.getId(), payment));
         for (Order order : orders) {
             if (order != null && order.getTenders() != null) {
                 for (Tender tender : order.getTenders()) {
@@ -109,16 +110,16 @@ public class ConnectV2MigrationHelper {
      */
     public static Map<String, CatalogObject> getCatalogObjectsForOrder(SquareClientV2 squareClientV2, Order[] orders)
             throws Exception {
-
-        String[] catalogObjectIds = Stream.of(orders).map(Order::getLineItems).filter(Objects::nonNull)
-                .flatMap(Stream::of).map(OrderLineItem::getCatalogObjectId).filter(Objects::nonNull)
-                .collect(Collectors.toSet()).toArray(new String[0]);
+//pratikesh
+        String[] catalogObjectIds = null;//Stream.of(orders).map(Order::getLineItems).filter(Objects::nonNull)
+ //               .flatMap(Stream::of).map(OrderLineItem::getCatalogObjectId).filter(Objects::nonNull)
+   //             .collect(Collectors.toSet()).toArray(new String[0]);
 
         CatalogObject[] catalogObjects = squareClientV2.catalog().batchRetrieve(catalogObjectIds, false);
         Map<String, CatalogObject> catalogObjectsMap = new HashMap<>();
-
-        Arrays.stream(catalogObjects)
-                .forEach(catalogObject -> catalogObjectsMap.put(catalogObject.getId(), catalogObject));
+//pratikesh
+//        Arrays.stream(catalogObjects)
+//                .forEach(catalogObject -> catalogObjectsMap.put(catalogObject.getId(), catalogObject));
 
         return catalogObjectsMap;
     }
@@ -261,7 +262,8 @@ public class ConnectV2MigrationHelper {
 	}
 
 	public static Map<String, Payment> getTenderToPayment(Order[] orders, Payment[] payments, SquareClientV2 squareClientV2, Map<String, String> params) throws Exception {
-        Map<String, Payment> tenderToPayment = Arrays.stream(payments).collect(Collectors.toMap(Payment::getId, Function.identity()));
+        //pratikesh
+		Map<String, Payment> tenderToPayment = null;//Arrays.stream(payments).collect(Collectors.toMap(Payment::getId, Function.identity()));
         for(Order order : orders) {
         	if(order != null && order.getTenders() != null) {
         		for(Tender tender : order.getTenders()) {
@@ -285,7 +287,8 @@ public class ConnectV2MigrationHelper {
 	public static Map<String, CatalogObject> getCatalogMap(String[] itemVariationIds, SquareClientV2 clientV2) throws Exception {
 	        CatalogObject[] relatedItems = clientV2.catalog().batchRetrieve(itemVariationIds, true);
 		  	Map<String, CatalogObject> catalogMap = new HashMap<>();
-		  	Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
+		  	//pratikesh
+		  	//Arrays.stream(relatedItems).forEach(relatedItem -> catalogMap.put(relatedItem.getId(), relatedItem));
 		  	return catalogMap;
 	}
 
@@ -315,7 +318,8 @@ public class ConnectV2MigrationHelper {
     public static Map<String, CatalogObject> getCategoriesMap(SquareClientV2 clientV2) throws Exception {
     	Map<String, CatalogObject> categoriesMap = new HashMap<>();
 	  	CatalogObject[] categories = clientV2.catalog().listCategories();
-        Arrays.stream(categories).forEach(category -> categoriesMap.put(category.getId(), category));
+        //pratikesh
+	  	//Arrays.stream(categories).forEach(category -> categoriesMap.put(category.getId(), category));
         return categoriesMap;
     }
 
@@ -356,26 +360,26 @@ public class ConnectV2MigrationHelper {
     	payment.setTaxMoney(new Money(totalTaxMoney));
     	payment.setTipMoney(new Money(totalTipMoney));
     	payment.setTotalCollectedMoney(new Money(netAmounts));
-    	int totalProcessingFee = order.getTenders() != null ? Arrays.stream(order.getTenders())
-         		.map(Tender::getProcessingFeeMoney)
-         		.filter(Objects::nonNull)
-         		.mapToInt(com.squareup.connect.v2.Money::getAmount)
-         		.sum() : 0;
+    	int totalProcessingFee = 0;//order.getTenders() != null ? Arrays.stream(order.getTenders())
+//         		.map(Tender::getProcessingFeeMoney)
+//         		.filter(Objects::nonNull)
+//         		.mapToInt(com.squareup.connect.v2.Money::getAmount)
+//         		.sum() : 0;
     	payment.setProcessingFeeMoney(new Money(-totalProcessingFee));
     	payment.setNetTotalMoney(new Money(netAmounts - totalProcessingFee));
     	setTenders(order, payment, tenderToPayment);
     	setPaymentDetails(order, payment, catalogMap, lineItemCategories, tenderToPayment, customer);
-    	int totalInclusiveTaxMoney = payment.getInclusiveTax().length > 0 ? Arrays.stream(payment.getInclusiveTax())
-    			.map(PaymentTax::getAppliedMoney)
-    			.filter(Objects::nonNull)
-    			.mapToInt(Money::getAmount)
-    			.sum() : 0;
+    	int totalInclusiveTaxMoney = 0;//payment.getInclusiveTax().length > 0 ? Arrays.stream(payment.getInclusiveTax())
+//    			.map(PaymentTax::getAppliedMoney)
+//    			.filter(Objects::nonNull)
+//    			.mapToInt(Money::getAmount)
+//    			.sum() : 0;
     	payment.setInclusiveTaxMoney(new Money(totalInclusiveTaxMoney));
-    	int totalAdditiveTaxMoney = payment.getAdditiveTax().length > 0 ? Arrays.stream(payment.getAdditiveTax())
-    			.map(PaymentTax::getAppliedMoney)
-    			.filter(Objects::nonNull)
-    			.mapToInt(Money::getAmount)
-    			.sum() : 0;
+    	int totalAdditiveTaxMoney = 0;//payment.getAdditiveTax().length > 0 ? Arrays.stream(payment.getAdditiveTax())
+//    			.map(PaymentTax::getAppliedMoney)
+//    			.filter(Objects::nonNull)
+//    			.mapToInt(Money::getAmount)
+//    			.sum() : 0;
     	payment.setAdditiveTaxMoney(new Money(totalAdditiveTaxMoney));
     	if(order.getTenders() != null) {
     		for(Tender tender : order.getTenders()) {
@@ -574,11 +578,11 @@ public class ConnectV2MigrationHelper {
     }
 
     public static Map<String, OrderLineItemTax> getOrderLineItemTaxMap(Order order) {
-        return order != null && order.getTaxes() != null ? Arrays.stream(order.getTaxes()).collect(Collectors.toMap(OrderLineItemTax::getUid, tax -> tax)) : new HashMap<>();
+        return null;//pratikesh//order != null && order.getTaxes() != null ? Arrays.stream(order.getTaxes()).collect(Collectors.toMap(OrderLineItemTax::getUid, tax -> tax)) : new HashMap<>();
     }
 
     public static Map<String, OrderLineItemDiscount> getOrderLineItemDiscountMap(Order order) {
-        return order != null && order.getDiscounts() != null ? Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, discount -> discount)) : new HashMap<>();
+        return null;//pratikesh//order != null && order.getDiscounts() != null ? Arrays.stream(order.getDiscounts()).collect(Collectors.toMap(OrderLineItemDiscount::getUid, discount -> discount)) : new HashMap<>();
     }
 
     public static boolean isExchange(Order order) {

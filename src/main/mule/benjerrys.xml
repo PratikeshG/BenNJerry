@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:aggregators="http://www.mulesoft.org/schema/mule/aggregators" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+    <!--Migration INFO: The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4-->
+    <!--    For more information refer to:-->
+    <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz-->
+    <!--<quartz:connector xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" name="Quartz-BJs" validateConnections="true" doc:name="Quartz" />-->
+    <vm:config name="BJS_REPORTING_VM">
+        <vm:queues>
+            <vm:queue queueName="BJs-aggregate-location-payloads-queue-async-worker" queueType="TRANSIENT" />
+        </vm:queues>
+    </vm:config>
+
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="8c8464ab-6a43-4c88-86a1-23ddec513156" >
+		<db:data-source-connection dataSourceRef="jdbcDatabase"/>
+	</db:config>
+	<flow name="BJs-trigger-monthly-report">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/bjs/report/${urlKey}" doc:name="/bjs/report">
+            <http:response statusCode="#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+                <!--Migration WARN: Avoid using an outbound property to determine the status code.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <http:headers>#[migration::HttpListener::httpListenerResponseHeaders(vars)]</http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <compatibility:attributes-to-inbound-properties>
+            <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+        </compatibility:attributes-to-inbound-properties>
+
+        <compatibility:set-session-variable variableName="offset" value="#[if (vars.compatibility_inboundProperties.'http.query.params'.offset != null)   vars.compatibility_inboundProperties.'http.query.params'.offset else   '1']" doc:name="Set offset">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+
+        <compatibility:set-session-variable variableName="emailOverride" value="#[if (vars.compatibility_inboundProperties.'http.query.params'.email != null)   vars.compatibility_inboundProperties.'http.query.params'.email else   '']" doc:name="Set email (override)">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+
+        <compatibility:set-session-variable variableName="locationOverride" value="#[if (vars.compatibility_inboundProperties.'http.query.params'.location != null)   vars.compatibility_inboundProperties.'http.query.params'.location else   '']" doc:name="Set location (override)">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        </compatibility:set-session-variable>
+
+        <flow-ref name="BJs-generate-monthly-report" doc:name="BJs-generate-monthly-report" />
+
+        <set-payload value="#[&quot;BJs mothly reports generated with offset: $(sessionVars.offset)&quot;]" doc:name="Response message" />
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+    </flow>
+
+    <flow name="BJs-monthly-report-cron" maxConcurrency="1">
+        <!--Migration INFO: The 'flow' element no longer has a 'processingStrategy' attribute.-->
+        <!--    For more information refer to:-->
+        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
+        <scheduler responseTimeout="10000" doc:name="Run first of every month at 8:45pm EST">
+            <scheduling-strategy>
+                <cron expression="0 45 20 1 * ?" timeZone="America/New_York" />
+            </scheduling-strategy>
+        </scheduler>
+
+        <choice doc:name="Choice">
+            <when expression="#['${benjerrys.reporting.active}' == false]">
+                <logger message="Ben &amp; Jerrys Reporting Disabled" level="INFO" doc:name="Logger" />
+            </when>
+            <otherwise>
+                <compatibility:set-session-variable variableName="offset" value="1" doc:name="Set offset">
+                    <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+                </compatibility:set-session-variable>
+                <compatibility:set-session-variable variableName="emailOverride" value="#['']" doc:name="Set emailOverride">
+                    <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+                </compatibility:set-session-variable>
+                <compatibility:set-session-variable variableName="locationOverride" value="#['']" doc:name="Set locationOverride">
+                    <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+                </compatibility:set-session-variable>
+                <flow-ref name="BJs-generate-monthly-report" doc:name="BJs-generate-monthly-report" />
+            </otherwise>
+        </choice>
+
+    </flow>
+
+    <flow name="BJs-generate-monthly-report">
+        <logger message="Begin generating Ben &amp; Jerrys Reporting" level="INFO" doc:name="Logger" />
+
+        <flow-ref name="GLOBAL:set-session-vars" doc:name="GLOBAL:set-session-vars" />
+
+        <set-variable variableName="deployment" value="ben-and-jerrys" doc:name="Deployment ID" />
+
+        <flow-ref name="MI:OAuth:retrieveToken" doc:name="MI:OAuth:retrieveToken" />
+
+        <set-variable variableName="negateOffset" value="#[mel:Integer.parseInt(sessionVars.offset) * -1]" doc:name="Calc negative offset for date string">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </set-variable>
+
+        <compatibility:set-session-variable variableName="dateMonthYear" value="#[mel:server.dateTime.plusMonths(flowVars.negateOffset).format('MMM yyyy')]" doc:name="Set reportMonthYear date string">
+            <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+        </compatibility:set-session-variable>
+
+        <flow-ref name="BJs-aggregate-location-payloads" doc:name="BJs-aggregate-location-payloads" />
+
+<!-- Pratikesh -->
+        <!--<component doc:name="Generate aggregate summary report"> - - - - - - -Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.- - - - - -  <singleton-object class="benjerrys.AggregateSummaryCallable" /</component>-->
+
+        <compatibility:outbound-properties-to-var>
+            <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+        </compatibility:outbound-properties-to-var>
+
+        <email:send from="${email.info.sending.from.reports}" responseTimeout="10000" mimeType="text/html" doc:name="Email Job Summary" config-ref="SES_SMTP_STARTTLS_HTML" fromAddress="#[vars.compatibility_outboundProperties.fromAddress]" subject="#[vars.compatibility_outboundProperties.subject default mel:'Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration ERROR: Use the inline configuration of the operation instead of relying on properties set before this endpoint.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint-->
+            <email:to-addresses>
+                <email:to-address value="#[migration::SmtpTransport::smptToAddress(vars) default '${benjerrys.email.summary.to}']" />
+            </email:to-addresses>
+            <email:cc-addresses>
+                <email:cc-address value="#[migration::SmtpTransport::smptCcAddress(vars)]" />
+            </email:cc-addresses>
+            <email:bcc-addresses>
+                <email:bcc-address value="#[migration::SmtpTransport::smptBccAddress(vars) default 'benjerrys+debug@squareup.com']" />
+            </email:bcc-addresses>
+            <email:reply-to-addresses>
+                <email:reply-to-address value="#[migration::SmtpTransport::smptReplyToAddress(vars)]" />
+            </email:reply-to-addresses>
+            <email:headers>#[vars.compatibility_outboundProperties.customHeaders]</email:headers>
+            <email:body contentType="#[payload.^mimeType]">
+                <email:content>#[payload]</email:content>
+            </email:body>
+            <email:attachments>#[vars filterObject ((value,key) -&gt; ((key as String) startsWith 'att_')) pluck ((value, key, index) -&gt; value)]</email:attachments>
+        </email:send>
+        
+        <logger message="Finished BJs generate-monthly-report flow." level="INFO" doc:name="Logger" />
+
+    </flow>
+
+    <flow name="BJs-aggregate-location-payloads">
+    
+    <flow-ref doc:name="Database:retrieveToken" doc:id="f908cfed-77e1-41b2-83c4-a45e9932d934" name="BJs-aggregate-location-payloads" target="squarePayload"/>
+        
+        <java:new doc:name="ReportsCallable" doc:id="3634102a-94ae-4428-81bf-f1d94eb2178a" class="benjerrys.ReportsCallableBNJ" constructor="ReportsCallableBNJ(util.SquarePayload, String, String, String, String, String)" target="bnjCallable">
+			<java:args><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	squarePayload: vars.squarePayload,
+	encryptionKey: Mule::p("secure::encryption.key.tokens"),
+	apiUrl: "${jockey.api.url}",
+	databaseUrl: "jdbc:mysql://${mysql.ip}:${mysql.port}/${mysql.database}?verifyServerCertificate=false&useSSL=true",
+	databaseUser: "${mysql.user}",
+	databasePassword: Mule::p("secure::mysql.password")
+}]]]></java:args>
+		</java:new>
+        
+        <!-- Pratikesh -->
+		<java:invoke doc:name="locationsCallable(Location, Employees, range, offset, locationOverride)" doc:id="e237ab8d-03e5-4700-820c-9e0f13dffba5" 
+		instance="#[vars.bnjCallable]" class="benjerrys.ReportsCallableBNJ" method="locationsCallable(Location, Map, String, String)">
+				<java:args ><![CDATA[#[{location: vars.location, employees: vars.jockeyEmployees, offset: vars.offset, locationOverride: vars.locationOverride}]]]></java:args>
+			</java:invoke>
+
+
+        <async>
+            <compatibility:outbound-properties-to-var consumeStreams="true">
+                <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+            </compatibility:outbound-properties-to-var>
+            <vm:publish-consume doc:name="BJs-aggregate-location-payloads-queue-async-worker" config-ref="BJS_REPORTING_VM" queueName="BJs-aggregate-location-payloads-queue-async-worker">
+                <!--Migration INFO: The queue configured in the VM inbound endpoint of the 'request-reply' is not used anymore.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/connectors/vm/vm-publish-response-->
+                <!--<vm:inbound-endpoint xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" exchange-pattern="one-way" path="BJs-aggregate-location-payloads-queue-reply" doc:name="BJs-aggregate-location-payloads-queue-reply">
+                <collection-aggregator xmlns="http://www.mulesoft.org/schema/mule/core" failOnTimeout="true" doc:name="Collection Aggregator">
+                    
+                    
+                    
+                    
+                </collection-aggregator>
+            </vm:inbound-endpoint>-->
+                <set-variable variableName="collection-splitter0-group-size" value="#[sizeOf(payload)]" />
+                <foreach>
+                    <!--Migration WARN: Could not find any associated aggregator for the splitter. Might produce unexpected behavior.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-core-splitter-aggregator-->
+                    <!--<collection-splitter xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Collection Splitter" enableCorrelation="ALWAYS" />-->
+                    <aggregators:group-based-aggregator evictionTime="0" name="collection-splitter0-aggregator" groupSize="#[vars.'collection-splitter0-group-size']">
+                        <aggregators:aggregation-complete>
+                            <set-variable variableName="collection-splitter0-aggregator-aggregation" value="#[payload]" />
+                        </aggregators:aggregation-complete>
+                    </aggregators:group-based-aggregator>
+                </foreach>
+                <set-payload value="#[vars.'collection-splitter0-aggregator-aggregation']" />
+                <vm:content>
+                    <!--Migration WARN: You can remove this if this flow is not using 'sessionVariables' or after migrating them to variables.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+                    <![CDATA[#[output application/java --- {'_vmTransportMode': true, 'payload': payload.^raw, 'mimeType': payload.^mimeType, 'session': vars.compatibility_outboundProperties['MULE_SESSION']}]]]>
+                </vm:content>
+            </vm:publish-consume>
+            <compatibility:attributes-to-inbound-properties>
+                <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+            </compatibility:attributes-to-inbound-properties>
+            <logger message="Successfully completed all BJs location processing." level="INFO" doc:name="Logger" />
+        </async>
+
+    </flow>
+
+    <flow name="BJs-aggregate-location-payloads-queue-async-worker" maxConcurrency="${benjerrys.reporting.maxThreads}">
+        <!--Migration INFO: The 'flow' element no longer has a 'processingStrategy' attribute.-->
+        <!--    For more information refer to:-->
+        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
+        <vm:listener doc:name="BJs-aggregate-location-payloads-queue-async-worker" config-ref="BJS_REPORTING_VM" queueName="BJs-aggregate-location-payloads-queue-async-worker">
+            <vm:response>
+                <vm:content>
+                    <!--Migration WARN: You can remove this if this flow is not using 'sessionVariables' or after migrating them to variables.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+                    <![CDATA[#[output application/java --- {'_vmTransportMode': true, 'payload': payload.^raw, 'mimeType': payload.^mimeType, 'session': vars.compatibility_outboundProperties['MULE_SESSION']}]]]>
+                </vm:content>
+            </vm:response>
+        </vm:listener>
+
+        <compatibility:attributes-to-inbound-properties>
+            <!--Migration WARN: Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties-->
+        </compatibility:attributes-to-inbound-properties>
+
+        <logger message="#[mel:&quot;Retrieving location details for deployment: &quot; + payload.getName()]" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+
+
+<!-- Pratikesh -->
+   <!--      <component doc:name="Generate report for location"> -->
+            <!--Migration ERROR: Element 'component' which relied on Java no longer exists in Mule 4. Replace its uses with a new Mule 4 feature.-->
+      <!--       <singleton-object class="benjerrys.GenerateLocationReportCallable" />
+        </component> -->
+        <java:invoke
+		    doc:name="Generate report for location"
+		    instance="#[new benjerrys.ReportsControllerBNJ()]"
+		    method="generateReportsCallable">
+		    
+		</java:invoke>
+        
+
+        <choice doc:name="Choice">
+            <when expression="#[mel:payload.isProcessed()]">
+                <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+                <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+                <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                <set-variable variableName="emailRecipients" value="#[if ((sessionVars.emailOverride != null and length(sessionVars.emailOverride) &gt; 0))   sessionVars.emailOverride else   vars.locationRecipients]" doc:name="Set emailRecipients" />
+                <async doc:name="Async">
+                    <set-payload value="Your monthly reports are attached." doc:name="Set Payload" />
+                    <compatibility:outbound-properties-to-var>
+                        <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                    </compatibility:outbound-properties-to-var>
+                    <email:send from="${email.info.sending.from.reports}" responseTimeout="10000" mimeType="text/html" doc:name="Email Reports to Recipients" config-ref="SES_SMTP_STARTTLS" fromAddress="#[vars.compatibility_outboundProperties.fromAddress]" subject="#[vars.compatibility_outboundProperties.subject default mel:'Ben &amp; Jerry\'s Monthly Summary - Square - ' + sessionVars.dateMonthYear]">
+                        <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                        <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+                        <!--Migration ERROR: Use the inline configuration of the operation instead of relying on properties set before this endpoint.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-email#migrating-an-smtp-outbound-endpoint-->
+                        <email:to-addresses>
+                            <email:to-address value="#[migration::SmtpTransport::smptToAddress(vars) default vars.emailRecipients]" />
+                        </email:to-addresses>
+                        <email:cc-addresses>
+                            <email:cc-address value="#[migration::SmtpTransport::smptCcAddress(vars)]" />
+                        </email:cc-addresses>
+                        <email:bcc-addresses>
+                            <email:bcc-address value="#[migration::SmtpTransport::smptBccAddress(vars) default 'benjerrys+debug@squareup.com']" />
+                        </email:bcc-addresses>
+                        <email:reply-to-addresses>
+                            <email:reply-to-address value="#[migration::SmtpTransport::smptReplyToAddress(vars)]" />
+                        </email:reply-to-addresses>
+                        <email:headers>#[vars.compatibility_outboundProperties.customHeaders]</email:headers>
+                        <email:body contentType="#[payload.^mimeType]">
+                            <email:content>#[payload]</email:content>
+                        </email:body>
+                        <email:attachments>#[vars filterObject ((value,key) -&gt; ((key as String) startsWith 'att_')) pluck ((value, key, index) -&gt; value)]</email:attachments>
+                    </email:send>
+                </async>
+            </when>
+            <otherwise>
+                <logger message="Skipping. Location not processed." level="INFO" doc:name="Location not processed" />
+            </otherwise>
+        </choice>
+
+    </flow>
+
+</mule>

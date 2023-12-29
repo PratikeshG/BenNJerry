@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">mi-oauth.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The configutation of the Quartz connector is not needed by the `scheduler` in Mule 4</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz">https://docs.mulesoft.com/mule-runtime/4.3/migration-core-poll#qz</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">2</span>&nbsp;
+                    Column: <span class="text-italic text-normal">964</span>
+                </h4>
+                <br>
+                <pre>&lt;mule xsi:schemaLocation=&quot;  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd&quot;&gt;
+    &lt;quartz:connector name=&quot;Quartz-OAuth&quot; validateConnections=&quot;true&quot; doc:name=&quot;Quartz&quot;&gt;
+        &lt;quartz:factory-property key=&quot;org.quartz.scheduler.instanceName&quot; value=&quot;Quartz-OAuth&quot; /&gt;
+    &lt;/quartz:connector&gt;
+    &lt;flow name=&quot;MI:OAuth:create-token&quot;&gt;
+        &lt;http:listener config-ref=&quot;${default.http.config}&quot; path=&quot;/createToken&quot; doc:name=&quot;HTTPS&quot; /&gt;
+        &lt;choice doc:name=&quot;Prompt user to add deployment URI parameter&quot;&gt;
+            &lt;when expression=&quot;#[vars.compatibility_inboundProperties.&apos;http.query.params&apos;.deployment == null]&quot;&gt;
+                &lt;set-payload value=&quot;You must provide a URI parameter, &amp;quot;deployment&amp;quot;, which denotes the deployment name.&quot; doc:name=&quot;Inform user of missing URI parameter&quot; /&gt;
+            &lt;/when&gt;
+            &lt;when expression=&quot;#[vars.compatibility_inboundProperties.&apos;http.query.params&apos;.scope == null]&quot;&gt;
+                &lt;set-payload value=&quot;You must provide a URI parameter, &amp;quot;scope&amp;quot;, which denotes the requested Connect permission scopes.&quot; doc:name=&quot;Inform user of missing Connect permissions scope&quot; /&gt;
+            &lt;/when&gt;
+            &lt;when expression=&quot;#[vars.compatibility_inboundProperties.&apos;http.query.params&apos;.alias == null]&quot;&gt;
+                &lt;set-payload value=&quot;You must provide a URI parameter, &amp;quot;alias&amp;quot;, which denotes the Nickname/Alias for this integration.&quot; doc:name=&quot;Inform user of missing account Nickname parameter&quot; /&gt;
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                &lt;component doc:name=&quot;Generate state variable&quot;&gt;
+                    &lt;prototype-object class=&quot;util.oauth.StateVariableGenerator&quot; /&gt;
+                &lt;/component&gt;
+                &lt;parse-template location=&quot;static/bridge-oauth-redirect-state.html&quot; doc:name=&quot;Parse Template&quot; /&gt;
+            &lt;/otherwise&gt;
+        &lt;/choice&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;MI:OAuth:callback&quot;&gt;
+        &lt;http:listener config-ref=&quot;${default.http.config}&quot; path=&quot;/callback&quot; doc:name=&quot;HTTPS&quot; /&gt;
+        &lt;component class=&quot;util.oauth.StateVariableParser&quot; doc:name=&quot;Verify State Token&quot; /&gt;
+        &lt;choice doc:name=&quot;Route based on valid state variable&quot;&gt;
+            &lt;when expression=&quot;#[vars.deployment != null and vars.code != null]&quot;&gt;
+                &lt;component doc:name=&quot;Convert OAuth code to token&quot;&gt;
+                    &lt;prototype-object class=&quot;util.oauth.CodeToTokenConverter&quot; /&gt;
+                &lt;/component&gt;
+                &lt;db:insert config-ref=&quot;MySQL_Configuration&quot; doc:name=&quot;Write token to database&quot;&gt;
+                    &lt;db:parameterized-query&gt;&lt;![CDATA[INSERT INTO `token` (deployment, connectApp, encryptedAccessToken, encryptedRefreshToken, merchantId, locationId, expiryDate, merchantAlias) VALUES (#[flowVars.deployment], #[flowVars.connectAppId], #[flowVars.encryptedAccessToken], #[flowVars.encryptedRefreshToken], #[flowVars.merchantId], #[flowVars.locationId], #[flowVars.expiresAt], #[flowVars.alias]);]]&gt;&lt;/db:parameterized-query&gt;
+                &lt;/db:insert&gt;
+                &lt;set-payload value=&quot;Token written to database.&quot; doc:name=&quot;Inform user of successful operation&quot; /&gt;
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                &lt;set-payload value=&quot;Failed to validate state parameter. Token creation failed.&quot; doc:name=&quot;Inform user of failed operation&quot; /&gt;
+            &lt;/otherwise&gt;
+        &lt;/choice&gt;
+    &lt;/flow&gt;
+    &lt;sub-flow name=&quot;MI:OAuth:retrieveToken&quot;&gt;
+        &lt;db:select config-ref=&quot;MySQL_Configuration&quot; doc:name=&quot;Query database for deployment ID&quot;&gt;
+            &lt;db:parameterized-query&gt;&lt;![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment] LIMIT 1;]]&gt;&lt;/db:parameterized-query&gt;
+        &lt;/db:select&gt;
+        &lt;set-payload value=&quot;#[payload]&quot; mimeType=&quot;application/java&quot; /&gt;
+        &lt;ee:transform metadata:id=&quot;4c4f26e2-147b-4d27-848f-efeb8db63fc2&quot; doc:name=&quot;Transform Message&quot;&gt;
+            &lt;ee:message&gt;
+                &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { encryptedAccessToken: payload[0].encryptedAccessToken as String, locationId: payload[0].locationId, merchantAlias: payload[0].merchantAlias, merchantId: payload[0].merchantId } as Object {class: &quot;util.SquarePayload&quot;}]]&gt;&lt;/ee:set-payload&gt;
+            &lt;/ee:message&gt;
+        &lt;/ee:transform&gt;
+    &lt;/sub-flow&gt;
+    &lt;sub-flow name=&quot;MI:OAuth:retrieve-tokens&quot;&gt;
+        &lt;db:select config-ref=&quot;MySQL_Configuration&quot; doc:name=&quot;Query database for deployment IDs&quot;&gt;
+            &lt;db:parameterized-query&gt;&lt;![CDATA[SELECT * FROM token WHERE deployment = #[flowVars.deployment];]]&gt;&lt;/db:parameterized-query&gt;
+        &lt;/db:select&gt;
+    &lt;/sub-flow&gt;
+    &lt;flow name=&quot;MI:OAuth:renew-expiring-tokens&quot;&gt;
+        &lt;scheduler responseTimeout=&quot;10000&quot; doc:name=&quot;Run every Monday &amp;amp; Thursday at 10:00am (PST)&quot; migration:isMessageSource=&quot;true&quot;&gt;
+            &lt;scheduling-strategy&gt;
+                &lt;fixed-frequency frequency=&quot;0&quot; /&gt;
+                &lt;cron expression=&quot;0 0 10 ? * MON,THU&quot; timeZone=&quot;America/Los_Angeles&quot; /&gt;
+            &lt;/scheduling-strategy&gt;
+        &lt;/scheduler&gt;
+        &lt;set-payload value=&quot;#[mel:server.dateTime.plusDays(14).withTimeZone(&amp;quot;UTC&amp;quot;).format()]&quot; doc:name=&quot;Set payload to date two weeks in the future in ISO8601 format&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/set-payload&gt;
+        &lt;db:select config-ref=&quot;MySQL_Configuration&quot; doc:name=&quot;Query database for expired tokens&quot;&gt;
+            &lt;db:parameterized-query&gt;&lt;![CDATA[SELECT * FROM token WHERE expiryDate &lt; #[payload];]]&gt;&lt;/db:parameterized-query&gt;
+        &lt;/db:select&gt;
+        &lt;foreach doc:name=&quot;For each expiring token&quot;&gt;
+            &lt;component doc:name=&quot;Renew token&quot;&gt;
+                &lt;prototype-object class=&quot;util.oauth.TokenRenewer&quot; /&gt;
+            &lt;/component&gt;
+            &lt;choice doc:name=&quot;Process token&quot;&gt;
+                &lt;when expression=&quot;#[payload == false]&quot;&gt;
+                    &lt;logger message=&quot;#[&amp;quot;Error attempting to renew token: $(vars.error)&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Log error&quot; /&gt;
+                &lt;/when&gt;
+                &lt;otherwise&gt;
+                    &lt;db:update config-ref=&quot;MySQL_Configuration&quot; doc:name=&quot;Update token in database&quot;&gt;
+                        &lt;db:parameterized-query&gt;&lt;![CDATA[UPDATE `token` SET encryptedAccessToken = #[flowVars.encryptedAccessToken], expiryDate = #[flowVars.expiresAt] WHERE id = #[flowVars.tokenId];]]&gt;&lt;/db:parameterized-query&gt;
+                    &lt;/db:update&gt;
+                &lt;/otherwise&gt;
+            &lt;/choice&gt;
+        &lt;/foreach&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;MI:OAuth:trigger-oauth-refresh&quot;&gt;
+        &lt;http:listener config-ref=&quot;${default.http.config}&quot; path=&quot;/oauth/refresh/${urlKey}&quot; doc:name=&quot;/oauth/refresh&quot; /&gt;
+        &lt;flow-ref name=&quot;MI:OAuth:renew-expiring-tokens&quot; doc:name=&quot;MI:OAuth:renew-expiring-tokens&quot; /&gt;
+        &lt;set-payload value=&quot;Running OAuth refresh...&quot; doc:name=&quot;Set Payload&quot; /&gt;
+    &lt;/flow&gt;
+&lt;/mule&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

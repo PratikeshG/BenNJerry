@@ -1,8 +1,5 @@
 package util.oauth;
 
-import org.mule.api.MuleEventContext;
-import org.mule.api.lifecycle.Callable;
-import org.mule.api.transport.PropertyScope;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.squareup.connect.v2.ObtainTokenRequest;
@@ -11,7 +8,7 @@ import com.squareup.connect.v2.SquareClientV2;
 
 import util.SquarePayload;
 
-public class CodeToTokenConverter implements Callable {
+public class CodeToTokenConverter {
     @Value("${api.url}")
     private String apiUrl;
     @Value("${connect.app.id}")
@@ -24,12 +21,11 @@ public class CodeToTokenConverter implements Callable {
     private static final String GRANT_TYPE = "authorization_code";
     private static final String API_VERSION = "2022-02-16";
 
-    @Override
-    public Object onCall(MuleEventContext eventContext) throws Exception {
+    public Object onCall(Object eventContext) throws Exception {
         ObtainTokenRequest codeRequest = new ObtainTokenRequest();
         codeRequest.setClientId(connectAppId);
         codeRequest.setClientSecret(connectAppSecret);
-        codeRequest.setCode(eventContext.getMessage().getProperty("code", PropertyScope.INVOCATION));
+       // codeRequest.setCode(eventContext.getMessage().getProperty("code", PropertyScope.INVOCATION));
         codeRequest.setGrantType(GRANT_TYPE);
 
         SquareClientV2 client = new SquareClientV2(apiUrl);
@@ -41,13 +37,11 @@ public class CodeToTokenConverter implements Callable {
         tokenEncryption.encryptAccessToken(tokenResponse.getAccessToken(), encryptionKey);
         tokenEncryption.encryptRefreshToken(tokenResponse.getRefreshToken(), encryptionKey);
 
-        eventContext.getMessage().setProperty("connectAppId", connectAppId, PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),
-                PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("encryptedRefreshToken", tokenEncryption.getEncryptedRefreshToken(),
-                PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("merchantId", tokenResponse.getMerchantId(), PropertyScope.INVOCATION);
-        eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(), PropertyScope.INVOCATION);
+//        eventContext.getMessage().setProperty("connectAppId", connectAppId, PropertyScope.INVOCATION);
+//        eventContext.getMessage().setProperty("encryptedAccessToken", tokenEncryption.getEncryptedAccessToken(),PropertyScope.INVOCATION);
+//        eventContext.getMessage().setProperty("encryptedRefreshToken", tokenEncryption.getEncryptedRefreshToken(),PropertyScope.INVOCATION);
+//        eventContext.getMessage().setProperty("merchantId", tokenResponse.getMerchantId(), PropertyScope.INVOCATION);
+//        eventContext.getMessage().setProperty("expiresAt", tokenResponse.getExpiresAt(), PropertyScope.INVOCATION);
 
         return true;
     }
